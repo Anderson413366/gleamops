@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { createVerify } from 'crypto';
 import { createProblemDetails } from '@gleamops/shared';
+import { verifySendGridSignature } from '@/lib/sendgrid-webhook-verify';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -21,46 +21,6 @@ function getServiceClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   );
-}
-
-// ---------------------------------------------------------------------------
-// SendGrid Signed Event Webhook verification (ECDSA on RAW bytes)
-//
-// SendGrid uses ECDSA P-256 with SHA-256.
-// Signature = ECDSA_sign(timestamp + payload)  (raw request body bytes)
-// Headers:
-//   X-Twilio-Email-Event-Webhook-Signature  (base64-encoded ECDSA signature)
-//   X-Twilio-Email-Event-Webhook-Timestamp  (unix-ish timestamp string)
-//
-// The verification key from SendGrid dashboard is an ECDSA public key
-// in base64 DER format.
-// ---------------------------------------------------------------------------
-function verifySignature(
-  publicKeyBase64: string,
-  rawPayload: Buffer,
-  signatureBase64: string,
-  timestamp: string,
-): boolean {
-  try {
-    // Build the PEM from the base64 DER public key
-    const pem =
-      '-----BEGIN PUBLIC KEY-----\n' +
-      publicKeyBase64.match(/.{1,64}/g)!.join('\n') +
-      '\n-----END PUBLIC KEY-----';
-
-    // The signed data = timestamp bytes + raw payload bytes
-    const timestampBuf = Buffer.from(timestamp, 'utf8');
-    const signedData = Buffer.concat([timestampBuf, rawPayload]);
-
-    const verifier = createVerify('SHA256');
-    verifier.update(signedData);
-    verifier.end();
-
-    return verifier.verify(pem, signatureBase64, 'base64');
-  } catch (err) {
-    console.error('[webhook] signature verification error:', err);
-    return false;
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -115,7 +75,7 @@ export async function POST(request: NextRequest) {
       return problemResponse('AUTH_001', 'Missing signature', 401, 'Missing X-Twilio-Email-Event-Webhook-Signature or Timestamp headers');
     }
 
-    if (!verifySignature(verificationKey, rawBytes, signature, timestamp)) {
+    if (!verifySendGridSignature(verificationKey, rawBytes, signature, timestamp)) {
       console.warn('[webhook] invalid ECDSA signature — rejecting');
       return problemResponse('AUTH_001', 'Invalid signature', 401, 'ECDSA signature verification failed against raw request bytes');
     }

@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "pnpm turbo build --filter=@gleamops/web",
-  "outputDirectory": "apps/web/.next",
-  "installCommand": "pnpm install"
+  "buildCommand": "cd ../.. && pnpm turbo build --filter=@gleamops/web",
+  "installCommand": "cd ../.. && pnpm install",
+  "outputDirectory": ".next"
 }

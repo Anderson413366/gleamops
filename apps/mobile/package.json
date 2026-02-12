@@ -28,7 +28,8 @@
     "react-native-reanimated": "~3.16.0",
     "@supabase/supabase-js": "^2.48.0",
     "@react-navigation/native": "^7.0.0",
-    "@gleamops/shared": "workspace:*"
+    "@gleamops/shared": "workspace:*",
+    "@react-native-async-storage/async-storage": "~2.1.0"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

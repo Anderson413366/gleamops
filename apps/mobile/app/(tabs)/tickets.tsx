@@ -5,6 +5,7 @@ import {
 import { useRouter } from 'expo-router';
 import { supabase } from '../../src/lib/supabase';
 import { Colors, STATUS_COLORS } from '../../src/lib/constants';
+import { cacheWeekTickets, getCachedWeekTickets } from '../../src/lib/offline-cache';
 
 interface TicketRow {
   id: string;
@@ -27,6 +28,7 @@ export default function TicketsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
+  const [isOffline, setIsOffline] = useState(false);
 
   // Get this week's range
   const now = new Date();
@@ -36,19 +38,34 @@ export default function TicketsScreen() {
   weekEnd.setDate(weekEnd.getDate() + 6);
 
   const fetchTickets = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('work_tickets')
-      .select(`
-        id, ticket_code, status, scheduled_date, start_time, end_time,
-        site:site_id(name, site_code)
-      `)
-      .is('archived_at', null)
-      .gte('scheduled_date', weekStart.toISOString().split('T')[0])
-      .lte('scheduled_date', weekEnd.toISOString().split('T')[0])
-      .order('scheduled_date', { ascending: true })
-      .order('start_time', { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from('work_tickets')
+        .select(`
+          id, ticket_code, status, scheduled_date, start_time, end_time,
+          site:site_id(name, site_code)
+        `)
+        .is('archived_at', null)
+        .gte('scheduled_date', weekStart.toISOString().split('T')[0])
+        .lte('scheduled_date', weekEnd.toISOString().split('T')[0])
+        .order('scheduled_date', { ascending: true })
+        .order('start_time', { ascending: true });
 
-    if (!error && data) setTickets(data as unknown as TicketRow[]);
+      if (!error && data) {
+        const typed = data as unknown as TicketRow[];
+        setTickets(typed);
+        setIsOffline(false);
+        await cacheWeekTickets(typed);
+      } else {
+        throw new Error(error?.message ?? 'fetch failed');
+      }
+    } catch {
+      const cached = await getCachedWeekTickets<TicketRow>();
+      if (cached) {
+        setTickets(cached);
+        setIsOffline(true);
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -80,6 +97,13 @@ export default function TicketsScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Offline banner */}
+      {isOffline && (
+        <View style={styles.offlineBanner}>
+          <Text style={styles.offlineBannerText}>Offline — showing cached data</Text>
+        </View>
+      )}
+
       {/* Search */}
       <View style={styles.searchContainer}>
         <TextInput
@@ -131,6 +155,12 @@ export default function TicketsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.light.surface },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  offlineBanner: {
+    backgroundColor: Colors.light.warning,
+    paddingVertical: 6,
+    alignItems: 'center',
+  },
+  offlineBannerText: { color: '#fff', fontSize: 12, fontWeight: '600' },
   searchContainer: {
     paddingHorizontal: 16,
     paddingVertical: 12,

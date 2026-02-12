@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '../../src/lib/supabase';
 import { useAuth } from '../../src/contexts/auth-context';
 import { Colors, STATUS_COLORS } from '../../src/lib/constants';
+import { cacheTodayTickets, getCachedTodayTickets } from '../../src/lib/offline-cache';
 
 interface TodayTicket {
   id: string;
@@ -39,10 +40,10 @@ export default function MyDayScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [myOnly, setMyOnly] = useState(true);
+  const [isOffline, setIsOffline] = useState(false);
 
   const today = new Date().toISOString().split('T')[0];
 
-  // Get staff record first
   useEffect(() => {
     if (!user) return;
     supabase
@@ -59,20 +60,37 @@ export default function MyDayScreen() {
   }, [user]);
 
   const fetchTickets = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('work_tickets')
-      .select(`
-        id, ticket_code, status, scheduled_date, start_time, end_time,
-        site:site_id(name, site_code),
-        job:job_id(job_code),
-        assignments:ticket_assignments(staff_id, role)
-      `)
-      .eq('scheduled_date', today)
-      .is('archived_at', null)
-      .neq('status', 'CANCELLED')
-      .order('start_time', { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from('work_tickets')
+        .select(`
+          id, ticket_code, status, scheduled_date, start_time, end_time,
+          site:site_id(name, site_code),
+          job:job_id(job_code),
+          assignments:ticket_assignments(staff_id, role)
+        `)
+        .eq('scheduled_date', today)
+        .is('archived_at', null)
+        .neq('status', 'CANCELLED')
+        .order('start_time', { ascending: true });
 
-    if (!error && data) setTickets(data as unknown as TodayTicket[]);
+      if (!error && data) {
+        const typed = data as unknown as TodayTicket[];
+        setTickets(typed);
+        setIsOffline(false);
+        // Cache for offline use
+        await cacheTodayTickets(typed);
+      } else {
+        throw new Error(error?.message ?? 'fetch failed');
+      }
+    } catch {
+      // Network error — fall back to cache
+      const cached = await getCachedTodayTickets<TodayTicket>();
+      if (cached) {
+        setTickets(cached);
+        setIsOffline(true);
+      }
+    }
   }, [today]);
 
   useEffect(() => {
@@ -86,7 +104,6 @@ export default function MyDayScreen() {
     setRefreshing(false);
   }, [fetchTickets]);
 
-  // Filter: "My" tickets = tickets where I'm assigned
   const displayTickets = myOnly && staffId
     ? tickets.filter((t) => t.assignments?.some((a) => a.staff_id === staffId))
     : tickets;
@@ -108,7 +125,14 @@ export default function MyDayScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header with greeting */}
+      {/* Offline banner */}
+      {isOffline && (
+        <View style={styles.offlineBanner}>
+          <Text style={styles.offlineBannerText}>Offline — showing cached data</Text>
+        </View>
+      )}
+
+      {/* Header */}
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>
@@ -120,7 +144,7 @@ export default function MyDayScreen() {
         </View>
       </View>
 
-      {/* Stats Bar */}
+      {/* Stats */}
       <View style={styles.statsBar}>
         <View style={styles.stat}>
           <Text style={styles.statValue}>{displayTickets.length}</Text>
@@ -140,7 +164,7 @@ export default function MyDayScreen() {
         </View>
       </View>
 
-      {/* Filter toggle */}
+      {/* Filter */}
       <View style={styles.filterBar}>
         <Text style={styles.filterLabel}>
           {myOnly ? `My Tickets (${myTickets.length})` : `All Tickets (${tickets.length})`}
@@ -156,7 +180,7 @@ export default function MyDayScreen() {
         </View>
       </View>
 
-      {/* Ticket List */}
+      {/* List */}
       <FlatList
         data={displayTickets}
         keyExtractor={(item) => item.id}
@@ -210,7 +234,6 @@ export default function MyDayScreen() {
                   </View>
                 )}
               </View>
-              {/* Crew count */}
               {(item.assignments?.length ?? 0) > 0 && (
                 <Text style={styles.crewText}>
                   {item.assignments!.length} crew member{item.assignments!.length > 1 ? 's' : ''}
@@ -234,6 +257,12 @@ function getGreeting(): string {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.light.surface },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  offlineBanner: {
+    backgroundColor: Colors.light.warning,
+    paddingVertical: 6,
+    alignItems: 'center',
+  },
+  offlineBannerText: { color: '#fff', fontSize: 12, fontWeight: '600' },
   header: {
     backgroundColor: Colors.light.primary,
     paddingTop: 16,
@@ -275,10 +304,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.light.border,
     marginBottom: 12,
   },
-  myCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.light.primary,
-  },
+  myCard: { borderLeftWidth: 4, borderLeftColor: Colors.light.primary },
   cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   statusDot: { width: 8, height: 8, borderRadius: 4, marginRight: 8 },
   ticketCode: { fontSize: 14, fontWeight: '600', color: Colors.light.text, flex: 1, fontFamily: 'monospace' },

@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import sgMail from '@sendgrid/mail';
-import { PROPOSAL_001, PROPOSAL_002, PROPOSAL_003 } from '@gleamops/shared';
+import {
+  createProblemDetails,
+  PROPOSAL_001,
+  PROPOSAL_002,
+} from '@gleamops/shared';
 
-// Use service role client for server-side operations
+const CONTENT_TYPE_PROBLEM = 'application/problem+json';
+
+function problemResponse(pd: ReturnType<typeof createProblemDetails>) {
+  return NextResponse.json(pd, {
+    status: pd.status,
+    headers: { 'Content-Type': CONTENT_TYPE_PROBLEM },
+  });
+}
+
 function getServiceClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -11,48 +22,25 @@ function getServiceClient() {
   );
 }
 
-// Rate limit check: max 10 sends/hour/user, max 3/24h to same email
-async function checkRateLimit(
-  supabase: ReturnType<typeof getServiceClient>,
-  tenantId: string,
-  userId: string,
-  recipientEmail: string,
-): Promise<{ allowed: boolean; reason?: string }> {
-  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
-  // Check user hourly limit (10/hour)
-  const { count: userHourly } = await supabase
-    .from('sales_proposal_sends')
-    .select('id', { count: 'exact', head: true })
-    .eq('tenant_id', tenantId)
-    .gte('created_at', oneHourAgo);
-
-  if ((userHourly ?? 0) >= 10) {
-    return { allowed: false, reason: 'Max 10 proposal sends per hour exceeded.' };
-  }
-
-  // Check recipient daily limit (3/24h)
-  const { count: recipientDaily } = await supabase
-    .from('sales_proposal_sends')
-    .select('id', { count: 'exact', head: true })
-    .eq('tenant_id', tenantId)
-    .eq('recipient_email', recipientEmail)
-    .gte('created_at', oneDayAgo);
-
-  if ((recipientDaily ?? 0) >= 3) {
-    return { allowed: false, reason: `Max 3 sends per 24h to ${recipientEmail} exceeded.` };
-  }
-
-  return { allowed: true };
-}
-
+/**
+ * POST /api/proposals/send
+ *
+ * Inserts a QUEUED row into sales_proposal_sends.
+ * The background worker picks it up and sends via SendGrid.
+ *
+ * Pre-flight checks:
+ *   - Auth (Bearer token)
+ *   - Proposal exists, is in a sendable state
+ *   - Rate limits: 10/hr per tenant, 3/day per recipient email
+ */
 export async function POST(request: NextRequest) {
   try {
-    // Authenticate via Supabase auth header
+    // ----- Auth -----
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return problemResponse(
+        createProblemDetails('AUTH_001', 'Unauthorized', 401, 'Missing authorization header', '/api/proposals/send'),
+      );
     }
 
     const supabaseAuth = createClient(
@@ -63,144 +51,109 @@ export async function POST(request: NextRequest) {
 
     const { data: { user } } = await supabaseAuth.auth.getUser();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return problemResponse(
+        createProblemDetails('AUTH_001', 'Unauthorized', 401, 'Invalid or expired token', '/api/proposals/send'),
+      );
     }
 
-    const tenantId = user.app_metadata?.tenant_id;
+    const tenantId = user.app_metadata?.tenant_id as string | undefined;
     if (!tenantId) {
-      return NextResponse.json({ error: 'No tenant' }, { status: 403 });
+      return problemResponse(
+        createProblemDetails('AUTH_003', 'Tenant scope mismatch', 403, 'No tenant in token claims', '/api/proposals/send'),
+      );
     }
 
+    // ----- Body -----
     const body = await request.json();
-    const { proposalId, recipientEmail, recipientName } = body;
+    const { proposalId, recipientEmail, recipientName } = body as {
+      proposalId?: string;
+      recipientEmail?: string;
+      recipientName?: string;
+    };
 
     if (!proposalId || !recipientEmail) {
-      return NextResponse.json({ error: 'Missing proposalId or recipientEmail' }, { status: 400 });
+      return problemResponse(
+        createProblemDetails('PROPOSAL_001', 'Bad request', 400, 'proposalId and recipientEmail are required', '/api/proposals/send'),
+      );
     }
 
-    const supabase = getServiceClient();
+    const db = getServiceClient();
 
-    // Fetch proposal
-    const { data: proposal, error: propErr } = await supabase
+    // ----- Proposal validation -----
+    const { data: proposal, error: propErr } = await db
       .from('sales_proposals')
-      .select('id, proposal_code, status, tenant_id, pdf_generated_at, bid_version_id')
+      .select('id, proposal_code, status, tenant_id, bid_version_id')
       .eq('id', proposalId)
       .eq('tenant_id', tenantId)
       .single();
 
     if (propErr || !proposal) {
-      return NextResponse.json({ error: 'Proposal not found' }, { status: 404 });
+      return problemResponse(
+        createProblemDetails('PROPOSAL_001', 'Proposal not found', 404, 'Proposal does not exist or belongs to another tenant', '/api/proposals/send'),
+      );
     }
 
-    // Must be in a sendable state
     if (!['DRAFT', 'GENERATED', 'SENT', 'DELIVERED', 'OPENED'].includes(proposal.status)) {
-      const pd = PROPOSAL_001(`/api/proposals/send`);
-      return NextResponse.json(pd, { status: pd.status });
+      const pd = PROPOSAL_001('/api/proposals/send');
+      return problemResponse(pd);
     }
 
-    // Rate limit
-    const rateCheck = await checkRateLimit(supabase, tenantId, user.id, recipientEmail);
-    if (!rateCheck.allowed) {
-      const pd = PROPOSAL_002(`/api/proposals/send`);
-      return NextResponse.json({ ...pd, detail: rateCheck.reason }, { status: 429 });
+    // ----- Rate limits -----
+    const oneHourAgo = new Date(Date.now() - 3_600_000).toISOString();
+    const oneDayAgo  = new Date(Date.now() - 86_400_000).toISOString();
+
+    const { count: hourly } = await db
+      .from('sales_proposal_sends')
+      .select('id', { count: 'exact', head: true })
+      .eq('tenant_id', tenantId)
+      .gte('created_at', oneHourAgo);
+
+    if ((hourly ?? 0) >= 10) {
+      const pd = PROPOSAL_002('/api/proposals/send');
+      return problemResponse({ ...pd, detail: 'Max 10 proposal sends per hour exceeded.' });
     }
 
-    // Create send record with SENDING status
-    const { data: sendRecord, error: sendErr } = await supabase
+    const { count: daily } = await db
+      .from('sales_proposal_sends')
+      .select('id', { count: 'exact', head: true })
+      .eq('tenant_id', tenantId)
+      .eq('recipient_email', recipientEmail.trim())
+      .gte('created_at', oneDayAgo);
+
+    if ((daily ?? 0) >= 3) {
+      const pd = PROPOSAL_002('/api/proposals/send');
+      return problemResponse({ ...pd, detail: `Max 3 sends per 24h to ${recipientEmail} exceeded.` });
+    }
+
+    // ----- Insert QUEUED row -----
+    const { data: sendRecord, error: sendErr } = await db
       .from('sales_proposal_sends')
       .insert({
         tenant_id: tenantId,
         proposal_id: proposal.id,
         recipient_email: recipientEmail.trim(),
         recipient_name: recipientName?.trim() || null,
-        status: 'SENDING',
+        status: 'QUEUED',
       })
-      .select()
+      .select('id, idempotency_key')
       .single();
 
     if (sendErr || !sendRecord) {
-      return NextResponse.json({ error: 'Failed to create send record' }, { status: 500 });
-    }
-
-    // Fetch bid/client info for email content
-    const { data: bidVersion } = await supabase
-      .from('sales_bid_versions')
-      .select('id, bid:bid_id(bid_code, client:client_id(name))')
-      .eq('id', proposal.bid_version_id)
-      .single();
-
-    const clientName = (bidVersion as any)?.bid?.client?.name ?? 'Valued Customer';
-
-    // Send via SendGrid (or simulate if no API key)
-    const sendgridKey = process.env.SENDGRID_API_KEY;
-    let providerMessageId: string | null = null;
-
-    if (sendgridKey) {
-      sgMail.setApiKey(sendgridKey);
-
-      try {
-        const [response] = await sgMail.send({
-          to: recipientEmail.trim(),
-          from: {
-            email: process.env.SENDGRID_FROM_EMAIL ?? 'proposals@gleamops.com',
-            name: process.env.SENDGRID_FROM_NAME ?? 'GleamOps Proposals',
-          },
-          subject: `Proposal ${proposal.proposal_code} for ${clientName}`,
-          html: `
-            <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #1a1a1a;">Cleaning Service Proposal</h2>
-              <p>Dear ${recipientName || clientName},</p>
-              <p>Please find attached our proposal <strong>${proposal.proposal_code}</strong> for cleaning services.</p>
-              <p>This proposal includes multiple pricing options for your review. Please don't hesitate to reach out with any questions.</p>
-              <br/>
-              <p style="color: #666;">— The GleamOps Team</p>
-            </div>
-          `,
-        });
-
-        // Extract message ID from SendGrid response headers
-        providerMessageId = response?.headers?.['x-message-id'] ?? null;
-      } catch (sgError: any) {
-        // Update send record to FAILED
-        await supabase
-          .from('sales_proposal_sends')
-          .update({ status: 'FAILED' })
-          .eq('id', sendRecord.id);
-
-        const pd = PROPOSAL_003(sgError?.message ?? 'SendGrid send failed', `/api/proposals/send`);
-        return NextResponse.json(pd, { status: 502 });
-      }
-    } else {
-      // No SendGrid key — simulate send for development
-      providerMessageId = `sim_${crypto.randomUUID()}`;
-    }
-
-    // Update send record to SENT with provider message ID
-    await supabase
-      .from('sales_proposal_sends')
-      .update({
-        status: 'SENT',
-        sent_at: new Date().toISOString(),
-        provider_message_id: providerMessageId,
-      })
-      .eq('id', sendRecord.id);
-
-    // Update proposal status to SENT if it was DRAFT or GENERATED
-    if (proposal.status === 'DRAFT' || proposal.status === 'GENERATED') {
-      await supabase
-        .from('sales_proposals')
-        .update({ status: 'SENT' })
-        .eq('id', proposal.id);
+      return problemResponse(
+        createProblemDetails('SYS_001', 'Queue failed', 500, sendErr?.message ?? 'Failed to queue send', '/api/proposals/send'),
+      );
     }
 
     return NextResponse.json({
       success: true,
       sendId: sendRecord.id,
-      providerMessageId,
-      simulated: !sendgridKey,
+      idempotencyKey: sendRecord.idempotency_key,
+      status: 'QUEUED',
     });
   } catch (err: any) {
     console.error('[proposal-send] Unexpected error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return problemResponse(
+      createProblemDetails('SYS_001', 'Internal error', 500, 'Unexpected server error', '/api/proposals/send'),
+    );
   }
 }

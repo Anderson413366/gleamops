@@ -1,0 +1,29 @@
+/**
+ * GleamOps Worker — Background job runner
+ *
+ * Currently runs:
+ *   - Proposal send worker (poll QUEUED → SendGrid → SENT/FAILED)
+ *
+ * Future:
+ *   - PDF generation
+ *   - Follow-up sequence scheduler
+ *   - Ticket generation
+ */
+import { startSendWorker } from './send-worker.js';
+
+async function main() {
+  console.log('=== GleamOps Worker starting ===');
+  console.log(`  SUPABASE_URL: ${process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? '(not set)'}`);
+  console.log(`  SENDGRID_API_KEY: ${process.env.SENDGRID_API_KEY ? '***set***' : '(not set — simulated mode)'}`);
+  console.log('');
+
+  await startSendWorker();
+
+  // Keep process alive
+  console.log('[main] all workers started — polling');
+}
+
+main().catch((err) => {
+  console.error('[main] fatal error:', err);
+  process.exit(1);
+});

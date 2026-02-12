@@ -2,11 +2,22 @@
   "name": "@gleamops/worker",
   "version": "0.0.1",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "echo 'worker not yet implemented'",
-    "build": "echo 'worker not yet implemented'",
-    "typecheck": "echo 'worker not yet implemented'",
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
     "lint": "echo 'lint passed'",
     "test": "echo 'no tests yet'"
+  },
+  "dependencies": {
+    "@sendgrid/mail": "^8.1.0",
+    "@supabase/supabase-js": "^2.48.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "typescript": "^5.7.0",
+    "@types/node": "^22.0.0"
   }
 }

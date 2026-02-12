@@ -135,7 +135,7 @@ export function SendProposalForm({ proposal, open, onClose, onSuccess }: SendPro
         </div>
 
         <p className="text-xs text-muted">
-          Email will be sent via SendGrid with tracking for delivery, opens, and bounces.
+          Email is queued for delivery via SendGrid with tracking for delivery, opens, and bounces.
           Rate limits: 10 sends/hour, 3 per recipient/day.
         </p>
       </div>

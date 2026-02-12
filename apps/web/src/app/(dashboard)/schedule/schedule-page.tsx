@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Calendar, ClipboardList, Briefcase, ClipboardCheck } from 'lucide-react';
+import { Calendar, ClipboardList, Briefcase, ClipboardCheck, FileText } from 'lucide-react';
 import { ChipTabs, SearchInput } from '@gleamops/ui';
 import type { WorkTicket, Inspection } from '@gleamops/shared';
 
@@ -12,6 +12,7 @@ import WeekCalendar from './calendar/week-calendar';
 import InspectionsTable from './inspections/inspections-table';
 import { InspectionDetail } from './inspections/inspection-detail';
 import { CreateInspectionForm } from './inspections/create-inspection-form';
+import TemplatesTable from './inspections/templates-table';
 
 interface TicketWithRelations extends WorkTicket {
   job?: { job_code: string; billing_amount?: number | null } | null;
@@ -36,6 +37,7 @@ const TABS = [
   { key: 'tickets', label: 'Work Tickets', icon: <ClipboardList className="h-4 w-4" /> },
   { key: 'jobs', label: 'Service Plans', icon: <Briefcase className="h-4 w-4" /> },
   { key: 'inspections', label: 'Inspections', icon: <ClipboardCheck className="h-4 w-4" /> },
+  { key: 'templates', label: 'Templates', icon: <FileText className="h-4 w-4" /> },
 ];
 
 export default function SchedulePageClient() {
@@ -83,6 +85,7 @@ export default function SchedulePageClient() {
           onCreateNew={() => setShowCreateInspection(true)}
         />
       )}
+      {tab === 'templates' && <TemplatesTable key={`tmpl-${refreshKey}`} search={search} />}
 
       <TicketDetail
         ticket={selectedTicket}

@@ -116,8 +116,26 @@ export default function TicketDetailScreen() {
       Alert.alert('Offline', 'Status changes require an internet connection.');
       return;
     }
+
+    const { error } = await supabase.rpc('set_ticket_status', {
+      p_ticket_id: ticket.id,
+      p_status: newStatus,
+    });
+
+    if (error) {
+      if (error.code === 'P0001') {
+        Alert.alert('Assets Required', 'All required assets must be checked out before starting work.');
+        return;
+      }
+      if (error.code === 'P0002') {
+        Alert.alert('Keys Not Returned', 'All keys must be returned before completing this ticket.');
+        return;
+      }
+      Alert.alert('Error', error.message);
+      return;
+    }
+
     setTicketStatus(newStatus);
-    await supabase.from('work_tickets').update({ status: newStatus }).eq('id', ticket.id);
     invalidateTicket();
   };
 

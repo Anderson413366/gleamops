@@ -386,39 +386,27 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
   const handleStatusChange = async (newStatus: string) => {
     if (!ticket) return;
 
-    // Gating: block IN_PROGRESS if required assets not checked out
-    const requiredReqs = assetRequirements.filter((r) => r.is_required);
-    if (newStatus === 'IN_PROGRESS' && requiredReqs.length > 0) {
-      const allCheckedOut = requiredReqs.every((r) =>
-        assetCheckouts.some((c) => c.requirement_id === r.id && !c.returned_at),
-      );
-      if (!allCheckedOut) {
+    const supabase = getSupabaseBrowserClient();
+    const { error } = await supabase.rpc('set_ticket_status', {
+      p_ticket_id: ticket.id,
+      p_status: newStatus,
+    });
+
+    if (error) {
+      if (error.code === 'P0001') {
+        // ASSET_GATE — required assets not checked out
         setActiveTab('assets');
         return;
       }
-    }
-
-    // Gating: warn on COMPLETED if KEY assets not returned
-    if (newStatus === 'COMPLETED') {
-      const unreturnedKeys = assetRequirements
-        .filter((r) => r.asset_type === 'KEY')
-        .filter((r) => assetCheckouts.some((c) => c.requirement_id === r.id && !c.returned_at));
-      if (unreturnedKeys.length > 0) {
-        const proceed = window.confirm(
-          `${unreturnedKeys.length} key(s) have not been returned. Complete anyway?`,
-        );
-        if (!proceed) {
-          setActiveTab('assets');
-          return;
-        }
+      if (error.code === 'P0002') {
+        // KEY_RETURN_GATE — keys not returned
+        setActiveTab('assets');
+        return;
       }
+      console.error('Status change failed:', error.message);
+      return;
     }
 
-    const supabase = getSupabaseBrowserClient();
-    await supabase
-      .from('work_tickets')
-      .update({ status: newStatus })
-      .eq('id', ticket.id);
     onStatusChange?.();
   };
 
@@ -435,11 +423,16 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
       .eq('user_id', user.id)
       .maybeSingle();
 
+    if (!staffRow) {
+      console.error('No staff record linked to current user — cannot check out assets');
+      return;
+    }
+
     await supabase.from('ticket_asset_checkouts').insert({
       tenant_id: ticket.tenant_id,
       ticket_id: ticket.id,
       requirement_id: requirementId,
-      staff_id: staffRow?.id ?? user.id,
+      staff_id: staffRow.id,
     });
     fetchDetails();
   };

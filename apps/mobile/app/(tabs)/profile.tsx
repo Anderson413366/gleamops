@@ -80,7 +80,7 @@ export default function ProfileScreen() {
         <Text style={styles.sectionTitle}>Account</Text>
         <View style={styles.card}>
           <InfoRow label="Role" value={role ?? '—'} />
-          <InfoRow label="User ID" value={user?.id?.slice(0, 8) + '...' ?? '—'} />
+          <InfoRow label="User ID" value={user?.id ? user.id.slice(0, 8) + '...' : '—'} />
         </View>
       </View>
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Send } from 'lucide-react';
+import { Send, AlertTriangle } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { SlideOver, Button, Input } from '@gleamops/ui';
 import type { SalesProposal } from '@gleamops/shared';
@@ -18,6 +18,7 @@ export function SendProposalForm({ proposal, open, onClose, onSuccess }: SendPro
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [rateLimited, setRateLimited] = useState(false);
 
   const handleSend = async () => {
     if (!proposal) return;
@@ -32,45 +33,61 @@ export function SendProposalForm({ proposal, open, onClose, onSuccess }: SendPro
 
     setLoading(true);
     setError('');
-    const supabase = getSupabaseBrowserClient();
+    setRateLimited(false);
 
-    // Create send record
-    const { error: sendError } = await supabase
-      .from('sales_proposal_sends')
-      .insert({
-        tenant_id: proposal.tenant_id,
-        proposal_id: proposal.id,
-        recipient_email: email.trim(),
-        recipient_name: name.trim() || null,
-        status: 'SENT', // In production: SENDING → worker sends → SENT
-        sent_at: new Date().toISOString(),
+    try {
+      // Get the current session token for auth
+      const supabase = getSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        setError('Not authenticated. Please sign in again.');
+        setLoading(false);
+        return;
+      }
+
+      const res = await fetch('/api/proposals/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          proposalId: proposal.id,
+          recipientEmail: email.trim(),
+          recipientName: name.trim() || null,
+        }),
       });
 
-    if (sendError) {
-      setError(sendError.message);
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (res.status === 429) {
+          setRateLimited(true);
+          setError(data.detail || 'Rate limit exceeded. Please try again later.');
+        } else {
+          setError(data.detail || data.error || 'Failed to send proposal.');
+        }
+        setLoading(false);
+        return;
+      }
+
       setLoading(false);
-      return;
+      setEmail('');
+      setName('');
+      onSuccess?.();
+      onClose();
+    } catch (err) {
+      setError('Network error. Please try again.');
+      setLoading(false);
     }
-
-    // Update proposal status to SENT if it was DRAFT or GENERATED
-    if (proposal.status === 'DRAFT' || proposal.status === 'GENERATED') {
-      await supabase
-        .from('sales_proposals')
-        .update({ status: 'SENT' })
-        .eq('id', proposal.id);
-    }
-
-    setLoading(false);
-    setEmail('');
-    setName('');
-    onSuccess?.();
-    onClose();
   };
 
   const handleClose = () => {
     setEmail('');
     setName('');
     setError('');
+    setRateLimited(false);
     onClose();
   };
 
@@ -97,7 +114,14 @@ export function SendProposalForm({ proposal, open, onClose, onSuccess }: SendPro
         </div>
 
         {error && (
-          <p className="text-sm text-red-500">{error}</p>
+          <div className={`flex items-start gap-2 p-3 rounded-lg border ${
+            rateLimited
+              ? 'bg-yellow-50 border-yellow-200 text-yellow-800'
+              : 'bg-red-50 border-red-200 text-red-700'
+          }`}>
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <p className="text-sm">{error}</p>
+          </div>
         )}
 
         <div className="flex gap-3">
@@ -106,13 +130,13 @@ export function SendProposalForm({ proposal, open, onClose, onSuccess }: SendPro
           </Button>
           <Button onClick={handleSend} disabled={loading} className="flex-1">
             <Send className="h-4 w-4" />
-            {loading ? 'Sending...' : 'Send'}
+            {loading ? 'Sending...' : 'Send Proposal'}
           </Button>
         </div>
 
         <p className="text-xs text-muted">
-          In production, this will send an email with the proposal PDF attached via SendGrid.
-          For now, this records the send in the database.
+          Email will be sent via SendGrid with tracking for delivery, opens, and bounces.
+          Rate limits: 10 sends/hour, 3 per recipient/day.
         </p>
       </div>
     </SlideOver>

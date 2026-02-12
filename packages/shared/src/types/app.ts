@@ -11,8 +11,8 @@ export type UserRole =
   | 'INSPECTOR'
   | 'SALES';
 
-// Navigation spaces (5 only)
-export type NavSpace = 'pipeline' | 'customers' | 'schedule' | 'team' | 'reports';
+// Navigation spaces
+export type NavSpace = 'pipeline' | 'customers' | 'schedule' | 'team' | 'reports' | 'inventory' | 'assets' | 'admin';
 
 export interface NavItem {
   id: NavSpace;

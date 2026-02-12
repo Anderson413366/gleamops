@@ -11,7 +11,10 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'customers', label: 'Customers', href: '/customers', icon: 'Building2' },
   { id: 'schedule', label: 'Schedule', href: '/schedule', icon: 'Calendar' },
   { id: 'team', label: 'Team', href: '/team', icon: 'Users' },
+  { id: 'inventory', label: 'Inventory', href: '/inventory', icon: 'Package' },
+  { id: 'assets', label: 'Assets', href: '/assets', icon: 'Truck' },
   { id: 'reports', label: 'Reports', href: '/reports', icon: 'BarChart3' },
+  { id: 'admin', label: 'Admin', href: '/admin/services', icon: 'Wrench' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -153,3 +156,19 @@ export type RoleCode = typeof ROLES[number];
 // Weeks per month (standard constant)
 // ---------------------------------------------------------------------------
 export const WEEKS_PER_MONTH = 4.33;
+
+// ---------------------------------------------------------------------------
+// Vehicle & Key status colors
+// ---------------------------------------------------------------------------
+export const VEHICLE_STATUS_COLORS: Record<string, StatusColor> = {
+  ACTIVE: 'green',
+  IN_SHOP: 'yellow',
+  RETIRED: 'gray',
+};
+
+export const KEY_STATUS_COLORS: Record<string, StatusColor> = {
+  AVAILABLE: 'green',
+  ASSIGNED: 'blue',
+  LOST: 'red',
+  RETURNED: 'gray',
+};

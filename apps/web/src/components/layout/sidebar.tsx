@@ -8,6 +8,9 @@ import {
   Calendar,
   Users,
   BarChart3,
+  Package,
+  Truck,
+  Wrench,
   Settings,
   LogOut,
   Menu,
@@ -23,6 +26,9 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Calendar,
   Users,
   BarChart3,
+  Package,
+  Truck,
+  Wrench,
 };
 
 export function Sidebar() {

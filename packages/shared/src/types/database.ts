@@ -641,3 +641,52 @@ export interface TimesheetApproval {
   notes: string | null;
   created_at: string;
 }
+
+// ---------------------------------------------------------------------------
+// Module F: Inventory & Assets
+// ---------------------------------------------------------------------------
+export interface SupplyCatalog extends StandardColumns {
+  code: string;
+  name: string;
+  category: string | null;
+  unit: string;
+  sds_url: string | null;
+  notes: string | null;
+}
+
+export interface SupplyKit extends StandardColumns {
+  code: string;
+  name: string;
+  description: string | null;
+}
+
+export interface SupplyKitItem extends StandardColumns {
+  kit_id: string;
+  supply_id: string;
+  quantity: number;
+}
+
+export interface Vehicle extends StandardColumns {
+  vehicle_code: string;
+  name: string;
+  make: string | null;
+  model: string | null;
+  year: number | null;
+  license_plate: string | null;
+  vin: string | null;
+  color: string | null;
+  status: 'ACTIVE' | 'IN_SHOP' | 'RETIRED';
+  assigned_to: string | null;
+  notes: string | null;
+}
+
+export interface KeyInventory extends StandardColumns {
+  key_code: string;
+  site_id: string | null;
+  key_type: 'STANDARD' | 'FOB' | 'CARD' | 'CODE' | 'OTHER';
+  label: string;
+  total_count: number;
+  assigned_to: string | null;
+  status: 'AVAILABLE' | 'ASSIGNED' | 'LOST' | 'RETURNED';
+  notes: string | null;
+}

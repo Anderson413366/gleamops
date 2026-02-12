@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   ClipboardList, MapPin, Briefcase, Calendar, Clock,
   UserPlus, X, Users, CheckSquare, Square, Camera, ImageIcon,
+  AlertTriangle, Filter, Shield,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
@@ -38,6 +39,12 @@ interface ChecklistItemRow extends TicketChecklistItem {
   photos?: TicketPhoto[];
 }
 
+// Tracks which tickets a staff member is already assigned to on the same day
+interface StaffBusyInfo {
+  staffId: string;
+  tickets: { ticketId: string; ticketCode: string; siteName: string; startTime: string | null; endTime: string | null }[];
+}
+
 interface TicketDetailProps {
   ticket: TicketWithRelations | null;
   open: boolean;
@@ -67,6 +74,11 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
   const [selectedStaffId, setSelectedStaffId] = useState('');
   const [selectedRole, setSelectedRole] = useState('CLEANER');
 
+  // Availability state
+  const [busyMap, setBusyMap] = useState<Map<string, StaffBusyInfo>>(new Map());
+  const [showAvailableOnly, setShowAvailableOnly] = useState(false);
+  const [dayTicketCount, setDayTicketCount] = useState(0);
+
   // Checklist state
   const [checklistId, setChecklistId] = useState<string | null>(null);
   const [checklistStatus, setChecklistStatus] = useState<string>('PENDING');
@@ -78,21 +90,80 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
 
-    const [assignRes, staffRes] = await Promise.all([
+    const [assignRes, staffRes, dayAssignRes, dayTicketRes] = await Promise.all([
+      // Current ticket assignments
       supabase
         .from('ticket_assignments')
         .select('*, staff:staff_id(staff_code, full_name, role)')
         .eq('ticket_id', ticket.id)
         .is('archived_at', null),
+      // All active staff
       supabase
         .from('staff')
         .select('*')
         .is('archived_at', null)
         .order('full_name'),
+      // All assignments on the same date (for availability check)
+      // Use !inner join so we can filter on the ticket's scheduled_date
+      supabase
+        .from('ticket_assignments')
+        .select(`
+          staff_id,
+          ticket:ticket_id!inner(
+            id,
+            ticket_code,
+            start_time,
+            end_time,
+            status,
+            scheduled_date,
+            site:site_id(name)
+          )
+        `)
+        .eq('ticket.scheduled_date', ticket.scheduled_date)
+        .neq('ticket.status', 'CANCELLED')
+        .is('archived_at', null),
+      // Count tickets on same date
+      supabase
+        .from('work_tickets')
+        .select('id', { count: 'exact', head: true })
+        .eq('scheduled_date', ticket.scheduled_date)
+        .is('archived_at', null)
+        .neq('status', 'CANCELLED'),
     ]);
 
     if (assignRes.data) setAssignments(assignRes.data as unknown as AssignmentWithStaff[]);
     if (staffRes.data) setAllStaff(staffRes.data as unknown as Staff[]);
+    if (dayTicketRes.count != null) setDayTicketCount(dayTicketRes.count);
+
+    // Build busy map: staff_id → list of tickets they're assigned to on this date
+    const newBusyMap = new Map<string, StaffBusyInfo>();
+    if (dayAssignRes.data) {
+      for (const row of dayAssignRes.data as unknown as {
+        staff_id: string;
+        ticket: {
+          id: string;
+          ticket_code: string;
+          start_time: string | null;
+          end_time: string | null;
+          status: string;
+          site: { name: string } | null;
+        } | null;
+      }[]) {
+        // Skip this ticket's own assignments and cancelled tickets
+        if (!row.ticket || row.ticket.id === ticket.id || row.ticket.status === 'CANCELLED') continue;
+
+        const existing = newBusyMap.get(row.staff_id) || { staffId: row.staff_id, tickets: [] };
+        existing.tickets.push({
+          ticketId: row.ticket.id,
+          ticketCode: row.ticket.ticket_code,
+          siteName: row.ticket.site?.name ?? '—',
+          startTime: row.ticket.start_time,
+          endTime: row.ticket.end_time,
+        });
+        newBusyMap.set(row.staff_id, existing);
+      }
+    }
+    setBusyMap(newBusyMap);
     setLoading(false);
   }, [ticket, open]);
 
@@ -159,6 +230,14 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
 
     setChecklistLoading(false);
   }, [ticket, open]);
+
+  // Reset form state when ticket changes
+  useEffect(() => {
+    setShowAssignForm(false);
+    setSelectedStaffId('');
+    setSelectedRole('CLEANER');
+    setShowAvailableOnly(false);
+  }, [ticket]);
 
   useEffect(() => { fetchDetails(); fetchChecklist(); }, [fetchDetails, fetchChecklist]);
 
@@ -247,9 +326,27 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
   const site = ticket.site;
   const addressParts = [site?.address?.street, site?.address?.city, site?.address?.state, site?.address?.zip].filter(Boolean);
 
-  // Staff already assigned (to filter from dropdown)
+  // Staff already assigned to THIS ticket
   const assignedStaffIds = new Set(assignments.map((a) => a.staff_id));
-  const availableStaff = allStaff.filter((s) => !assignedStaffIds.has(s.id));
+
+  // Filter staff: not already assigned to this ticket + availability filter
+  const staffForDropdown = useMemo(() => {
+    return allStaff
+      .filter((s) => !assignedStaffIds.has(s.id))
+      .filter((s) => !showAvailableOnly || !busyMap.has(s.id))
+      .map((s) => {
+        const busy = busyMap.get(s.id);
+        const isBusy = !!busy && busy.tickets.length > 0;
+        const busyLabel = isBusy
+          ? ` [BUSY: ${busy.tickets.map((t) => t.siteName).join(', ')}]`
+          : '';
+        return {
+          value: s.id,
+          label: `${s.full_name} (${s.staff_code}) — ${s.role}${busyLabel}`,
+          isBusy,
+        };
+      });
+  }, [allStaff, assignedStaffIds, busyMap, showAvailableOnly]);
 
   // Checklist progress
   const checkedCount = checklistItems.filter((i) => i.is_checked).length;
@@ -416,7 +513,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
           </Card>
         ) : null}
 
-        {/* Assigned Staff */}
+        {/* Dispatch: Assigned Staff + Availability */}
         {loading ? (
           <Skeleton className="h-32 w-full" />
         ) : (
@@ -426,7 +523,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                 <CardTitle>
                   <span className="inline-flex items-center gap-2">
                     <Users className="h-4 w-4 text-muted" />
-                    Assigned Staff ({assignments.length})
+                    Dispatch — Staff ({assignments.length})
                   </span>
                 </CardTitle>
                 <Button size="sm" variant="secondary" onClick={() => setShowAssignForm(!showAssignForm)}>
@@ -434,20 +531,56 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                   Assign
                 </Button>
               </div>
+              {/* Day summary */}
+              <p className="text-xs text-muted mt-1">
+                {dayTicketCount} ticket{dayTicketCount !== 1 ? 's' : ''} on {new Date(ticket.scheduled_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+              </p>
             </CardHeader>
             <CardContent>
-              {/* Assign form */}
+              {/* Assign form with availability filtering */}
               {showAssignForm && (
                 <div className="mb-4 p-3 rounded-lg border border-border bg-gray-50/50 space-y-3">
+                  {/* Availability filter toggle */}
+                  <label className="flex items-center gap-2 text-xs cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showAvailableOnly}
+                      onChange={(e) => setShowAvailableOnly(e.target.checked)}
+                      className="rounded border-gray-300"
+                    />
+                    <Filter className="h-3 w-3 text-muted" />
+                    <span className="text-muted">Show available only</span>
+                    {showAvailableOnly && (
+                      <Badge color="green">{staffForDropdown.length} available</Badge>
+                    )}
+                  </label>
+
                   <Select
                     value={selectedStaffId}
                     onChange={(e) => setSelectedStaffId(e.target.value)}
                     placeholder="Select staff member..."
-                    options={availableStaff.map((s) => ({
-                      value: s.id,
-                      label: `${s.full_name} (${s.staff_code}) — ${s.role}`,
-                    }))}
+                    options={staffForDropdown}
                   />
+
+                  {/* Busy warning if selected staff is busy */}
+                  {selectedStaffId && busyMap.has(selectedStaffId) && (
+                    <div className="flex items-start gap-2 p-2 rounded-lg bg-yellow-50 border border-yellow-200">
+                      <AlertTriangle className="h-4 w-4 text-yellow-600 shrink-0 mt-0.5" />
+                      <div className="text-xs">
+                        <p className="font-semibold text-yellow-800">Double-booking warning</p>
+                        <p className="text-yellow-700">
+                          Already assigned to:{' '}
+                          {busyMap.get(selectedStaffId)!.tickets.map((t) => (
+                            <span key={t.ticketId} className="font-mono">
+                              {t.ticketCode} ({t.siteName}
+                              {t.startTime ? ` ${t.startTime}` : ''})
+                            </span>
+                          )).reduce((prev, curr, i) => i === 0 ? [curr] : [...prev, ', ', curr], [] as React.ReactNode[])}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   <Select
                     value={selectedRole}
                     onChange={(e) => setSelectedRole(e.target.value)}
@@ -469,28 +602,42 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                 <p className="text-sm text-muted">No staff assigned yet.</p>
               ) : (
                 <div className="space-y-2">
-                  {assignments.map((a) => (
-                    <div key={a.id} className="flex items-center justify-between p-2 rounded-lg border border-border">
-                      <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-gleam-100 flex items-center justify-center text-xs font-bold text-gleam-700">
-                          {a.staff?.full_name?.split(' ').map((n) => n[0]).join('') ?? '?'}
+                  {assignments.map((a) => {
+                    const busy = busyMap.get(a.staff_id);
+                    const isBusyElsewhere = !!busy && busy.tickets.length > 0;
+
+                    return (
+                      <div key={a.id} className={`flex items-center justify-between p-2 rounded-lg border ${
+                        isBusyElsewhere ? 'border-yellow-300 bg-yellow-50/50' : 'border-border'
+                      }`}>
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-full bg-gleam-100 flex items-center justify-center text-xs font-bold text-gleam-700">
+                            {a.staff?.full_name?.split(' ').map((n) => n[0]).join('') ?? '?'}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">{a.staff?.full_name ?? '—'}</p>
+                            <div className="flex items-center gap-1">
+                              <p className="text-xs text-muted">{a.staff?.staff_code}</p>
+                              {isBusyElsewhere && (
+                                <span className="text-xs text-yellow-600 font-medium ml-1">
+                                  +{busy.tickets.length} other ticket{busy.tickets.length > 1 ? 's' : ''}
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium">{a.staff?.full_name ?? '—'}</p>
-                          <p className="text-xs text-muted">{a.staff?.staff_code}</p>
+                        <div className="flex items-center gap-2">
+                          <Badge color={a.role === 'LEAD' ? 'purple' : 'blue'}>{a.role ?? 'CLEANER'}</Badge>
+                          <button
+                            onClick={() => handleRemoveAssignment(a.id)}
+                            className="p-1 rounded hover:bg-gray-100 text-muted hover:text-red-500 transition-colors"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge color={a.role === 'LEAD' ? 'purple' : 'blue'}>{a.role ?? 'CLEANER'}</Badge>
-                        <button
-                          onClick={() => handleRemoveAssignment(a.id)}
-                          className="p-1 rounded hover:bg-gray-100 text-muted hover:text-red-500 transition-colors"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>

@@ -1,21 +1,11 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator, TextInput,
+  View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl,
+  ActivityIndicator, TextInput,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { supabase } from '../../src/lib/supabase';
+import { useWeekTickets } from '../../src/hooks/use-week-tickets';
 import { Colors, STATUS_COLORS } from '../../src/lib/constants';
-import { cacheWeekTickets, getCachedWeekTickets } from '../../src/lib/offline-cache';
-
-interface TicketRow {
-  id: string;
-  ticket_code: string;
-  status: string;
-  scheduled_date: string;
-  start_time: string | null;
-  end_time: string | null;
-  site?: { name: string; site_code: string } | null;
-}
 
 function formatDate(d: string): string {
   const date = new Date(d + 'T00:00:00');
@@ -24,68 +14,8 @@ function formatDate(d: string): string {
 
 export default function TicketsScreen() {
   const router = useRouter();
-  const [tickets, setTickets] = useState<TicketRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
-  const [isOffline, setIsOffline] = useState(false);
-
-  // Get this week's range
-  const now = new Date();
-  const weekStart = new Date(now);
-  weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1);
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekEnd.getDate() + 6);
-
-  const fetchTickets = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from('work_tickets')
-        .select(`
-          id, ticket_code, status, scheduled_date, start_time, end_time,
-          site:site_id(name, site_code)
-        `)
-        .is('archived_at', null)
-        .gte('scheduled_date', weekStart.toISOString().split('T')[0])
-        .lte('scheduled_date', weekEnd.toISOString().split('T')[0])
-        .order('scheduled_date', { ascending: true })
-        .order('start_time', { ascending: true });
-
-      if (!error && data) {
-        const typed = data as unknown as TicketRow[];
-        setTickets(typed);
-        setIsOffline(false);
-        await cacheWeekTickets(typed);
-      } else {
-        throw new Error(error?.message ?? 'fetch failed');
-      }
-    } catch {
-      const cached = await getCachedWeekTickets<TicketRow>();
-      if (cached) {
-        setTickets(cached);
-        setIsOffline(true);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    setLoading(true);
-    fetchTickets().finally(() => setLoading(false));
-  }, [fetchTickets]);
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await fetchTickets();
-    setRefreshing(false);
-  }, [fetchTickets]);
-
-  const filtered = search
-    ? tickets.filter((t) =>
-        t.ticket_code.toLowerCase().includes(search.toLowerCase()) ||
-        t.site?.name?.toLowerCase().includes(search.toLowerCase()) ||
-        t.status.toLowerCase().includes(search.toLowerCase())
-      )
-    : tickets;
+  const { tickets, loading, refreshing, isOffline, refetch } = useWeekTickets(search);
 
   if (loading) {
     return (
@@ -116,12 +46,12 @@ export default function TicketsScreen() {
       </View>
 
       <FlatList
-        data={filtered}
+        data={tickets}
         keyExtractor={(item) => item.id}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.light.primary} />
+          <RefreshControl refreshing={refreshing} onRefresh={() => refetch()} tintColor={Colors.light.primary} />
         }
-        contentContainerStyle={filtered.length === 0 ? styles.center : styles.list}
+        contentContainerStyle={tickets.length === 0 ? styles.center : styles.list}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={styles.emptyTitle}>No tickets this week</Text>

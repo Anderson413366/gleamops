@@ -1,25 +1,11 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl,
   ActivityIndicator, Switch,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { supabase } from '../../src/lib/supabase';
-import { useAuth } from '../../src/contexts/auth-context';
+import { useMyDay, type TodayTicket } from '../../src/hooks/use-my-day';
 import { Colors, STATUS_COLORS } from '../../src/lib/constants';
-import { cacheTodayTickets, getCachedTodayTickets } from '../../src/lib/offline-cache';
-
-interface TodayTicket {
-  id: string;
-  ticket_code: string;
-  status: string;
-  scheduled_date: string;
-  start_time: string | null;
-  end_time: string | null;
-  site?: { name: string; site_code: string } | null;
-  job?: { job_code: string } | null;
-  assignments?: { staff_id: string; role: string | null }[];
-}
 
 function formatTime(t: string | null): string {
   if (!t) return '';
@@ -31,86 +17,30 @@ function formatTime(t: string | null): string {
   return `${h12}:${m}${ampm}`;
 }
 
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
 export default function MyDayScreen() {
-  const { user } = useAuth();
   const router = useRouter();
-  const [tickets, setTickets] = useState<TodayTicket[]>([]);
-  const [staffId, setStaffId] = useState<string | null>(null);
-  const [staffName, setStaffName] = useState<string>('');
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const { staffId, staffName, tickets, loading, refreshing, isOffline, refetch } = useMyDay();
   const [myOnly, setMyOnly] = useState(true);
-  const [isOffline, setIsOffline] = useState(false);
 
-  const today = new Date().toISOString().split('T')[0];
-
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from('staff')
-      .select('id, full_name')
-      .eq('user_id', user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) {
-          setStaffId(data.id);
-          setStaffName(data.full_name);
-        }
-      });
-  }, [user]);
-
-  const fetchTickets = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from('work_tickets')
-        .select(`
-          id, ticket_code, status, scheduled_date, start_time, end_time,
-          site:site_id(name, site_code),
-          job:job_id(job_code),
-          assignments:ticket_assignments(staff_id, role)
-        `)
-        .eq('scheduled_date', today)
-        .is('archived_at', null)
-        .neq('status', 'CANCELLED')
-        .order('start_time', { ascending: true });
-
-      if (!error && data) {
-        const typed = data as unknown as TodayTicket[];
-        setTickets(typed);
-        setIsOffline(false);
-        // Cache for offline use
-        await cacheTodayTickets(typed);
-      } else {
-        throw new Error(error?.message ?? 'fetch failed');
-      }
-    } catch {
-      // Network error — fall back to cache
-      const cached = await getCachedTodayTickets<TodayTicket>();
-      if (cached) {
-        setTickets(cached);
-        setIsOffline(true);
-      }
+  const displayTickets = useMemo(() => {
+    if (myOnly && staffId) {
+      return tickets.filter((t) => t.assignments?.some((a) => a.staff_id === staffId));
     }
-  }, [today]);
+    return tickets;
+  }, [tickets, myOnly, staffId]);
 
-  useEffect(() => {
-    setLoading(true);
-    fetchTickets().finally(() => setLoading(false));
-  }, [fetchTickets]);
+  const myTickets = useMemo(() => {
+    if (!staffId) return [];
+    return tickets.filter((t) => t.assignments?.some((a) => a.staff_id === staffId));
+  }, [tickets, staffId]);
 
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await fetchTickets();
-    setRefreshing(false);
-  }, [fetchTickets]);
-
-  const displayTickets = myOnly && staffId
-    ? tickets.filter((t) => t.assignments?.some((a) => a.staff_id === staffId))
-    : tickets;
-
-  const myTickets = staffId
-    ? tickets.filter((t) => t.assignments?.some((a) => a.staff_id === staffId))
-    : [];
   const completedCount = displayTickets.filter((t) => t.status === 'COMPLETED' || t.status === 'VERIFIED').length;
   const inProgressCount = displayTickets.filter((t) => t.status === 'IN_PROGRESS').length;
   const scheduledCount = displayTickets.filter((t) => t.status === 'SCHEDULED').length;
@@ -185,7 +115,7 @@ export default function MyDayScreen() {
         data={displayTickets}
         keyExtractor={(item) => item.id}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.light.primary} />
+          <RefreshControl refreshing={refreshing} onRefresh={() => refetch()} tintColor={Colors.light.primary} />
         }
         contentContainerStyle={displayTickets.length === 0 ? styles.center : styles.list}
         ListEmptyComponent={
@@ -200,7 +130,7 @@ export default function MyDayScreen() {
             </Text>
           </View>
         }
-        renderItem={({ item }) => {
+        renderItem={({ item }: { item: TodayTicket }) => {
           const isMyTicket = staffId && item.assignments?.some((a) => a.staff_id === staffId);
           const myRole = item.assignments?.find((a) => a.staff_id === staffId)?.role;
 
@@ -245,13 +175,6 @@ export default function MyDayScreen() {
       />
     </View>
   );
-}
-
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
 }
 
 const styles = StyleSheet.create({

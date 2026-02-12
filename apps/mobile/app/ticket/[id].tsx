@@ -1,73 +1,18 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator,
-  RefreshControl, Linking, Alert, AppState,
+  RefreshControl, Linking, Alert,
 } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { supabase } from '../../src/lib/supabase';
-import { useAuth } from '../../src/contexts/auth-context';
 import { Colors, STATUS_COLORS } from '../../src/lib/constants';
 import {
-  cacheTicketDetail, getCachedTicketDetail,
-  cacheChecklistItems, getCachedChecklistItems,
-} from '../../src/lib/offline-cache';
+  useTicketDetail,
+  type ChecklistItem,
+  type AssetRequirement,
+  type AssetCheckout,
+} from '../../src/hooks/use-ticket-detail';
 import { enqueue, flushQueue, getPendingItemIds } from '../../src/lib/mutation-queue';
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-interface TicketFull {
-  id: string;
-  ticket_code: string;
-  status: string;
-  scheduled_date: string;
-  start_time: string | null;
-  end_time: string | null;
-  notes: string | null;
-  site_id: string | null;
-  site?: {
-    name: string;
-    site_code: string;
-    street_address: string | null;
-    city: string | null;
-    state: string | null;
-    zip: string | null;
-  } | null;
-  job?: { job_code: string } | null;
-  assignments?: { staff_id: string; staff?: { full_name: string; staff_code: string } | null }[];
-}
-
-interface ChecklistItem {
-  id: string;
-  label: string;
-  section: string | null;
-  is_checked: boolean;
-  is_required: boolean;
-  sort_order: number;
-}
-
-interface SiteSupply {
-  id: string;
-  name: string;
-  category: string | null;
-  sds_url: string | null;
-  notes: string | null;
-}
-
-interface AssetRequirement {
-  id: string;
-  asset_type: 'KEY' | 'VEHICLE' | 'EQUIPMENT';
-  description: string;
-  is_required: boolean;
-}
-
-interface AssetCheckout {
-  id: string;
-  requirement_id: string;
-  staff_id: string;
-  checked_out_at: string;
-  returned_at: string | null;
-}
 
 type TabKey = 'overview' | 'checklist' | 'safety' | 'assets';
 
@@ -91,171 +36,45 @@ const ASSET_ICONS: Record<string, string> = { KEY: '🔑', VEHICLE: '🚐', EQUI
 // ---------------------------------------------------------------------------
 export default function TicketDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { user } = useAuth();
+  const detail = useTicketDetail(id);
+  const {
+    ticket, checklistItems, supplies, requirements, checkouts,
+    staffId, tenantId, loading, isOffline, refetch,
+    setChecklistItems, setTicketStatus,
+    invalidateChecklist, invalidateCheckouts, invalidateTicket,
+  } = detail;
 
-  // Core state
-  const [ticket, setTicket] = useState<TicketFull | null>(null);
-  const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([]);
-  const [checklistId, setChecklistId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [isOffline, setIsOffline] = useState(false);
-
-  // Tab state
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
-
-  // Safety state
-  const [supplies, setSupplies] = useState<SiteSupply[]>([]);
-
-  // Assets state
-  const [requirements, setRequirements] = useState<AssetRequirement[]>([]);
-  const [checkouts, setCheckouts] = useState<AssetCheckout[]>([]);
-  const [staffId, setStaffId] = useState<string | null>(null);
-
-  // Offline sync state
+  const [refreshing, setRefreshing] = useState(false);
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
   const [syncCount, setSyncCount] = useState(0);
-  const appState = useRef(AppState.currentState);
 
-  // -----------------------------------------------------------------------
-  // Resolve staff_id for current user (for asset checkouts)
-  // -----------------------------------------------------------------------
+  // Load pending IDs on mount + after syncs
   useEffect(() => {
-    if (!user) return;
-    supabase
-      .from('staff')
-      .select('id')
-      .eq('user_id', user.id)
-      .maybeSingle()
-      .then(({ data }) => { if (data) setStaffId(data.id); });
-  }, [user]);
-
-  // -----------------------------------------------------------------------
-  // Flush mutation queue when app comes to foreground
-  // -----------------------------------------------------------------------
-  useEffect(() => {
-    const sub = AppState.addEventListener('change', async (nextState) => {
-      if (appState.current.match(/inactive|background/) && nextState === 'active') {
-        const synced = await flushQueue();
-        if (synced > 0) {
-          setSyncCount(synced);
-          // Refresh data after sync
-          fetchTicket();
-        }
-        const remaining = await getPendingItemIds();
-        setPendingIds(remaining);
-      }
-      appState.current = nextState;
-    });
-    return () => sub.remove();
+    getPendingItemIds().then(setPendingIds);
   }, []);
 
-  // -----------------------------------------------------------------------
-  // Main fetch
-  // -----------------------------------------------------------------------
-  const fetchTicket = useCallback(async () => {
-    if (!id) return;
-
-    try {
-      // Ticket detail
-      const { data, error } = await supabase
-        .from('work_tickets')
-        .select(`
-          *,
-          site:site_id(name, site_code, street_address, city, state, zip),
-          job:job_id(job_code),
-          assignments:ticket_assignments(staff_id, staff:staff_id(full_name, staff_code))
-        `)
-        .eq('id', id)
-        .single();
-
-      if (error) throw error;
-      const typed = data as unknown as TicketFull;
-      setTicket(typed);
-      setIsOffline(false);
-      await cacheTicketDetail(id, typed);
-
-      // Checklist
-      const { data: checklist } = await supabase
-        .from('ticket_checklists')
-        .select('id')
-        .eq('ticket_id', id)
-        .is('archived_at', null)
-        .maybeSingle();
-
-      if (checklist) {
-        setChecklistId(checklist.id);
-        const { data: items } = await supabase
-          .from('ticket_checklist_items')
-          .select('id, label, section, is_checked, is_required, sort_order')
-          .eq('checklist_id', checklist.id)
-          .is('archived_at', null)
-          .order('sort_order');
-        if (items) {
-          const typedItems = items as ChecklistItem[];
-          setChecklistItems(typedItems);
-          await cacheChecklistItems(id, typedItems);
-        }
-      }
-
-      // Safety: site supplies
-      if (typed.site_id) {
-        const { data: supplyData } = await supabase
-          .from('site_supplies')
-          .select('id, name, category, sds_url, notes')
-          .eq('site_id', typed.site_id)
-          .is('archived_at', null)
-          .order('name');
-        if (supplyData) setSupplies(supplyData as SiteSupply[]);
-      }
-
-      // Assets: requirements + checkouts
-      if (typed.site_id) {
-        const { data: reqData } = await supabase
-          .from('site_asset_requirements')
-          .select('id, asset_type, description, is_required')
-          .eq('site_id', typed.site_id)
-          .is('archived_at', null)
-          .order('asset_type');
-        if (reqData) setRequirements(reqData as AssetRequirement[]);
-
-        const { data: coData } = await supabase
-          .from('ticket_asset_checkouts')
-          .select('id, requirement_id, staff_id, checked_out_at, returned_at')
-          .eq('ticket_id', id);
-        if (coData) setCheckouts(coData as AssetCheckout[]);
-      }
-
-      // Flush any pending mutations while we're online
-      const synced = await flushQueue();
-      if (synced > 0) setSyncCount(synced);
-      const remaining = await getPendingItemIds();
-      setPendingIds(remaining);
-    } catch {
-      // Offline fallback
-      const cachedTicket = await getCachedTicketDetail<TicketFull>(id);
-      if (cachedTicket) {
-        setTicket(cachedTicket);
-        setIsOffline(true);
-      }
-      const cachedItems = await getCachedChecklistItems<ChecklistItem>(id);
-      if (cachedItems) setChecklistItems(cachedItems);
-
-      const remaining = await getPendingItemIds();
-      setPendingIds(remaining);
-    }
-  }, [id]);
-
+  // Flush queue when detail loads online
   useEffect(() => {
-    setLoading(true);
-    fetchTicket().finally(() => setLoading(false));
-  }, [fetchTicket]);
+    if (ticket && !isOffline) {
+      flushQueue().then((synced) => {
+        if (synced > 0) {
+          setSyncCount(synced);
+          invalidateChecklist();
+        }
+        getPendingItemIds().then(setPendingIds);
+      });
+    }
+  }, [ticket, isOffline]);
 
-  const onRefresh = useCallback(async () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    await fetchTicket();
+    await refetch();
+    const synced = await flushQueue();
+    if (synced > 0) setSyncCount(synced);
+    setPendingIds(await getPendingItemIds());
     setRefreshing(false);
-  }, [fetchTicket]);
+  };
 
   // -----------------------------------------------------------------------
   // Checklist toggle (offline-capable)
@@ -264,9 +83,9 @@ export default function TicketDetailScreen() {
     const newChecked = !item.is_checked;
     const checkedAt = newChecked ? new Date().toISOString() : null;
 
-    // Optimistic update
-    setChecklistItems((prev) =>
-      prev.map((i) => (i.id === item.id ? { ...i, is_checked: newChecked } : i))
+    // Optimistic update via react-query cache
+    setChecklistItems((items) =>
+      items.map((i) => (i.id === item.id ? { ...i, is_checked: newChecked } : i))
     );
 
     try {
@@ -274,16 +93,7 @@ export default function TicketDetailScreen() {
         .from('ticket_checklist_items')
         .update({ is_checked: newChecked, checked_at: checkedAt })
         .eq('id', item.id);
-
       if (error) throw error;
-
-      // Update cache
-      if (id) {
-        const updated = checklistItems.map((i) =>
-          i.id === item.id ? { ...i, is_checked: newChecked } : i
-        );
-        await cacheChecklistItems(id, updated);
-      }
     } catch {
       // Offline — queue mutation
       await enqueue({
@@ -293,54 +103,109 @@ export default function TicketDetailScreen() {
         checkedAt,
       });
       setPendingIds((prev) => new Set(prev).add(item.id));
-
-      // Still update cache for next offline load
-      if (id) {
-        const updated = checklistItems.map((i) =>
-          i.id === item.id ? { ...i, is_checked: newChecked } : i
-        );
-        await cacheChecklistItems(id, updated);
-      }
     }
   };
 
   // -----------------------------------------------------------------------
-  // Status change
+  // Status change (with return-asset gating)
   // -----------------------------------------------------------------------
-  const handleStatusChange = async (newStatus: string) => {
+  const changeStatus = async (newStatus: string) => {
     if (!ticket) return;
     if (isOffline) {
       Alert.alert('Offline', 'Status changes require an internet connection.');
       return;
     }
+    setTicketStatus(newStatus);
     await supabase.from('work_tickets').update({ status: newStatus }).eq('id', ticket.id);
-    setTicket((prev) => prev ? { ...prev, status: newStatus } : null);
+    invalidateTicket();
+  };
+
+  const handleStartWork = () => {
+    if (!canStartWork) {
+      Alert.alert(
+        'Assets Required',
+        'All required assets must be checked out before starting work. Go to the Assets tab to check out.',
+      );
+      return;
+    }
+    changeStatus('IN_PROGRESS');
+  };
+
+  const handleComplete = () => {
+    if (!ticket) return;
+
+    // Check for unreturned KEY assets
+    const unreturnedKeys = requirements
+      .filter((r) => r.asset_type === 'KEY')
+      .filter((r) => checkouts.some((c) => c.requirement_id === r.id && !c.returned_at));
+
+    if (unreturnedKeys.length > 0) {
+      Alert.alert(
+        'Keys Not Returned',
+        `${unreturnedKeys.length} key(s) have not been returned. Return them or confirm you're keeping them.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Return All Keys',
+            onPress: async () => {
+              for (const req of unreturnedKeys) {
+                const checkout = checkouts.find(
+                  (c) => c.requirement_id === req.id && !c.returned_at,
+                );
+                if (checkout) {
+                  await supabase
+                    .from('ticket_asset_checkouts')
+                    .update({ returned_at: new Date().toISOString() })
+                    .eq('id', checkout.id);
+                }
+              }
+              invalidateCheckouts();
+              changeStatus('COMPLETED');
+            },
+          },
+          {
+            text: 'Keep Keys',
+            style: 'destructive',
+            onPress: () => changeStatus('COMPLETED'),
+          },
+        ],
+      );
+      return;
+    }
+
+    changeStatus('COMPLETED');
   };
 
   // -----------------------------------------------------------------------
-  // Asset checkout
+  // Asset checkout / return
   // -----------------------------------------------------------------------
   const handleCheckout = async (requirementId: string) => {
-    if (!ticket || !staffId) return;
+    if (!ticket || !staffId || !tenantId) return;
     if (isOffline) {
       Alert.alert('Offline', 'Asset checkouts require an internet connection.');
       return;
     }
 
-    const { data, error } = await supabase
-      .from('ticket_asset_checkouts')
-      .insert({
-        tenant_id: (ticket as unknown as Record<string, unknown>).tenant_id as string,
-        ticket_id: ticket.id,
-        requirement_id: requirementId,
-        staff_id: staffId,
-      })
-      .select()
-      .single();
+    await supabase.from('ticket_asset_checkouts').insert({
+      tenant_id: tenantId,
+      ticket_id: ticket.id,
+      requirement_id: requirementId,
+      staff_id: staffId,
+    });
+    invalidateCheckouts();
+  };
 
-    if (!error && data) {
-      setCheckouts((prev) => [...prev, data as AssetCheckout]);
+  const handleReturn = async (checkoutId: string) => {
+    if (isOffline) {
+      Alert.alert('Offline', 'Asset returns require an internet connection.');
+      return;
     }
+
+    await supabase
+      .from('ticket_asset_checkouts')
+      .update({ returned_at: new Date().toISOString() })
+      .eq('id', checkoutId);
+    invalidateCheckouts();
   };
 
   // -----------------------------------------------------------------------
@@ -349,7 +214,6 @@ export default function TicketDetailScreen() {
   const allRequiredCheckedOut = requirements
     .filter((r) => r.is_required)
     .every((r) => checkouts.some((c) => c.requirement_id === r.id && !c.returned_at));
-
   const canStartWork = ticket?.status === 'SCHEDULED' && (requirements.length === 0 || allRequiredCheckedOut);
 
   // -----------------------------------------------------------------------
@@ -422,14 +286,8 @@ export default function TicketDetailScreen() {
         <View style={styles.actions}>
           {ticket.status === 'SCHEDULED' && (
             <TouchableOpacity
-              style={[
-                styles.actionButton,
-                canStartWork ? styles.startButton : styles.disabledButton,
-              ]}
-              onPress={() => canStartWork ? handleStatusChange('IN_PROGRESS') : Alert.alert(
-                'Assets Required',
-                'All required assets must be checked out before starting work. Go to the Assets tab to check out.',
-              )}
+              style={[styles.actionButton, canStartWork ? styles.startButton : styles.disabledButton]}
+              onPress={handleStartWork}
               activeOpacity={canStartWork ? 0.7 : 1}
             >
               <Text style={[styles.actionButtonText, !canStartWork && styles.disabledButtonText]}>
@@ -438,7 +296,7 @@ export default function TicketDetailScreen() {
             </TouchableOpacity>
           )}
           {ticket.status === 'IN_PROGRESS' && (
-            <TouchableOpacity style={[styles.actionButton, styles.completeButton]} onPress={() => handleStatusChange('COMPLETED')}>
+            <TouchableOpacity style={[styles.actionButton, styles.completeButton]} onPress={handleComplete}>
               <Text style={styles.actionButtonText}>Mark Complete</Text>
             </TouchableOpacity>
           )}
@@ -656,9 +514,12 @@ export default function TicketDetailScreen() {
                         <Text style={styles.assetType}>{req.asset_type}</Text>
                       </View>
                       {isCheckedOut ? (
-                        <View style={styles.checkedOutBadge}>
-                          <Text style={styles.checkedOutText}>✓ Checked Out</Text>
-                        </View>
+                        <TouchableOpacity
+                          style={styles.returnButton}
+                          onPress={() => handleReturn(checkout!.id)}
+                        >
+                          <Text style={styles.returnButtonText}>Return</Text>
+                        </TouchableOpacity>
                       ) : (
                         <TouchableOpacity
                           style={styles.checkoutButton}
@@ -800,16 +661,16 @@ const styles = StyleSheet.create({
   assetIcon: { fontSize: 24 },
   assetDesc: { fontSize: 15, fontWeight: '500', color: Colors.light.text },
   assetType: { fontSize: 11, color: Colors.light.textSecondary, marginTop: 2, textTransform: 'uppercase' },
-  checkedOutBadge: {
-    backgroundColor: Colors.light.success + '15',
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
-  },
-  checkedOutText: { fontSize: 12, fontWeight: '600', color: Colors.light.success },
   checkoutButton: {
     backgroundColor: Colors.light.primary,
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8,
   },
   checkoutButtonText: { fontSize: 13, fontWeight: '600', color: '#fff' },
+  returnButton: {
+    backgroundColor: Colors.light.warning + '20',
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8,
+  },
+  returnButtonText: { fontSize: 13, fontWeight: '600', color: Colors.light.warning },
 
   // Empty tabs
   emptyTab: { alignItems: 'center', padding: 32 },

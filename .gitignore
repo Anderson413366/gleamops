@@ -36,3 +36,4 @@ coverage/
 reports/
 spreadsheets/
 scaffold/
+.vercel

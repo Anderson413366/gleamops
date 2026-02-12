@@ -9,7 +9,7 @@
  *   - Follow-up sequence scheduler
  *   - Ticket generation
  */
-import { startSendWorker } from './send-worker.js';
+import { startSendWorker, stopSendWorker } from './send-worker.js';
 
 async function main() {
   console.log('=== GleamOps Worker starting ===');
@@ -19,9 +19,24 @@ async function main() {
 
   await startSendWorker();
 
-  // Keep process alive
   console.log('[main] all workers started — polling');
 }
+
+// ---------------------------------------------------------------------------
+// Graceful shutdown
+// ---------------------------------------------------------------------------
+function shutdown(signal: string) {
+  console.log(`\n[main] received ${signal}, shutting down gracefully...`);
+  stopSendWorker();
+  // Allow in-flight sends to finish, then exit
+  setTimeout(() => {
+    console.log('[main] shutdown complete');
+    process.exit(0);
+  }, 2_000);
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
 
 main().catch((err) => {
   console.error('[main] fatal error:', err);

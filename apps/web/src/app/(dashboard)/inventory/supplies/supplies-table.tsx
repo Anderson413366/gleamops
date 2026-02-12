@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Package, ExternalLink } from 'lucide-react';
+import { Package, ExternalLink, Upload } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table,
@@ -52,7 +52,9 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
   const [unit, setUnit] = useState('EA');
+  const [unitCost, setUnitCost] = useState('');
   const [sdsUrl, setSdsUrl] = useState('');
+  const [sdsUploading, setSdsUploading] = useState(false);
   const [notes, setNotes] = useState('');
 
   const isEdit = !!editItem;
@@ -107,6 +109,7 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
     setName('');
     setCategory('');
     setUnit('EA');
+    setUnitCost('');
     setSdsUrl('');
     setNotes('');
     setFormErrors({});
@@ -130,6 +133,7 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
     setName(row.name);
     setCategory(row.category ?? '');
     setUnit(row.unit);
+    setUnitCost(row.unit_cost != null ? String(row.unit_cost) : '');
     setSdsUrl(row.sds_url ?? '');
     setNotes(row.notes ?? '');
     setFormErrors({});
@@ -159,6 +163,8 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
       const { data: { user } } = await supabase.auth.getUser();
       const tenantId = user?.app_metadata?.tenant_id;
 
+      const costValue = unitCost.trim() ? parseFloat(unitCost.trim()) : null;
+
       if (isEdit) {
         const { error } = await supabase
           .from('supply_catalog')
@@ -166,6 +172,7 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
             name: name.trim(),
             category: category.trim() || null,
             unit,
+            unit_cost: costValue,
             sds_url: sdsUrl.trim() || null,
             notes: notes.trim() || null,
           })
@@ -178,6 +185,7 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
           name: name.trim(),
           category: category.trim() || null,
           unit,
+          unit_cost: costValue,
           sds_url: sdsUrl.trim() || null,
           notes: notes.trim() || null,
           tenant_id: tenantId,
@@ -213,6 +221,29 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
     );
   }
 
+  const handleSdsUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSdsUploading(true);
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const ext = file.name.split('.').pop() ?? 'pdf';
+      const path = `sds/${code || 'new'}-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from('documents').getPublicUrl(path);
+      setSdsUrl(urlData.publicUrl);
+    } catch (err) {
+      console.error('SDS upload error:', err);
+      setFormErrors((prev) => ({ ...prev, sds: 'Upload failed. Try pasting a URL instead.' }));
+    } finally {
+      setSdsUploading(false);
+      e.target.value = '';
+    }
+  };
+
   function renderForm() {
     return (
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -245,19 +276,43 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
             onChange={(e) => setCategory(e.target.value)}
             hint="e.g., Cleaning Chemicals, Paper Products"
           />
-          <Select
-            label="Unit"
-            value={unit}
-            onChange={(e) => setUnit(e.target.value)}
-            options={UNIT_OPTIONS}
-          />
-          <Input
-            label="SDS URL"
-            value={sdsUrl}
-            onChange={(e) => setSdsUrl(e.target.value)}
-            placeholder="https://..."
-            hint="Safety Data Sheet link"
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <Select
+              label="Unit"
+              value={unit}
+              onChange={(e) => setUnit(e.target.value)}
+              options={UNIT_OPTIONS}
+            />
+            <Input
+              label="Unit Cost ($)"
+              value={unitCost}
+              onChange={(e) => setUnitCost(e.target.value)}
+              placeholder="0.00"
+              type="number"
+              hint="Cost per unit"
+            />
+          </div>
+          <div className="space-y-2">
+            <Input
+              label="SDS URL"
+              value={sdsUrl}
+              onChange={(e) => setSdsUrl(e.target.value)}
+              placeholder="https://..."
+              hint="Safety Data Sheet link"
+              error={formErrors.sds}
+            />
+            <label className="flex items-center gap-2 text-xs cursor-pointer text-gleam-600 hover:text-gleam-700">
+              <Upload className="h-3.5 w-3.5" />
+              <span>{sdsUploading ? 'Uploading...' : 'Upload SDS PDF'}</span>
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx"
+                className="hidden"
+                onChange={handleSdsUpload}
+                disabled={sdsUploading}
+              />
+            </label>
+          </div>
           <Textarea
             label="Notes"
             value={notes}
@@ -294,6 +349,9 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
             <TableHead sortable sorted={sortKey === 'unit' && sortDir} onSort={() => onSort('unit')}>
               Unit
             </TableHead>
+            <TableHead sortable sorted={sortKey === 'unit_cost' && sortDir} onSort={() => onSort('unit_cost')}>
+              Cost
+            </TableHead>
             <TableHead>SDS</TableHead>
           </tr>
         </TableHeader>
@@ -307,6 +365,9 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
               <TableCell className="font-medium">{row.name}</TableCell>
               <TableCell className="text-muted">{row.category ?? '—'}</TableCell>
               <TableCell>{row.unit}</TableCell>
+              <TableCell className="font-mono text-xs">
+                {row.unit_cost != null ? `$${Number(row.unit_cost).toFixed(2)}` : '—'}
+              </TableCell>
               <TableCell>
                 {row.sds_url ? (
                   <a

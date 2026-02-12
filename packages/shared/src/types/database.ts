@@ -650,6 +650,7 @@ export interface SupplyCatalog extends StandardColumns {
   name: string;
   category: string | null;
   unit: string;
+  unit_cost: number | null;
   sds_url: string | null;
   notes: string | null;
 }

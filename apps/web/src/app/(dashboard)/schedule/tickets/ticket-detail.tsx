@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   ClipboardList, MapPin, Briefcase, Calendar, Clock,
   UserPlus, X, Users, CheckSquare, Square, Camera, ImageIcon,
-  AlertTriangle, Filter, Eye, Timer,
+  AlertTriangle, Filter, Eye, Timer, Shield, Star, Package,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
@@ -13,14 +13,18 @@ import {
   Button,
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
   Skeleton,
   Select,
 } from '@gleamops/ui';
-import { TICKET_STATUS_COLORS } from '@gleamops/shared';
-import type { WorkTicket, TicketAssignment, Staff, TicketChecklistItem, TicketPhoto } from '@gleamops/shared';
+import { TICKET_STATUS_COLORS, INSPECTION_STATUS_COLORS, ISSUE_SEVERITY_COLORS } from '@gleamops/shared';
+import type {
+  WorkTicket, TicketAssignment, Staff, TicketChecklistItem, TicketPhoto,
+  Inspection, InspectionIssue, TimeException,
+} from '@gleamops/shared';
 
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 interface TicketWithRelations extends WorkTicket {
   job?: { job_code: string; billing_amount?: number | null } | null;
   site?: {
@@ -39,18 +43,34 @@ interface ChecklistItemRow extends TicketChecklistItem {
   photos?: TicketPhoto[];
 }
 
-// Tracks which tickets a staff member is already assigned to on the same day
 interface StaffBusyInfo {
   staffId: string;
   tickets: { ticketId: string; ticketCode: string; siteName: string; startTime: string | null; endTime: string | null }[];
 }
 
+interface InspectionWithInspector extends Inspection {
+  inspector?: { full_name: string } | null;
+}
+
+interface TimeExceptionWithStaff extends TimeException {
+  staff?: { full_name: string; staff_code: string } | null;
+}
+
+interface InspectionIssueWithContext extends InspectionIssue {
+  inspection?: { inspection_code: string } | null;
+}
+
+// ---------------------------------------------------------------------------
+// Props
+// ---------------------------------------------------------------------------
 interface TicketDetailProps {
   ticket: TicketWithRelations | null;
   open: boolean;
   onClose: () => void;
   onStatusChange?: () => void;
 }
+
+type TabKey = 'overview' | 'checklist' | 'photos' | 'time' | 'safety' | 'assets' | 'quality';
 
 const STATUS_OPTIONS = [
   { value: 'SCHEDULED', label: 'Scheduled' },
@@ -65,7 +85,13 @@ const ROLE_OPTIONS = [
   { value: 'CLEANER', label: 'Cleaner' },
 ];
 
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDetailProps) {
+  const [activeTab, setActiveTab] = useState<TabKey>('overview');
+
+  // Assets (staff assignments)
   const [assignments, setAssignments] = useState<AssignmentWithStaff[]>([]);
   const [allStaff, setAllStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(false);
@@ -73,31 +99,35 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
   const [showAssignForm, setShowAssignForm] = useState(false);
   const [selectedStaffId, setSelectedStaffId] = useState('');
   const [selectedRole, setSelectedRole] = useState('CLEANER');
-
-  // Availability state
   const [busyMap, setBusyMap] = useState<Map<string, StaffBusyInfo>>(new Map());
   const [showAvailableOnly, setShowAvailableOnly] = useState(false);
-  const [dayTicketCount, setDayTicketCount] = useState(0);
 
-  // Tab state for progressive disclosure
-  const [activeTab, setActiveTab] = useState<'overview' | 'checklist' | 'dispatch' | 'time' | 'photos'>('overview');
-
-  // Time entries state
+  // Time
   const [timeEntries, setTimeEntries] = useState<{ id: string; staff_name: string; start_at: string; end_at: string | null; duration_minutes: number | null; status: string }[]>([]);
 
-  // Checklist state
+  // Checklist
   const [checklistId, setChecklistId] = useState<string | null>(null);
   const [checklistStatus, setChecklistStatus] = useState<string>('PENDING');
   const [checklistItems, setChecklistItems] = useState<ChecklistItemRow[]>([]);
   const [checklistLoading, setChecklistLoading] = useState(false);
 
+  // Safety
+  const [timeExceptions, setTimeExceptions] = useState<TimeExceptionWithStaff[]>([]);
+  const [inspectionIssues, setInspectionIssues] = useState<InspectionIssueWithContext[]>([]);
+
+  // Quality
+  const [inspections, setInspections] = useState<InspectionWithInspector[]>([]);
+
+  // -----------------------------------------------------------------------
+  // Data fetching
+  // -----------------------------------------------------------------------
   const fetchDetails = useCallback(async () => {
     if (!ticket || !open) return;
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
 
-    const [assignRes, staffRes, dayAssignRes, dayTicketRes] = await Promise.all([
-      // Current ticket assignments
+    const [assignRes, staffRes, dayAssignRes, timeRes, exceptionsRes, inspectionsRes, issuesRes] = await Promise.all([
+      // Staff assignments for this ticket
       supabase
         .from('ticket_assignments')
         .select('*, staff:staff_id(staff_code, full_name, role)')
@@ -109,55 +139,99 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
         .select('*')
         .is('archived_at', null)
         .order('full_name'),
-      // All assignments on the same date (for availability check)
-      // Use !inner join so we can filter on the ticket's scheduled_date
+      // Assignments on same date (availability)
       supabase
         .from('ticket_assignments')
         .select(`
           staff_id,
           ticket:ticket_id!inner(
-            id,
-            ticket_code,
-            start_time,
-            end_time,
-            status,
-            scheduled_date,
+            id, ticket_code, start_time, end_time, status, scheduled_date,
             site:site_id(name)
           )
         `)
         .eq('ticket.scheduled_date', ticket.scheduled_date)
         .neq('ticket.status', 'CANCELLED')
         .is('archived_at', null),
-      // Count tickets on same date
+      // Time entries
       supabase
-        .from('work_tickets')
-        .select('id', { count: 'exact', head: true })
-        .eq('scheduled_date', ticket.scheduled_date)
+        .from('time_entries')
+        .select('id, start_at, end_at, duration_minutes, status, staff:staff_id(full_name)')
+        .eq('ticket_id', ticket.id)
         .is('archived_at', null)
-        .neq('status', 'CANCELLED'),
+        .order('start_at', { ascending: false }),
+      // Time exceptions (via time_entries for this ticket)
+      supabase
+        .from('time_exceptions')
+        .select('*, staff:staff_id(full_name, staff_code)')
+        .is('archived_at', null)
+        .order('created_at', { ascending: false }),
+      // Inspections for this ticket
+      supabase
+        .from('inspections')
+        .select('*, inspector:inspector_id(full_name)')
+        .eq('ticket_id', ticket.id)
+        .is('archived_at', null)
+        .order('created_at', { ascending: false }),
+      // Inspection issues (via inspections for this ticket)
+      supabase
+        .from('inspection_issues')
+        .select('*, inspection:inspection_id(inspection_code)')
+        .is('archived_at', null)
+        .order('created_at', { ascending: false }),
     ]);
 
     if (assignRes.data) setAssignments(assignRes.data as unknown as AssignmentWithStaff[]);
     if (staffRes.data) setAllStaff(staffRes.data as unknown as Staff[]);
-    if (dayTicketRes.count != null) setDayTicketCount(dayTicketRes.count);
 
-    // Build busy map: staff_id → list of tickets they're assigned to on this date
+    // Time entries
+    if (timeRes.data) {
+      setTimeEntries(timeRes.data.map((t: Record<string, unknown>) => ({
+        id: t.id as string,
+        staff_name: (t.staff as { full_name: string } | null)?.full_name ?? '—',
+        start_at: t.start_at as string,
+        end_at: t.end_at as string | null,
+        duration_minutes: t.duration_minutes as number | null,
+        status: t.status as string,
+      })));
+    }
+
+    // Filter time exceptions to only those linked to this ticket's time entries
+    if (exceptionsRes.data && timeRes.data) {
+      const ticketTimeEntryIds = new Set((timeRes.data as { id: string }[]).map((t) => t.id));
+      const filtered = (exceptionsRes.data as unknown as TimeExceptionWithStaff[]).filter(
+        (ex) => ex.time_entry_id && ticketTimeEntryIds.has(ex.time_entry_id)
+      );
+      setTimeExceptions(filtered);
+    } else {
+      setTimeExceptions([]);
+    }
+
+    // Inspections
+    if (inspectionsRes.data) {
+      setInspections(inspectionsRes.data as unknown as InspectionWithInspector[]);
+
+      // Filter inspection issues to this ticket's inspections
+      const ticketInspectionIds = new Set((inspectionsRes.data as { id: string }[]).map((i) => i.id));
+      if (issuesRes.data) {
+        setInspectionIssues(
+          (issuesRes.data as unknown as InspectionIssueWithContext[]).filter(
+            (issue) => ticketInspectionIds.has(issue.inspection_id)
+          )
+        );
+      }
+    } else {
+      setInspections([]);
+      setInspectionIssues([]);
+    }
+
+    // Build busy map
     const newBusyMap = new Map<string, StaffBusyInfo>();
     if (dayAssignRes.data) {
       for (const row of dayAssignRes.data as unknown as {
         staff_id: string;
-        ticket: {
-          id: string;
-          ticket_code: string;
-          start_time: string | null;
-          end_time: string | null;
-          status: string;
-          site: { name: string } | null;
-        } | null;
+        ticket: { id: string; ticket_code: string; start_time: string | null; end_time: string | null; status: string; site: { name: string } | null } | null;
       }[]) {
-        // Skip this ticket's own assignments and cancelled tickets
         if (!row.ticket || row.ticket.id === ticket.id || row.ticket.status === 'CANCELLED') continue;
-
         const existing = newBusyMap.get(row.staff_id) || { staffId: row.staff_id, tickets: [] };
         existing.tickets.push({
           ticketId: row.ticket.id,
@@ -170,35 +244,14 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
       }
     }
     setBusyMap(newBusyMap);
-
-    // Fetch time entries for this ticket
-    const { data: timeData } = await supabase
-      .from('time_entries')
-      .select('id, start_at, end_at, duration_minutes, status, staff:staff_id(full_name)')
-      .eq('ticket_id', ticket.id)
-      .is('archived_at', null)
-      .order('start_at', { ascending: false });
-    if (timeData) {
-      setTimeEntries(timeData.map((t: Record<string, unknown>) => ({
-        id: t.id as string,
-        staff_name: (t.staff as { full_name: string } | null)?.full_name ?? '—',
-        start_at: t.start_at as string,
-        end_at: t.end_at as string | null,
-        duration_minutes: t.duration_minutes as number | null,
-        status: t.status as string,
-      })));
-    }
-
     setLoading(false);
   }, [ticket, open]);
 
-  // Fetch checklist data
   const fetchChecklist = useCallback(async () => {
     if (!ticket || !open) return;
     setChecklistLoading(true);
     const supabase = getSupabaseBrowserClient();
 
-    // Get or create checklist for this ticket
     const { data: checklist } = await supabase
       .from('ticket_checklists')
       .select('*')
@@ -210,7 +263,6 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
       setChecklistId(checklist.id);
       setChecklistStatus(checklist.status);
 
-      // Fetch items with photos
       const { data: items } = await supabase
         .from('ticket_checklist_items')
         .select('*')
@@ -219,7 +271,6 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
         .order('sort_order');
 
       if (items && items.length > 0) {
-        // Fetch photos for all items
         const itemIds = items.map((i: { id: string }) => i.id);
         const { data: photos } = await supabase
           .from('ticket_photos')
@@ -256,7 +307,6 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
     setChecklistLoading(false);
   }, [ticket, open]);
 
-  // Reset form state when ticket changes
   useEffect(() => {
     setShowAssignForm(false);
     setSelectedStaffId('');
@@ -267,18 +317,19 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
 
   useEffect(() => { fetchDetails(); fetchChecklist(); }, [fetchDetails, fetchChecklist]);
 
+  // -----------------------------------------------------------------------
+  // Handlers
+  // -----------------------------------------------------------------------
   const handleAssign = async () => {
     if (!ticket || !selectedStaffId) return;
     setAssigning(true);
     const supabase = getSupabaseBrowserClient();
-
     await supabase.from('ticket_assignments').insert({
       tenant_id: ticket.tenant_id,
       ticket_id: ticket.id,
       staff_id: selectedStaffId,
       role: selectedRole,
     });
-
     setSelectedStaffId('');
     setSelectedRole('CLEANER');
     setShowAssignForm(false);
@@ -305,12 +356,10 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
     onStatusChange?.();
   };
 
-  // Toggle checklist item
   const handleToggleItem = async (item: ChecklistItemRow) => {
     const supabase = getSupabaseBrowserClient();
     const newChecked = !item.is_checked;
 
-    // Optimistic update
     setChecklistItems((prev) =>
       prev.map((i) =>
         i.id === item.id
@@ -327,7 +376,6 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
       })
       .eq('id', item.id);
 
-    // Update checklist status based on items
     const updatedItems = checklistItems.map((i) =>
       i.id === item.id ? { ...i, is_checked: newChecked } : i
     );
@@ -347,15 +395,15 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
     }
   };
 
+  // -----------------------------------------------------------------------
+  // Derived data
+  // -----------------------------------------------------------------------
   if (!ticket) return null;
 
   const site = ticket.site;
   const addressParts = [site?.address?.street, site?.address?.city, site?.address?.state, site?.address?.zip].filter(Boolean);
-
-  // Staff already assigned to THIS ticket
   const assignedStaffIds = new Set(assignments.map((a) => a.staff_id));
 
-  // Filter staff: not already assigned to this ticket + availability filter
   const staffForDropdown = useMemo(() => {
     return allStaff
       .filter((s) => !assignedStaffIds.has(s.id))
@@ -374,7 +422,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
       });
   }, [allStaff, assignedStaffIds, busyMap, showAvailableOnly]);
 
-  // Collect all photos across checklist items
+  // Photos
   const allPhotos = checklistItems.flatMap((i) => (i.photos ?? []).map((p) => ({ ...p, itemLabel: i.label })));
 
   // Checklist progress
@@ -382,16 +430,14 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
   const totalCount = checklistItems.length;
   const progressPct = totalCount > 0 ? Math.round((checkedCount / totalCount) * 100) : 0;
 
-  // Tab configuration with counts
-  const TABS = [
-    { key: 'overview' as const, label: 'Overview', icon: <Eye className="h-3.5 w-3.5" /> },
-    { key: 'checklist' as const, label: 'Checklist', icon: <ClipboardList className="h-3.5 w-3.5" />, count: totalCount > 0 ? `${checkedCount}/${totalCount}` : undefined },
-    { key: 'dispatch' as const, label: 'Dispatch', icon: <Users className="h-3.5 w-3.5" />, count: assignments.length > 0 ? String(assignments.length) : undefined },
-    { key: 'time' as const, label: 'Time', icon: <Timer className="h-3.5 w-3.5" />, count: timeEntries.length > 0 ? String(timeEntries.length) : undefined },
-    { key: 'photos' as const, label: 'Photos', icon: <Camera className="h-3.5 w-3.5" />, count: allPhotos.length > 0 ? String(allPhotos.length) : undefined },
-  ];
+  // Safety count: exceptions + unresolved issues
+  const unresolvedIssues = inspectionIssues.filter((i) => !i.resolved_at);
+  const safetyCount = timeExceptions.length + unresolvedIssues.length;
 
-  // Group checklist items by section
+  // Quality: best inspection score
+  const latestInspection = inspections[0] ?? null;
+
+  // Checklist sections
   const sections = new Map<string, ChecklistItemRow[]>();
   for (const item of checklistItems) {
     const key = item.section || 'General';
@@ -400,10 +446,23 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
     sections.set(key, existing);
   }
 
+  // -----------------------------------------------------------------------
+  // Tab config
+  // -----------------------------------------------------------------------
+  const TABS: { key: TabKey; label: string; icon: React.ReactNode; count?: string }[] = [
+    { key: 'overview', label: 'Overview', icon: <Eye className="h-3.5 w-3.5" /> },
+    { key: 'checklist', label: 'Checklist', icon: <ClipboardList className="h-3.5 w-3.5" />, count: totalCount > 0 ? `${checkedCount}/${totalCount}` : undefined },
+    { key: 'photos', label: 'Photos', icon: <Camera className="h-3.5 w-3.5" />, count: allPhotos.length > 0 ? String(allPhotos.length) : undefined },
+    { key: 'time', label: 'Time', icon: <Timer className="h-3.5 w-3.5" />, count: timeEntries.length > 0 ? String(timeEntries.length) : undefined },
+    { key: 'safety', label: 'Safety', icon: <Shield className="h-3.5 w-3.5" />, count: safetyCount > 0 ? String(safetyCount) : undefined },
+    { key: 'assets', label: 'Assets', icon: <Users className="h-3.5 w-3.5" />, count: assignments.length > 0 ? String(assignments.length) : undefined },
+    { key: 'quality', label: 'Quality', icon: <Star className="h-3.5 w-3.5" />, count: inspections.length > 0 ? String(inspections.length) : undefined },
+  ];
+
   return (
     <SlideOver open={open} onClose={onClose} title={ticket.ticket_code} subtitle={site?.client?.name} wide>
       <div className="space-y-4">
-        {/* Status + Change — always visible */}
+        {/* Status + Change */}
         <div className="flex items-center justify-between">
           <Badge color={TICKET_STATUS_COLORS[ticket.status] ?? 'gray'}>{ticket.status}</Badge>
           <Select
@@ -415,12 +474,12 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex gap-1 border-b border-border overflow-x-auto pb-0">
+        <div className="flex gap-0.5 border-b border-border overflow-x-auto pb-0">
           {TABS.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+              className={`flex items-center gap-1 px-2.5 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === tab.key
                   ? 'border-gleam-500 text-gleam-600'
                   : 'border-transparent text-muted hover:text-foreground hover:border-gray-300'
@@ -491,19 +550,35 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
               </CardContent>
             </Card>
 
-            {/* Quick summary of other tabs */}
-            <div className="grid grid-cols-3 gap-3">
-              <button onClick={() => setActiveTab('checklist')} className="p-3 rounded-lg border border-border hover:border-gleam-300 text-center transition-colors">
+            {/* Quick summary — all tabs at a glance */}
+            <div className="grid grid-cols-3 gap-2">
+              <button onClick={() => setActiveTab('checklist')} className="p-2.5 rounded-lg border border-border hover:border-gleam-300 text-center transition-colors">
                 <p className="text-lg font-bold text-foreground">{progressPct}%</p>
-                <p className="text-xs text-muted">Checklist</p>
+                <p className="text-[10px] text-muted">Checklist</p>
               </button>
-              <button onClick={() => setActiveTab('dispatch')} className="p-3 rounded-lg border border-border hover:border-gleam-300 text-center transition-colors">
+              <button onClick={() => setActiveTab('assets')} className="p-2.5 rounded-lg border border-border hover:border-gleam-300 text-center transition-colors">
                 <p className="text-lg font-bold text-foreground">{assignments.length}</p>
-                <p className="text-xs text-muted">Staff</p>
+                <p className="text-[10px] text-muted">Staff</p>
               </button>
-              <button onClick={() => setActiveTab('time')} className="p-3 rounded-lg border border-border hover:border-gleam-300 text-center transition-colors">
+              <button onClick={() => setActiveTab('time')} className="p-2.5 rounded-lg border border-border hover:border-gleam-300 text-center transition-colors">
                 <p className="text-lg font-bold text-foreground">{timeEntries.length}</p>
-                <p className="text-xs text-muted">Time Logs</p>
+                <p className="text-[10px] text-muted">Time Logs</p>
+              </button>
+              <button onClick={() => setActiveTab('photos')} className="p-2.5 rounded-lg border border-border hover:border-gleam-300 text-center transition-colors">
+                <p className="text-lg font-bold text-foreground">{allPhotos.length}</p>
+                <p className="text-[10px] text-muted">Photos</p>
+              </button>
+              <button onClick={() => setActiveTab('safety')} className={`p-2.5 rounded-lg border text-center transition-colors ${
+                safetyCount > 0 ? 'border-red-200 hover:border-red-400 bg-red-50/50' : 'border-border hover:border-gleam-300'
+              }`}>
+                <p className={`text-lg font-bold ${safetyCount > 0 ? 'text-red-600' : 'text-foreground'}`}>{safetyCount}</p>
+                <p className="text-[10px] text-muted">Flags</p>
+              </button>
+              <button onClick={() => setActiveTab('quality')} className="p-2.5 rounded-lg border border-border hover:border-gleam-300 text-center transition-colors">
+                <p className="text-lg font-bold text-foreground">
+                  {latestInspection?.score_pct != null ? `${Math.round(latestInspection.score_pct)}%` : '—'}
+                </p>
+                <p className="text-[10px] text-muted">Quality</p>
               </button>
             </div>
 
@@ -521,7 +596,6 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
               <Skeleton className="h-40 w-full" />
             ) : checklistItems.length > 0 ? (
               <>
-                {/* Progress Bar */}
                 <div className="flex items-center gap-3">
                   <div className="flex-1 bg-gray-200 rounded-full h-2.5">
                     <div
@@ -538,7 +612,6 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                   </Badge>
                 </div>
 
-                {/* Items by section */}
                 {Array.from(sections.entries()).map(([sectionName, sectionItems]) => (
                   <div key={sectionName}>
                     {sections.size > 1 && (
@@ -584,23 +657,151 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
               </>
             ) : (
               <div className="text-center py-8 text-sm text-muted">
-                No checklist for this ticket. Checklists are created from templates when tickets are generated.
+                No checklist for this ticket.
               </div>
             )}
           </div>
         )}
 
-        {/* ========== TAB: Dispatch ========== */}
-        {activeTab === 'dispatch' && (
+        {/* ========== TAB: Photos ========== */}
+        {activeTab === 'photos' && (
+          <div className="space-y-3">
+            {allPhotos.length === 0 ? (
+              <div className="text-center py-8 text-sm text-muted">
+                No photos uploaded yet. Photos can be added from the mobile app.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {allPhotos.map((photo) => (
+                  <div key={photo.id} className="rounded-lg border border-border overflow-hidden">
+                    <div className="aspect-square bg-gray-100 flex items-center justify-center">
+                      <ImageIcon className="h-8 w-8 text-gray-300" />
+                    </div>
+                    <div className="p-2">
+                      <p className="text-xs font-medium truncate">{photo.original_filename}</p>
+                      <p className="text-[10px] text-muted truncate">{photo.itemLabel}</p>
+                      {photo.caption && <p className="text-xs text-muted mt-0.5">{photo.caption}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ========== TAB: Time ========== */}
+        {activeTab === 'time' && (
+          <div className="space-y-3">
+            {timeEntries.length === 0 ? (
+              <div className="text-center py-8 text-sm text-muted">
+                No time entries yet. Staff can clock in from the mobile app.
+              </div>
+            ) : (
+              timeEntries.map((entry) => (
+                <div key={entry.id} className="flex items-center justify-between p-3 rounded-lg border border-border">
+                  <div>
+                    <p className="text-sm font-medium">{entry.staff_name}</p>
+                    <p className="text-xs text-muted">
+                      {new Date(entry.start_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                      {entry.end_at && ` — ${new Date(entry.end_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {entry.duration_minutes != null && (
+                      <span className="text-sm font-mono font-bold">
+                        {Math.floor(entry.duration_minutes / 60)}h {entry.duration_minutes % 60}m
+                      </span>
+                    )}
+                    <Badge color={entry.status === 'OPEN' ? 'yellow' : entry.status === 'CLOSED' ? 'green' : 'gray'}>
+                      {entry.status}
+                    </Badge>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* ========== TAB: Safety ========== */}
+        {activeTab === 'safety' && (
+          <div className="space-y-4">
+            {/* Time exceptions (geofence, late arrival, etc.) */}
+            {timeExceptions.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted uppercase tracking-wider">Time Exceptions</p>
+                {timeExceptions.map((ex) => (
+                  <div key={ex.id} className={`p-3 rounded-lg border ${
+                    ex.severity === 'CRITICAL' ? 'border-red-200 bg-red-50/50' :
+                    ex.severity === 'WARNING' ? 'border-yellow-200 bg-yellow-50/50' :
+                    'border-border'
+                  }`}>
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <Shield className={`h-4 w-4 ${
+                          ex.severity === 'CRITICAL' ? 'text-red-500' :
+                          ex.severity === 'WARNING' ? 'text-yellow-500' :
+                          'text-gray-400'
+                        }`} />
+                        <span className="text-sm font-medium">{ex.exception_type.replace(/_/g, ' ')}</span>
+                      </div>
+                      <Badge color={ex.severity === 'CRITICAL' ? 'red' : ex.severity === 'WARNING' ? 'yellow' : 'gray'}>
+                        {ex.severity}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted">{ex.staff?.full_name ?? '—'}</p>
+                    {ex.description && <p className="text-xs text-muted mt-1">{ex.description}</p>}
+                    {ex.resolved_at && (
+                      <p className="text-xs text-green-600 mt-1">Resolved: {new Date(ex.resolved_at).toLocaleDateString()}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Inspection issues */}
+            {inspectionIssues.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted uppercase tracking-wider">Inspection Issues</p>
+                {inspectionIssues.map((issue) => (
+                  <div key={issue.id} className={`p-3 rounded-lg border ${
+                    issue.severity === 'CRITICAL' ? 'border-red-200 bg-red-50/50' :
+                    issue.severity === 'MAJOR' ? 'border-orange-200 bg-orange-50/50' :
+                    'border-border'
+                  }`}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-medium">{issue.description}</span>
+                      <Badge color={ISSUE_SEVERITY_COLORS[issue.severity] ?? 'gray'}>
+                        {issue.severity}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted font-mono">{issue.inspection?.inspection_code}</p>
+                    {issue.resolved_at ? (
+                      <p className="text-xs text-green-600 mt-1">Resolved: {new Date(issue.resolved_at).toLocaleDateString()}</p>
+                    ) : (
+                      <p className="text-xs text-red-500 mt-1">Unresolved</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {safetyCount === 0 && (
+              <div className="text-center py-8 text-sm text-muted">
+                No safety flags for this ticket. All clear.
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ========== TAB: Assets ========== */}
+        {activeTab === 'assets' && (
           <div className="space-y-4">
             {loading ? (
               <Skeleton className="h-32 w-full" />
             ) : (
               <>
                 <div className="flex items-center justify-between">
-                  <p className="text-xs text-muted">
-                    {dayTicketCount} ticket{dayTicketCount !== 1 ? 's' : ''} on {new Date(ticket.scheduled_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                  </p>
+                  <p className="text-xs text-muted">{assignments.length} staff assigned</p>
                   <Button size="sm" variant="secondary" onClick={() => setShowAssignForm(!showAssignForm)}>
                     <UserPlus className="h-3 w-3" />
                     Assign
@@ -633,11 +834,12 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                           <p className="font-semibold text-yellow-800">Double-booking warning</p>
                           <p className="text-yellow-700">
                             Already assigned to:{' '}
-                            {busyMap.get(selectedStaffId)!.tickets.map((t) => (
-                              <span key={t.ticketId} className="font-mono">
-                                {t.ticketCode} ({t.siteName}{t.startTime ? ` ${t.startTime}` : ''})
+                            {busyMap.get(selectedStaffId)!.tickets.map((t, i) => (
+                              <span key={t.ticketId}>
+                                {i > 0 && ', '}
+                                <span className="font-mono">{t.ticketCode} ({t.siteName}{t.startTime ? ` ${t.startTime}` : ''})</span>
                               </span>
-                            )).reduce((prev, curr, i) => i === 0 ? [curr] : [...prev, ', ', curr], [] as React.ReactNode[])}
+                            ))}
                           </p>
                         </div>
                       </div>
@@ -698,61 +900,76 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
           </div>
         )}
 
-        {/* ========== TAB: Time ========== */}
-        {activeTab === 'time' && (
-          <div className="space-y-3">
-            {timeEntries.length === 0 ? (
+        {/* ========== TAB: Quality ========== */}
+        {activeTab === 'quality' && (
+          <div className="space-y-4">
+            {inspections.length === 0 ? (
               <div className="text-center py-8 text-sm text-muted">
-                No time entries for this ticket yet. Staff can clock in from the mobile app.
+                No inspections for this ticket yet.
               </div>
             ) : (
-              timeEntries.map((entry) => (
-                <div key={entry.id} className="flex items-center justify-between p-3 rounded-lg border border-border">
-                  <div>
-                    <p className="text-sm font-medium">{entry.staff_name}</p>
-                    <p className="text-xs text-muted">
-                      {new Date(entry.start_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                      {entry.end_at && ` — ${new Date(entry.end_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {entry.duration_minutes != null && (
-                      <span className="text-sm font-mono font-bold">
-                        {Math.floor(entry.duration_minutes / 60)}h {entry.duration_minutes % 60}m
-                      </span>
-                    )}
-                    <Badge color={entry.status === 'OPEN' ? 'yellow' : entry.status === 'CLOSED' ? 'green' : 'gray'}>
-                      {entry.status}
+              inspections.map((insp) => (
+                <div key={insp.id} className="p-4 rounded-lg border border-border space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-mono font-medium">{insp.inspection_code}</span>
+                    <Badge color={INSPECTION_STATUS_COLORS[insp.status] ?? 'gray'}>
+                      {insp.status}
                     </Badge>
                   </div>
+
+                  {/* Score bar */}
+                  {insp.score_pct != null && (
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted">Score</span>
+                        <span className={`font-bold ${insp.passed ? 'text-green-600' : 'text-red-600'}`}>
+                          {Math.round(insp.score_pct)}%
+                          {insp.passed != null && (insp.passed ? ' — Pass' : ' — Fail')}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full transition-all duration-300 ${
+                            insp.passed ? 'bg-green-500' : 'bg-red-500'
+                          }`}
+                          style={{ width: `${Math.min(100, Math.round(insp.score_pct))}%` }}
+                        />
+                      </div>
+                      {insp.total_score != null && insp.max_score != null && (
+                        <p className="text-xs text-muted text-right">{insp.total_score}/{insp.max_score} points</p>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between text-xs text-muted">
+                    <span>Inspector: {insp.inspector?.full_name ?? '—'}</span>
+                    {insp.completed_at && (
+                      <span>{new Date(insp.completed_at).toLocaleDateString()}</span>
+                    )}
+                  </div>
+
+                  {insp.notes && (
+                    <p className="text-xs text-muted border-t border-border pt-2">{insp.notes}</p>
+                  )}
+
+                  {/* Related issues for this inspection */}
+                  {inspectionIssues.filter((i) => i.inspection_id === insp.id).length > 0 && (
+                    <div className="border-t border-border pt-2 space-y-1.5">
+                      <p className="text-xs font-semibold text-muted">Issues</p>
+                      {inspectionIssues
+                        .filter((i) => i.inspection_id === insp.id)
+                        .map((issue) => (
+                          <div key={issue.id} className="flex items-center justify-between text-xs">
+                            <span className="text-foreground">{issue.description}</span>
+                            <Badge color={ISSUE_SEVERITY_COLORS[issue.severity] ?? 'gray'}>
+                              {issue.severity}
+                            </Badge>
+                          </div>
+                        ))}
+                    </div>
+                  )}
                 </div>
               ))
-            )}
-          </div>
-        )}
-
-        {/* ========== TAB: Photos ========== */}
-        {activeTab === 'photos' && (
-          <div className="space-y-3">
-            {allPhotos.length === 0 ? (
-              <div className="text-center py-8 text-sm text-muted">
-                No photos uploaded for this ticket yet. Photos can be added from the mobile app checklist.
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-3">
-                {allPhotos.map((photo) => (
-                  <div key={photo.id} className="rounded-lg border border-border overflow-hidden">
-                    <div className="aspect-square bg-gray-100 flex items-center justify-center">
-                      <ImageIcon className="h-8 w-8 text-gray-300" />
-                    </div>
-                    <div className="p-2">
-                      <p className="text-xs font-medium truncate">{photo.original_filename}</p>
-                      <p className="text-[10px] text-muted truncate">{photo.itemLabel}</p>
-                      {photo.caption && <p className="text-xs text-muted mt-0.5">{photo.caption}</p>}
-                    </div>
-                  </div>
-                ))}
-              </div>
             )}
           </div>
         )}

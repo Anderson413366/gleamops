@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Layers, Plus, Save, Trash2, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
@@ -272,6 +273,7 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
     setSaving(false);
     fetchData();
     onRefresh?.();
+    toast.success(isEdit ? 'Service updated' : 'Service created');
   };
 
   // ---------------------------------------------------------------------------

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Package, ExternalLink, Upload } from 'lucide-react';
+import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table,
@@ -195,8 +196,9 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
 
       handleClose();
       fetchData();
-    } catch (err) {
-      console.error('Supply save error:', err);
+      toast.success(isEdit ? 'Supply updated' : 'Supply created');
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Failed to save supply', { duration: Infinity });
     } finally {
       setFormLoading(false);
     }

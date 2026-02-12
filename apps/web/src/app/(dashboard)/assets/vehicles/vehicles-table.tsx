@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Truck } from 'lucide-react';
+import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
@@ -175,8 +176,9 @@ export default function VehiclesTable({ search, formOpen, onFormClose, onRefresh
       handleClose();
       fetchData();
       onRefresh?.();
-    } catch (err) {
-      console.error('Failed to save vehicle:', err);
+      toast.success(editItem ? 'Vehicle updated' : 'Vehicle created');
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Failed to save vehicle', { duration: Infinity });
     } finally {
       setSaving(false);
     }

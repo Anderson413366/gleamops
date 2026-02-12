@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { ClipboardList, Save, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
@@ -213,6 +214,7 @@ export default function TasksTable({ search, autoCreate, onAutoCreateHandled, on
     handleClose();
     fetchData();
     onRefresh?.();
+    toast.success(editTask ? 'Task updated' : 'Task created');
   };
 
   // ---------------------------------------------------------------------------

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Box, Plus, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table,
@@ -294,8 +295,9 @@ export default function KitsTable({ search, autoCreate, onAutoCreateHandled }: K
 
       handleClose();
       fetchData();
-    } catch (err) {
-      console.error('Kit save error:', err);
+      toast.success(isEdit ? 'Kit updated' : 'Kit created');
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Failed to save kit', { duration: Infinity });
     } finally {
       setFormLoading(false);
     }

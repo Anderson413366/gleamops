@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { KeyRound } from 'lucide-react';
+import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
@@ -192,8 +193,9 @@ export default function KeysTable({ search, formOpen, onFormClose, onRefresh }: 
       handleClose();
       fetchData();
       onRefresh?.();
-    } catch (err) {
-      console.error('Failed to save key:', err);
+      toast.success(editItem ? 'Key updated' : 'Key created');
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Failed to save key', { duration: Infinity });
     } finally {
       setSaving(false);
     }

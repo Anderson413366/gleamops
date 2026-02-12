@@ -43,6 +43,7 @@ export default function ProposalsTable({ search, onSelect }: ProposalsTableProps
         bid_version:bid_version_id(
           bid:bid_id(
             bid_code,
+            client_id,
             total_sqft,
             bid_monthly_price,
             client:client_id(name),

@@ -24,6 +24,7 @@ interface ProposalWithRelations extends SalesProposal {
     bid?: {
       bid_code: string;
       client?: { name: string } | null;
+      client_id?: string;
       service?: { name: string } | null;
       total_sqft?: number | null;
       bid_monthly_price?: number | null;
@@ -119,132 +120,58 @@ export default function PipelinePageClient() {
     refresh();
   }, [refresh]);
 
-  const handleConvert = useCallback(async (proposal: ProposalWithRelations) => {
+  // Conversion state
+  const [converting, setConverting] = useState(false);
+  const [conversionResult, setConversionResult] = useState<{
+    success: boolean;
+    job_code?: string;
+    tickets_created?: number;
+    error?: string;
+    idempotent?: boolean;
+  } | null>(null);
+
+  const handleConvert = useCallback(async (proposal: ProposalWithRelations, siteId: string, pricingOptionId?: string) => {
+    setConverting(true);
+    setConversionResult(null);
     const supabase = getSupabaseBrowserClient();
-    const bid = proposal.bid_version?.bid;
-    if (!bid) return;
 
-    // Get user for converted_by
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    // Get bid details for site_id and tenant_id
-    const { data: bidRecord } = await supabase
-      .from('sales_bids')
-      .select('tenant_id, client_id, bid_monthly_price, client:client_id(id)')
-      .eq('bid_code', bid.bid_code)
-      .single();
-    if (!bidRecord) return;
-
-    // Get a site for this client (use the first active site)
-    const { data: site } = await supabase
-      .from('sites')
-      .select('id')
-      .eq('client_id', bidRecord.client_id)
-      .is('archived_at', null)
-      .limit(1)
-      .single();
-    if (!site) return;
-
-    // Get next codes
-    const [jobCodeRes, tktPrefixReady] = await Promise.all([
-      supabase.rpc('next_code', { p_prefix: 'JOB' }),
-      Promise.resolve(true),
-    ]);
-    const jobCode = jobCodeRes.data ?? `JOB-${Date.now()}`;
-
-    // Create conversion record
-    const { data: conversion } = await supabase
-      .from('sales_bid_conversions')
-      .insert({
-        tenant_id: bidRecord.tenant_id,
-        bid_version_id: proposal.bid_version_id,
-        conversion_mode: 'FULL',
-        is_dry_run: false,
-        converted_by: user.id,
-      })
-      .select()
-      .single();
-    if (!conversion) return;
-
-    // Create site_job
-    const startDate = new Date();
-    const { data: siteJob } = await supabase
-      .from('site_jobs')
-      .insert({
-        tenant_id: bidRecord.tenant_id,
-        job_code: jobCode,
-        site_id: site.id,
-        source_bid_id: bidRecord.client_id, // link to bid
-        source_conversion_id: conversion.id,
-        billing_amount: bidRecord.bid_monthly_price,
-        frequency: 'WEEKLY',
-        start_date: startDate.toISOString().split('T')[0],
-        status: 'ACTIVE',
-      })
-      .select()
-      .single();
-    if (!siteJob) return;
-
-    // Link conversion to site_job
-    await supabase
-      .from('sales_bid_conversions')
-      .update({ site_job_id: siteJob.id })
-      .eq('id', conversion.id);
-
-    // Create recurrence rule (Mon-Fri, starting today)
-    await supabase
-      .from('recurrence_rules')
-      .insert({
-        tenant_id: bidRecord.tenant_id,
-        site_job_id: siteJob.id,
-        days_of_week: [1, 2, 3, 4, 5],
-        start_date: startDate.toISOString().split('T')[0],
-      });
-
-    // Generate initial work tickets (next 4 weeks)
-    const tickets = [];
-    for (let week = 0; week < 4; week++) {
-      for (const dow of [1, 2, 3, 4, 5]) { // Mon-Fri
-        const d = new Date(startDate);
-        d.setDate(d.getDate() + (week * 7) + ((dow - d.getDay() + 7) % 7));
-        if (d < startDate) d.setDate(d.getDate() + 7);
-        const dateStr = d.toISOString().split('T')[0];
-
-        const tktCodeRes = await supabase.rpc('next_code', { p_prefix: 'TKT' });
-        tickets.push({
-          tenant_id: bidRecord.tenant_id,
-          ticket_code: tktCodeRes.data ?? `TKT-${Date.now()}-${tickets.length}`,
-          job_id: siteJob.id,
-          site_id: site.id,
-          scheduled_date: dateStr,
-          status: 'SCHEDULED',
-        });
-      }
-    }
-
-    // Deduplicate by date (unique constraint: job_id + scheduled_date)
-    const seen = new Set<string>();
-    const uniqueTickets = tickets.filter((t) => {
-      if (seen.has(t.scheduled_date)) return false;
-      seen.add(t.scheduled_date);
-      return true;
+    const { data, error } = await supabase.rpc('convert_bid_to_job', {
+      p_proposal_id: proposal.id,
+      p_site_id: siteId,
+      p_pricing_option_id: pricingOptionId || null,
+      p_start_date: new Date().toISOString().split('T')[0],
+      p_weeks_ahead: 4,
     });
 
-    if (uniqueTickets.length > 0) {
-      await supabase.from('work_tickets').insert(uniqueTickets);
+    setConverting(false);
+
+    if (error) {
+      const errMsg = error.message || 'Conversion failed';
+      setConversionResult({ success: false, error: errMsg });
+      return;
     }
 
-    // Log conversion events
-    await supabase.from('sales_conversion_events').insert([
-      { tenant_id: bidRecord.tenant_id, conversion_id: conversion.id, step: 'CREATE_JOB', status: 'SUCCESS', entity_type: 'site_job', entity_id: siteJob.id },
-      { tenant_id: bidRecord.tenant_id, conversion_id: conversion.id, step: 'CREATE_RECURRENCE', status: 'SUCCESS', entity_type: 'recurrence_rule' },
-      { tenant_id: bidRecord.tenant_id, conversion_id: conversion.id, step: 'GENERATE_TICKETS', status: 'SUCCESS', detail: { count: uniqueTickets.length } },
-      { tenant_id: bidRecord.tenant_id, conversion_id: conversion.id, step: 'COMPLETE', status: 'SUCCESS' },
-    ]);
+    const result = data as {
+      conversion_id: string;
+      site_job_id: string;
+      job_code: string;
+      tickets_created: number;
+      idempotent: boolean;
+    };
 
-    setSelectedProposal(null);
-    refresh();
+    setConversionResult({
+      success: true,
+      job_code: result.job_code,
+      tickets_created: result.tickets_created,
+      idempotent: result.idempotent,
+    });
+
+    // Close after short delay to show success
+    setTimeout(() => {
+      setSelectedProposal(null);
+      setConversionResult(null);
+      refresh();
+    }, 2000);
   }, [refresh]);
 
   return (
@@ -279,13 +206,15 @@ export default function PipelinePageClient() {
       <ProposalDetail
         proposal={selectedProposal}
         open={!!selectedProposal}
-        onClose={() => setSelectedProposal(null)}
+        onClose={() => { setSelectedProposal(null); setConversionResult(null); }}
         onSend={(p) => {
           setSelectedProposal(null);
           setSendProposal(p);
         }}
         onMarkWon={handleMarkWon}
         onConvert={handleConvert}
+        converting={converting}
+        conversionResult={conversionResult}
       />
 
       <SendProposalForm

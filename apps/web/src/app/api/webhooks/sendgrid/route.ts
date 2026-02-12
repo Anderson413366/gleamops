@@ -9,7 +9,7 @@ import { verifySendGridSignature } from '@/lib/sendgrid-webhook-verify';
 const CONTENT_TYPE_PROBLEM = 'application/problem+json';
 
 function problemResponse(code: string, title: string, status: number, detail: string) {
-  const pd = createProblemDetails(code, title, status, detail, '/webhooks/email-events');
+  const pd = createProblemDetails(code, title, status, detail, '/webhooks/sendgrid');
   return NextResponse.json(pd, {
     status,
     headers: { 'Content-Type': CONTENT_TYPE_PROBLEM },
@@ -46,7 +46,7 @@ const STATUS_PRIORITY: Record<string, number> = {
 };
 
 // ---------------------------------------------------------------------------
-// POST /api/webhooks/email-events
+// POST /api/webhooks/sendgrid
 // ---------------------------------------------------------------------------
 interface SendGridEvent {
   sg_event_id?: string;
@@ -60,31 +60,48 @@ interface SendGridEvent {
 }
 
 export async function POST(request: NextRequest) {
-  // Read raw body as Buffer for signature verification
+  // 1. Read raw body as bytes — MUST happen before any parsing
   const rawBytes = Buffer.from(await request.arrayBuffer());
-  const rawText = rawBytes.toString('utf8');
 
-  // ----- Signature verification -----
+  // 2. Signature verification (mandatory — reject if key not configured)
   const verificationKey = process.env.SENDGRID_WEBHOOK_VERIFICATION_KEY;
 
-  if (verificationKey) {
-    const signature = request.headers.get('x-twilio-email-event-webhook-signature') ?? '';
-    const timestamp = request.headers.get('x-twilio-email-event-webhook-timestamp') ?? '';
-
-    if (!signature || !timestamp) {
-      return problemResponse('AUTH_001', 'Missing signature', 401, 'Missing X-Twilio-Email-Event-Webhook-Signature or Timestamp headers');
-    }
-
-    if (!verifySendGridSignature(verificationKey, rawBytes, signature, timestamp)) {
-      console.warn('[webhook] invalid ECDSA signature — rejecting');
-      return problemResponse('AUTH_001', 'Invalid signature', 401, 'ECDSA signature verification failed against raw request bytes');
-    }
+  if (!verificationKey) {
+    console.error('[webhook] SENDGRID_WEBHOOK_VERIFICATION_KEY not configured');
+    return problemResponse(
+      'SYS_002',
+      'Webhook not configured',
+      500,
+      'Server is missing the SendGrid webhook verification key',
+    );
   }
 
-  // ----- Parse body -----
+  const signature = request.headers.get('x-twilio-email-event-webhook-signature') ?? '';
+  const timestamp = request.headers.get('x-twilio-email-event-webhook-timestamp') ?? '';
+
+  if (!signature || !timestamp) {
+    return problemResponse(
+      'AUTH_001',
+      'Missing signature',
+      401,
+      'Missing X-Twilio-Email-Event-Webhook-Signature or Timestamp headers',
+    );
+  }
+
+  if (!verifySendGridSignature(verificationKey, rawBytes, signature, timestamp)) {
+    console.warn('[webhook] invalid ECDSA signature — rejecting');
+    return problemResponse(
+      'AUTH_001',
+      'Invalid signature',
+      401,
+      'ECDSA signature verification failed against raw request bytes',
+    );
+  }
+
+  // 3. Parse body only AFTER signature is verified
   let events: SendGridEvent[];
   try {
-    events = JSON.parse(rawText);
+    events = JSON.parse(rawBytes.toString('utf8'));
   } catch {
     return problemResponse('SYS_001', 'Invalid JSON', 400, 'Request body is not valid JSON');
   }
@@ -118,7 +135,7 @@ export async function POST(request: NextRequest) {
 
       if (!sendRecord) { skipped++; continue; }
 
-      // Idempotent insert (UNIQUE on provider_event_id)
+      // Idempotent insert (UNIQUE constraint on provider_event_id)
       const { error: insertErr } = await db
         .from('sales_email_events')
         .insert({

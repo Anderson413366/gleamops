@@ -66,7 +66,7 @@ Pipeline
 - POST `/proposals/{id}/send`
 
 Tracking + follow-ups
-- POST `/webhooks/email-events`
+- POST `/webhooks/sendgrid`
 - CRUD `/followups/templates`
 - POST `/proposals/{id}/followups/start`
 - POST `/followups/sequences/{id}/stop`

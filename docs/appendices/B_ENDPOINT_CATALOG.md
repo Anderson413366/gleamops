@@ -39,7 +39,7 @@ This mirrors the OpenAPI skeleton.
 - PATCH /proposals/{proposalId}/status
 
 ## Webhooks
-- POST /webhooks/email-events
+- POST /webhooks/sendgrid
 
 ## Follow-ups
 - POST /proposals/{proposalId}/followups/start

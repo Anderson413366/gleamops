@@ -32,6 +32,7 @@ interface ConversionResult {
   job_code?: string;
   tickets_created?: number;
   error?: string;
+  errorCode?: string;
   idempotent?: boolean;
 }
 
@@ -161,7 +162,14 @@ export function ProposalDetail({
                   </>
                 ) : (
                   <>
-                    <p className="text-sm font-semibold text-red-800">Conversion Failed</p>
+                    <p className="text-sm font-semibold text-red-800">
+                      Conversion Failed
+                      {conversionResult.errorCode && (
+                        <span className="ml-2 font-mono text-xs bg-red-100 px-1.5 py-0.5 rounded">
+                          {conversionResult.errorCode}
+                        </span>
+                      )}
+                    </p>
                     <p className="text-xs text-red-700">{conversionResult.error}</p>
                   </>
                 )}

@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import { TrendingUp, FileText, FileCheck, Plus } from 'lucide-react';
 import { ChipTabs, SearchInput, Button } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import type { SalesBid, SalesProposal } from '@gleamops/shared';
+import type { SalesBid, SalesProposal, ProblemDetails } from '@gleamops/shared';
 
 import ProspectsTable from './prospects/prospects-table';
 import BidsTable from './bids/bids-table';
@@ -127,6 +127,7 @@ export default function PipelinePageClient() {
     job_code?: string;
     tickets_created?: number;
     error?: string;
+    errorCode?: string;
     idempotent?: boolean;
   } | null>(null);
 
@@ -140,14 +141,20 @@ export default function PipelinePageClient() {
       p_site_id: siteId,
       p_pricing_option_id: pricingOptionId || null,
       p_start_date: new Date().toISOString().split('T')[0],
-      p_weeks_ahead: 4,
     });
 
     setConverting(false);
 
     if (error) {
-      const errMsg = error.message || 'Conversion failed';
-      setConversionResult({ success: false, error: errMsg });
+      // Parse Problem Details from Postgres RAISE EXCEPTION messages
+      // Format: "CONVERT_001: Proposal status is DRAFT, must be WON"
+      const msg = error.message || 'Conversion failed';
+      const codeMatch = msg.match(/^(CONVERT_\w+):\s*(.+)$/);
+      setConversionResult({
+        success: false,
+        error: codeMatch ? codeMatch[2] : msg,
+        errorCode: codeMatch ? codeMatch[1] : undefined,
+      });
       return;
     }
 

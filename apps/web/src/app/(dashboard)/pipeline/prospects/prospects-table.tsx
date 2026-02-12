@@ -1,0 +1,102 @@
+'use client';
+
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import { TrendingUp } from 'lucide-react';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import {
+  Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
+  EmptyState, Badge, Pagination, TableSkeleton,
+} from '@gleamops/ui';
+import { PROSPECT_STATUS_COLORS } from '@gleamops/shared';
+import type { SalesProspect } from '@gleamops/shared';
+import { useTableSort } from '@/hooks/use-table-sort';
+import { usePagination } from '@/hooks/use-pagination';
+
+interface ProspectsTableProps {
+  search: string;
+  onSelect?: (prospect: SalesProspect) => void;
+}
+
+export default function ProspectsTable({ search, onSelect }: ProspectsTableProps) {
+  const [rows, setRows] = useState<SalesProspect[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    const supabase = getSupabaseBrowserClient();
+    const { data, error } = await supabase
+      .from('sales_prospects')
+      .select('*')
+      .is('archived_at', null)
+      .order('created_at', { ascending: false });
+    if (!error && data) setRows(data as unknown as SalesProspect[]);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const filtered = useMemo(() => {
+    if (!search) return rows;
+    const q = search.toLowerCase();
+    return rows.filter(
+      (r) =>
+        r.company_name.toLowerCase().includes(q) ||
+        r.prospect_code.toLowerCase().includes(q) ||
+        r.source?.toLowerCase().includes(q)
+    );
+  }, [rows, search]);
+
+  const { sorted, sortKey, sortDir, onSort } = useTableSort(
+    filtered as unknown as Record<string, unknown>[], 'company_name', 'asc'
+  );
+  const sortedRows = sorted as unknown as SalesProspect[];
+  const pag = usePagination(sortedRows, 25);
+
+  if (loading) return <TableSkeleton rows={6} cols={5} />;
+
+  if (filtered.length === 0) {
+    return (
+      <EmptyState
+        icon={<TrendingUp className="h-12 w-12" />}
+        title="No prospects"
+        description={search ? 'Try a different search term.' : 'Add your first prospect to build the pipeline.'}
+      />
+    );
+  }
+
+  return (
+    <div>
+      <Table>
+        <TableHeader>
+          <tr>
+            <TableHead sortable sorted={sortKey === 'prospect_code' && sortDir} onSort={() => onSort('prospect_code')}>Code</TableHead>
+            <TableHead sortable sorted={sortKey === 'company_name' && sortDir} onSort={() => onSort('company_name')}>Company</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Source</TableHead>
+            <TableHead sortable sorted={sortKey === 'created_at' && sortDir} onSort={() => onSort('created_at')}>Created</TableHead>
+          </tr>
+        </TableHeader>
+        <TableBody>
+          {pag.page.map((row) => (
+            <TableRow key={row.id} onClick={() => onSelect?.(row)}>
+              <TableCell className="font-mono text-xs">{row.prospect_code}</TableCell>
+              <TableCell className="font-medium">{row.company_name}</TableCell>
+              <TableCell>
+                <Badge color={PROSPECT_STATUS_COLORS[row.prospect_status_code] ?? 'gray'}>
+                  {row.prospect_status_code}
+                </Badge>
+              </TableCell>
+              <TableCell className="text-muted">{row.source ?? '—'}</TableCell>
+              <TableCell className="text-muted">{new Date(row.created_at).toLocaleDateString()}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      <Pagination
+        currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
+        pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
+        onNext={pag.nextPage} onPrev={pag.prevPage}
+      />
+    </div>
+  );
+}

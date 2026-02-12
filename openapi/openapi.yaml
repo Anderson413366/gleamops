@@ -1,0 +1,231 @@
+openapi: 3.1.0
+info:
+  title: GleamOps API
+  version: 0.1.0
+  description: >
+    Contract-first API for GleamOps (commercial cleaning ERP).
+    Errors use application/problem+json (Problem Details).
+servers:
+  - url: https://api.gleamops.local
+tags:
+  - name: Auth
+  - name: CRM
+  - name: ServiceDNA
+  - name: Pipeline
+  - name: Proposals
+  - name: Webhooks
+  - name: Followups
+  - name: Ops
+  - name: Tickets
+  - name: Timekeeping
+  - name: Quality
+  - name: Reports
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ProblemDetails:
+      type: object
+      required: [type, title, status, detail, instance, code]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+        code:
+          type: string
+        errors:
+          type: array
+          items:
+            type: object
+            required: [field, message]
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+    Prospect:
+      type: object
+      required: [prospect_code, company_name, prospect_status_code]
+      properties:
+        prospect_code: { type: string }
+        company_name: { type: string }
+        prospect_status_code: { type: string }
+        owner_user_id: { type: string, format: uuid, nullable: true }
+        notes: { type: string, nullable: true }
+        version_etag: { type: string, format: uuid }
+
+    CreateProspectRequest:
+      type: object
+      required: [company_name]
+      properties:
+        company_name: { type: string }
+        notes: { type: string, nullable: true }
+        contacts:
+          type: array
+          items:
+            type: object
+            required: [contact_name]
+            properties:
+              contact_name: { type: string }
+              email: { type: string, nullable: true }
+              phone: { type: string, nullable: true }
+              is_primary: { type: boolean, default: false }
+
+    BidCalculateRequest:
+      type: object
+      required: [bid_version_id]
+      properties:
+        bid_version_id: { type: string, format: uuid }
+        recalculate_all: { type: boolean, default: false }
+
+    BidCalculateResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        workload_results:
+          type: object
+          nullable: true
+        pricing_results:
+          type: object
+          nullable: true
+        errors:
+          type: array
+          items: { type: string }
+
+paths:
+  /me:
+    get:
+      tags: [Auth]
+      security: [{ bearerAuth: [] }]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                type: object
+        "401":
+          description: Unauthorized
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetails" }
+
+  /prospects:
+    get:
+      tags: [Pipeline]
+      security: [{ bearerAuth: [] }]
+      summary: List prospects
+      parameters:
+        - name: q
+          in: query
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+      responses:
+        "200":
+          description: Prospects
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Prospect" }
+        "401":
+          description: Unauthorized
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetails" }
+
+    post:
+      tags: [Pipeline]
+      security: [{ bearerAuth: [] }]
+      summary: Create prospect
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateProspectRequest" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Prospect" }
+        "400":
+          description: Validation error
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetails" }
+
+  /bid-versions/{bidVersionId}/calculate:
+    post:
+      tags: [Pipeline]
+      security: [{ bearerAuth: [] }]
+      summary: Calculate workload and price for a bid version
+      parameters:
+        - name: bidVersionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BidCalculateRequest" }
+      responses:
+        "200":
+          description: Calculation results
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BidCalculateResponse" }
+        "409":
+          description: Conflict (ETag mismatch or locked snapshot)
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetails" }
+        "422":
+          description: Calculation failed
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetails" }
+
+  /webhooks/email-events:
+    post:
+      tags: [Webhooks]
+      summary: Email provider webhook ingress (SendGrid/others)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+        "400":
+          description: Invalid signature or payload
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetails" }

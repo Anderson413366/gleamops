@@ -1,0 +1,20 @@
+{
+  "name": "gleamops",
+  "private": true,
+  "packageManager": "pnpm@9.15.9",
+  "scripts": {
+    "dev": "turbo dev --filter=@gleamops/web",
+    "dev:web": "turbo dev --filter=@gleamops/web",
+    "build": "turbo build",
+    "build:web": "turbo build --filter=@gleamops/web",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "db:reset": "supabase db reset",
+    "db:migrate": "supabase migration up"
+  },
+  "devDependencies": {
+    "turbo": "^2.4.0",
+    "typescript": "^5.7.0"
+  }
+}

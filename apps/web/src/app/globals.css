@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+@theme {
+  /* GleamOps color tokens */
+  --color-gleam-50: #f0f9ff;
+  --color-gleam-100: #e0f2fe;
+  --color-gleam-500: #0ea5e9;
+  --color-gleam-600: #0284c7;
+  --color-gleam-700: #0369a1;
+
+  --color-foreground: #0f172a;
+  --color-muted: #64748b;
+  --color-border: #e2e8f0;
+  --color-surface: #ffffff;
+  --color-background: #f8fafc;
+
+  /* Animations */
+  --animate-slide-in-right: slide-in-right 0.25s ease-out;
+  --animate-fade-in: fade-in 0.15s ease-out;
+}
+
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

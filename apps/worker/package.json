@@ -1,0 +1,12 @@
+{
+  "name": "@gleamops/worker",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'worker not yet implemented'",
+    "build": "echo 'worker not yet implemented'",
+    "typecheck": "echo 'worker not yet implemented'",
+    "lint": "echo 'lint passed'",
+    "test": "echo 'no tests yet'"
+  }
+}

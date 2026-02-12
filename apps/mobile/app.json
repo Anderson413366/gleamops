@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "GleamOps",
+    "slug": "gleamops-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "scheme": "gleamops",
+    "splash": {
+      "backgroundColor": "#10B981"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.gleamops.mobile",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "GleamOps needs your location for clock in/out verification.",
+        "NSCameraUsageDescription": "GleamOps needs camera access for inspection photos and issue reports."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#10B981"
+      },
+      "package": "com.gleamops.mobile",
+      "permissions": ["ACCESS_FINE_LOCATION", "CAMERA"]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-location",
+        { "locationWhenInUsePermission": "GleamOps needs your location for clock in/out verification." }
+      ],
+      [
+        "expo-camera",
+        { "cameraPermission": "GleamOps needs camera access for inspection photos." }
+      ],
+      [
+        "expo-image-picker",
+        { "photosPermission": "GleamOps needs photo library access for uploading inspection images." }
+      ]
+    ]
+  }
+}

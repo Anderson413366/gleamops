@@ -5,11 +5,15 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { queryClient, asyncStoragePersister } from '../src/lib/query-client';
 import { AuthProvider, useAuth } from '../src/contexts/auth-context';
 import { useRouter, useSegments } from 'expo-router';
+import { useSyncManager } from '../src/hooks/use-sync';
 
 function RootLayoutNav() {
   const { session, loading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+
+  // Initialize offline sync: auto-flushes mutation queue on app foreground
+  useSyncManager();
 
   useEffect(() => {
     if (loading) return;

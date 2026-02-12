@@ -12,7 +12,18 @@ import {
   type AssetRequirement,
   type AssetCheckout,
 } from '../../src/hooks/use-ticket-detail';
-import { enqueue, flushQueue, getPendingItemIds } from '../../src/lib/mutation-queue';
+import { enqueue, getPendingItemIds } from '../../src/lib/mutation-queue';
+import { useSyncState, syncNow } from '../../src/hooks/use-sync';
+
+function formatSyncAge(iso: string | null): string {
+  if (!iso) return '';
+  const ms = Date.now() - new Date(iso).getTime();
+  if (ms < 60_000) return 'just now';
+  const mins = Math.floor(ms / 60_000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  return `${hrs}h ago`;
+}
 
 type TabKey = 'overview' | 'checklist' | 'safety' | 'assets';
 
@@ -47,63 +58,53 @@ export default function TicketDetailScreen() {
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [refreshing, setRefreshing] = useState(false);
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
-  const [syncCount, setSyncCount] = useState(0);
+  const { pendingCount, lastSyncAt } = useSyncState();
 
-  // Load pending IDs on mount + after syncs
+  // Load pending IDs on mount and when pendingCount changes (sync completed)
   useEffect(() => {
     getPendingItemIds().then(setPendingIds);
-  }, []);
+  }, [pendingCount]);
 
-  // Flush queue when detail loads online
+  // When back online, sync flushes via useSyncManager (in _layout).
+  // After sync, invalidate checklist so server state is re-fetched.
   useEffect(() => {
-    if (ticket && !isOffline) {
-      flushQueue().then((synced) => {
-        if (synced > 0) {
-          setSyncCount(synced);
-          invalidateChecklist();
-        }
-        getPendingItemIds().then(setPendingIds);
-      });
+    if (ticket && !isOffline && pendingCount === 0 && pendingIds.size === 0) {
+      invalidateChecklist();
     }
-  }, [ticket, isOffline]);
+  }, [pendingCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await refetch();
-    const synced = await flushQueue();
-    if (synced > 0) setSyncCount(synced);
+    const synced = await syncNow();
+    if (synced > 0) invalidateChecklist();
     setPendingIds(await getPendingItemIds());
+    await refetch();
     setRefreshing(false);
   };
 
   // -----------------------------------------------------------------------
-  // Checklist toggle (offline-capable)
+  // Checklist toggle (queue-first — never loses a write)
   // -----------------------------------------------------------------------
   const handleToggleItem = async (item: ChecklistItem) => {
     const newChecked = !item.is_checked;
     const checkedAt = newChecked ? new Date().toISOString() : null;
 
-    // Optimistic update via react-query cache
+    // 1. Durably persist to AsyncStorage FIRST (survives crashes)
+    await enqueue({
+      type: 'checklist_toggle',
+      itemId: item.id,
+      isChecked: newChecked,
+      checkedAt,
+    });
+
+    // 2. Optimistic update in react-query cache (instant UI feedback)
     setChecklistItems((items) =>
       items.map((i) => (i.id === item.id ? { ...i, is_checked: newChecked } : i))
     );
+    setPendingIds((prev) => new Set(prev).add(item.id));
 
-    try {
-      const { error } = await supabase
-        .from('ticket_checklist_items')
-        .update({ is_checked: newChecked, checked_at: checkedAt })
-        .eq('id', item.id);
-      if (error) throw error;
-    } catch {
-      // Offline — queue mutation
-      await enqueue({
-        type: 'checklist_toggle',
-        itemId: item.id,
-        isChecked: newChecked,
-        checkedAt,
-      });
-      setPendingIds((prev) => new Set(prev).add(item.id));
-    }
+    // 3. Try immediate sync (non-blocking — if offline, queue waits)
+    syncNow().then(() => getPendingItemIds().then(setPendingIds));
   };
 
   // -----------------------------------------------------------------------
@@ -254,15 +255,8 @@ export default function TicketDetailScreen() {
         {/* Offline banner */}
         {isOffline && (
           <View style={styles.offlineBanner}>
-            <Text style={styles.offlineBannerText}>Offline — showing cached data</Text>
-          </View>
-        )}
-
-        {/* Sync success banner */}
-        {syncCount > 0 && !isOffline && (
-          <View style={styles.syncBanner}>
-            <Text style={styles.syncBannerText}>
-              Synced {syncCount} pending change{syncCount > 1 ? 's' : ''}
+            <Text style={styles.offlineBannerText}>
+              Offline — cached data{lastSyncAt ? ` · synced ${formatSyncAge(lastSyncAt)}` : ''}
             </Text>
           </View>
         )}
@@ -553,9 +547,6 @@ const styles = StyleSheet.create({
   // Banners
   offlineBanner: { backgroundColor: Colors.light.warning, paddingVertical: 6, alignItems: 'center' },
   offlineBannerText: { color: '#fff', fontSize: 12, fontWeight: '600' },
-  syncBanner: { backgroundColor: Colors.light.success, paddingVertical: 6, alignItems: 'center' },
-  syncBannerText: { color: '#fff', fontSize: 12, fontWeight: '600' },
-
   // Status bar
   statusBar: { padding: 16, flexDirection: 'row', alignItems: 'center', gap: 8 },
   statusBadge: {

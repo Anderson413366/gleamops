@@ -5,7 +5,18 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMyDay, type TodayTicket } from '../../src/hooks/use-my-day';
+import { useSyncState, syncNow } from '../../src/hooks/use-sync';
 import { Colors, STATUS_COLORS } from '../../src/lib/constants';
+
+function formatSyncAge(iso: string | null): string {
+  if (!iso) return '';
+  const ms = Date.now() - new Date(iso).getTime();
+  if (ms < 60_000) return 'just now';
+  const mins = Math.floor(ms / 60_000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  return `${hrs}h ago`;
+}
 
 function formatTime(t: string | null): string {
   if (!t) return '';
@@ -27,6 +38,7 @@ function getGreeting(): string {
 export default function MyDayScreen() {
   const router = useRouter();
   const { staffId, staffName, tickets, loading, refreshing, isOffline, refetch } = useMyDay();
+  const { pendingCount, lastSyncAt } = useSyncState();
   const [myOnly, setMyOnly] = useState(true);
 
   const displayTickets = useMemo(() => {
@@ -58,7 +70,12 @@ export default function MyDayScreen() {
       {/* Offline banner */}
       {isOffline && (
         <View style={styles.offlineBanner}>
-          <Text style={styles.offlineBannerText}>Offline — showing cached data</Text>
+          <Text style={styles.offlineBannerText}>
+            Offline — cached data{lastSyncAt ? ` · synced ${formatSyncAge(lastSyncAt)}` : ''}
+          </Text>
+          {pendingCount > 0 && (
+            <Text style={styles.offlinePendingText}>{pendingCount} change{pendingCount > 1 ? 's' : ''} pending</Text>
+          )}
         </View>
       )}
 
@@ -115,7 +132,7 @@ export default function MyDayScreen() {
         data={displayTickets}
         keyExtractor={(item) => item.id}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => refetch()} tintColor={Colors.light.primary} />
+          <RefreshControl refreshing={refreshing} onRefresh={async () => { await syncNow(); refetch(); }} tintColor={Colors.light.primary} />
         }
         contentContainerStyle={displayTickets.length === 0 ? styles.center : styles.list}
         ListEmptyComponent={
@@ -186,6 +203,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   offlineBannerText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+  offlinePendingText: { color: 'rgba(255,255,255,0.8)', fontSize: 11, marginTop: 2 },
   header: {
     backgroundColor: Colors.light.primary,
     paddingTop: 16,

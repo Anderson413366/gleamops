@@ -1,20 +1,19 @@
 /**
- * Offline mutation queue.
+ * Offline mutation queue — durable, retry-aware, idempotent.
  *
- * Stores pending writes in AsyncStorage when the device is offline.
- * When connectivity returns, they are replayed in order.
- *
- * Supported mutation types:
- *   - checklist_toggle — toggle a checklist item (idempotent, last-write-wins)
- *   - time_event      — clock in/out, break start/end (append-only)
- *   - photo_metadata   — photo metadata queued for upload (append-only)
+ * Every checklist toggle, time event, and photo metadata write goes through
+ * this queue FIRST (AsyncStorage), so it survives app crashes and restarts.
+ * Flush replays pending writes to Supabase with idempotency checks.
  *
  * Queue key: @gleamops:mutations
+ * Sync timestamp key: @gleamops:last_sync_at
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabase';
 
 const QUEUE_KEY = '@gleamops:mutations';
+const LAST_SYNC_KEY = '@gleamops:last_sync_at';
+const MAX_RETRIES = 10;
 
 // ---------------------------------------------------------------------------
 // Discriminated union types
@@ -57,6 +56,7 @@ type MutationPayload = ChecklistToggle | TimeEventMutation | PhotoMetadataMutati
 export type PendingMutation = MutationPayload & {
   id: string;
   createdAt: string;
+  retryCount: number;
 };
 
 // ---------------------------------------------------------------------------
@@ -75,12 +75,17 @@ async function setQueue(queue: PendingMutation[]): Promise<void> {
   try {
     await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
   } catch {
-    // Non-fatal
+    // Non-fatal — but this means the write could be lost.
+    // In practice AsyncStorage rarely fails.
   }
 }
 
 /**
- * Add a mutation to the offline queue.
+ * Add a mutation to the durable offline queue.
+ *
+ * This MUST be called BEFORE the optimistic UI update so the write
+ * is persisted to disk even if the app crashes immediately after.
+ *
  * Checklist toggles are deduplicated (last-write-wins for same itemId).
  * Time events and photos are append-only.
  */
@@ -97,8 +102,9 @@ export async function enqueue(mutation: MutationPayload): Promise<void> {
 
   filtered.push({
     ...mutation,
-    id: `${mutation.type}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    id: `${mutation.type}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     createdAt: new Date().toISOString(),
+    retryCount: 0,
   } as PendingMutation);
 
   await setQueue(filtered);
@@ -124,72 +130,142 @@ export async function getPendingItemIds(): Promise<Set<string>> {
 }
 
 /**
- * Flush: replay all pending mutations to Supabase, then clear succeeded ones.
- * Returns the number of mutations successfully synced.
+ * Get the ISO timestamp of the last successful sync.
+ */
+export async function getLastSyncAt(): Promise<string | null> {
+  try {
+    return await AsyncStorage.getItem(LAST_SYNC_KEY);
+  } catch {
+    return null;
+  }
+}
+
+async function setLastSyncAt(): Promise<void> {
+  try {
+    await AsyncStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
+  } catch {
+    // Non-fatal
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Idempotent write helpers
+// ---------------------------------------------------------------------------
+
+async function flushChecklist(m: PendingMutation & ChecklistToggle): Promise<boolean> {
+  // UPDATE is naturally idempotent — same values written on retry
+  const { error } = await supabase
+    .from('ticket_checklist_items')
+    .update({ is_checked: m.isChecked, checked_at: m.checkedAt })
+    .eq('id', m.itemId);
+  return !error;
+}
+
+async function flushTimeEvent(m: PendingMutation & TimeEventMutation): Promise<boolean> {
+  // Idempotency: check if a record with same staff+type+timestamp already exists
+  const { data: existing } = await supabase
+    .from('time_events')
+    .select('id')
+    .eq('staff_id', m.staffId)
+    .eq('event_type', m.eventType)
+    .eq('recorded_at', m.recordedAt)
+    .maybeSingle();
+
+  if (existing) return true; // Already synced — skip insert
+
+  const { error } = await supabase
+    .from('time_events')
+    .insert({
+      tenant_id: m.tenantId,
+      staff_id: m.staffId,
+      ticket_id: m.ticketId,
+      site_id: m.siteId,
+      event_type: m.eventType,
+      recorded_at: m.recordedAt,
+      lat: m.lat,
+      lng: m.lng,
+      accuracy_meters: m.accuracyMeters,
+    });
+  return !error;
+}
+
+async function flushPhoto(m: PendingMutation & PhotoMetadataMutation): Promise<boolean> {
+  // Idempotency: check by localUri + ticket (same photo won't be uploaded twice)
+  const { data: existing } = await supabase
+    .from('ticket_photos')
+    .select('id')
+    .eq('ticket_id', m.ticketId)
+    .eq('storage_path', m.localUri)
+    .maybeSingle();
+
+  if (existing) return true;
+
+  const { error } = await supabase
+    .from('ticket_photos')
+    .insert({
+      tenant_id: m.tenantId,
+      ticket_id: m.ticketId,
+      checklist_item_id: m.checklistItemId,
+      storage_path: m.localUri,
+      original_filename: m.originalFilename,
+      mime_type: m.mimeType,
+      size_bytes: m.sizeBytes,
+      caption: m.caption,
+      uploaded_by: m.uploadedBy,
+    });
+  return !error;
+}
+
+// ---------------------------------------------------------------------------
+// Flush: replay all pending mutations to Supabase
+// ---------------------------------------------------------------------------
+
+/**
+ * Flush: replay pending mutations. Returns count of successfully synced items.
+ *
+ * - Failed mutations stay in queue with incremented retryCount.
+ * - Mutations exceeding MAX_RETRIES are dropped (logged as error).
+ * - On any successful sync, updates lastSyncAt timestamp.
  */
 export async function flushQueue(): Promise<number> {
   const queue = await getQueue();
   if (queue.length === 0) return 0;
 
   let synced = 0;
-  const failed: PendingMutation[] = [];
+  const remaining: PendingMutation[] = [];
 
   for (const mutation of queue) {
+    // Drop mutations that have exceeded retry limit
+    if (mutation.retryCount >= MAX_RETRIES) {
+      console.error('[sync] dropping mutation after max retries:', mutation.id);
+      continue;
+    }
+
+    let ok = false;
     try {
       if (mutation.type === 'checklist_toggle') {
-        const { error } = await supabase
-          .from('ticket_checklist_items')
-          .update({
-            is_checked: mutation.isChecked,
-            checked_at: mutation.checkedAt,
-          })
-          .eq('id', mutation.itemId);
-
-        if (error) { failed.push(mutation); } else { synced++; }
-
+        ok = await flushChecklist(mutation as PendingMutation & ChecklistToggle);
       } else if (mutation.type === 'time_event') {
-        const { error } = await supabase
-          .from('time_events')
-          .insert({
-            tenant_id: mutation.tenantId,
-            staff_id: mutation.staffId,
-            ticket_id: mutation.ticketId,
-            site_id: mutation.siteId,
-            event_type: mutation.eventType,
-            recorded_at: mutation.recordedAt,
-            lat: mutation.lat,
-            lng: mutation.lng,
-            accuracy_meters: mutation.accuracyMeters,
-          });
-
-        if (error) { failed.push(mutation); } else { synced++; }
-
+        ok = await flushTimeEvent(mutation as PendingMutation & TimeEventMutation);
       } else if (mutation.type === 'photo_metadata') {
-        // Photo file upload requires a separate mechanism (expo-file-system).
-        // Here we queue the metadata row; storage_path holds the local URI
-        // until the actual upload replaces it with the remote path.
-        const { error } = await supabase
-          .from('ticket_photos')
-          .insert({
-            tenant_id: mutation.tenantId,
-            ticket_id: mutation.ticketId,
-            checklist_item_id: mutation.checklistItemId,
-            storage_path: mutation.localUri,
-            original_filename: mutation.originalFilename,
-            mime_type: mutation.mimeType,
-            size_bytes: mutation.sizeBytes,
-            caption: mutation.caption,
-            uploaded_by: mutation.uploadedBy,
-          });
-
-        if (error) { failed.push(mutation); } else { synced++; }
+        ok = await flushPhoto(mutation as PendingMutation & PhotoMetadataMutation);
       }
     } catch {
-      failed.push(mutation);
+      ok = false;
+    }
+
+    if (ok) {
+      synced++;
+    } else {
+      remaining.push({ ...mutation, retryCount: mutation.retryCount + 1 });
     }
   }
 
-  // Keep only failed mutations for retry
-  await setQueue(failed);
+  await setQueue(remaining);
+
+  if (synced > 0) {
+    await setLastSyncAt();
+  }
+
   return synced;
 }

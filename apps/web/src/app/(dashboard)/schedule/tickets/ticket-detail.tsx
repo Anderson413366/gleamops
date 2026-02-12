@@ -5,6 +5,7 @@ import {
   ClipboardList, MapPin, Briefcase, Calendar, Clock,
   UserPlus, X, Users, CheckSquare, Square, Camera, ImageIcon,
   AlertTriangle, Filter, Eye, Timer, Shield, Star, Package,
+  ExternalLink, Key,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
@@ -20,6 +21,7 @@ import { TICKET_STATUS_COLORS, INSPECTION_STATUS_COLORS, ISSUE_SEVERITY_COLORS }
 import type {
   WorkTicket, TicketAssignment, Staff, TicketChecklistItem, TicketPhoto,
   Inspection, InspectionIssue, TimeException,
+  SiteSupply, SiteAssetRequirement, TicketAssetCheckout,
 } from '@gleamops/shared';
 
 // ---------------------------------------------------------------------------
@@ -70,7 +72,7 @@ interface TicketDetailProps {
   onStatusChange?: () => void;
 }
 
-type TabKey = 'overview' | 'checklist' | 'photos' | 'time' | 'safety' | 'assets' | 'quality';
+type TabKey = 'overview' | 'checklist' | 'photos' | 'time' | 'safety' | 'crew' | 'assets' | 'quality';
 
 const STATUS_OPTIONS = [
   { value: 'SCHEDULED', label: 'Scheduled' },
@@ -114,6 +116,11 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
   // Safety
   const [timeExceptions, setTimeExceptions] = useState<TimeExceptionWithStaff[]>([]);
   const [inspectionIssues, setInspectionIssues] = useState<InspectionIssueWithContext[]>([]);
+  const [siteSupplies, setSiteSupplies] = useState<SiteSupply[]>([]);
+
+  // Asset gating
+  const [assetRequirements, setAssetRequirements] = useState<SiteAssetRequirement[]>([]);
+  const [assetCheckouts, setAssetCheckouts] = useState<TicketAssetCheckout[]>([]);
 
   // Quality
   const [inspections, setInspections] = useState<InspectionWithInspector[]>([]);
@@ -126,7 +133,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
 
-    const [assignRes, staffRes, dayAssignRes, timeRes, exceptionsRes, inspectionsRes, issuesRes] = await Promise.all([
+    const [assignRes, staffRes, dayAssignRes, timeRes, exceptionsRes, inspectionsRes, issuesRes, suppliesRes, requirementsRes, checkoutsRes] = await Promise.all([
       // Staff assignments for this ticket
       supabase
         .from('ticket_assignments')
@@ -178,6 +185,25 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
         .select('*, inspection:inspection_id(inspection_code)')
         .is('archived_at', null)
         .order('created_at', { ascending: false }),
+      // Site supplies (SDS)
+      supabase
+        .from('site_supplies')
+        .select('*')
+        .eq('site_id', ticket.site_id)
+        .is('archived_at', null)
+        .order('name'),
+      // Site asset requirements
+      supabase
+        .from('site_asset_requirements')
+        .select('*')
+        .eq('site_id', ticket.site_id)
+        .is('archived_at', null)
+        .order('asset_type'),
+      // Ticket asset checkouts
+      supabase
+        .from('ticket_asset_checkouts')
+        .select('*')
+        .eq('ticket_id', ticket.id),
     ]);
 
     if (assignRes.data) setAssignments(assignRes.data as unknown as AssignmentWithStaff[]);
@@ -244,6 +270,17 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
       }
     }
     setBusyMap(newBusyMap);
+
+    // Site supplies / SDS
+    if (suppliesRes.data) setSiteSupplies(suppliesRes.data as unknown as SiteSupply[]);
+    else setSiteSupplies([]);
+
+    // Asset requirements + checkouts
+    if (requirementsRes.data) setAssetRequirements(requirementsRes.data as unknown as SiteAssetRequirement[]);
+    else setAssetRequirements([]);
+    if (checkoutsRes.data) setAssetCheckouts(checkoutsRes.data as unknown as TicketAssetCheckout[]);
+    else setAssetCheckouts([]);
+
     setLoading(false);
   }, [ticket, open]);
 
@@ -348,12 +385,72 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
 
   const handleStatusChange = async (newStatus: string) => {
     if (!ticket) return;
+
+    // Gating: block IN_PROGRESS if required assets not checked out
+    const requiredReqs = assetRequirements.filter((r) => r.is_required);
+    if (newStatus === 'IN_PROGRESS' && requiredReqs.length > 0) {
+      const allCheckedOut = requiredReqs.every((r) =>
+        assetCheckouts.some((c) => c.requirement_id === r.id && !c.returned_at),
+      );
+      if (!allCheckedOut) {
+        setActiveTab('assets');
+        return;
+      }
+    }
+
+    // Gating: warn on COMPLETED if KEY assets not returned
+    if (newStatus === 'COMPLETED') {
+      const unreturnedKeys = assetRequirements
+        .filter((r) => r.asset_type === 'KEY')
+        .filter((r) => assetCheckouts.some((c) => c.requirement_id === r.id && !c.returned_at));
+      if (unreturnedKeys.length > 0) {
+        const proceed = window.confirm(
+          `${unreturnedKeys.length} key(s) have not been returned. Complete anyway?`,
+        );
+        if (!proceed) {
+          setActiveTab('assets');
+          return;
+        }
+      }
+    }
+
     const supabase = getSupabaseBrowserClient();
     await supabase
       .from('work_tickets')
       .update({ status: newStatus })
       .eq('id', ticket.id);
     onStatusChange?.();
+  };
+
+  const handleAssetCheckout = async (requirementId: string) => {
+    if (!ticket) return;
+    const supabase = getSupabaseBrowserClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // Look up staff for current user
+    const { data: staffRow } = await supabase
+      .from('staff')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    await supabase.from('ticket_asset_checkouts').insert({
+      tenant_id: ticket.tenant_id,
+      ticket_id: ticket.id,
+      requirement_id: requirementId,
+      staff_id: staffRow?.id ?? user.id,
+    });
+    fetchDetails();
+  };
+
+  const handleAssetReturn = async (checkoutId: string) => {
+    const supabase = getSupabaseBrowserClient();
+    await supabase
+      .from('ticket_asset_checkouts')
+      .update({ returned_at: new Date().toISOString() })
+      .eq('id', checkoutId);
+    fetchDetails();
   };
 
   const handleToggleItem = async (item: ChecklistItemRow) => {
@@ -430,9 +527,16 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
   const totalCount = checklistItems.length;
   const progressPct = totalCount > 0 ? Math.round((checkedCount / totalCount) * 100) : 0;
 
-  // Safety count: exceptions + unresolved issues
+  // Safety count: exceptions + unresolved issues + supplies
   const unresolvedIssues = inspectionIssues.filter((i) => !i.resolved_at);
-  const safetyCount = timeExceptions.length + unresolvedIssues.length;
+  const safetyCount = timeExceptions.length + unresolvedIssues.length + siteSupplies.length;
+
+  // Asset gating
+  const requiredAssets = assetRequirements.filter((r) => r.is_required);
+  const allRequiredCheckedOut = requiredAssets.every((r) =>
+    assetCheckouts.some((c) => c.requirement_id === r.id && !c.returned_at),
+  );
+  const assetGatingBlocked = requiredAssets.length > 0 && !allRequiredCheckedOut;
 
   // Quality: best inspection score
   const latestInspection = inspections[0] ?? null;
@@ -455,7 +559,8 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
     { key: 'photos', label: 'Photos', icon: <Camera className="h-3.5 w-3.5" />, count: allPhotos.length > 0 ? String(allPhotos.length) : undefined },
     { key: 'time', label: 'Time', icon: <Timer className="h-3.5 w-3.5" />, count: timeEntries.length > 0 ? String(timeEntries.length) : undefined },
     { key: 'safety', label: 'Safety', icon: <Shield className="h-3.5 w-3.5" />, count: safetyCount > 0 ? String(safetyCount) : undefined },
-    { key: 'assets', label: 'Assets', icon: <Users className="h-3.5 w-3.5" />, count: assignments.length > 0 ? String(assignments.length) : undefined },
+    { key: 'crew', label: 'Crew', icon: <Users className="h-3.5 w-3.5" />, count: assignments.length > 0 ? String(assignments.length) : undefined },
+    { key: 'assets', label: 'Assets', icon: <Key className="h-3.5 w-3.5" />, count: assetRequirements.length > 0 ? String(assetRequirements.length) : undefined },
     { key: 'quality', label: 'Quality', icon: <Star className="h-3.5 w-3.5" />, count: inspections.length > 0 ? String(inspections.length) : undefined },
   ];
 
@@ -556,9 +661,9 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                 <p className="text-lg font-bold text-foreground">{progressPct}%</p>
                 <p className="text-[10px] text-muted">Checklist</p>
               </button>
-              <button onClick={() => setActiveTab('assets')} className="p-2.5 rounded-lg border border-border hover:border-gleam-300 text-center transition-colors">
+              <button onClick={() => setActiveTab('crew')} className="p-2.5 rounded-lg border border-border hover:border-gleam-300 text-center transition-colors">
                 <p className="text-lg font-bold text-foreground">{assignments.length}</p>
-                <p className="text-[10px] text-muted">Staff</p>
+                <p className="text-[10px] text-muted">Crew</p>
               </button>
               <button onClick={() => setActiveTab('time')} className="p-2.5 rounded-lg border border-border hover:border-gleam-300 text-center transition-colors">
                 <p className="text-lg font-bold text-foreground">{timeEntries.length}</p>
@@ -725,6 +830,35 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
         {/* ========== TAB: Safety ========== */}
         {activeTab === 'safety' && (
           <div className="space-y-4">
+            {/* Site Supplies & SDS */}
+            {siteSupplies.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted uppercase tracking-wider">Site Supplies & SDS</p>
+                {siteSupplies.map((supply) => (
+                  <div key={supply.id} className="p-3 rounded-lg border border-border flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">{supply.name}</p>
+                      {supply.category && <p className="text-xs text-muted">{supply.category}</p>}
+                      {supply.notes && <p className="text-xs text-muted italic mt-0.5">{supply.notes}</p>}
+                    </div>
+                    {supply.sds_url ? (
+                      <a
+                        href={supply.sds_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-700 shrink-0 px-2.5 py-1.5 rounded-md bg-red-50 hover:bg-red-100 transition-colors"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        View SDS
+                      </a>
+                    ) : (
+                      <span className="text-xs text-muted shrink-0">No SDS</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Time exceptions (geofence, late arrival, etc.) */}
             {timeExceptions.length > 0 && (
               <div className="space-y-2">
@@ -787,14 +921,14 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
 
             {safetyCount === 0 && (
               <div className="text-center py-8 text-sm text-muted">
-                No safety flags for this ticket. All clear.
+                No safety data, supplies, or flags for this ticket.
               </div>
             )}
           </div>
         )}
 
-        {/* ========== TAB: Assets ========== */}
-        {activeTab === 'assets' && (
+        {/* ========== TAB: Crew (Staff Assignments) ========== */}
+        {activeTab === 'crew' && (
           <div className="space-y-4">
             {loading ? (
               <Skeleton className="h-32 w-full" />
@@ -895,6 +1029,59 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                     })}
                   </div>
                 )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ========== TAB: Assets (Checkout / Return) ========== */}
+        {activeTab === 'assets' && (
+          <div className="space-y-4">
+            {assetRequirements.length === 0 ? (
+              <div className="text-center py-8 text-sm text-muted">
+                No asset requirements for this site.
+              </div>
+            ) : (
+              <>
+                {assetGatingBlocked && ticket.status === 'SCHEDULED' && (
+                  <div className="flex items-start gap-2 p-3 rounded-lg bg-yellow-50 border border-yellow-200">
+                    <AlertTriangle className="h-4 w-4 text-yellow-600 shrink-0 mt-0.5" />
+                    <p className="text-xs text-yellow-800">
+                      All required assets must be checked out before starting work.
+                    </p>
+                  </div>
+                )}
+                <div className="space-y-2">
+                  {assetRequirements.map((req) => {
+                    const checkout = assetCheckouts.find((c) => c.requirement_id === req.id && !c.returned_at);
+                    const isCheckedOut = !!checkout;
+                    const ICONS: Record<string, string> = { KEY: '\uD83D\uDD11', VEHICLE: '\uD83D\uDE90', EQUIPMENT: '\uD83E\uDDF9' };
+
+                    return (
+                      <div key={req.id} className="flex items-center justify-between p-3 rounded-lg border border-border">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className="text-lg">{ICONS[req.asset_type] ?? '\uD83D\uDCE6'}</span>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium">
+                              {req.description}
+                              {req.is_required && <span className="text-red-500 ml-1">*</span>}
+                            </p>
+                            <p className="text-[10px] text-muted uppercase">{req.asset_type}</p>
+                          </div>
+                        </div>
+                        {isCheckedOut ? (
+                          <Button size="sm" variant="secondary" onClick={() => handleAssetReturn(checkout!.id)}>
+                            Return
+                          </Button>
+                        ) : (
+                          <Button size="sm" onClick={() => handleAssetCheckout(req.id)}>
+                            Check Out
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </>
             )}
           </div>

@@ -690,3 +690,29 @@ export interface KeyInventory extends StandardColumns {
   status: 'AVAILABLE' | 'ASSIGNED' | 'LOST' | 'RETURNED';
   notes: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// Module F: Site Supplies & Asset Gating
+// ---------------------------------------------------------------------------
+export interface SiteSupply extends StandardColumns {
+  site_id: string;
+  name: string;
+  category: string | null;
+  sds_url: string | null;
+  notes: string | null;
+}
+
+export interface SiteAssetRequirement extends StandardColumns {
+  site_id: string;
+  asset_type: 'KEY' | 'VEHICLE' | 'EQUIPMENT';
+  description: string;
+  is_required: boolean;
+}
+
+export interface TicketAssetCheckout extends StandardColumns {
+  ticket_id: string;
+  requirement_id: string;
+  staff_id: string;
+  checked_out_at: string;
+  returned_at: string | null;
+}

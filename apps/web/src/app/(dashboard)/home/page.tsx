@@ -10,6 +10,12 @@ import {
   Calendar,
   TrendingUp,
   Clock,
+  Briefcase,
+  MapPin,
+  Package,
+  AlertTriangle,
+  DollarSign,
+  ShieldAlert,
 } from 'lucide-react';
 import { StatCard, CollapsibleCard, Badge, Skeleton } from '@gleamops/ui';
 import {
@@ -62,9 +68,24 @@ function formatRelativeTime(dateStr: string): string {
 // ---------------------------------------------------------------------------
 interface Metrics {
   activeClients: number | null;
+  activeSites: number | null;
+  activeJobs: number | null;
   openTickets: number | null;
   activeStaff: number | null;
   pendingBids: number | null;
+}
+
+interface LowStockRow {
+  id: string;
+  name: string;
+  category: string | null;
+  site?: { name: string } | null;
+}
+
+interface DataIssueRow {
+  entity: string;
+  code: string;
+  issue: string;
 }
 
 interface AuditRow {
@@ -157,6 +178,8 @@ export default function HomePage() {
 
   const [metrics, setMetrics] = useState<Metrics>({
     activeClients: null,
+    activeSites: null,
+    activeJobs: null,
     openTickets: null,
     activeStaff: null,
     pendingBids: null,
@@ -165,6 +188,8 @@ export default function HomePage() {
   const [upcomingTickets, setUpcomingTickets] = useState<TicketRow[]>([]);
   const [prospects, setProspects] = useState<ProspectRow[]>([]);
   const [activeShifts, setActiveShifts] = useState<ActiveStaffRow[]>([]);
+  const [lowStockItems, setLowStockItems] = useState<LowStockRow[]>([]);
+  const [dataIssues, setDataIssues] = useState<DataIssueRow[]>([]);
 
   const [metricsLoading, setMetricsLoading] = useState(true);
   const [sectionsLoading, setSectionsLoading] = useState(true);
@@ -175,10 +200,19 @@ export default function HomePage() {
 
     // --- Metrics (parallel count queries) ---
     setMetricsLoading(true);
-    const [clientsRes, ticketsRes, staffRes, bidsRes] = await Promise.all([
+    const [clientsRes, sitesRes, jobsRes, ticketsRes, staffRes, bidsRes] = await Promise.all([
       supabase
         .from('clients')
         .select('id', { count: 'exact', head: true })
+        .is('archived_at', null),
+      supabase
+        .from('sites')
+        .select('id', { count: 'exact', head: true })
+        .is('archived_at', null),
+      supabase
+        .from('site_jobs')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'ACTIVE')
         .is('archived_at', null),
       supabase
         .from('work_tickets')
@@ -196,6 +230,8 @@ export default function HomePage() {
 
     setMetrics({
       activeClients: clientsRes.count ?? 0,
+      activeSites: sitesRes.count ?? 0,
+      activeJobs: jobsRes.count ?? 0,
       openTickets: ticketsRes.count ?? 0,
       activeStaff: staffRes.count ?? 0,
       pendingBids: bidsRes.count ?? 0,
@@ -206,7 +242,7 @@ export default function HomePage() {
     setSectionsLoading(true);
     const today = new Date().toISOString().split('T')[0];
 
-    const [auditRes, ticketListRes, prospectRes, shiftsRes] = await Promise.all([
+    const [auditRes, ticketListRes, prospectRes, shiftsRes, lowStockRes, clientIssuesRes] = await Promise.all([
       // Recent activity
       supabase
         .from('audit_events')
@@ -234,12 +270,38 @@ export default function HomePage() {
         .is('end_at', null)
         .order('start_at', { ascending: false })
         .limit(10),
+      // Low stock / supply alerts
+      supabase
+        .from('site_supplies')
+        .select('id, name, category, site:site_id(name)')
+        .is('archived_at', null)
+        .order('name')
+        .limit(10),
+      // Data quality — clients missing billing address
+      supabase
+        .from('clients')
+        .select('id, client_code, name, billing_address')
+        .is('archived_at', null)
+        .order('client_code')
+        .limit(200),
     ]);
 
     if (auditRes.data) setAuditEvents(auditRes.data as AuditRow[]);
     if (ticketListRes.data) setUpcomingTickets(ticketListRes.data as TicketRow[]);
     if (prospectRes.data) setProspects(prospectRes.data as ProspectRow[]);
     if (shiftsRes.data) setActiveShifts(shiftsRes.data as unknown as ActiveStaffRow[]);
+    if (lowStockRes.data) setLowStockItems(lowStockRes.data as unknown as LowStockRow[]);
+
+    // Compute data quality issues from fetched data
+    const issues: DataIssueRow[] = [];
+    if (clientIssuesRes.data) {
+      for (const c of clientIssuesRes.data as unknown as { client_code: string; name: string; billing_address: Record<string, string> | null }[]) {
+        if (!c.billing_address || (!c.billing_address.street && !c.billing_address.city)) {
+          issues.push({ entity: 'Client', code: c.client_code, issue: 'Missing billing address' });
+        }
+      }
+    }
+    setDataIssues(issues.slice(0, 10));
 
     setSectionsLoading(false);
   }, []);
@@ -272,42 +334,58 @@ export default function HomePage() {
         </p>
       </div>
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {metricsLoading ? (
-          <>
-            <StatCardSkeleton />
-            <StatCardSkeleton />
-            <StatCardSkeleton />
-            <StatCardSkeleton />
-          </>
-        ) : (
-          <>
-            <StatCard
-              label="Active Clients"
-              value={metrics.activeClients ?? 0}
-              icon={<Building2 className="h-5 w-5" />}
-            />
-            <StatCard
-              label="Open Tickets"
-              value={metrics.openTickets ?? 0}
-              icon={<Ticket className="h-5 w-5" />}
-            />
-            <StatCard
-              label="Active Staff"
-              value={metrics.activeStaff ?? 0}
-              icon={<Users className="h-5 w-5" />}
-            />
-            <StatCard
-              label="Pending Bids"
-              value={metrics.pendingBids ?? 0}
-              icon={<FileText className="h-5 w-5" />}
-            />
-          </>
-        )}
+      {/* Executive Dashboard — Stat Cards */}
+      <div>
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Executive Overview</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          {metricsLoading ? (
+            <>
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+            </>
+          ) : (
+            <>
+              <StatCard
+                label="Active Clients"
+                value={metrics.activeClients ?? 0}
+                icon={<Building2 className="h-5 w-5" />}
+              />
+              <StatCard
+                label="Active Sites"
+                value={metrics.activeSites ?? 0}
+                icon={<MapPin className="h-5 w-5" />}
+              />
+              <StatCard
+                label="Active Jobs"
+                value={metrics.activeJobs ?? 0}
+                icon={<Briefcase className="h-5 w-5" />}
+              />
+              <StatCard
+                label="Open Tickets"
+                value={metrics.openTickets ?? 0}
+                icon={<Ticket className="h-5 w-5" />}
+              />
+              <StatCard
+                label="Active Staff"
+                value={metrics.activeStaff ?? 0}
+                icon={<Users className="h-5 w-5" />}
+              />
+              <StatCard
+                label="Pending Bids"
+                value={metrics.pendingBids ?? 0}
+                icon={<FileText className="h-5 w-5" />}
+              />
+            </>
+          )}
+        </div>
       </div>
 
-      {/* Collapsible Sections — 2x2 grid on desktop */}
+      {/* Operations Dashboard — 2x2 grid */}
+      <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Operations</h2>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Activity */}
         <CollapsibleCard
@@ -442,6 +520,77 @@ export default function HomePage() {
                   <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
                     Checked in {timeFormatter.format(new Date(entry.start_at))}
                   </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CollapsibleCard>
+      </div>
+
+      {/* Inventory & Data Quality Dashboards */}
+      <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Inventory & Data Quality</h2>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Inventory Dashboard */}
+        <CollapsibleCard
+          id="dashboard-inventory"
+          title="Inventory Alerts"
+          icon={<Package className="h-5 w-5" />}
+        >
+          {sectionsLoading ? (
+            <ListSkeleton rows={4} />
+          ) : lowStockItems.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No inventory alerts. All supplies are stocked.</p>
+          ) : (
+            <ul className="space-y-2.5">
+              {lowStockItems.map((item) => (
+                <li
+                  key={item.id}
+                  className="flex items-center justify-between gap-3 text-sm"
+                >
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <Package className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <span className="font-medium text-foreground truncate">{item.name}</span>
+                    {item.category && (
+                      <span className="text-xs text-muted-foreground shrink-0">{item.category}</span>
+                    )}
+                  </div>
+                  {item.site && (
+                    <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
+                      {item.site.name}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </CollapsibleCard>
+
+        {/* Data Quality Dashboard */}
+        <CollapsibleCard
+          id="dashboard-data-quality"
+          title="Data Quality"
+          icon={<ShieldAlert className="h-5 w-5" />}
+        >
+          {sectionsLoading ? (
+            <ListSkeleton rows={4} />
+          ) : dataIssues.length === 0 ? (
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-green-500" />
+              <p className="text-sm text-muted-foreground">All records look good. No issues detected.</p>
+            </div>
+          ) : (
+            <ul className="space-y-2.5">
+              {dataIssues.map((issue, i) => (
+                <li
+                  key={`${issue.code}-${i}`}
+                  className="flex items-center justify-between gap-3 text-sm"
+                >
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <AlertTriangle className="h-3.5 w-3.5 text-yellow-500 shrink-0" />
+                    <span className="font-mono text-xs text-muted-foreground shrink-0">{issue.code}</span>
+                    <span className="text-foreground truncate">{issue.issue}</span>
+                  </div>
+                  <Badge color="yellow">{issue.entity}</Badge>
                 </li>
               ))}
             </ul>

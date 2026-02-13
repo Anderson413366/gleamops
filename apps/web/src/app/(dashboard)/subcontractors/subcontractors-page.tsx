@@ -1,16 +1,18 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { HardHat, Plus } from 'lucide-react';
+import { HardHat, Briefcase, Plus } from 'lucide-react';
 import { ChipTabs, SearchInput, Button } from '@gleamops/ui';
 import type { Subcontractor } from '@gleamops/shared';
 
 import SubcontractorsTable from './directory/subcontractors-table';
 import { SubcontractorDetail } from './directory/subcontractor-detail';
 import { SubcontractorForm } from '@/components/forms/subcontractor-form';
+import SubcontractorJobsTable from './jobs/subcontractor-jobs-table';
 
 const TABS = [
   { key: 'directory', label: 'Directory', icon: <HardHat className="h-4 w-4" /> },
+  { key: 'jobs', label: 'Job Details', icon: <Briefcase className="h-4 w-4" /> },
 ];
 
 export default function SubcontractorsPageClient() {
@@ -44,6 +46,10 @@ export default function SubcontractorsPageClient() {
           search={search}
           onSelect={(s) => setSelected(s)}
         />
+      )}
+
+      {tab === 'jobs' && (
+        <SubcontractorJobsTable search={search} />
       )}
 
       <SubcontractorDetail

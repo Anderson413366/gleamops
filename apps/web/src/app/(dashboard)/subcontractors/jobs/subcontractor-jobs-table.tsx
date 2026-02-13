@@ -2,16 +2,13 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Briefcase } from 'lucide-react';
-import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, ExportButton,
+  EmptyState, Badge, Pagination, TableSkeleton,
 } from '@gleamops/ui';
-import type { SiteJob } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
-import { JobDetail } from './job-detail';
 
 const JOB_STATUS_COLORS: Record<string, 'green' | 'yellow' | 'gray' | 'red'> = {
   ACTIVE: 'green',
@@ -20,11 +17,16 @@ const JOB_STATUS_COLORS: Record<string, 'green' | 'yellow' | 'gray' | 'red'> = {
   COMPLETED: 'green',
 };
 
-interface JobWithRelations extends SiteJob {
-  site?: { site_code: string; name: string; client?: { name: string } | null } | null;
+interface SubJobRow {
+  id: string;
+  job_code: string;
+  frequency: string;
+  billing_amount: number | null;
+  status: string;
+  site?: { name: string; site_code: string; client?: { name: string } | null } | null;
 }
 
-interface JobsTableProps {
+interface Props {
   search: string;
 }
 
@@ -33,23 +35,25 @@ function formatCurrency(n: number | null) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
 }
 
-export default function JobsTable({ search }: JobsTableProps) {
-  const [rows, setRows] = useState<JobWithRelations[]>([]);
+export default function SubcontractorJobsTable({ search }: Props) {
+  const [rows, setRows] = useState<SubJobRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<JobWithRelations | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
+    // Jobs that are assigned to subcontractors — source_bid_id tracks this through won bids
+    // For now, show all jobs that have a non-null source_bid_id as "subcontracted"
     const { data, error } = await supabase
       .from('site_jobs')
       .select(`
-        *,
-        site:site_id(site_code, name, client:client_id(name))
+        id, job_code, frequency, billing_amount, status,
+        site:site_id(name, site_code, client:client_id(name))
       `)
+      .not('source_bid_id', 'is', null)
       .is('archived_at', null)
-      .order('created_at', { ascending: false });
-    if (!error && data) setRows(data as unknown as JobWithRelations[]);
+      .order('job_code');
+    if (!error && data) setRows(data as unknown as SubJobRow[]);
     setLoading(false);
   }, []);
 
@@ -58,48 +62,33 @@ export default function JobsTable({ search }: JobsTableProps) {
   const filtered = useMemo(() => {
     if (!search) return rows;
     const q = search.toLowerCase();
-    return rows.filter(
-      (r) =>
-        r.job_code.toLowerCase().includes(q) ||
-        r.site?.name?.toLowerCase().includes(q) ||
-        r.site?.client?.name?.toLowerCase().includes(q) ||
-        r.status.toLowerCase().includes(q)
+    return rows.filter((r) =>
+      r.job_code.toLowerCase().includes(q) ||
+      (r.site?.name ?? '').toLowerCase().includes(q) ||
+      (r.site?.client?.name ?? '').toLowerCase().includes(q)
     );
   }, [rows, search]);
 
   const { sorted, sortKey, sortDir, onSort } = useTableSort(
     filtered as unknown as Record<string, unknown>[], 'job_code', 'asc'
   );
-  const sortedRows = sorted as unknown as JobWithRelations[];
+  const sortedRows = sorted as unknown as SubJobRow[];
   const pag = usePagination(sortedRows, 25);
 
-  if (loading) return <TableSkeleton rows={6} cols={6} />;
+  if (loading) return <TableSkeleton rows={6} cols={5} />;
 
   if (filtered.length === 0) {
     return (
       <EmptyState
         icon={<Briefcase className="h-12 w-12" />}
-        title="No service plans"
-        description={search ? 'Try a different search term.' : 'Convert a won proposal to create service plans.'}
+        title="No subcontractor jobs"
+        description="Jobs linked to subcontractors will appear here."
       />
     );
   }
 
   return (
     <div>
-      <div className="flex justify-end mb-4">
-        <ExportButton
-          data={filtered as unknown as Record<string, unknown>[]}
-          filename="service-plans"
-          columns={[
-            { key: 'job_code', label: 'Code' },
-            { key: 'frequency', label: 'Frequency' },
-            { key: 'billing_amount', label: 'Billing' },
-            { key: 'status', label: 'Status' },
-          ]}
-          onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
-        />
-      </div>
       <Table>
         <TableHeader>
           <tr>
@@ -113,7 +102,7 @@ export default function JobsTable({ search }: JobsTableProps) {
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id} className="cursor-pointer" onClick={() => setSelected(row)}>
+            <TableRow key={row.id}>
               <TableCell className="font-mono text-xs">{row.job_code}</TableCell>
               <TableCell className="font-medium">{row.site?.name ?? '—'}</TableCell>
               <TableCell className="text-muted-foreground">{row.site?.client?.name ?? '—'}</TableCell>
@@ -129,13 +118,7 @@ export default function JobsTable({ search }: JobsTableProps) {
       <Pagination
         currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
         pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
-        onNext={pag.nextPage} onPrev={pag.prevPage}
-      />
-
-      <JobDetail
-        job={selected}
-        open={!!selected}
-        onClose={() => setSelected(null)}
+        onNext={pag.nextPage} onPrev={pag.prevPage} onGoTo={pag.goToPage}
       />
     </div>
   );

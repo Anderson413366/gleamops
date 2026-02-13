@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { MapPin, Users, Pencil, Building2, Key, Shield } from 'lucide-react';
+import { MapPin, Users, Pencil, Building2, Key, Shield, Briefcase, Package, Wrench } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   SlideOver,
@@ -14,6 +14,46 @@ import {
   Skeleton,
 } from '@gleamops/ui';
 import type { Site, Contact } from '@gleamops/shared';
+
+const JOB_STATUS_COLORS: Record<string, 'green' | 'yellow' | 'gray' | 'red'> = {
+  ACTIVE: 'green',
+  PAUSED: 'yellow',
+  CANCELLED: 'gray',
+  COMPLETED: 'green',
+};
+
+const CONDITION_COLORS: Record<string, 'green' | 'yellow' | 'orange' | 'red'> = {
+  GOOD: 'green',
+  FAIR: 'yellow',
+  POOR: 'orange',
+  OUT_OF_SERVICE: 'red',
+};
+
+interface SiteJobRow {
+  id: string;
+  job_code: string;
+  frequency: string;
+  billing_amount: number | null;
+  status: string;
+}
+
+interface SiteSupplyRow {
+  id: string;
+  name: string;
+  category: string | null;
+}
+
+interface EquipmentRow {
+  id: string;
+  name: string;
+  equipment_type: string | null;
+  condition: string | null;
+}
+
+function formatCurrency(n: number | null) {
+  if (n == null) return '—';
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
+}
 
 interface SiteWithClient extends Site {
   client?: { name: string; client_code: string } | null;
@@ -28,6 +68,9 @@ interface SiteDetailProps {
 
 export function SiteDetail({ site, open, onClose, onEdit }: SiteDetailProps) {
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [jobs, setJobs] = useState<SiteJobRow[]>([]);
+  const [supplies, setSupplies] = useState<SiteSupplyRow[]>([]);
+  const [equipment, setEquipment] = useState<EquipmentRow[]>([]);
   const [loadingRelated, setLoadingRelated] = useState(false);
 
   useEffect(() => {
@@ -35,16 +78,18 @@ export function SiteDetail({ site, open, onClose, onEdit }: SiteDetailProps) {
     setLoadingRelated(true);
     const supabase = getSupabaseBrowserClient();
 
-    supabase
-      .from('contacts')
-      .select('*')
-      .eq('site_id', site.id)
-      .is('archived_at', null)
-      .order('name')
-      .then(({ data }) => {
-        if (data) setContacts(data as unknown as Contact[]);
-        setLoadingRelated(false);
-      });
+    Promise.all([
+      supabase.from('contacts').select('*').eq('site_id', site.id).is('archived_at', null).order('name'),
+      supabase.from('site_jobs').select('id, job_code, frequency, billing_amount, status').eq('site_id', site.id).is('archived_at', null).order('job_code'),
+      supabase.from('site_supplies').select('id, name, category').eq('site_id', site.id).is('archived_at', null).order('name'),
+      supabase.from('equipment').select('id, name, equipment_type, condition').eq('site_id', site.id).is('archived_at', null).order('name'),
+    ]).then(([contactsRes, jobsRes, suppliesRes, equipRes]) => {
+      if (contactsRes.data) setContacts(contactsRes.data as unknown as Contact[]);
+      if (jobsRes.data) setJobs(jobsRes.data as unknown as SiteJobRow[]);
+      if (suppliesRes.data) setSupplies(suppliesRes.data as unknown as SiteSupplyRow[]);
+      if (equipRes.data) setEquipment(equipRes.data as unknown as EquipmentRow[]);
+      setLoadingRelated(false);
+    });
   }, [site, open]);
 
   if (!site) return null;
@@ -140,6 +185,99 @@ export function SiteDetail({ site, open, onClose, onEdit }: SiteDetailProps) {
             </CardContent>
           </Card>
         )}
+
+        {/* Related Jobs */}
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              <span className="inline-flex items-center gap-2">
+                <Briefcase className="h-4 w-4 text-muted-foreground" />
+                Related Jobs
+                <Badge color="blue">{jobs.length}</Badge>
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loadingRelated ? (
+              <Skeleton className="h-8 w-full" />
+            ) : jobs.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No jobs linked to this site.</p>
+            ) : (
+              <ul className="divide-y divide-border">
+                {jobs.map((job) => (
+                  <li key={job.id} className="py-2 flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">{job.job_code}</p>
+                      <p className="text-xs text-muted-foreground">{job.frequency} · {formatCurrency(job.billing_amount)}</p>
+                    </div>
+                    <Badge color={JOB_STATUS_COLORS[job.status] ?? 'gray'}>{job.status}</Badge>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Related Supplies */}
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              <span className="inline-flex items-center gap-2">
+                <Package className="h-4 w-4 text-muted-foreground" />
+                Related Supplies
+                <Badge color="blue">{supplies.length}</Badge>
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loadingRelated ? (
+              <Skeleton className="h-8 w-full" />
+            ) : supplies.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No supplies assigned to this site.</p>
+            ) : (
+              <ul className="divide-y divide-border">
+                {supplies.map((s) => (
+                  <li key={s.id} className="py-2 flex items-center justify-between">
+                    <p className="text-sm font-medium">{s.name}</p>
+                    {s.category && <Badge color="blue">{s.category}</Badge>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Related Equipment */}
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              <span className="inline-flex items-center gap-2">
+                <Wrench className="h-4 w-4 text-muted-foreground" />
+                Related Equipment
+                <Badge color="blue">{equipment.length}</Badge>
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loadingRelated ? (
+              <Skeleton className="h-8 w-full" />
+            ) : equipment.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No equipment assigned to this site.</p>
+            ) : (
+              <ul className="divide-y divide-border">
+                {equipment.map((eq) => (
+                  <li key={eq.id} className="py-2 flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">{eq.name}</p>
+                      {eq.equipment_type && <p className="text-xs text-muted-foreground">{eq.equipment_type}</p>}
+                    </div>
+                    {eq.condition && <Badge color={CONDITION_COLORS[eq.condition] ?? 'gray'}>{eq.condition}</Badge>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Contacts */}
         <Card>

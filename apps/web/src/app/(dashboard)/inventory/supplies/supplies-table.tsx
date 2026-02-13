@@ -206,23 +206,6 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
 
   // --- Render ---
 
-  if (loading) return <TableSkeleton rows={8} cols={5} />;
-
-  if (filtered.length === 0) {
-    return (
-      <>
-        <EmptyState
-          icon={<Package className="h-12 w-12" />}
-          title="No supplies found"
-          description={search ? 'Try a different search term.' : 'Add your first supply to get started.'}
-        />
-        <SlideOver open={formOpen} onClose={handleClose} title={isEdit ? 'Edit Supply' : 'New Supply'} subtitle={isEdit ? editItem?.code : undefined}>
-          {renderForm()}
-        </SlideOver>
-      </>
-    );
-  }
-
   const handleSdsUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -331,6 +314,23 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
           </Button>
         </div>
       </form>
+    );
+  }
+
+  if (loading) return <TableSkeleton rows={8} cols={5} />;
+
+  if (filtered.length === 0) {
+    return (
+      <>
+        <EmptyState
+          icon={<Package className="h-12 w-12" />}
+          title="No supplies found"
+          description={search ? 'Try a different search term.' : 'Add your first supply to get started.'}
+        />
+        <SlideOver open={formOpen} onClose={handleClose} title={isEdit ? 'Edit Supply' : 'New Supply'} subtitle={isEdit ? editItem?.code : undefined}>
+          {renderForm()}
+        </SlideOver>
+      </>
     );
   }
 

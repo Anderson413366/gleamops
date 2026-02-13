@@ -252,7 +252,7 @@ export default function TasksTable({ search, autoCreate, onAutoCreateHandled, on
               <TableCell>
                 {row.category ? (
                   <Badge color={CATEGORY_COLORS[row.category] ?? 'gray'}>
-                    {row.category}
+                    {row.category.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
                   </Badge>
                 ) : (
                   <span className="text-muted">--</span>

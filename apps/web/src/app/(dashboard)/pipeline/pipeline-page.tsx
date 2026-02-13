@@ -2,7 +2,8 @@
 
 import { useState, useCallback } from 'react';
 import { TrendingUp, FileText, FileCheck, Plus } from 'lucide-react';
-import { ChipTabs, SearchInput, Button } from '@gleamops/ui';
+import { toast } from 'sonner';
+import { ChipTabs, SearchInput, Button, SlideOver, Input, Select, Textarea } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { SalesBid, SalesProposal, ProblemDetails } from '@gleamops/shared';
 
@@ -48,13 +49,78 @@ export default function PipelinePageClient() {
   const [refreshKey, setRefreshKey] = useState(0);
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
+  // Prospect form state
+  const [prospectFormOpen, setProspectFormOpen] = useState(false);
+  const [prospectCode, setProspectCode] = useState('');
+  const [prospectCompany, setProspectCompany] = useState('');
+  const [prospectSource, setProspectSource] = useState('');
+  const [prospectStatus, setProspectStatus] = useState('NEW');
+  const [prospectContactName, setProspectContactName] = useState('');
+  const [prospectContactEmail, setProspectContactEmail] = useState('');
+  const [prospectContactPhone, setProspectContactPhone] = useState('');
+  const [prospectNotes, setProspectNotes] = useState('');
+  const [prospectSaving, setProspectSaving] = useState(false);
+
   const addLabel = tab === 'prospects' ? 'New Prospect' : tab === 'bids' ? 'New Bid' : '';
+
+  const resetProspectForm = () => {
+    setProspectCode('');
+    setProspectCompany('');
+    setProspectSource('');
+    setProspectStatus('NEW');
+    setProspectContactName('');
+    setProspectContactEmail('');
+    setProspectContactPhone('');
+    setProspectNotes('');
+  };
 
   const handleAdd = () => {
     if (tab === 'bids') {
       setWizardOpen(true);
+    } else if (tab === 'prospects') {
+      resetProspectForm();
+      // Auto-generate code
+      const supabase = getSupabaseBrowserClient();
+      supabase.rpc('next_code', { p_prefix: 'PRO' }).then(({ data }) => {
+        if (data) setProspectCode(data);
+      });
+      setProspectFormOpen(true);
     }
-    // TODO: Prospect form for 'prospects' tab
+  };
+
+  const handleProspectSave = async () => {
+    if (!prospectCompany.trim()) {
+      toast.error('Company name is required');
+      return;
+    }
+    setProspectSaving(true);
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      const tenantId = user?.app_metadata?.tenant_id;
+
+      const { error } = await supabase.from('sales_prospects').insert({
+        tenant_id: tenantId,
+        prospect_code: prospectCode,
+        company_name: prospectCompany.trim(),
+        source: prospectSource || null,
+        prospect_status_code: prospectStatus,
+        contact_name: prospectContactName.trim() || null,
+        contact_email: prospectContactEmail.trim() || null,
+        contact_phone: prospectContactPhone.trim() || null,
+        notes: prospectNotes.trim() || null,
+      });
+      if (error) throw error;
+
+      setProspectFormOpen(false);
+      resetProspectForm();
+      refresh();
+      toast.success('Prospect created');
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Failed to create prospect', { duration: Infinity });
+    } finally {
+      setProspectSaving(false);
+    }
   };
 
   const handleGenerateProposal = useCallback(async (bidId: string, bidVersionId: string) => {
@@ -186,7 +252,7 @@ export default function PipelinePageClient() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Pipeline</h1>
-          <p className="text-sm text-muted mt-1">Prospects, Bids, Proposals, Follow-ups</p>
+          <p className="text-sm text-muted mt-1">Prospects, Bids, Proposals</p>
         </div>
         {addLabel && (
           <Button onClick={handleAdd}>
@@ -236,6 +302,86 @@ export default function PipelinePageClient() {
         onClose={() => setWizardOpen(false)}
         onSuccess={refresh}
       />
+
+      {/* Prospect Form */}
+      <SlideOver
+        open={prospectFormOpen}
+        onClose={() => { setProspectFormOpen(false); resetProspectForm(); }}
+        title="New Prospect"
+        subtitle="Add a new sales prospect"
+      >
+        <div className="space-y-4">
+          <Input
+            label="Prospect Code"
+            value={prospectCode}
+            disabled
+            hint="Auto-generated"
+          />
+          <Input
+            label="Company Name"
+            value={prospectCompany}
+            onChange={(e) => setProspectCompany(e.target.value)}
+            required
+            placeholder="e.g., Acme Corp"
+          />
+          <Select
+            label="Source"
+            value={prospectSource}
+            onChange={(e) => setProspectSource(e.target.value)}
+            placeholder="Select source..."
+            options={[
+              { value: 'REFERRAL', label: 'Referral' },
+              { value: 'WEBSITE', label: 'Website' },
+              { value: 'COLD_CALL', label: 'Cold Call' },
+              { value: 'TRADE_SHOW', label: 'Trade Show' },
+              { value: 'OTHER', label: 'Other' },
+            ]}
+          />
+          <Select
+            label="Status"
+            value={prospectStatus}
+            onChange={(e) => setProspectStatus(e.target.value)}
+            options={[
+              { value: 'NEW', label: 'New' },
+              { value: 'CONTACTED', label: 'Contacted' },
+              { value: 'QUALIFIED', label: 'Qualified' },
+            ]}
+          />
+          <Input
+            label="Contact Name"
+            value={prospectContactName}
+            onChange={(e) => setProspectContactName(e.target.value)}
+            placeholder="Primary contact"
+          />
+          <Input
+            label="Contact Email"
+            value={prospectContactEmail}
+            onChange={(e) => setProspectContactEmail(e.target.value)}
+            placeholder="email@company.com"
+            type="email"
+          />
+          <Input
+            label="Contact Phone"
+            value={prospectContactPhone}
+            onChange={(e) => setProspectContactPhone(e.target.value)}
+            placeholder="(555) 123-4567"
+          />
+          <Textarea
+            label="Notes"
+            value={prospectNotes}
+            onChange={(e) => setProspectNotes(e.target.value)}
+            placeholder="Additional details about this prospect..."
+          />
+          <div className="flex justify-end gap-3 pt-4 border-t border-border">
+            <Button variant="secondary" onClick={() => { setProspectFormOpen(false); resetProspectForm(); }}>
+              Cancel
+            </Button>
+            <Button onClick={handleProspectSave} loading={prospectSaving}>
+              Create Prospect
+            </Button>
+          </div>
+        </div>
+      </SlideOver>
     </div>
   );
 }

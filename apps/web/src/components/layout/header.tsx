@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bell, Search, Building2, MapPin, Users, TrendingUp, FileText } from 'lucide-react';
+import Link from 'next/link';
+import { Bell, Search, Building2, MapPin, Users, TrendingUp, FileText, Settings, LogOut, User } from 'lucide-react';
 import { CommandPalette, type CommandItem } from '@gleamops/ui';
 import { useAuth } from '@/hooks/use-auth';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -18,11 +19,25 @@ function getInitials(email: string): string {
 }
 
 export function Header() {
-  const { user } = useAuth();
+  const { user, role, signOut } = useAuth();
   const router = useRouter();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [items, setItems] = useState<CommandItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdowns on click outside
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) setProfileOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
 
   // Open palette with Cmd+K / Ctrl+K
   useEffect(() => {
@@ -174,14 +189,66 @@ export function Header() {
               ⌘K
             </kbd>
           </button>
-          <button
-            className="rounded-lg p-2 text-muted hover:bg-gray-50 hover:text-foreground transition-colors relative"
-            aria-label="Notifications"
-          >
-            <Bell className="h-5 w-5" />
-          </button>
-          <div className="h-8 w-8 rounded-full bg-gleam-500 text-white flex items-center justify-center text-sm font-medium">
-            {user ? getInitials(user.email) : '?'}
+          {/* Notifications dropdown */}
+          <div className="relative" ref={notifRef}>
+            <button
+              onClick={() => { setNotifOpen(!notifOpen); setProfileOpen(false); }}
+              className="rounded-lg p-2 text-muted hover:bg-gray-50 hover:text-foreground transition-colors relative"
+              aria-label="Notifications"
+            >
+              <Bell className="h-5 w-5" />
+            </button>
+            {notifOpen && (
+              <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-lg shadow-lg border border-border z-50">
+                <div className="p-3 border-b border-border">
+                  <p className="text-sm font-medium text-foreground">Notifications</p>
+                </div>
+                <div className="p-6 text-center">
+                  <Bell className="h-8 w-8 text-muted mx-auto mb-2" />
+                  <p className="text-sm text-muted">No notifications</p>
+                  <p className="text-xs text-muted mt-1">You&apos;re all caught up!</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Profile dropdown */}
+          <div className="relative" ref={profileRef}>
+            <button
+              onClick={() => { setProfileOpen(!profileOpen); setNotifOpen(false); }}
+              className="h-8 w-8 rounded-full bg-gleam-500 text-white flex items-center justify-center text-sm font-medium hover:bg-gleam-600 transition-colors cursor-pointer"
+            >
+              {user ? getInitials(user.email) : '?'}
+            </button>
+            {profileOpen && (
+              <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg shadow-lg border border-border z-50">
+                <div className="p-3 border-b border-border">
+                  <p className="text-sm font-medium text-foreground truncate">{user?.email}</p>
+                  {role && (
+                    <p className="text-xs text-muted mt-0.5">
+                      {role.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                    </p>
+                  )}
+                </div>
+                <div className="p-1">
+                  <Link
+                    href="/settings"
+                    onClick={() => setProfileOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-foreground rounded-md hover:bg-gray-50 transition-colors"
+                  >
+                    <Settings className="h-4 w-4 text-muted" />
+                    Settings
+                  </Link>
+                  <button
+                    onClick={() => { setProfileOpen(false); signOut(); }}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-foreground rounded-md hover:bg-gray-50 transition-colors w-full"
+                  >
+                    <LogOut className="h-4 w-4 text-muted" />
+                    Sign out
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </header>

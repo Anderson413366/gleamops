@@ -81,8 +81,15 @@ export default function StaffTable({ search }: StaffTableProps) {
               <TableCell className="font-mono text-xs">{row.staff_code}</TableCell>
               <TableCell className="font-medium">{row.full_name}</TableCell>
               <TableCell>
-                <Badge color={row.role === 'OWNER_ADMIN' ? 'purple' : row.role === 'MANAGER' ? 'blue' : 'gray'}>
-                  {row.role}
+                <Badge color={
+                  row.role === 'OWNER_ADMIN' ? 'purple'
+                    : row.role === 'MANAGER' ? 'blue'
+                    : row.role === 'SUPERVISOR' ? 'green'
+                    : row.role === 'INSPECTOR' ? 'orange'
+                    : row.role === 'SALES' ? 'yellow'
+                    : 'gray'
+                }>
+                  {row.role.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
                 </Badge>
               </TableCell>
               <TableCell className="text-muted">{row.email ?? '—'}</TableCell>

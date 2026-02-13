@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Users, Clock, FileText, AlertTriangle, BriefcaseBusiness, DollarSign, Plus } from 'lucide-react';
 import { ChipTabs, SearchInput, Button } from '@gleamops/ui';
 
@@ -22,7 +23,9 @@ const TABS = [
 ];
 
 export default function WorkforcePageClient() {
-  const [tab, setTab] = useState(TABS[0].key);
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get('tab');
+  const [tab, setTab] = useState(TABS.some(t => t.key === initialTab) ? initialTab! : TABS[0].key);
   const [search, setSearch] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
   const [autoCreateStaff, setAutoCreateStaff] = useState(false);

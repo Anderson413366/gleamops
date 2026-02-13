@@ -1,6 +1,6 @@
-import SafetyPageClient from './safety-page';
+export const dynamic = 'force-dynamic';
 
-export const metadata = { title: 'Safety & Compliance — GleamOps' };
+import SafetyPageClient from './safety-page';
 
 export default function SafetyPage() {
   return <SafetyPageClient />;

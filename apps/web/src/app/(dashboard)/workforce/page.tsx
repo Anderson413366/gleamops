@@ -1,6 +1,6 @@
-import WorkforcePageClient from './workforce-page';
+export const dynamic = 'force-dynamic';
 
-export const metadata = { title: 'Workforce — GleamOps' };
+import WorkforcePageClient from './workforce-page';
 
 export default function WorkforcePage() {
   return <WorkforcePageClient />;

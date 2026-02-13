@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Users, Target, FileText, Send, Plus, Zap, BarChart3 } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, SlideOver, Badge } from '@gleamops/ui';
 import type {
@@ -57,7 +58,9 @@ const TABS = [
 ];
 
 export default function PipelinePageClient() {
-  const [tab, setTab] = useState(TABS[0].key);
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get('tab');
+  const [tab, setTab] = useState(TABS.some(t => t.key === initialTab) ? initialTab! : TABS[0].key);
   const [search, setSearch] = useState('');
 
   // Detail drawer state

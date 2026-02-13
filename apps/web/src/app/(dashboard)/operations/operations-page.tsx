@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Calendar, ClipboardList, Briefcase, ClipboardCheck, FileText } from 'lucide-react';
 import { ChipTabs, SearchInput } from '@gleamops/ui';
 import type { WorkTicket, Inspection } from '@gleamops/shared';
@@ -41,7 +42,9 @@ const TABS = [
 ];
 
 export default function OperationsPageClient() {
-  const [tab, setTab] = useState(TABS[0].key);
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get('tab');
+  const [tab, setTab] = useState(TABS.some(t => t.key === initialTab) ? initialTab! : TABS[0].key);
   const [search, setSearch] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedTicket, setSelectedTicket] = useState<TicketWithRelations | null>(null);

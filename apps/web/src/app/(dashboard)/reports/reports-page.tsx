@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { BarChart3, TrendingUp, DollarSign, Shield, Users, Package } from 'lucide-react';
 import { ChipTabs } from '@gleamops/ui';
 
@@ -21,7 +22,9 @@ const TABS = [
 ];
 
 export default function ReportsPageClient() {
-  const [tab, setTab] = useState(TABS[0].key);
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get('tab');
+  const [tab, setTab] = useState(TABS.some(t => t.key === initialTab) ? initialTab! : TABS[0].key);
 
   return (
     <div className="space-y-6">

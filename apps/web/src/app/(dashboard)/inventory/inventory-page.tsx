@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Package, Box, MapPin, ClipboardList, ShoppingCart,
   Wrench, ArrowLeftRight, KeyRound, Truck, Settings2, HardHat,
@@ -48,7 +49,9 @@ const ADD_LABELS: Record<string, string> = {
 };
 
 export default function InventoryPageClient() {
-  const [tab, setTab] = useState(TABS[0].key);
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get('tab');
+  const [tab, setTab] = useState(TABS.some(t => t.key === initialTab) ? initialTab! : TABS[0].key);
   const [search, setSearch] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);

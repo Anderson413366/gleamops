@@ -15,8 +15,15 @@ import { usePagination } from '@/hooks/use-pagination';
 const JOB_STATUS_COLORS: Record<string, 'green' | 'yellow' | 'gray' | 'red'> = {
   ACTIVE: 'green',
   PAUSED: 'yellow',
-  CANCELLED: 'gray',
+  CANCELLED: 'red',
   COMPLETED: 'green',
+};
+
+const PRIORITY_COLORS: Record<string, 'red' | 'orange' | 'yellow' | 'gray'> = {
+  CRITICAL: 'red',
+  HIGH: 'orange',
+  MEDIUM: 'yellow',
+  LOW: 'gray',
 };
 
 interface JobWithRelations extends SiteJob {
@@ -102,10 +109,13 @@ export default function JobsTable({ search }: JobsTableProps) {
         <TableHeader>
           <tr>
             <TableHead sortable sorted={sortKey === 'job_code' && sortDir} onSort={() => onSort('job_code')}>Code</TableHead>
+            <TableHead>Job Name</TableHead>
             <TableHead>Site</TableHead>
             <TableHead>Client</TableHead>
+            <TableHead>Type</TableHead>
             <TableHead>Frequency</TableHead>
             <TableHead sortable sorted={sortKey === 'billing_amount' && sortDir} onSort={() => onSort('billing_amount')}>Billing</TableHead>
+            <TableHead>Priority</TableHead>
             <TableHead>Status</TableHead>
           </tr>
         </TableHeader>
@@ -113,10 +123,17 @@ export default function JobsTable({ search }: JobsTableProps) {
           {pag.page.map((row) => (
             <TableRow key={row.id}>
               <TableCell className="font-mono text-xs">{row.job_code}</TableCell>
-              <TableCell className="font-medium">{row.site?.name ?? '—'}</TableCell>
+              <TableCell className="font-medium">{row.job_name ?? '—'}</TableCell>
+              <TableCell>{row.site?.name ?? '—'}</TableCell>
               <TableCell className="text-muted-foreground">{row.site?.client?.name ?? '—'}</TableCell>
+              <TableCell className="text-muted-foreground">{row.job_type ?? '—'}</TableCell>
               <TableCell className="text-muted-foreground">{row.frequency}</TableCell>
               <TableCell className="text-right tabular-nums font-medium">{formatCurrency(row.billing_amount)}</TableCell>
+              <TableCell>
+                {row.priority_level ? (
+                  <Badge color={PRIORITY_COLORS[row.priority_level] ?? 'gray'}>{row.priority_level}</Badge>
+                ) : '—'}
+              </TableCell>
               <TableCell>
                 <Badge color={JOB_STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
               </TableCell>

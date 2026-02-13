@@ -12,6 +12,7 @@ import {
   TableRow,
   TableCell,
   EmptyState,
+  Badge,
   Pagination,
   TableSkeleton,
   SlideOver,
@@ -345,8 +346,11 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
             { key: 'code', label: 'Code' },
             { key: 'name', label: 'Name' },
             { key: 'category', label: 'Category' },
+            { key: 'brand', label: 'Brand' },
             { key: 'unit', label: 'Unit' },
             { key: 'unit_cost', label: 'Cost' },
+            { key: 'preferred_vendor', label: 'Vendor' },
+            { key: 'supply_status', label: 'Status' },
           ]}
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
@@ -354,21 +358,14 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
       <Table>
         <TableHeader>
           <tr>
-            <TableHead sortable sorted={sortKey === 'code' && sortDir} onSort={() => onSort('code')}>
-              Code
-            </TableHead>
-            <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>
-              Name
-            </TableHead>
-            <TableHead sortable sorted={sortKey === 'category' && sortDir} onSort={() => onSort('category')}>
-              Category
-            </TableHead>
-            <TableHead sortable sorted={sortKey === 'unit' && sortDir} onSort={() => onSort('unit')}>
-              Unit
-            </TableHead>
-            <TableHead sortable sorted={sortKey === 'unit_cost' && sortDir} onSort={() => onSort('unit_cost')}>
-              Cost
-            </TableHead>
+            <TableHead sortable sorted={sortKey === 'code' && sortDir} onSort={() => onSort('code')}>Code</TableHead>
+            <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Name</TableHead>
+            <TableHead sortable sorted={sortKey === 'category' && sortDir} onSort={() => onSort('category')}>Category</TableHead>
+            <TableHead>Brand</TableHead>
+            <TableHead sortable sorted={sortKey === 'unit' && sortDir} onSort={() => onSort('unit')}>Unit</TableHead>
+            <TableHead sortable sorted={sortKey === 'unit_cost' && sortDir} onSort={() => onSort('unit_cost')}>Cost</TableHead>
+            <TableHead>Vendor</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead>SDS</TableHead>
           </tr>
         </TableHeader>
@@ -381,9 +378,16 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
               <TableCell className="font-mono text-xs">{row.code}</TableCell>
               <TableCell className="font-medium">{row.name}</TableCell>
               <TableCell className="text-muted-foreground">{row.category ?? '—'}</TableCell>
+              <TableCell className="text-muted-foreground">{row.brand ?? '—'}</TableCell>
               <TableCell>{row.unit}</TableCell>
               <TableCell className="font-mono text-xs">
                 {row.unit_cost != null ? `$${Number(row.unit_cost).toFixed(2)}` : '—'}
+              </TableCell>
+              <TableCell className="text-muted-foreground">{row.preferred_vendor ?? '—'}</TableCell>
+              <TableCell>
+                <Badge color={row.supply_status === 'ACTIVE' ? 'green' : row.supply_status === 'DISCONTINUED' ? 'red' : 'gray'}>
+                  {row.supply_status ?? 'ACTIVE'}
+                </Badge>
               </TableCell>
               <TableCell>
                 {row.sds_url ? (

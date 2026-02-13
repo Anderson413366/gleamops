@@ -32,8 +32,8 @@ coverage/
 # Logs
 *.log
 
-# Planning artifacts (not code)
-reports/
-spreadsheets/
-scaffold/
+# Planning artifacts (not code) — use leading slash to only match root level
+/reports/
+/spreadsheets/
+/scaffold/
 .vercel

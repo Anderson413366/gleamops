@@ -5,21 +5,20 @@ import { Users, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
-  Table,
-  TableHeader,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
-  EmptyState,
-  Badge,
-  Pagination,
-  TableSkeleton,
-  ExportButton,
+  Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
+  EmptyState, Badge, Pagination, TableSkeleton, ExportButton,
 } from '@gleamops/ui';
 import type { Contact } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+
+const CONTACT_TYPE_COLORS: Record<string, 'blue' | 'green' | 'purple' | 'orange' | 'gray'> = {
+  PRIMARY: 'blue',
+  BILLING: 'green',
+  OPERATIONS: 'purple',
+  EMERGENCY: 'orange',
+  OTHER: 'gray',
+};
 
 interface ContactWithParent extends Contact {
   client?: { name: string; client_code: string } | null;
@@ -47,9 +46,7 @@ export default function ContactsTable({ search, onSelect }: ContactsTableProps) 
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const filtered = useMemo(() => {
     if (!search) return rows;
@@ -60,19 +57,21 @@ export default function ContactsTable({ search, onSelect }: ContactsTableProps) 
         r.contact_code.toLowerCase().includes(q) ||
         r.email?.toLowerCase().includes(q) ||
         r.phone?.toLowerCase().includes(q) ||
-        r.client?.name?.toLowerCase().includes(q)
+        r.client?.name?.toLowerCase().includes(q) ||
+        r.contact_type?.toLowerCase().includes(q) ||
+        r.company_name?.toLowerCase().includes(q) ||
+        r.first_name?.toLowerCase().includes(q) ||
+        r.last_name?.toLowerCase().includes(q)
     );
   }, [rows, search]);
 
   const { sorted, sortKey, sortDir, onSort } = useTableSort(
-    filtered as unknown as Record<string, unknown>[],
-    'name',
-    'asc'
+    filtered as unknown as Record<string, unknown>[], 'name', 'asc'
   );
   const sortedRows = sorted as unknown as ContactWithParent[];
   const pag = usePagination(sortedRows, 25);
 
-  if (loading) return <TableSkeleton rows={8} cols={6} />;
+  if (loading) return <TableSkeleton rows={8} cols={8} />;
 
   if (filtered.length === 0) {
     return (
@@ -93,9 +92,12 @@ export default function ContactsTable({ search, onSelect }: ContactsTableProps) 
           columns={[
             { key: 'contact_code', label: 'Code' },
             { key: 'name', label: 'Name' },
+            { key: 'contact_type', label: 'Type' },
             { key: 'role', label: 'Role' },
+            { key: 'company_name', label: 'Company' },
             { key: 'email', label: 'Email' },
             { key: 'phone', label: 'Phone' },
+            { key: 'preferred_contact_method', label: 'Preferred Method' },
           ]}
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
@@ -103,21 +105,19 @@ export default function ContactsTable({ search, onSelect }: ContactsTableProps) 
       <Table>
         <TableHeader>
           <tr>
-            <TableHead sortable sorted={sortKey === 'contact_code' && sortDir} onSort={() => onSort('contact_code')}>
-              Code
-            </TableHead>
-            <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>
-              Name
-            </TableHead>
+            <TableHead sortable sorted={sortKey === 'contact_code' && sortDir} onSort={() => onSort('contact_code')}>Code</TableHead>
+            <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Name</TableHead>
+            <TableHead>Type</TableHead>
             <TableHead>Role</TableHead>
-            <TableHead>Client</TableHead>
+            <TableHead>Company</TableHead>
+            <TableHead>Client / Site</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Phone</TableHead>
           </tr>
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id} onClick={() => onSelect?.(row)}>
+            <TableRow key={row.id} onClick={() => onSelect?.(row)} className="cursor-pointer">
               <TableCell className="font-mono text-xs">{row.contact_code}</TableCell>
               <TableCell>
                 <span className="font-medium">{row.name}</span>
@@ -126,24 +126,25 @@ export default function ContactsTable({ search, onSelect }: ContactsTableProps) 
                 )}
               </TableCell>
               <TableCell>
-                {row.role ? <Badge color="blue">{row.role}</Badge> : <span className="text-muted-foreground">—</span>}
+                {row.contact_type ? (
+                  <Badge color={CONTACT_TYPE_COLORS[row.contact_type] ?? 'gray'}>{row.contact_type}</Badge>
+                ) : <span className="text-muted-foreground">—</span>}
               </TableCell>
-              <TableCell className="text-muted-foreground">{row.client?.name ?? '—'}</TableCell>
+              <TableCell className="text-muted-foreground">{row.role_title ?? row.role ?? '—'}</TableCell>
+              <TableCell className="text-muted-foreground">{row.company_name ?? '—'}</TableCell>
+              <TableCell className="text-muted-foreground">
+                {row.client?.name ?? row.site?.name ?? '—'}
+              </TableCell>
               <TableCell className="text-muted-foreground">{row.email ?? '—'}</TableCell>
-              <TableCell className="text-muted-foreground">{row.phone ?? '—'}</TableCell>
+              <TableCell className="text-muted-foreground">{row.mobile_phone ?? row.phone ?? '—'}</TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
       <Pagination
-        currentPage={pag.currentPage}
-        totalPages={pag.totalPages}
-        totalItems={pag.totalItems}
-        pageSize={pag.pageSize}
-        hasNext={pag.hasNext}
-        hasPrev={pag.hasPrev}
-        onNext={pag.nextPage}
-        onPrev={pag.prevPage}
+        currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
+        pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
+        onNext={pag.nextPage} onPrev={pag.prevPage}
       />
     </div>
   );

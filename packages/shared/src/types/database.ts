@@ -109,6 +109,13 @@ export interface Client extends StandardColumns {
   client_code: string;
   name: string;
   status: string;
+  status_changed_date: string | null;
+  client_since: string | null;
+  client_type: string | null; // Lookups "Client Type"
+  industry: string | null; // Lookups "Industry"
+  primary_contact_id: string | null;
+  billing_contact_id: string | null;
+  bill_to_name: string | null;
   billing_address: {
     street?: string;
     city?: string;
@@ -116,6 +123,17 @@ export interface Client extends StandardColumns {
     zip?: string;
     country?: string;
   } | null;
+  payment_terms: string | null; // Lookups "Payment Terms"
+  po_required: boolean;
+  insurance_required: boolean;
+  insurance_expiry: string | null;
+  credit_limit: number | null;
+  website: string | null;
+  tax_id: string | null;
+  contract_start_date: string | null;
+  contract_end_date: string | null;
+  auto_renewal: boolean;
+  invoice_frequency: string | null; // Lookups "Invoice Frequency"
   notes: string | null;
 }
 
@@ -123,6 +141,9 @@ export interface Site extends StandardColumns {
   site_code: string;
   client_id: string;
   name: string;
+  status: string | null; // Lookups "Site Status"
+  status_date: string | null;
+  status_reason: string | null;
   address: {
     street?: string;
     city?: string;
@@ -130,9 +151,42 @@ export interface Site extends StandardColumns {
     zip?: string;
     country?: string;
   } | null;
+  // Service window
+  service_start_date: string | null;
+  earliest_start_time: string | null;
+  latest_start_time: string | null;
+  business_hours_start: string | null;
+  business_hours_end: string | null;
+  weekend_access: boolean;
+  // Access & security
+  entry_instructions: string | null;
+  parking_instructions: string | null;
+  alarm_system: string | null;
+  alarm_company: string | null;
   alarm_code: string | null;
+  security_protocol: string | null;
   access_notes: string | null;
+  // Facility facts
   square_footage: number | null;
+  number_of_floors: number | null;
+  employees_on_site: number | null;
+  janitorial_closet_location: string | null;
+  supply_storage_location: string | null;
+  water_source_location: string | null;
+  dumpster_location: string | null;
+  // Contacts & oversight
+  primary_contact_id: string | null;
+  emergency_contact_id: string | null;
+  supervisor_id: string | null;
+  risk_level: string | null; // Lookups "Risk Level"
+  priority_level: string | null; // Lookups "Priority Level"
+  // Compliance
+  osha_compliance_required: boolean;
+  background_check_required: boolean;
+  // Inspections
+  last_inspection_date: string | null;
+  next_inspection_date: string | null;
+  // Geofence
   geofence_center_lat: number | null;
   geofence_center_lng: number | null;
   geofence_radius_meters: number | null;
@@ -143,12 +197,22 @@ export interface Contact extends StandardColumns {
   contact_code: string;
   client_id: string | null;
   site_id: string | null;
-  name: string;
-  email: string | null;
+  first_name: string;
+  last_name: string;
+  name: string; // computed: first_name + last_name
+  contact_type: string | null; // Lookups "Contact Type"
+  role: string | null; // Lookups "Contact Role"
+  company_name: string | null;
+  role_title: string | null;
+  preferred_contact_method: string | null; // Lookups "Contact Method"
+  mobile_phone: string | null;
+  work_phone: string | null;
   phone: string | null;
-  role: string | null;
+  email: string | null;
+  preferred_language: string | null; // Lookups "Language"
   is_primary: boolean;
   timezone: string | null;
+  photo_url: string | null;
   notes: string | null;
 }
 
@@ -158,9 +222,19 @@ export interface Contact extends StandardColumns {
 export interface Task extends StandardColumns {
   task_code: string;
   name: string;
-  production_rate_sqft_per_hour: number | null;
   category: string | null;
+  subcategory: string | null;
+  area_type: string | null;
+  floor_type: string | null;
+  priority_level: string | null; // Lookups "Priority Level"
+  default_minutes: number | null;
+  production_rate_sqft_per_hour: number | null;
   unit_code: string; // SQFT_1000 | EACH
+  spec_description: string | null;
+  work_description: string | null;
+  tools_materials: string | null;
+  is_active: boolean;
+  notes: string | null;
 }
 
 export interface TaskProductionRate extends StandardColumns {
@@ -182,7 +256,13 @@ export interface Service extends StandardColumns {
 export interface ServiceTask extends StandardColumns {
   service_id: string;
   task_id: string;
+  sequence_order: number;
+  priority_level: string | null;
+  is_required: boolean;
   frequency_default: string;
+  estimated_minutes: number | null;
+  quality_weight: number;
+  notes: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -386,14 +466,37 @@ export interface SalesConversionEvent {
 // ---------------------------------------------------------------------------
 export interface SiteJob extends StandardColumns {
   job_code: string;
+  job_name: string | null;
   site_id: string;
+  service_id: string | null;
   source_bid_id: string | null;
   source_conversion_id: string | null;
+  // Operations
+  job_type: string | null; // Lookups "Job Type"
+  priority_level: string | null; // Lookups "Priority Level"
+  frequency: string; // Lookups "Service Frequency"
+  schedule_days: string | null;
+  staff_needed: number | null;
+  start_time: string | null;
+  end_time: string | null;
+  estimated_hours_per_service: number | null;
+  estimated_hours_per_month: number | null;
+  last_service_date: string | null;
+  next_service_date: string | null;
+  quality_score: number | null;
+  // Billing
+  billing_uom: string | null; // per month, each visit, each project, hourly
   billing_amount: number | null;
-  frequency: string;
+  // Assignment
+  job_assigned_to: string | null; // Internal / Subcontractor
+  subcontractor_id: string | null;
+  // Contract / scope
   start_date: string | null;
   end_date: string | null;
-  status: string;
+  invoice_description: string | null;
+  specifications: string | null;
+  special_requirements: string | null;
+  status: string; // Lookups "Job Status"
   notes: string | null;
 }
 
@@ -545,11 +648,37 @@ export interface Staff extends StandardColumns {
   staff_code: string;
   user_id: string | null;
   full_name: string;
-  role: string;
+  first_name: string | null;
+  last_name: string | null;
+  preferred_name: string | null;
+  role: string; // Lookups "Staff Role"
+  staff_status: string | null; // Lookups "Staff Status"
+  staff_type: string | null; // Lookups "Staff Type"
+  employment_type: string | null; // Lookups "Employment Type"
   is_subcontractor: boolean;
+  hire_date: string | null;
+  termination_date: string | null;
   pay_rate: number | null;
+  pay_type: string | null; // Lookups "Pay Type"
+  schedule_type: string | null; // Lookups "Schedule Type"
   email: string | null;
   phone: string | null;
+  mobile_phone: string | null;
+  address: {
+    street?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
+  } | null;
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
+  emergency_contact_relationship: string | null;
+  supervisor_id: string | null;
+  certifications: string | null;
+  background_check_date: string | null;
+  performance_rating: number | null;
+  photo_url: string | null;
+  notes: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -648,10 +777,24 @@ export interface TimesheetApproval {
 export interface SupplyCatalog extends StandardColumns {
   code: string;
   name: string;
-  category: string | null;
+  description: string | null;
+  category: string | null; // Lookups "Supply Category"
+  supply_status: string | null; // Lookups "Supply Status"
   unit: string;
+  pack_size: string | null;
   unit_cost: number | null;
+  markup_percentage: number | null;
+  billing_rate: number | null;
+  min_stock_level: number | null;
+  brand: string | null;
+  manufacturer: string | null;
+  model_number: string | null;
+  preferred_vendor: string | null;
+  vendor_sku: string | null;
   sds_url: string | null;
+  eco_rating: string | null;
+  ppe_required: boolean;
+  image_url: string | null;
   notes: string | null;
 }
 
@@ -698,12 +841,23 @@ export interface KeyInventory extends StandardColumns {
 export interface Equipment extends StandardColumns {
   equipment_code: string;
   name: string;
-  equipment_type: string | null;
-  condition: string | null; // GOOD | FAIR | POOR | OUT_OF_SERVICE
+  paired_with: string | null; // equipment_id
+  equipment_type: string | null; // Lookups "Equipment Type"
+  equipment_category: string | null; // Lookups "Equipment Category"
+  manufacturer: string | null;
+  brand: string | null;
+  model_number: string | null;
   serial_number: string | null;
   purchase_date: string | null;
+  purchase_price: number | null;
+  condition: string | null; // Lookups "Condition"
+  maintenance_specs: string | null;
+  maintenance_schedule: string | null; // Lookups "Maintenance Schedule"
+  last_maintenance_date: string | null;
+  next_maintenance_date: string | null;
   assigned_to: string | null; // staff_id
   site_id: string | null;
+  photo_url: string | null;
   notes: string | null;
 }
 
@@ -769,12 +923,29 @@ export interface Subcontractor extends StandardColumns {
   subcontractor_code: string;
   company_name: string;
   contact_name: string | null;
+  contact_title: string | null;
+  business_phone: string | null;
+  mobile_phone: string | null;
   email: string | null;
   phone: string | null;
-  status: string; // ACTIVE | INACTIVE | PENDING
-  services_provided: string | null;
-  insurance_expiry: string | null;
+  website: string | null;
+  address: {
+    street?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
+  } | null;
   license_number: string | null;
+  license_expiry: string | null;
+  insurance_company: string | null;
+  insurance_policy_number: string | null;
+  insurance_expiry: string | null;
+  services_provided: string | null;
+  hourly_rate: number | null;
+  payment_terms: string | null;
+  tax_id: string | null;
+  w9_on_file: boolean;
+  status: string;
   notes: string | null;
 }
 

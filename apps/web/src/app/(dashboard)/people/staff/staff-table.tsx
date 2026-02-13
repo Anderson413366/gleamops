@@ -13,10 +13,31 @@ import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 import { StaffForm } from '@/components/forms/staff-form';
 
+const STATUS_COLORS: Record<string, 'green' | 'gray' | 'yellow' | 'red'> = {
+  ACTIVE: 'green',
+  INACTIVE: 'gray',
+  ON_LEAVE: 'yellow',
+  TERMINATED: 'red',
+};
+
+const ROLE_COLORS: Record<string, 'purple' | 'blue' | 'green' | 'orange' | 'yellow' | 'gray'> = {
+  OWNER_ADMIN: 'purple',
+  MANAGER: 'blue',
+  SUPERVISOR: 'green',
+  INSPECTOR: 'orange',
+  SALES: 'yellow',
+  CLEANER: 'gray',
+};
+
 interface StaffTableProps {
   search: string;
   autoCreate?: boolean;
   onAutoCreateHandled?: () => void;
+}
+
+function formatDate(d: string | null) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: StaffTableProps) {
@@ -25,15 +46,8 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
   const [formOpen, setFormOpen] = useState(false);
   const [editItem, setEditItem] = useState<Staff | null>(null);
 
-  const handleAdd = () => {
-    setEditItem(null);
-    setFormOpen(true);
-  };
-
-  const handleEdit = (item: Staff) => {
-    setEditItem(item);
-    setFormOpen(true);
-  };
+  const handleAdd = () => { setEditItem(null); setFormOpen(true); };
+  const handleEdit = (item: Staff) => { setEditItem(item); setFormOpen(true); };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -49,7 +63,6 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Auto-create trigger from parent
   useEffect(() => {
     if (autoCreate && !loading) {
       handleAdd();
@@ -65,7 +78,9 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
         r.full_name.toLowerCase().includes(q) ||
         r.staff_code.toLowerCase().includes(q) ||
         r.role.toLowerCase().includes(q) ||
-        (r.email?.toLowerCase().includes(q) ?? false)
+        (r.email?.toLowerCase().includes(q) ?? false) ||
+        (r.staff_status?.toLowerCase().includes(q) ?? false) ||
+        (r.employment_type?.toLowerCase().includes(q) ?? false)
     );
   }, [rows, search]);
 
@@ -75,7 +90,7 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
   const sortedRows = sorted as unknown as Staff[];
   const pag = usePagination(sortedRows, 25);
 
-  if (loading) return <TableSkeleton rows={6} cols={5} />;
+  if (loading) return <TableSkeleton rows={6} cols={8} />;
 
   if (filtered.length === 0) {
     return (
@@ -105,8 +120,11 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
             { key: 'staff_code', label: 'Code' },
             { key: 'full_name', label: 'Name' },
             { key: 'role', label: 'Role' },
+            { key: 'staff_status', label: 'Status' },
+            { key: 'employment_type', label: 'Employment' },
             { key: 'email', label: 'Email' },
             { key: 'phone', label: 'Phone' },
+            { key: 'hire_date', label: 'Hire Date' },
           ]}
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
@@ -116,9 +134,12 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
           <tr>
             <TableHead sortable sorted={sortKey === 'staff_code' && sortDir} onSort={() => onSort('staff_code')}>Code</TableHead>
             <TableHead sortable sorted={sortKey === 'full_name' && sortDir} onSort={() => onSort('full_name')}>Name</TableHead>
-            <TableHead>Role</TableHead>
+            <TableHead sortable sorted={sortKey === 'role' && sortDir} onSort={() => onSort('role')}>Role</TableHead>
+            <TableHead sortable sorted={sortKey === 'staff_status' && sortDir} onSort={() => onSort('staff_status')}>Status</TableHead>
+            <TableHead>Employment</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Phone</TableHead>
+            <TableHead sortable sorted={sortKey === 'hire_date' && sortDir} onSort={() => onSort('hire_date')}>Hire Date</TableHead>
           </tr>
         </TableHeader>
         <TableBody>
@@ -127,19 +148,19 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
               <TableCell className="font-mono text-xs">{row.staff_code}</TableCell>
               <TableCell className="font-medium">{row.full_name}</TableCell>
               <TableCell>
-                <Badge color={
-                  row.role === 'OWNER_ADMIN' ? 'purple'
-                    : row.role === 'MANAGER' ? 'blue'
-                    : row.role === 'SUPERVISOR' ? 'green'
-                    : row.role === 'INSPECTOR' ? 'orange'
-                    : row.role === 'SALES' ? 'yellow'
-                    : 'gray'
-                }>
-                  {row.role.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                <Badge color={ROLE_COLORS[row.role] ?? 'gray'}>
+                  {row.role.replace(/_/g, ' ')}
                 </Badge>
               </TableCell>
+              <TableCell>
+                <Badge color={STATUS_COLORS[row.staff_status ?? 'ACTIVE'] ?? 'gray'}>
+                  {(row.staff_status ?? 'ACTIVE').replace(/_/g, ' ')}
+                </Badge>
+              </TableCell>
+              <TableCell className="text-muted-foreground">{row.employment_type ?? '—'}</TableCell>
               <TableCell className="text-muted-foreground">{row.email ?? '—'}</TableCell>
-              <TableCell className="text-muted-foreground">{row.phone ?? '—'}</TableCell>
+              <TableCell className="text-muted-foreground">{row.mobile_phone ?? row.phone ?? '—'}</TableCell>
+              <TableCell className="text-muted-foreground">{formatDate(row.hire_date ?? null)}</TableCell>
             </TableRow>
           ))}
         </TableBody>

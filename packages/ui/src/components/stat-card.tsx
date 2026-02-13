@@ -7,13 +7,17 @@ interface StatCardProps {
   trend?: string;
   trendUp?: boolean;
   className?: string;
+  href?: string;
 }
 
-export function StatCard({ label, value, icon, trend, trendUp, className }: StatCardProps) {
+export function StatCard({ label, value, icon, trend, trendUp, className, href }: StatCardProps) {
+  const Wrapper = href ? 'a' : 'div';
   return (
-    <div
+    <Wrapper
+      {...(href ? { href } : {})}
       className={cn(
-        'rounded-xl border border-border bg-card p-5 shadow-sm',
+        'rounded-xl border border-border bg-card p-5 shadow-sm block',
+        href && 'cursor-pointer transition-shadow hover:shadow-md hover:border-primary/40',
         className
       )}
     >
@@ -49,6 +53,6 @@ export function StatCard({ label, value, icon, trend, trendUp, className }: Stat
           </div>
         )}
       </div>
-    </div>
+    </Wrapper>
   );
 }

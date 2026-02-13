@@ -237,10 +237,12 @@ export default function HomePage() {
       supabase
         .from('clients')
         .select('id', { count: 'exact', head: true })
+        .eq('status', 'ACTIVE')
         .is('archived_at', null),
       supabase
         .from('sites')
         .select('id', { count: 'exact', head: true })
+        .eq('status', 'ACTIVE')
         .is('archived_at', null),
       supabase
         .from('site_jobs')
@@ -254,6 +256,7 @@ export default function HomePage() {
       supabase
         .from('staff')
         .select('id', { count: 'exact', head: true })
+        .eq('staff_status', 'ACTIVE')
         .is('archived_at', null),
       supabase
         .from('sales_bids')
@@ -509,41 +512,49 @@ export default function HomePage() {
                 label="Active Clients"
                 value={metrics.activeClients ?? 0}
                 icon={<Building2 className="h-5 w-5" />}
+                href="/crm"
               />
               <StatCard
                 label="Active Sites"
                 value={metrics.activeSites ?? 0}
                 icon={<MapPin className="h-5 w-5" />}
+                href="/crm"
               />
               <StatCard
                 label="Active Jobs"
                 value={metrics.activeJobs ?? 0}
                 icon={<Briefcase className="h-5 w-5" />}
+                href="/operations"
               />
               <StatCard
                 label="Open Tickets"
                 value={metrics.openTickets ?? 0}
                 icon={<Ticket className="h-5 w-5" />}
+                href="/operations"
               />
               <StatCard
                 label="Active Staff"
                 value={metrics.activeStaff ?? 0}
                 icon={<Users className="h-5 w-5" />}
+                href="/workforce"
               />
               <StatCard
                 label="Pending Bids"
                 value={metrics.pendingBids ?? 0}
                 icon={<FileText className="h-5 w-5" />}
+                href="/pipeline"
               />
               <StatCard
                 label="Revenue/mo"
                 value={`$${((metrics.revenueThisMonth ?? 0) / 1000).toFixed(1)}k`}
                 icon={<DollarSign className="h-5 w-5" />}
+                href="/reports"
               />
               <StatCard
                 label="Overdue Inspections"
                 value={metrics.overdueInspections ?? 0}
                 icon={<ShieldAlert className="h-5 w-5" />}
+                href="/operations"
               />
             </>
           )}
@@ -567,21 +578,25 @@ export default function HomePage() {
                 label="Pipeline Value"
                 value={`$${((metrics.pipelineValue ?? 0) / 1000).toFixed(1)}k`}
                 icon={<TrendingUp className="h-5 w-5" />}
+                href="/pipeline"
               />
               <StatCard
                 label="Proposals Sent (30d)"
                 value={metrics.proposalsSent30d ?? 0}
                 icon={<Send className="h-5 w-5" />}
+                href="/pipeline"
               />
               <StatCard
                 label="Win Rate"
                 value={`${metrics.winRate ?? 0}%`}
                 icon={<Trophy className="h-5 w-5" />}
+                href="/pipeline"
               />
               <StatCard
                 label="Follow-ups Due"
                 value={metrics.followupsDue ?? 0}
                 icon={<Mail className="h-5 w-5" />}
+                href="/pipeline"
               />
             </>
           )}

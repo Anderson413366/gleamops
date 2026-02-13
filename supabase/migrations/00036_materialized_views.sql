@@ -22,19 +22,20 @@ SELECT
   c.id AS client_id,
   c.client_code,
   c.name AS client_name,
-  COALESCE(te.total_hours, 0) AS actual_hours_30d,
-  COALESCE(te.entry_count, 0) AS time_entries_30d
+  COALESCE(te_agg.total_hours, 0) AS actual_hours_30d,
+  COALESCE(te_agg.entry_count, 0) AS time_entries_30d
 FROM site_jobs sj
 JOIN sites s ON sj.site_id = s.id
 JOIN clients c ON s.client_id = c.id
 LEFT JOIN LATERAL (
   SELECT
-    ROUND(EXTRACT(EPOCH FROM SUM(te.clock_out - te.clock_in)) / 3600.0, 2) AS total_hours,
+    ROUND(SUM(COALESCE(te.duration_minutes, 0)) / 60.0, 2) AS total_hours,
     COUNT(*) AS entry_count
   FROM time_entries te
-  WHERE te.job_id = sj.id
-    AND te.clock_in >= NOW() - INTERVAL '30 days'
-) te ON true
+  JOIN work_tickets wt ON wt.id = te.ticket_id
+  WHERE wt.job_id = sj.id
+    AND te.start_at >= NOW() - INTERVAL '30 days'
+) te_agg ON true
 WHERE sj.archived_at IS NULL;
 
 CREATE UNIQUE INDEX IF NOT EXISTS mv_job_financials_job_id
@@ -73,23 +74,23 @@ SELECT
   st.full_name,
   st.role,
   st.staff_status,
-  COALESCE(te.total_hours, 0) AS hours_last_30d,
-  COALESCE(te.entry_count, 0) AS entries_last_30d,
+  COALESCE(te_agg.total_hours, 0) AS hours_last_30d,
+  COALESCE(te_agg.entry_count, 0) AS entries_last_30d,
   COALESCE(ex.exception_count, 0) AS exceptions_last_30d
 FROM staff st
 LEFT JOIN LATERAL (
   SELECT
-    ROUND(EXTRACT(EPOCH FROM SUM(te.clock_out - te.clock_in)) / 3600.0, 2) AS total_hours,
+    ROUND(SUM(COALESCE(te.duration_minutes, 0)) / 60.0, 2) AS total_hours,
     COUNT(*) AS entry_count
   FROM time_entries te
   WHERE te.staff_id = st.id
-    AND te.clock_in >= NOW() - INTERVAL '30 days'
-) te ON true
+    AND te.start_at >= NOW() - INTERVAL '30 days'
+) te_agg ON true
 LEFT JOIN LATERAL (
   SELECT COUNT(*) AS exception_count
   FROM time_exceptions tex
   WHERE tex.staff_id = st.id
-    AND tex.exception_date >= (NOW() - INTERVAL '30 days')::date
+    AND tex.created_at >= NOW() - INTERVAL '30 days'
 ) ex ON true
 WHERE st.archived_at IS NULL;
 

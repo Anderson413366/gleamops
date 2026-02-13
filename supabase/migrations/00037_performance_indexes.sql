@@ -47,8 +47,8 @@ CREATE INDEX IF NOT EXISTS idx_equipment_site_id ON equipment(site_id) WHERE arc
 CREATE INDEX IF NOT EXISTS idx_equipment_condition ON equipment(condition) WHERE archived_at IS NULL;
 
 -- Time Entries (for materialized views)
-CREATE INDEX IF NOT EXISTS idx_time_entries_staff_job ON time_entries(staff_id, job_id) WHERE clock_in >= NOW() - INTERVAL '90 days';
-CREATE INDEX IF NOT EXISTS idx_time_entries_clock_in ON time_entries(clock_in DESC);
+CREATE INDEX IF NOT EXISTS idx_time_entries_staff_ticket ON time_entries(staff_id, ticket_id);
+CREATE INDEX IF NOT EXISTS idx_time_entries_start_at ON time_entries(start_at DESC);
 
 -- Job Staff Assignments
 CREATE INDEX IF NOT EXISTS idx_job_staff_asgn_staff ON job_staff_assignments(staff_id) WHERE archived_at IS NULL;

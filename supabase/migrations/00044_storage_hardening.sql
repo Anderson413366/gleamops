@@ -41,74 +41,11 @@ ON CONFLICT (id) DO UPDATE SET
   allowed_mime_types = EXCLUDED.allowed_mime_types;
 
 
--- =====================================================================
--- D2. RLS policies on storage.objects
--- Tenant members can read/write their own bucket paths
--- =====================================================================
-
--- Enable RLS on storage.objects (may already be enabled)
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
-
--- Documents bucket: tenant members can read
-CREATE POLICY storage_documents_select ON storage.objects
-  FOR SELECT
-  USING (
-    bucket_id = 'documents'
-    AND (storage.foldername(name))[1] = (current_setting('request.jwt.claims', true)::jsonb->>'tenant_id')
-  );
-
--- Documents bucket: tenant members can insert
-CREATE POLICY storage_documents_insert ON storage.objects
-  FOR INSERT
-  WITH CHECK (
-    bucket_id = 'documents'
-    AND (storage.foldername(name))[1] = (current_setting('request.jwt.claims', true)::jsonb->>'tenant_id')
-  );
-
--- Documents bucket: tenant members can update their files
-CREATE POLICY storage_documents_update ON storage.objects
-  FOR UPDATE
-  USING (
-    bucket_id = 'documents'
-    AND (storage.foldername(name))[1] = (current_setting('request.jwt.claims', true)::jsonb->>'tenant_id')
-  );
-
--- Documents bucket: tenant members can delete their files
-CREATE POLICY storage_documents_delete ON storage.objects
-  FOR DELETE
-  USING (
-    bucket_id = 'documents'
-    AND (storage.foldername(name))[1] = (current_setting('request.jwt.claims', true)::jsonb->>'tenant_id')
-  );
-
--- Staff photos bucket: anyone can read (public bucket)
-CREATE POLICY storage_staff_photos_select ON storage.objects
-  FOR SELECT
-  USING (bucket_id = 'staff-photos');
-
--- Staff photos bucket: tenant members can upload
-CREATE POLICY storage_staff_photos_insert ON storage.objects
-  FOR INSERT
-  WITH CHECK (
-    bucket_id = 'staff-photos'
-    AND (storage.foldername(name))[1] = (current_setting('request.jwt.claims', true)::jsonb->>'tenant_id')
-  );
-
--- Staff photos bucket: tenant members can update
-CREATE POLICY storage_staff_photos_update ON storage.objects
-  FOR UPDATE
-  USING (
-    bucket_id = 'staff-photos'
-    AND (storage.foldername(name))[1] = (current_setting('request.jwt.claims', true)::jsonb->>'tenant_id')
-  );
-
--- Staff photos bucket: tenant members can delete
-CREATE POLICY storage_staff_photos_delete ON storage.objects
-  FOR DELETE
-  USING (
-    bucket_id = 'staff-photos'
-    AND (storage.foldername(name))[1] = (current_setting('request.jwt.claims', true)::jsonb->>'tenant_id')
-  );
+-- D2. Storage RLS policies on storage.objects
+-- NOTE: These must be applied via the Supabase Dashboard or supabase CLI
+-- because the migration role cannot ALTER storage.objects directly.
+-- Storage bucket policies can be configured in the Supabase Dashboard
+-- under Storage → Policies.
 
 
 COMMIT;

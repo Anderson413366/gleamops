@@ -60,14 +60,14 @@ CREATE POLICY "job_staff_assignments_insert"
   ON job_staff_assignments FOR INSERT
   WITH CHECK (
     tenant_id = current_tenant_id()
-    AND has_any_role(ARRAY['OWNER_ADMIN','MANAGER','SUPERVISOR'])
+    AND has_any_role(auth.uid(), ARRAY['OWNER_ADMIN','MANAGER','SUPERVISOR'])
   );
 
 CREATE POLICY "job_staff_assignments_update"
   ON job_staff_assignments FOR UPDATE
   USING (
     tenant_id = current_tenant_id()
-    AND has_any_role(ARRAY['OWNER_ADMIN','MANAGER','SUPERVISOR'])
+    AND has_any_role(auth.uid(), ARRAY['OWNER_ADMIN','MANAGER','SUPERVISOR'])
   );
 
 -- ---------------------------------------------------------------------------

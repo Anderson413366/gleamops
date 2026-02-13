@@ -51,14 +51,17 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- ---------------------------------------------------------------------------
 -- B. Attach triggers
 -- ---------------------------------------------------------------------------
+DROP TRIGGER IF EXISTS cascade_archive_clients ON clients;
 CREATE TRIGGER cascade_archive_clients
   AFTER UPDATE ON clients
   FOR EACH ROW EXECUTE FUNCTION cascade_archive();
 
+DROP TRIGGER IF EXISTS cascade_archive_sites ON sites;
 CREATE TRIGGER cascade_archive_sites
   AFTER UPDATE ON sites
   FOR EACH ROW EXECUTE FUNCTION cascade_archive();
 
+DROP TRIGGER IF EXISTS cascade_archive_staff ON staff;
 CREATE TRIGGER cascade_archive_staff
   AFTER UPDATE ON staff
   FOR EACH ROW EXECUTE FUNCTION cascade_archive();

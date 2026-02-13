@@ -442,12 +442,16 @@ CROSS JOIN (VALUES ('CLI'), ('SIT'), ('CON'), ('TSK'), ('SER'),
 ON CONFLICT DO NOTHING;
 
 -- Add triggers for job_logs and job_tasks (missing from 00031)
-CREATE TRIGGER IF NOT EXISTS set_updated_at BEFORE UPDATE ON public.job_logs
+DROP TRIGGER IF EXISTS set_updated_at ON public.job_logs;
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.job_logs
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
-CREATE TRIGGER IF NOT EXISTS set_version_etag BEFORE UPDATE ON public.job_logs
+DROP TRIGGER IF EXISTS set_version_etag ON public.job_logs;
+CREATE TRIGGER set_version_etag BEFORE UPDATE ON public.job_logs
   FOR EACH ROW EXECUTE FUNCTION public.set_version_etag();
 
-CREATE TRIGGER IF NOT EXISTS set_updated_at BEFORE UPDATE ON public.job_tasks
+DROP TRIGGER IF EXISTS set_updated_at ON public.job_tasks;
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.job_tasks
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
-CREATE TRIGGER IF NOT EXISTS set_version_etag BEFORE UPDATE ON public.job_tasks
+DROP TRIGGER IF EXISTS set_version_etag ON public.job_tasks;
+CREATE TRIGGER set_version_etag BEFORE UPDATE ON public.job_tasks
   FOR EACH ROW EXECUTE FUNCTION public.set_version_etag();

@@ -271,9 +271,11 @@ ALTER TABLE inspections ADD CONSTRAINT chk_inspections_status
     'SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'
   ));
 
+-- Drop old constraint first, then add unified one
+ALTER TABLE time_entries DROP CONSTRAINT IF EXISTS time_entries_status_check;
 ALTER TABLE time_entries ADD CONSTRAINT chk_time_entries_status
   CHECK (status IN (
-    'PENDING', 'APPROVED', 'REJECTED', 'FLAGGED'
+    'OPEN', 'CLOSED', 'ADJUSTED', 'PENDING', 'APPROVED', 'REJECTED', 'FLAGGED'
   ));
 
 ALTER TABLE timesheets ADD CONSTRAINT chk_timesheets_status

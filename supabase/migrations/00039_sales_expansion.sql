@@ -389,12 +389,14 @@ BEGIN
     'sales_proposal_signatures', 'sales_followup_templates'
   ])
   LOOP
+    EXECUTE format('DROP TRIGGER IF EXISTS trg_%s_updated ON %I', tbl, tbl);
     EXECUTE format(
       'CREATE TRIGGER trg_%s_updated BEFORE UPDATE ON %I FOR EACH ROW EXECUTE FUNCTION set_updated_at()',
       tbl, tbl
     );
+    EXECUTE format('DROP TRIGGER IF EXISTS trg_%s_etag ON %I', tbl, tbl);
     EXECUTE format(
-      'CREATE TRIGGER trg_%s_etag BEFORE UPDATE ON %I FOR EACH ROW EXECUTE FUNCTION bump_etag()',
+      'CREATE TRIGGER trg_%s_etag BEFORE UPDATE ON %I FOR EACH ROW EXECUTE FUNCTION set_version_etag()',
       tbl, tbl
     );
   END LOOP;

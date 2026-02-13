@@ -13,11 +13,11 @@ export function Table({ className, ...props }: React.HTMLAttributes<HTMLTableEle
 }
 
 export function TableHeader({ className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
-  return <thead className={cn('bg-gray-50/80', className)} {...props} />;
+  return <thead className={cn('bg-muted/50', className)} {...props} />;
 }
 
 export function TableBody({ className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
-  return <tbody className={cn('divide-y divide-border bg-white', className)} {...props} />;
+  return <tbody className={cn('divide-y divide-border bg-card', className)} {...props} />;
 }
 
 export function TableRow({ className, onClick, ...props }: React.HTMLAttributes<HTMLTableRowElement>) {
@@ -25,8 +25,8 @@ export function TableRow({ className, onClick, ...props }: React.HTMLAttributes<
     <tr
       className={cn(
         'transition-colors duration-150',
-        'even:bg-gray-50/40',
-        onClick && 'cursor-pointer hover:bg-gleam-50/50',
+        'even:bg-muted/30',
+        onClick && 'cursor-pointer hover:bg-gleam-50/50 dark:hover:bg-gleam-950/50',
         className
       )}
       onClick={onClick}
@@ -72,7 +72,7 @@ export function TableHead({
   return (
     <th
       className={cn(
-        'px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider',
+        'px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider',
         sortable && 'cursor-pointer select-none hover:text-foreground transition-colors',
         className
       )}
@@ -84,7 +84,7 @@ export function TableHead({
         {sortable && (
           <SortIcon className={cn(
             'h-3.5 w-3.5 transition-colors',
-            sorted ? 'text-gleam-600' : 'text-gray-400'
+            sorted ? 'text-gleam-600' : 'text-muted-foreground'
           )} />
         )}
       </span>

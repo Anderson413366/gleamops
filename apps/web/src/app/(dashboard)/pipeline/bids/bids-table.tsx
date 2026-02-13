@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { FileText } from 'lucide-react';
+import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton,
+  EmptyState, Badge, Pagination, TableSkeleton, ExportButton,
 } from '@gleamops/ui';
 import { BID_STATUS_COLORS } from '@gleamops/shared';
 import type { SalesBid } from '@gleamops/shared';
@@ -76,6 +77,20 @@ export default function BidsTable({ search, onSelect }: BidsTableProps) {
 
   return (
     <div>
+      <div className="flex justify-end mb-4">
+        <ExportButton
+          data={filtered as unknown as Record<string, unknown>[]}
+          filename="bids"
+          columns={[
+            { key: 'bid_code', label: 'Code' },
+            { key: 'status', label: 'Status' },
+            { key: 'total_sqft', label: 'Sq Ft' },
+            { key: 'bid_monthly_price', label: 'Monthly Price' },
+            { key: 'created_at', label: 'Created' },
+          ]}
+          onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
+        />
+      </div>
       <Table>
         <TableHeader>
           <tr>

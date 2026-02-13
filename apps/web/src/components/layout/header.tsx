@@ -3,9 +3,22 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Bell, Search, Building2, MapPin, Users, TrendingUp, FileText, Settings, LogOut } from 'lucide-react';
+import {
+  Bell,
+  Search,
+  Building2,
+  MapPin,
+  Users,
+  TrendingUp,
+  FileText,
+  Settings,
+  LogOut,
+  Sun,
+  Moon,
+} from 'lucide-react';
 import { CommandPalette, type CommandItem } from '@gleamops/ui';
 import { useAuth } from '@/hooks/use-auth';
+import { useTheme } from '@/hooks/use-theme';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 function getInitials(email: string): string {
@@ -20,6 +33,7 @@ function getInitials(email: string): string {
 
 export function Header() {
   const { user, role, signOut } = useAuth();
+  const { resolvedTheme, toggleTheme, mounted } = useTheme();
   const router = useRouter();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [items, setItems] = useState<CommandItem[]>([]);
@@ -173,44 +187,60 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 h-16 bg-white/80 backdrop-blur-md border-b border-border flex items-center justify-between px-6">
+      <header className="sticky top-0 z-30 h-16 bg-card/80 backdrop-blur-md border-b border-border flex items-center justify-between px-6">
         {/* Left: breadcrumb / page title area (filled by each page) */}
         <div className="flex-1" />
 
-        {/* Right: search + notifications + avatar */}
+        {/* Right: search + theme toggle + notifications + avatar */}
         <div className="flex items-center gap-2">
+          {/* Search trigger */}
           <button
             onClick={() => setPaletteOpen(true)}
-            className="rounded-lg px-3 py-2 text-muted hover:bg-gray-100 hover:text-foreground transition-all duration-200 inline-flex items-center gap-2"
+            className="rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 inline-flex items-center gap-2"
             aria-label="Search"
           >
             <Search className="h-4 w-4" />
-            <span className="hidden sm:inline text-sm text-gray-400">Search...</span>
-            <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded-md border border-border bg-gray-50 px-1.5 py-0.5 text-[10px] font-medium text-muted">
+            <span className="hidden sm:inline text-sm">Search...</span>
+            <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
               ⌘K
             </kbd>
           </button>
+
+          {/* Dark mode toggle */}
+          {mounted && (
+            <button
+              onClick={toggleTheme}
+              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200"
+              aria-label={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {resolvedTheme === 'dark' ? (
+                <Sun className="h-5 w-5" />
+              ) : (
+                <Moon className="h-5 w-5" />
+              )}
+            </button>
+          )}
 
           {/* Notifications dropdown */}
           <div className="relative" ref={notifRef}>
             <button
               onClick={() => { setNotifOpen(!notifOpen); setProfileOpen(false); }}
-              className="rounded-lg p-2 text-muted hover:bg-gray-100 hover:text-foreground transition-all duration-200 relative"
+              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 relative"
               aria-label="Notifications"
             >
               <Bell className="h-5 w-5" />
             </button>
             {notifOpen && (
-              <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-lg border border-border z-50 animate-scale-in overflow-hidden">
-                <div className="px-4 py-3 border-b border-border bg-gray-50/50">
+              <div className="absolute right-0 top-full mt-2 w-80 bg-card rounded-xl shadow-lg border border-border z-50 animate-scale-in overflow-hidden">
+                <div className="px-4 py-3 border-b border-border bg-muted/50">
                   <p className="text-sm font-semibold text-foreground">Notifications</p>
                 </div>
                 <div className="p-8 text-center">
-                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3">
-                    <Bell className="h-5 w-5 text-gray-400" />
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-muted mb-3">
+                    <Bell className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <p className="text-sm font-medium text-foreground">All caught up!</p>
-                  <p className="text-xs text-muted mt-1">No new notifications</p>
+                  <p className="text-xs text-muted-foreground mt-1">No new notifications</p>
                 </div>
               </div>
             )}
@@ -220,17 +250,17 @@ export function Header() {
           <div className="relative" ref={profileRef}>
             <button
               onClick={() => { setProfileOpen(!profileOpen); setNotifOpen(false); }}
-              className="h-9 w-9 rounded-full bg-gleam-600 text-white flex items-center justify-center text-sm font-bold hover:bg-gleam-700 transition-all duration-200 cursor-pointer ring-2 ring-white shadow-sm"
+              className="h-9 w-9 rounded-full bg-gleam-600 text-white flex items-center justify-center text-sm font-bold hover:bg-gleam-700 transition-all duration-200 cursor-pointer ring-2 ring-white dark:ring-card shadow-sm"
             >
               {user ? getInitials(user.email) : '?'}
             </button>
             {profileOpen && (
-              <div className="absolute right-0 top-full mt-2 w-60 bg-white rounded-xl shadow-lg border border-border z-50 animate-scale-in overflow-hidden">
-                <div className="px-4 py-3 border-b border-border bg-gray-50/50">
+              <div className="absolute right-0 top-full mt-2 w-60 bg-card rounded-xl shadow-lg border border-border z-50 animate-scale-in overflow-hidden">
+                <div className="px-4 py-3 border-b border-border bg-muted/50">
                   <p className="text-sm font-semibold text-foreground truncate">{user?.email}</p>
                   {role && (
-                    <p className="text-xs text-muted mt-0.5">
-                      {role.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {role.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
                     </p>
                   )}
                 </div>
@@ -238,16 +268,16 @@ export function Header() {
                   <Link
                     href="/settings"
                     onClick={() => setProfileOpen(false)}
-                    className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground rounded-lg hover:bg-gray-50 transition-colors"
+                    className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground rounded-lg hover:bg-muted transition-colors"
                   >
-                    <Settings className="h-4 w-4 text-muted" />
+                    <Settings className="h-4 w-4 text-muted-foreground" />
                     Settings
                   </Link>
                   <button
                     onClick={() => { setProfileOpen(false); signOut(); }}
-                    className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground rounded-lg hover:bg-gray-50 transition-colors w-full"
+                    className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground rounded-lg hover:bg-muted transition-colors w-full"
                   >
-                    <LogOut className="h-4 w-4 text-muted" />
+                    <LogOut className="h-4 w-4 text-muted-foreground" />
                     Sign out
                   </button>
                 </div>

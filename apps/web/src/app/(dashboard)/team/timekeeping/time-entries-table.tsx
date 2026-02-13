@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Clock, LogIn, LogOut } from 'lucide-react';
+import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, Button,
+  EmptyState, Badge, Pagination, TableSkeleton, Button, ExportButton,
 } from '@gleamops/ui';
 import { TIME_ENTRY_STATUS_COLORS } from '@gleamops/shared';
 import type { TimeEntry } from '@gleamops/shared';
@@ -160,15 +161,28 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
   return (
     <div>
       {/* Check In / Out Actions */}
-      <div className="flex items-center gap-3 mb-4">
-        <Button size="sm" onClick={handleCheckIn}>
-          <LogIn className="h-4 w-4 mr-1" />
-          Check In
-        </Button>
-        <Button size="sm" variant="secondary" onClick={handleCheckOut}>
-          <LogOut className="h-4 w-4 mr-1" />
-          Check Out
-        </Button>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <Button size="sm" onClick={handleCheckIn}>
+            <LogIn className="h-4 w-4 mr-1" />
+            Check In
+          </Button>
+          <Button size="sm" variant="secondary" onClick={handleCheckOut}>
+            <LogOut className="h-4 w-4 mr-1" />
+            Check Out
+          </Button>
+        </div>
+        <ExportButton
+          data={filtered as unknown as Record<string, unknown>[]}
+          filename="time-entries"
+          columns={[
+            { key: 'start_at', label: 'Start' },
+            { key: 'end_at', label: 'End' },
+            { key: 'duration_minutes', label: 'Duration (min)' },
+            { key: 'status', label: 'Status' },
+          ]}
+          onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
+        />
       </div>
 
       {filtered.length === 0 ? (

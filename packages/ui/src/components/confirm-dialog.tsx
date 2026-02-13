@@ -42,18 +42,18 @@ export function ConfirmDialog({
     <dialog
       ref={dialogRef}
       onClose={onClose}
-      className="fixed inset-0 z-50 m-auto rounded-xl border border-border bg-white shadow-xl backdrop:bg-black/30 p-0 max-w-md w-full"
+      className="fixed inset-0 z-50 m-auto rounded-xl border border-border bg-card shadow-xl backdrop:bg-black/40 dark:backdrop:bg-black/60 p-0 max-w-md w-full"
     >
       <div className="p-6">
         <div className="flex items-start gap-4">
           {variant === 'danger' && (
-            <div className="shrink-0 rounded-full bg-red-50 p-2">
-              <AlertTriangle className="h-5 w-5 text-red-600" />
+            <div className="shrink-0 rounded-full bg-red-50 dark:bg-red-950 p-2">
+              <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
             </div>
           )}
           <div>
             <h3 className="text-base font-semibold text-foreground">{title}</h3>
-            <p className="mt-1 text-sm text-muted">{description}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
           </div>
         </div>
 

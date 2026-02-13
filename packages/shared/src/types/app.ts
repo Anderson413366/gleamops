@@ -12,7 +12,7 @@ export type UserRole =
   | 'SALES';
 
 // Navigation spaces
-export type NavSpace = 'pipeline' | 'customers' | 'schedule' | 'team' | 'reports' | 'inventory' | 'assets' | 'admin';
+export type NavSpace = 'home' | 'pipeline' | 'customers' | 'schedule' | 'team' | 'reports' | 'inventory' | 'assets' | 'admin';
 
 export interface NavItem {
   id: NavSpace;

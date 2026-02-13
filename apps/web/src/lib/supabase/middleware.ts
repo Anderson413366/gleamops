@@ -48,7 +48,7 @@ export async function updateSession(request: NextRequest) {
   if (user && pathname === '/login') {
     // Already authenticated → redirect to app
     const url = request.nextUrl.clone();
-    url.pathname = '/pipeline';
+    url.pathname = '/home';
     return NextResponse.redirect(url);
   }
 

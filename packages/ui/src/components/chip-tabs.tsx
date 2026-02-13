@@ -26,7 +26,7 @@ export function ChipTabs({ tabs, active, onChange }: ChipTabsProps) {
             'inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200',
             active === tab.key
               ? 'bg-gleam-600 text-white shadow-md shadow-gleam-600/25'
-              : 'bg-white text-gray-600 ring-1 ring-inset ring-border hover:bg-gray-50 hover:text-foreground hover:shadow-sm'
+              : 'bg-card text-muted-foreground ring-1 ring-inset ring-border hover:bg-muted hover:text-foreground hover:shadow-sm'
           )}
         >
           {tab.icon}
@@ -37,7 +37,7 @@ export function ChipTabs({ tabs, active, onChange }: ChipTabsProps) {
                 'ml-0.5 rounded-full px-1.5 py-0.5 text-xs font-semibold',
                 active === tab.key
                   ? 'bg-white/20 text-white'
-                  : 'bg-gray-100 text-gray-500'
+                  : 'bg-muted text-muted-foreground'
               )}
             >
               {tab.count}

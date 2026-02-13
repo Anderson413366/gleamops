@@ -7,6 +7,7 @@ import type { NavItem, StatusColor } from '../types/app';
 // Navigation (5 spaces only)
 // ---------------------------------------------------------------------------
 export const NAV_ITEMS: NavItem[] = [
+  { id: 'home', label: 'Home', href: '/home', icon: 'Home' },
   { id: 'pipeline', label: 'Pipeline', href: '/pipeline', icon: 'TrendingUp' },
   { id: 'customers', label: 'Customers', href: '/customers', icon: 'Building2' },
   { id: 'schedule', label: 'Schedule', href: '/schedule', icon: 'Calendar' },

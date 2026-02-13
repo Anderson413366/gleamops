@@ -7,7 +7,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
   EmptyState, Badge, Pagination, TableSkeleton,
-  SlideOver, Input, Select, Textarea, Button,
+  SlideOver, Input, Select, Textarea, Button, ExportButton,
 } from '@gleamops/ui';
 import { VEHICLE_STATUS_COLORS } from '@gleamops/shared';
 import type { Vehicle } from '@gleamops/shared';
@@ -232,6 +232,22 @@ export default function VehiclesTable({ search, formOpen, onFormClose, onRefresh
 
   return (
     <div>
+      <div className="flex justify-end mb-4">
+        <ExportButton
+          data={filtered as unknown as Record<string, unknown>[]}
+          filename="vehicles"
+          columns={[
+            { key: 'vehicle_code', label: 'Code' },
+            { key: 'name', label: 'Name' },
+            { key: 'make', label: 'Make' },
+            { key: 'model', label: 'Model' },
+            { key: 'year', label: 'Year' },
+            { key: 'license_plate', label: 'License Plate' },
+            { key: 'status', label: 'Status' },
+          ]}
+          onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
+        />
+      </div>
       <Table>
         <TableHeader>
           <tr>

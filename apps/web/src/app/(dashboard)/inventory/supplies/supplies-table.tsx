@@ -19,6 +19,7 @@ import {
   Select,
   Textarea,
   Button,
+  ExportButton,
 } from '@gleamops/ui';
 import type { SupplyCatalog } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
@@ -336,6 +337,20 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
 
   return (
     <div>
+      <div className="flex justify-end mb-4">
+        <ExportButton
+          data={filtered as unknown as Record<string, unknown>[]}
+          filename="supplies"
+          columns={[
+            { key: 'code', label: 'Code' },
+            { key: 'name', label: 'Name' },
+            { key: 'category', label: 'Category' },
+            { key: 'unit', label: 'Unit' },
+            { key: 'unit_cost', label: 'Cost' },
+          ]}
+          onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
+        />
+      </div>
       <Table>
         <TableHeader>
           <tr>

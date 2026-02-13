@@ -47,7 +47,7 @@ export function SlideOver({ open, onClose, title, subtitle, children, wide = fal
     <div className="fixed inset-0 z-50">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm animate-fade-in"
+        className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm animate-fade-in"
         onClick={onClose}
       />
 
@@ -55,7 +55,7 @@ export function SlideOver({ open, onClose, title, subtitle, children, wide = fal
       <div
         ref={panelRef}
         className={cn(
-          'fixed inset-y-0 right-0 bg-white shadow-2xl flex flex-col animate-slide-in-right',
+          'fixed inset-y-0 right-0 bg-card shadow-2xl flex flex-col animate-slide-in-right',
           wide ? 'w-full max-w-2xl' : 'w-full max-w-lg'
         )}
       >
@@ -63,11 +63,11 @@ export function SlideOver({ open, onClose, title, subtitle, children, wide = fal
         <div className="flex items-center justify-between px-6 py-5 border-b border-border shrink-0">
           <div>
             <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-            {subtitle && <p className="text-sm text-muted mt-0.5">{subtitle}</p>}
+            {subtitle && <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>}
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-2 text-muted hover:bg-gray-100 hover:text-foreground transition-colors"
+            className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             aria-label="Close"
           >
             <X className="h-5 w-5" />

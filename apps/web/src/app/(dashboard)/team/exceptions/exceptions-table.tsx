@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { AlertTriangle, CheckCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, Button,
+  EmptyState, Badge, Pagination, TableSkeleton, Button, ExportButton,
 } from '@gleamops/ui';
 import { EXCEPTION_SEVERITY_COLORS } from '@gleamops/shared';
 import type { TimeException } from '@gleamops/shared';
@@ -99,6 +100,19 @@ export default function ExceptionsTable({ search }: ExceptionsTableProps) {
 
   return (
     <div>
+      <div className="flex justify-end mb-4">
+        <ExportButton
+          data={filtered as unknown as Record<string, unknown>[]}
+          filename="time-exceptions"
+          columns={[
+            { key: 'created_at', label: 'Date' },
+            { key: 'exception_type', label: 'Type' },
+            { key: 'severity', label: 'Severity' },
+            { key: 'description', label: 'Description' },
+          ]}
+          onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
+        />
+      </div>
       <Table>
         <TableHeader>
           <tr>

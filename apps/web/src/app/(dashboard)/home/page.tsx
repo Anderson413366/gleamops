@@ -1,0 +1,453 @@
+'use client';
+
+import { useEffect, useState, useCallback } from 'react';
+import {
+  Building2,
+  Ticket,
+  Users,
+  FileText,
+  Activity,
+  Calendar,
+  TrendingUp,
+  Clock,
+} from 'lucide-react';
+import { StatCard, CollapsibleCard, Badge, Skeleton } from '@gleamops/ui';
+import {
+  TICKET_STATUS_COLORS,
+  PROSPECT_STATUS_COLORS,
+} from '@gleamops/shared';
+import type { StatusColor } from '@gleamops/shared';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { useAuth } from '@/hooks/use-auth';
+
+// ---------------------------------------------------------------------------
+// Date/time formatters
+// ---------------------------------------------------------------------------
+const dateFormatter = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+});
+
+const timeFormatter = new Intl.DateTimeFormat('en-US', {
+  hour: 'numeric',
+  minute: '2-digit',
+  hour12: true,
+});
+
+const fullDateFormatter = new Intl.DateTimeFormat('en-US', {
+  weekday: 'long',
+  month: 'long',
+  day: 'numeric',
+  year: 'numeric',
+});
+
+function formatRelativeTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return dateFormatter.format(date);
+}
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+interface Metrics {
+  activeClients: number | null;
+  openTickets: number | null;
+  activeStaff: number | null;
+  pendingBids: number | null;
+}
+
+interface AuditRow {
+  id: string;
+  action: string;
+  entity_type: string;
+  entity_code: string | null;
+  created_at: string;
+}
+
+interface TicketRow {
+  id: string;
+  ticket_code: string;
+  scheduled_date: string;
+  status: string;
+}
+
+interface ProspectRow {
+  id: string;
+  prospect_code: string;
+  company_name: string;
+  prospect_status_code: string;
+  source: string | null;
+}
+
+interface ActiveStaffRow {
+  id: string;
+  staff_id: string;
+  start_at: string;
+  staff?: { full_name: string } | null;
+}
+
+// ---------------------------------------------------------------------------
+// Skeleton loaders
+// ---------------------------------------------------------------------------
+function StatCardSkeleton() {
+  return (
+    <div className="rounded-xl border border-border bg-white p-5 shadow-sm dark:bg-card">
+      <div className="flex items-start justify-between">
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-8 w-16" />
+        </div>
+        <Skeleton className="h-12 w-12 rounded-xl" />
+      </div>
+    </div>
+  );
+}
+
+function ListSkeleton({ rows = 4 }: { rows?: number }) {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3">
+          <Skeleton className="h-4 flex-1" />
+          <Skeleton className="h-4 w-20" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Action label for audit events
+// ---------------------------------------------------------------------------
+function formatAction(action: string): string {
+  switch (action) {
+    case 'INSERT':
+      return 'Created';
+    case 'UPDATE':
+      return 'Updated';
+    case 'DELETE':
+      return 'Deleted';
+    default:
+      return action.charAt(0).toUpperCase() + action.slice(1).toLowerCase();
+  }
+}
+
+function formatEntityType(type: string): string {
+  return type
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+// ---------------------------------------------------------------------------
+// Dashboard Home Page
+// ---------------------------------------------------------------------------
+export default function HomePage() {
+  const { user, loading: authLoading } = useAuth();
+
+  const [metrics, setMetrics] = useState<Metrics>({
+    activeClients: null,
+    openTickets: null,
+    activeStaff: null,
+    pendingBids: null,
+  });
+  const [auditEvents, setAuditEvents] = useState<AuditRow[]>([]);
+  const [upcomingTickets, setUpcomingTickets] = useState<TicketRow[]>([]);
+  const [prospects, setProspects] = useState<ProspectRow[]>([]);
+  const [activeShifts, setActiveShifts] = useState<ActiveStaffRow[]>([]);
+
+  const [metricsLoading, setMetricsLoading] = useState(true);
+  const [sectionsLoading, setSectionsLoading] = useState(true);
+
+  // Fetch all dashboard data
+  const fetchDashboard = useCallback(async () => {
+    const supabase = getSupabaseBrowserClient();
+
+    // --- Metrics (parallel count queries) ---
+    setMetricsLoading(true);
+    const [clientsRes, ticketsRes, staffRes, bidsRes] = await Promise.all([
+      supabase
+        .from('clients')
+        .select('id', { count: 'exact', head: true })
+        .is('archived_at', null),
+      supabase
+        .from('work_tickets')
+        .select('id', { count: 'exact', head: true })
+        .in('status', ['SCHEDULED', 'IN_PROGRESS']),
+      supabase
+        .from('staff')
+        .select('id', { count: 'exact', head: true })
+        .is('archived_at', null),
+      supabase
+        .from('sales_bids')
+        .select('id', { count: 'exact', head: true })
+        .in('status', ['DRAFT', 'IN_PROGRESS']),
+    ]);
+
+    setMetrics({
+      activeClients: clientsRes.count ?? 0,
+      openTickets: ticketsRes.count ?? 0,
+      activeStaff: staffRes.count ?? 0,
+      pendingBids: bidsRes.count ?? 0,
+    });
+    setMetricsLoading(false);
+
+    // --- Sections (parallel data queries) ---
+    setSectionsLoading(true);
+    const today = new Date().toISOString().split('T')[0];
+
+    const [auditRes, ticketListRes, prospectRes, shiftsRes] = await Promise.all([
+      // Recent activity
+      supabase
+        .from('audit_events')
+        .select('id, action, entity_type, entity_code, created_at')
+        .order('created_at', { ascending: false })
+        .limit(10),
+      // Upcoming tickets
+      supabase
+        .from('work_tickets')
+        .select('id, ticket_code, scheduled_date, status')
+        .gte('scheduled_date', today)
+        .order('scheduled_date', { ascending: true })
+        .limit(5),
+      // Pipeline prospects
+      supabase
+        .from('sales_prospects')
+        .select('id, prospect_code, company_name, prospect_status_code, source')
+        .is('archived_at', null)
+        .order('created_at', { ascending: false })
+        .limit(5),
+      // Currently on shift (open time entries)
+      supabase
+        .from('time_entries')
+        .select('id, staff_id, start_at, staff:staff_id(full_name)')
+        .is('end_at', null)
+        .order('start_at', { ascending: false })
+        .limit(10),
+    ]);
+
+    if (auditRes.data) setAuditEvents(auditRes.data as AuditRow[]);
+    if (ticketListRes.data) setUpcomingTickets(ticketListRes.data as TicketRow[]);
+    if (prospectRes.data) setProspects(prospectRes.data as ProspectRow[]);
+    if (shiftsRes.data) setActiveShifts(shiftsRes.data as unknown as ActiveStaffRow[]);
+
+    setSectionsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (!authLoading) {
+      fetchDashboard();
+    }
+  }, [authLoading, fetchDashboard]);
+
+  // Greeting based on time of day
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
+
+  const displayName = user?.email?.split('@')[0]?.replace(/[._-]/g, ' ')?.replace(/\b\w/g, (c) => c.toUpperCase()) ?? '';
+
+  return (
+    <div className="space-y-6 animate-fade-in-up">
+      {/* Welcome Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">
+          {getGreeting()}{displayName ? `, ${displayName}` : ''}
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          {fullDateFormatter.format(new Date())}
+        </p>
+      </div>
+
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {metricsLoading ? (
+          <>
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+          </>
+        ) : (
+          <>
+            <StatCard
+              label="Active Clients"
+              value={metrics.activeClients ?? 0}
+              icon={<Building2 className="h-5 w-5" />}
+            />
+            <StatCard
+              label="Open Tickets"
+              value={metrics.openTickets ?? 0}
+              icon={<Ticket className="h-5 w-5" />}
+            />
+            <StatCard
+              label="Active Staff"
+              value={metrics.activeStaff ?? 0}
+              icon={<Users className="h-5 w-5" />}
+            />
+            <StatCard
+              label="Pending Bids"
+              value={metrics.pendingBids ?? 0}
+              icon={<FileText className="h-5 w-5" />}
+            />
+          </>
+        )}
+      </div>
+
+      {/* Collapsible Sections — 2x2 grid on desktop */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Activity */}
+        <CollapsibleCard
+          id="dashboard-activity"
+          title="Recent Activity"
+          icon={<Activity className="h-5 w-5" />}
+        >
+          {sectionsLoading ? (
+            <ListSkeleton rows={5} />
+          ) : auditEvents.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No recent activity.</p>
+          ) : (
+            <ul className="space-y-2.5">
+              {auditEvents.map((event) => (
+                <li
+                  key={event.id}
+                  className="flex items-center justify-between gap-3 text-sm"
+                >
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <span className="font-medium text-foreground shrink-0">
+                      {formatAction(event.action)}
+                    </span>
+                    <span className="text-muted-foreground truncate">
+                      {formatEntityType(event.entity_type)}
+                      {event.entity_code ? ` (${event.entity_code})` : ''}
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
+                    {formatRelativeTime(event.created_at)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CollapsibleCard>
+
+        {/* Upcoming Tickets */}
+        <CollapsibleCard
+          id="dashboard-tickets"
+          title="Upcoming Tickets"
+          icon={<Calendar className="h-5 w-5" />}
+        >
+          {sectionsLoading ? (
+            <ListSkeleton rows={5} />
+          ) : upcomingTickets.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No upcoming tickets.</p>
+          ) : (
+            <ul className="space-y-2.5">
+              {upcomingTickets.map((ticket) => (
+                <li
+                  key={ticket.id}
+                  className="flex items-center justify-between gap-3 text-sm"
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <span className="font-mono text-xs text-muted-foreground shrink-0">
+                      {ticket.ticket_code}
+                    </span>
+                    <span className="text-foreground">
+                      {dateFormatter.format(new Date(ticket.scheduled_date + 'T00:00:00'))}
+                    </span>
+                  </div>
+                  <Badge color={TICKET_STATUS_COLORS[ticket.status] as StatusColor ?? 'gray'}>
+                    {ticket.status.replace(/_/g, ' ')}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CollapsibleCard>
+
+        {/* Pipeline Overview */}
+        <CollapsibleCard
+          id="dashboard-pipeline"
+          title="Pipeline Overview"
+          icon={<TrendingUp className="h-5 w-5" />}
+        >
+          {sectionsLoading ? (
+            <ListSkeleton rows={5} />
+          ) : prospects.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No prospects in the pipeline.</p>
+          ) : (
+            <ul className="space-y-2.5">
+              {prospects.map((prospect) => (
+                <li
+                  key={prospect.id}
+                  className="flex items-center justify-between gap-3 text-sm"
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <span className="font-medium text-foreground truncate">
+                      {prospect.company_name}
+                    </span>
+                    {prospect.source && (
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        {prospect.source.replace(/_/g, ' ')}
+                      </span>
+                    )}
+                  </div>
+                  <Badge
+                    color={PROSPECT_STATUS_COLORS[prospect.prospect_status_code] as StatusColor ?? 'gray'}
+                  >
+                    {prospect.prospect_status_code.replace(/_/g, ' ')}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CollapsibleCard>
+
+        {/* Team on Shift */}
+        <CollapsibleCard
+          id="dashboard-team"
+          title="Team on Shift"
+          icon={<Clock className="h-5 w-5" />}
+        >
+          {sectionsLoading ? (
+            <ListSkeleton rows={4} />
+          ) : activeShifts.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No staff currently on shift.</p>
+          ) : (
+            <ul className="space-y-2.5">
+              {activeShifts.map((entry) => (
+                <li
+                  key={entry.id}
+                  className="flex items-center justify-between gap-3 text-sm"
+                >
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <div className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+                    <span className="font-medium text-foreground truncate">
+                      {entry.staff?.full_name ?? 'Unknown Staff'}
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
+                    Checked in {timeFormatter.format(new Date(entry.start_at))}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CollapsibleCard>
+      </div>
+    </div>
+  );
+}

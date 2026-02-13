@@ -2,22 +2,38 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Users } from 'lucide-react';
+import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton,
+  EmptyState, Badge, Pagination, TableSkeleton, ExportButton,
 } from '@gleamops/ui';
 import type { Staff } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { StaffForm } from '@/components/forms/staff-form';
 
 interface StaffTableProps {
   search: string;
+  autoCreate?: boolean;
+  onAutoCreateHandled?: () => void;
 }
 
-export default function StaffTable({ search }: StaffTableProps) {
+export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: StaffTableProps) {
   const [rows, setRows] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editItem, setEditItem] = useState<Staff | null>(null);
+
+  const handleAdd = () => {
+    setEditItem(null);
+    setFormOpen(true);
+  };
+
+  const handleEdit = (item: Staff) => {
+    setEditItem(item);
+    setFormOpen(true);
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -32,6 +48,14 @@ export default function StaffTable({ search }: StaffTableProps) {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Auto-create trigger from parent
+  useEffect(() => {
+    if (autoCreate && !loading) {
+      handleAdd();
+      onAutoCreateHandled?.();
+    }
+  }, [autoCreate, loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = useMemo(() => {
     if (!search) return rows;
@@ -55,16 +79,38 @@ export default function StaffTable({ search }: StaffTableProps) {
 
   if (filtered.length === 0) {
     return (
-      <EmptyState
-        icon={<Users className="h-12 w-12" />}
-        title="No staff found"
-        description={search ? 'Try a different search term.' : 'Add your first staff member.'}
-      />
+      <>
+        <EmptyState
+          icon={<Users className="h-12 w-12" />}
+          title="No staff found"
+          description={search ? 'Try a different search term.' : 'Add your first staff member.'}
+        />
+        <StaffForm
+          open={formOpen}
+          onClose={() => { setFormOpen(false); setEditItem(null); }}
+          initialData={editItem}
+          onSuccess={fetchData}
+        />
+      </>
     );
   }
 
   return (
     <div>
+      <div className="flex justify-end mb-4">
+        <ExportButton
+          data={filtered as unknown as Record<string, unknown>[]}
+          filename="staff"
+          columns={[
+            { key: 'staff_code', label: 'Code' },
+            { key: 'full_name', label: 'Name' },
+            { key: 'role', label: 'Role' },
+            { key: 'email', label: 'Email' },
+            { key: 'phone', label: 'Phone' },
+          ]}
+          onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
+        />
+      </div>
       <Table>
         <TableHeader>
           <tr>
@@ -77,7 +123,7 @@ export default function StaffTable({ search }: StaffTableProps) {
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id}>
+            <TableRow key={row.id} onClick={() => handleEdit(row)} className="cursor-pointer">
               <TableCell className="font-mono text-xs">{row.staff_code}</TableCell>
               <TableCell className="font-medium">{row.full_name}</TableCell>
               <TableCell>
@@ -102,6 +148,13 @@ export default function StaffTable({ search }: StaffTableProps) {
         currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
         pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
         onNext={pag.nextPage} onPrev={pag.prevPage}
+      />
+
+      <StaffForm
+        open={formOpen}
+        onClose={() => { setFormOpen(false); setEditItem(null); }}
+        initialData={editItem}
+        onSuccess={fetchData}
       />
     </div>
   );

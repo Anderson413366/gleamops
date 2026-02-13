@@ -15,12 +15,12 @@ export function EmptyState({ title, description, actionLabel, onAction, icon }: 
   return (
     <div className="flex flex-col items-center justify-center py-20 px-4 text-center animate-fade-in">
       {icon && (
-        <div className="mb-4 rounded-2xl bg-gleam-50 p-4 text-gleam-600">
+        <div className="mb-4 rounded-2xl bg-gleam-50 dark:bg-gleam-950 p-4 text-gleam-600 dark:text-gleam-400">
           {icon}
         </div>
       )}
       <h3 className="text-lg font-semibold text-foreground">{title}</h3>
-      <p className="mt-1.5 text-sm text-muted max-w-sm">{description}</p>
+      <p className="mt-1.5 text-sm text-muted-foreground max-w-sm">{description}</p>
       {actionLabel && onAction && (
         <button
           onClick={onAction}

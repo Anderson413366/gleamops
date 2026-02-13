@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Briefcase } from 'lucide-react';
+import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton,
+  EmptyState, Badge, Pagination, TableSkeleton, ExportButton,
 } from '@gleamops/ui';
 import type { SiteJob } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
@@ -84,6 +85,19 @@ export default function JobsTable({ search }: JobsTableProps) {
 
   return (
     <div>
+      <div className="flex justify-end mb-4">
+        <ExportButton
+          data={filtered as unknown as Record<string, unknown>[]}
+          filename="service-plans"
+          columns={[
+            { key: 'job_code', label: 'Code' },
+            { key: 'frequency', label: 'Frequency' },
+            { key: 'billing_amount', label: 'Billing' },
+            { key: 'status', label: 'Status' },
+          ]}
+          onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
+        />
+      </div>
       <Table>
         <TableHeader>
           <tr>

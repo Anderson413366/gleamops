@@ -113,6 +113,59 @@ export const convertBidSchema = z.object({
 export type ConvertBidInput = z.infer<typeof convertBidSchema>;
 
 // ---------------------------------------------------------------------------
+// Workforce
+// ---------------------------------------------------------------------------
+export const staffSchema = z.object({
+  staff_code: z.string().regex(/^STF-\d{4,}$/, 'Must be STF-XXXX format'),
+  full_name: z.string().min(1, 'Name is required').max(200),
+  role: z.string().min(1, 'Role is required'),
+  is_subcontractor: z.boolean().default(false),
+  pay_rate: z.number().positive().nullable().default(null),
+  email: z.string().email().nullable().default(null),
+  phone: z.string().nullable().default(null),
+});
+export type StaffFormData = z.infer<typeof staffSchema>;
+
+// ---------------------------------------------------------------------------
+// Inventory & Assets
+// ---------------------------------------------------------------------------
+export const supplySchema = z.object({
+  code: z.string().min(1, 'Code is required'),
+  name: z.string().min(1, 'Name is required').max(200),
+  category: z.string().nullable().default(null),
+  unit: z.string().min(1, 'Unit is required').default('EACH'),
+  unit_cost: z.number().positive().nullable().default(null),
+  sds_url: z.string().url().nullable().default(null),
+  notes: z.string().nullable().default(null),
+});
+export type SupplyFormData = z.infer<typeof supplySchema>;
+
+export const vehicleSchema = z.object({
+  vehicle_code: z.string().min(1, 'Code is required'),
+  name: z.string().min(1, 'Name is required').max(200),
+  make: z.string().nullable().default(null),
+  model: z.string().nullable().default(null),
+  year: z.number().int().min(1900).max(2100).nullable().default(null),
+  license_plate: z.string().nullable().default(null),
+  vin: z.string().nullable().default(null),
+  color: z.string().nullable().default(null),
+  status: z.enum(['ACTIVE', 'IN_SHOP', 'RETIRED']).default('ACTIVE'),
+  notes: z.string().nullable().default(null),
+});
+export type VehicleFormData = z.infer<typeof vehicleSchema>;
+
+export const keySchema = z.object({
+  key_code: z.string().min(1, 'Code is required'),
+  site_id: z.string().uuid().nullable().default(null),
+  key_type: z.enum(['STANDARD', 'FOB', 'CARD', 'CODE', 'OTHER']).default('STANDARD'),
+  label: z.string().min(1, 'Label is required'),
+  total_count: z.number().int().min(0).default(1),
+  status: z.enum(['AVAILABLE', 'ASSIGNED', 'LOST', 'RETURNED']).default('AVAILABLE'),
+  notes: z.string().nullable().default(null),
+});
+export type KeyFormData = z.infer<typeof keySchema>;
+
+// ---------------------------------------------------------------------------
 // Auth
 // ---------------------------------------------------------------------------
 export const loginSchema = z.object({

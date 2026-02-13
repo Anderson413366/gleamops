@@ -28,7 +28,7 @@ export function Pagination({
 
   return (
     <div className="flex items-center justify-between px-4 py-4 text-sm">
-      <p className="text-muted">
+      <p className="text-muted-foreground">
         Showing <span className="font-semibold text-foreground">{start}</span> to{' '}
         <span className="font-semibold text-foreground">{end}</span> of{' '}
         <span className="font-semibold text-foreground">{totalItems}</span>
@@ -37,18 +37,18 @@ export function Pagination({
         <button
           onClick={onPrev}
           disabled={!hasPrev}
-          className="inline-flex items-center rounded-lg border border-border bg-white px-3.5 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-gray-50 hover:shadow-md disabled:opacity-40 disabled:pointer-events-none transition-all duration-200"
+          className="inline-flex items-center rounded-lg border border-border bg-card px-3.5 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-muted hover:shadow-md disabled:opacity-40 disabled:pointer-events-none transition-all duration-200"
         >
           <ChevronLeft className="h-4 w-4 mr-1" />
           Previous
         </button>
-        <span className="text-muted tabular-nums font-medium">
+        <span className="text-muted-foreground tabular-nums font-medium">
           {currentPage} / {totalPages}
         </span>
         <button
           onClick={onNext}
           disabled={!hasNext}
-          className="inline-flex items-center rounded-lg border border-border bg-white px-3.5 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-gray-50 hover:shadow-md disabled:opacity-40 disabled:pointer-events-none transition-all duration-200"
+          className="inline-flex items-center rounded-lg border border-border bg-card px-3.5 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-muted hover:shadow-md disabled:opacity-40 disabled:pointer-events-none transition-all duration-200"
         >
           Next
           <ChevronRight className="h-4 w-4 ml-1" />

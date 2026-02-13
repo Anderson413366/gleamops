@@ -7,7 +7,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
   EmptyState, Badge, Pagination, TableSkeleton, SlideOver,
-  Input, Select, Button,
+  Input, Select, Button, ExportButton,
 } from '@gleamops/ui';
 import type { Task } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
@@ -234,6 +234,20 @@ export default function TasksTable({ search, autoCreate, onAutoCreateHandled, on
 
   return (
     <div>
+      <div className="flex justify-end mb-4">
+        <ExportButton
+          data={filtered as unknown as Record<string, unknown>[]}
+          filename="tasks"
+          columns={[
+            { key: 'task_code', label: 'Code' },
+            { key: 'name', label: 'Name' },
+            { key: 'category', label: 'Category' },
+            { key: 'unit_code', label: 'Unit' },
+            { key: 'production_rate_sqft_per_hour', label: 'Prod. Rate (sqft/hr)' },
+          ]}
+          onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
+        />
+      </div>
       <Table>
         <TableHeader>
           <tr>

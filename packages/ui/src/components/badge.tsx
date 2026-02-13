@@ -6,13 +6,20 @@ const badgeVariants = cva(
   {
     variants: {
       color: {
-        green:  'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/25',
-        red:    'bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/25',
-        yellow: 'bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/25',
-        blue:   'bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/25',
-        gray:   'bg-gray-100 text-gray-700 ring-1 ring-inset ring-gray-500/20',
-        orange: 'bg-orange-50 text-orange-700 ring-1 ring-inset ring-orange-600/25',
-        purple: 'bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-600/25',
+        green:
+          'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/25 dark:bg-emerald-950 dark:text-emerald-400 dark:ring-emerald-500/30',
+        red:
+          'bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/25 dark:bg-red-950 dark:text-red-400 dark:ring-red-500/30',
+        yellow:
+          'bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/25 dark:bg-amber-950 dark:text-amber-400 dark:ring-amber-500/30',
+        blue:
+          'bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/25 dark:bg-blue-950 dark:text-blue-400 dark:ring-blue-500/30',
+        gray:
+          'bg-muted text-muted-foreground ring-1 ring-inset ring-border',
+        orange:
+          'bg-orange-50 text-orange-700 ring-1 ring-inset ring-orange-600/25 dark:bg-orange-950 dark:text-orange-400 dark:ring-orange-500/30',
+        purple:
+          'bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-600/25 dark:bg-violet-950 dark:text-violet-400 dark:ring-violet-500/30',
       },
     },
     defaultVariants: {

@@ -130,37 +130,37 @@ export function CommandPalette({
     <div className="fixed inset-0 z-50">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm animate-fade-in"
+        className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm animate-fade-in"
         onClick={onClose}
       />
 
       {/* Dialog */}
       <div className="fixed left-1/2 top-[18%] -translate-x-1/2 w-full max-w-lg px-4 animate-scale-in">
         <div
-          className="bg-white rounded-2xl shadow-2xl border border-border overflow-hidden"
+          className="bg-card rounded-2xl shadow-2xl border border-border overflow-hidden"
           onKeyDown={handleKeyDown}
         >
           {/* Search input */}
           <div className="flex items-center gap-3 px-4 border-b border-border">
-            <Search className="h-5 w-5 text-gray-400 shrink-0" />
+            <Search className="h-5 w-5 text-muted-foreground shrink-0" />
             <input
               ref={inputRef}
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={placeholder}
-              className="flex-1 py-3.5 text-sm text-foreground placeholder:text-gray-400 bg-transparent outline-none"
+              className="flex-1 py-3.5 text-sm text-foreground placeholder:text-muted-foreground bg-transparent outline-none"
             />
             {query && (
               <button
                 onClick={() => setQuery('')}
-                className="rounded-full p-1 text-gray-400 hover:text-foreground hover:bg-gray-100 transition-colors"
+                className="rounded-full p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                 aria-label="Clear search"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
             )}
-            <kbd className="hidden sm:inline-flex items-center rounded-md border border-border bg-gray-50 px-1.5 py-0.5 text-[10px] font-medium text-muted">
+            <kbd className="hidden sm:inline-flex items-center rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
               ESC
             </kbd>
           </div>
@@ -168,11 +168,11 @@ export function CommandPalette({
           {/* Results */}
           <div ref={listRef} className="max-h-80 overflow-y-auto p-2">
             {loading && (
-              <div className="py-10 text-center text-sm text-muted">Searching...</div>
+              <div className="py-10 text-center text-sm text-muted-foreground">Searching...</div>
             )}
 
             {!loading && filtered.length === 0 && (
-              <div className="py-10 text-center text-sm text-muted">
+              <div className="py-10 text-center text-sm text-muted-foreground">
                 {query ? 'No results found.' : 'Start typing to search...'}
               </div>
             )}
@@ -180,7 +180,7 @@ export function CommandPalette({
             {!loading &&
               Object.entries(grouped).map(([category, categoryItems]) => (
                 <div key={category}>
-                  <div className="px-3 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     {category}
                   </div>
                   {categoryItems.map((item) => {
@@ -200,14 +200,14 @@ export function CommandPalette({
                         className={cn(
                           'w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-all duration-150',
                           isActive
-                            ? 'bg-gleam-50 text-foreground'
-                            : 'text-foreground hover:bg-gray-50'
+                            ? 'bg-gleam-50 dark:bg-gleam-950 text-foreground'
+                            : 'text-foreground hover:bg-muted'
                         )}
                       >
                         {item.icon && (
                           <span className={cn(
                             'shrink-0',
-                            isActive ? 'text-gleam-600' : 'text-gray-400'
+                            isActive ? 'text-gleam-600 dark:text-gleam-400' : 'text-muted-foreground'
                           )}>
                             {item.icon}
                           </span>
@@ -215,7 +215,7 @@ export function CommandPalette({
                         <span className="flex-1 truncate">
                           <span className="font-medium">{item.label}</span>
                           {item.sublabel && (
-                            <span className="ml-2 text-muted text-xs">{item.sublabel}</span>
+                            <span className="ml-2 text-muted-foreground text-xs">{item.sublabel}</span>
                           )}
                         </span>
                       </button>
@@ -226,17 +226,17 @@ export function CommandPalette({
           </div>
 
           {/* Footer hint */}
-          <div className="border-t border-border px-4 py-2.5 flex items-center gap-4 text-[11px] text-muted bg-gray-50/50">
+          <div className="border-t border-border px-4 py-2.5 flex items-center gap-4 text-[11px] text-muted-foreground bg-muted/50">
             <span className="inline-flex items-center gap-1">
-              <kbd className="rounded-md border border-border bg-white px-1 py-0.5 font-medium shadow-sm">↑↓</kbd>
+              <kbd className="rounded-md border border-border bg-card px-1 py-0.5 font-medium shadow-sm">↑↓</kbd>
               Navigate
             </span>
             <span className="inline-flex items-center gap-1">
-              <kbd className="rounded-md border border-border bg-white px-1 py-0.5 font-medium shadow-sm">↵</kbd>
+              <kbd className="rounded-md border border-border bg-card px-1 py-0.5 font-medium shadow-sm">↵</kbd>
               Select
             </span>
             <span className="inline-flex items-center gap-1">
-              <kbd className="rounded-md border border-border bg-white px-1 py-0.5 font-medium shadow-sm">esc</kbd>
+              <kbd className="rounded-md border border-border bg-card px-1 py-0.5 font-medium shadow-sm">esc</kbd>
               Close
             </span>
           </div>

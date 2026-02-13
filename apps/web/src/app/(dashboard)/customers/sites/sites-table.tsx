@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { MapPin } from 'lucide-react';
+import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table,
@@ -13,6 +14,7 @@ import {
   EmptyState,
   Pagination,
   TableSkeleton,
+  ExportButton,
 } from '@gleamops/ui';
 import type { Site } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
@@ -83,6 +85,18 @@ export default function SitesTable({ search, onSelect }: SitesTableProps) {
 
   return (
     <div>
+      <div className="flex justify-end mb-4">
+        <ExportButton
+          data={filtered as unknown as Record<string, unknown>[]}
+          filename="sites"
+          columns={[
+            { key: 'site_code', label: 'Code' },
+            { key: 'name', label: 'Name' },
+            { key: 'square_footage', label: 'Sq Ft' },
+          ]}
+          onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
+        />
+      </div>
       <Table>
         <TableHeader>
           <tr>

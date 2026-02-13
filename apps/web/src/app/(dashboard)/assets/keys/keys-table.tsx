@@ -7,7 +7,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
   EmptyState, Badge, Pagination, TableSkeleton,
-  SlideOver, Input, Select, Textarea, Button,
+  SlideOver, Input, Select, Textarea, Button, ExportButton,
 } from '@gleamops/ui';
 import { KEY_STATUS_COLORS } from '@gleamops/shared';
 import type { KeyInventory } from '@gleamops/shared';
@@ -249,6 +249,20 @@ export default function KeysTable({ search, formOpen, onFormClose, onRefresh }: 
 
   return (
     <div>
+      <div className="flex justify-end mb-4">
+        <ExportButton
+          data={filtered as unknown as Record<string, unknown>[]}
+          filename="keys"
+          columns={[
+            { key: 'key_code', label: 'Code' },
+            { key: 'label', label: 'Label' },
+            { key: 'key_type', label: 'Type' },
+            { key: 'status', label: 'Status' },
+            { key: 'total_count', label: 'Count' },
+          ]}
+          onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
+        />
+      </div>
       <Table>
         <TableHeader>
           <tr>

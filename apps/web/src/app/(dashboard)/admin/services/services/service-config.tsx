@@ -8,6 +8,7 @@ import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
   EmptyState, Badge, Pagination, TableSkeleton, SlideOver,
   Input, Select, Textarea, Button, Card, CardHeader, CardTitle, CardContent,
+  ExportButton,
 } from '@gleamops/ui';
 import type { Service, ServiceTask, Task } from '@gleamops/shared';
 import { FREQUENCIES } from '@gleamops/shared';
@@ -356,6 +357,19 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
 
   return (
     <div>
+      <div className="flex justify-end mb-4">
+        <ExportButton
+          data={filtered as unknown as Record<string, unknown>[]}
+          filename="services"
+          columns={[
+            { key: 'service_code', label: 'Code' },
+            { key: 'name', label: 'Name' },
+            { key: 'description', label: 'Description' },
+            { key: 'task_count', label: '# Tasks' },
+          ]}
+          onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
+        />
+      </div>
       <Table>
         <TableHeader>
           <tr>

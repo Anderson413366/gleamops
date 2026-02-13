@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  /* ── GleamOps Brand Colors ── */
+  /* ── GleamOps Brand Colors (Emerald Green) ── */
   --color-gleam-50: #ecfdf5;
   --color-gleam-100: #d1fae5;
   --color-gleam-200: #a7f3d0;
@@ -12,27 +12,93 @@
   --color-gleam-700: #047857;
   --color-gleam-800: #065f46;
   --color-gleam-900: #064e3b;
+  --color-gleam-950: #022c22;
 
-  /* ── Semantic Tokens ── */
-  --color-foreground: #111827;
-  --color-muted: #6b7280;
-  --color-border: #e5e7eb;
-  --color-surface: #ffffff;
+  /* ── Semantic Design Tokens (Light Mode Defaults) ── */
   --color-background: #f9fafb;
+  --color-foreground: #111827;
+  --color-card: #ffffff;
+  --color-card-foreground: #111827;
+  --color-muted: #f3f4f6;
+  --color-muted-foreground: #6b7280;
+  --color-border: #e5e7eb;
+  --color-input: #e5e7eb;
+  --color-ring: #10b981;
+  --color-primary: #059669;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f3f4f6;
+  --color-secondary-foreground: #374151;
+  --color-accent: #ecfdf5;
+  --color-accent-foreground: #065f46;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #ffffff;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-info: #3b82f6;
+  --color-surface: #ffffff;
+
+  /* ── Sidebar Tokens ── */
+  --color-sidebar-bg: #111827;
+  --color-sidebar-text: #d1d5db;
+  --color-sidebar-active: #10b981;
+  --color-sidebar-hover: #1f2937;
 
   /* ── Animations ── */
   --animate-slide-in-right: slide-in-right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   --animate-fade-in: fade-in 0.2s ease-out;
-  --animate-fade-in-up: fade-in-up 0.3s ease-out;
+  --animate-fade-in-up: fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   --animate-scale-in: scale-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   --animate-shimmer: shimmer 2s infinite;
 }
 
-/* ── Keyframes ── */
+/* ═══════════════════════════════════════════════════════
+   DARK MODE — Warm Dark (Slate, not pure black)
+   Optimized for reduced eye strain and ADHD focus
+   ═══════════════════════════════════════════════════════ */
+
+.dark {
+  --color-background: #0f172a;
+  --color-foreground: #f1f5f9;
+  --color-card: #1e293b;
+  --color-card-foreground: #f1f5f9;
+  --color-muted: #334155;
+  --color-muted-foreground: #94a3b8;
+  --color-border: #334155;
+  --color-input: #334155;
+  --color-ring: #34d399;
+  --color-primary: #34d399;
+  --color-primary-foreground: #022c22;
+  --color-secondary: #1e293b;
+  --color-secondary-foreground: #e2e8f0;
+  --color-accent: #064e3b;
+  --color-accent-foreground: #a7f3d0;
+  --color-destructive: #f87171;
+  --color-destructive-foreground: #1e293b;
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-info: #60a5fa;
+  --color-surface: #1e293b;
+
+  /* Sidebar in dark mode */
+  --color-sidebar-bg: #0f172a;
+  --color-sidebar-text: #94a3b8;
+  --color-sidebar-active: #34d399;
+  --color-sidebar-hover: #1e293b;
+}
+
+/* ═══════════════════════════════════════════════════════
+   KEYFRAMES
+   ═══════════════════════════════════════════════════════ */
 
 @keyframes slide-in-right {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 @keyframes fade-in {
@@ -41,13 +107,25 @@
 }
 
 @keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes scale-in {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes shimmer {
@@ -55,7 +133,25 @@
   100% { background-position: 200% 0; }
 }
 
-/* ── Global Scrollbar (subtle, clean) ── */
+/* ═══════════════════════════════════════════════════════
+   REDUCED MOTION — Accessibility
+   Respects user's OS-level preference
+   ═══════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   SCROLLBAR — Minimal, theme-aware (6px)
+   ═══════════════════════════════════════════════════════ */
 
 ::-webkit-scrollbar {
   width: 6px;
@@ -67,23 +163,78 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d1d5db;
+  background: var(--color-border);
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+  background: var(--color-muted-foreground);
 }
 
-/* ── Selection ── */
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+/* ═══════════════════════════════════════════════════════
+   SELECTION — Emerald tint for brand consistency
+   ═══════════════════════════════════════════════════════ */
 
 ::selection {
   background: #d1fae5;
   color: #064e3b;
 }
 
-/* ── Focus ring utility ── */
+.dark ::selection {
+  background: #065f46;
+  color: #d1fae5;
+}
+
+/* ═══════════════════════════════════════════════════════
+   BODY — Smooth transitions, readability
+   Neurodivergent-optimized typography defaults
+   ═══════════════════════════════════════════════════════ */
+
+body {
+  transition: background-color 0.3s ease, color 0.3s ease;
+  line-height: 1.6;
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* ═══════════════════════════════════════════════════════
+   FOCUS RING UTILITY — Consistent, accessible
+   Usage: className="focus-ring"
+   ═══════════════════════════════════════════════════════ */
 
 .focus-ring {
-  @apply focus:outline-none focus:ring-2 focus:ring-gleam-500/40 focus:ring-offset-2;
+  @apply focus:outline-none focus:ring-2 focus:ring-ring/40 focus:ring-offset-2 focus:ring-offset-background;
+}
+
+/* ═══════════════════════════════════════════════════════
+   TYPOGRAPHY — Dyslexia & readability helpers
+   Wider letter-spacing, generous line-height
+   ═══════════════════════════════════════════════════════ */
+
+h1, h2, h3, h4, h5, h6 {
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+p, li, td, th {
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+}
+
+/* ═══════════════════════════════════════════════════════
+   FORM INPUTS — Theme-aware defaults
+   ═══════════════════════════════════════════════════════ */
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-muted-foreground);
+  opacity: 0.7;
 }

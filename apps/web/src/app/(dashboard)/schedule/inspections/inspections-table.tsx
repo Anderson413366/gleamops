@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { ClipboardCheck, Plus } from 'lucide-react';
+import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, Button,
+  EmptyState, Badge, Pagination, TableSkeleton, Button, ExportButton,
 } from '@gleamops/ui';
 import { INSPECTION_STATUS_COLORS } from '@gleamops/shared';
 import type { Inspection } from '@gleamops/shared';
@@ -73,7 +74,18 @@ export default function InspectionsTable({ search, onSelect, onCreateNew }: Insp
 
   return (
     <div>
-      <div className="flex justify-end mb-4">
+      <div className="flex items-center justify-end gap-3 mb-4">
+        <ExportButton
+          data={filtered as unknown as Record<string, unknown>[]}
+          filename="inspections"
+          columns={[
+            { key: 'inspection_code', label: 'Code' },
+            { key: 'status', label: 'Status' },
+            { key: 'score_pct', label: 'Score %' },
+            { key: 'created_at', label: 'Date' },
+          ]}
+          onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
+        />
         <Button size="sm" onClick={onCreateNew}>
           <Plus className="h-4 w-4 mr-1" />
           New Inspection

@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { FileText } from 'lucide-react';
+import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, Button,
+  EmptyState, Badge, Pagination, TableSkeleton, Button, ExportButton,
 } from '@gleamops/ui';
 import { TIMESHEET_STATUS_COLORS } from '@gleamops/shared';
 import type { Timesheet } from '@gleamops/shared';
@@ -111,6 +112,21 @@ export default function TimesheetsTable({ search }: TimesheetsTableProps) {
 
   return (
     <div>
+      <div className="flex justify-end mb-4">
+        <ExportButton
+          data={filtered as unknown as Record<string, unknown>[]}
+          filename="timesheets"
+          columns={[
+            { key: 'week_start', label: 'Week Start' },
+            { key: 'week_end', label: 'Week End' },
+            { key: 'total_hours', label: 'Total Hours' },
+            { key: 'regular_hours', label: 'Regular Hours' },
+            { key: 'overtime_hours', label: 'Overtime Hours' },
+            { key: 'status', label: 'Status' },
+          ]}
+          onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
+        />
+      </div>
       <Table>
         <TableHeader>
           <tr>

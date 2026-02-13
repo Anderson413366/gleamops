@@ -33,7 +33,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gleam-50 via-white to-emerald-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gleam-50 via-background to-emerald-50 dark:from-slate-900 dark:via-background dark:to-slate-900 px-4">
       <div className="w-full max-w-sm animate-fade-in-up">
         {/* Logo */}
         <div className="text-center mb-8">
@@ -41,14 +41,16 @@ export default function LoginPage() {
             <Sparkles className="h-7 w-7 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-foreground">Welcome back</h1>
-          <p className="mt-1.5 text-sm text-muted">Sign in to GleamOps</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Sign in to your GleamOps account to continue
+          </p>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-border p-8">
+        <div className="bg-card rounded-2xl shadow-2xl shadow-black/5 dark:shadow-black/30 border border-border p-8">
           <form onSubmit={handleLogin} className="space-y-5">
             {error && (
-              <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700 animate-fade-in">
+              <div className="rounded-lg bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 p-3 text-sm text-red-700 dark:text-red-300 animate-fade-in">
                 {error}
               </div>
             )}
@@ -63,7 +65,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="block w-full rounded-lg border border-border px-3.5 py-2.5 text-sm shadow-sm placeholder:text-gray-400 transition-all duration-200 focus:border-gleam-400 focus:outline-none focus:ring-2 focus:ring-gleam-500/25"
+                className="block w-full rounded-lg border border-input bg-card px-3.5 py-2.5 text-sm text-foreground shadow-sm placeholder:text-muted-foreground/70 transition-all duration-200 focus:border-gleam-400 focus:outline-none focus:ring-2 focus:ring-gleam-500/25"
                 placeholder="you@company.com"
               />
             </div>
@@ -78,7 +80,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="block w-full rounded-lg border border-border px-3.5 py-2.5 text-sm shadow-sm placeholder:text-gray-400 transition-all duration-200 focus:border-gleam-400 focus:outline-none focus:ring-2 focus:ring-gleam-500/25"
+                className="block w-full rounded-lg border border-input bg-card px-3.5 py-2.5 text-sm text-foreground shadow-sm placeholder:text-muted-foreground/70 transition-all duration-200 focus:border-gleam-400 focus:outline-none focus:ring-2 focus:ring-gleam-500/25"
                 placeholder="Enter your password"
               />
             </div>
@@ -86,7 +88,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-gleam-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gleam-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gleam-500 focus-visible:ring-offset-2 disabled:opacity-50 transition-all duration-200 active:scale-[0.98]"
+              className="w-full rounded-lg bg-gleam-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gleam-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gleam-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50 transition-all duration-200 active:scale-[0.98]"
             >
               {loading ? (
                 <span className="inline-flex items-center gap-2">
@@ -100,7 +102,7 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <p className="mt-6 text-center text-xs text-muted">
+        <p className="mt-8 text-center text-xs text-muted-foreground">
           GleamOps &mdash; Commercial Cleaning Operations
         </p>
       </div>

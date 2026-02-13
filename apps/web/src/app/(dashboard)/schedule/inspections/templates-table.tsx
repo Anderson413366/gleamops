@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { FileText, Plus, Pencil, ToggleLeft, ToggleRight } from 'lucide-react';
+import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, Button,
+  EmptyState, Badge, Pagination, TableSkeleton, Button, ExportButton,
 } from '@gleamops/ui';
 import type { InspectionTemplate } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
@@ -102,7 +103,19 @@ export default function TemplatesTable({ search }: TemplatesTableProps) {
 
   return (
     <div>
-      <div className="flex justify-end mb-4">
+      <div className="flex items-center justify-end gap-3 mb-4">
+        <ExportButton
+          data={filtered as unknown as Record<string, unknown>[]}
+          filename="inspection-templates"
+          columns={[
+            { key: 'template_code', label: 'Code' },
+            { key: 'name', label: 'Name' },
+            { key: 'scoring_scale', label: 'Scale' },
+            { key: 'pass_threshold', label: 'Pass %' },
+            { key: 'is_active', label: 'Active' },
+          ]}
+          onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
+        />
         <Button size="sm" onClick={() => { setEditTemplateId(null); setBuilderOpen(true); }}>
           <Plus className="h-4 w-4 mr-1" />
           New Template

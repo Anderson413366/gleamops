@@ -10,9 +10,9 @@ const buttonVariants = cva(
         primary:
           'bg-gleam-600 text-white shadow-sm hover:bg-gleam-700 hover:shadow-md focus-visible:ring-gleam-500',
         secondary:
-          'bg-white text-foreground ring-1 ring-inset ring-border shadow-sm hover:bg-gray-50 hover:shadow-md focus-visible:ring-gleam-500',
+          'bg-card text-foreground ring-1 ring-inset ring-border shadow-sm hover:bg-muted hover:shadow-md focus-visible:ring-gleam-500',
         ghost:
-          'text-muted hover:bg-gray-100 hover:text-foreground focus-visible:ring-gleam-500',
+          'text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-gleam-500',
         danger:
           'bg-red-600 text-white shadow-sm hover:bg-red-700 hover:shadow-md focus-visible:ring-red-500',
       },

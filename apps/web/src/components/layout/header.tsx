@@ -114,7 +114,7 @@ export function Header() {
           sublabel: c.client_code,
           category: 'Clients',
           icon: <Building2 className="h-4 w-4" />,
-          href: `/customers?client=${c.client_code}`,
+          href: `/crm?client=${c.client_code}`,
         });
       }
     }
@@ -127,7 +127,7 @@ export function Header() {
           sublabel: s.address?.street || '',
           category: 'Sites',
           icon: <MapPin className="h-4 w-4" />,
-          href: `/customers?site=${s.site_code}`,
+          href: `/crm?site=${s.site_code}`,
         });
       }
     }
@@ -166,7 +166,7 @@ export function Header() {
           sublabel: s.staff_code,
           category: 'Team',
           icon: <Users className="h-4 w-4" />,
-          href: `/team?staff=${s.staff_code}`,
+          href: `/people?staff=${s.staff_code}`,
         });
       }
     }

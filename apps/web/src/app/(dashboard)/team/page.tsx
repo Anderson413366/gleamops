@@ -1,7 +1,5 @@
-export const dynamic = 'force-dynamic';
+import { redirect } from 'next/navigation';
 
-import TeamPageClient from './team-page';
-
-export default function TeamPage() {
-  return <TeamPageClient />;
+export default function TeamRedirect() {
+  redirect('/people');
 }

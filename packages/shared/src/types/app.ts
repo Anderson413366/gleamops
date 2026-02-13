@@ -12,7 +12,23 @@ export type UserRole =
   | 'SALES';
 
 // Navigation spaces
-export type NavSpace = 'home' | 'pipeline' | 'customers' | 'schedule' | 'team' | 'reports' | 'inventory' | 'assets' | 'admin';
+export type NavSpace =
+  | 'home'
+  | 'pipeline'
+  | 'crm'
+  | 'services'
+  | 'operations'
+  | 'people'
+  | 'inventory'
+  | 'assets'
+  | 'subcontractors'
+  | 'reports'
+  | 'admin'
+  | 'settings'
+  // Legacy aliases (kept for backward compat)
+  | 'customers'
+  | 'schedule'
+  | 'team';
 
 export interface NavItem {
   id: NavSpace;
@@ -57,6 +73,12 @@ export const ENTITY_PREFIXES = {
   ticket: 'TKT',
   staff: 'STF',
   file: 'FIL',
+  equipment: 'EQP',
+  subcontractor: 'SUB',
+  position: 'POS',
+  vehicle: 'VEH',
+  supply_order: 'ORD',
+  inventory_count: 'CNT',
 } as const;
 
 export type EntityPrefix = typeof ENTITY_PREFIXES[keyof typeof ENTITY_PREFIXES];

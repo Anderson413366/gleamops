@@ -1,7 +1,5 @@
-export const dynamic = 'force-dynamic';
+import { redirect } from 'next/navigation';
 
-import ServicesPageClient from './services-page';
-
-export default function ServicesPage() {
-  return <ServicesPageClient />;
+export default function AdminServicesRedirect() {
+  redirect('/services');
 }

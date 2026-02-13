@@ -166,6 +166,114 @@ export const keySchema = z.object({
 export type KeyFormData = z.infer<typeof keySchema>;
 
 // ---------------------------------------------------------------------------
+// Equipment
+// ---------------------------------------------------------------------------
+export const equipmentSchema = z.object({
+  equipment_code: z.string().min(1, 'Code is required'),
+  name: z.string().min(1, 'Name is required').max(200),
+  equipment_type: z.string().nullable().default(null),
+  condition: z.enum(['GOOD', 'FAIR', 'POOR', 'OUT_OF_SERVICE']).default('GOOD'),
+  serial_number: z.string().nullable().default(null),
+  purchase_date: z.string().nullable().default(null),
+  assigned_to: z.string().uuid().nullable().default(null),
+  site_id: z.string().uuid().nullable().default(null),
+  notes: z.string().nullable().default(null),
+});
+export type EquipmentFormData = z.infer<typeof equipmentSchema>;
+
+export const equipmentAssignmentSchema = z.object({
+  equipment_id: z.string().uuid('Equipment is required'),
+  staff_id: z.string().uuid().nullable().default(null),
+  site_id: z.string().uuid().nullable().default(null),
+  assigned_date: z.string().min(1, 'Assigned date is required'),
+  returned_date: z.string().nullable().default(null),
+  notes: z.string().nullable().default(null),
+});
+export type EquipmentAssignmentFormData = z.infer<typeof equipmentAssignmentSchema>;
+
+// ---------------------------------------------------------------------------
+// Vehicle Maintenance
+// ---------------------------------------------------------------------------
+export const vehicleMaintenanceSchema = z.object({
+  vehicle_id: z.string().uuid('Vehicle is required'),
+  service_date: z.string().min(1, 'Service date is required'),
+  service_type: z.string().min(1, 'Service type is required'),
+  description: z.string().nullable().default(null),
+  cost: z.number().positive().nullable().default(null),
+  odometer: z.number().int().positive().nullable().default(null),
+  performed_by: z.string().nullable().default(null),
+  next_service_date: z.string().nullable().default(null),
+  notes: z.string().nullable().default(null),
+});
+export type VehicleMaintenanceFormData = z.infer<typeof vehicleMaintenanceSchema>;
+
+// ---------------------------------------------------------------------------
+// Supply Orders & Inventory Counts
+// ---------------------------------------------------------------------------
+export const supplyOrderSchema = z.object({
+  order_code: z.string().min(1, 'Code is required'),
+  supplier: z.string().nullable().default(null),
+  order_date: z.string().min(1, 'Order date is required'),
+  expected_delivery: z.string().nullable().default(null),
+  status: z.enum(['DRAFT', 'ORDERED', 'SHIPPED', 'RECEIVED', 'CANCELLED']).default('DRAFT'),
+  total_amount: z.number().positive().nullable().default(null),
+  notes: z.string().nullable().default(null),
+});
+export type SupplyOrderFormData = z.infer<typeof supplyOrderSchema>;
+
+export const inventoryCountSchema = z.object({
+  count_code: z.string().min(1, 'Code is required'),
+  site_id: z.string().uuid().nullable().default(null),
+  counted_by: z.string().uuid().nullable().default(null),
+  count_date: z.string().min(1, 'Count date is required'),
+  status: z.enum(['DRAFT', 'IN_PROGRESS', 'COMPLETED']).default('DRAFT'),
+  notes: z.string().nullable().default(null),
+});
+export type InventoryCountFormData = z.infer<typeof inventoryCountSchema>;
+
+// ---------------------------------------------------------------------------
+// Subcontractors
+// ---------------------------------------------------------------------------
+export const subcontractorSchema = z.object({
+  subcontractor_code: z.string().min(1, 'Code is required'),
+  company_name: z.string().min(1, 'Company name is required').max(200),
+  contact_name: z.string().nullable().default(null),
+  email: z.string().email().nullable().default(null),
+  phone: z.string().nullable().default(null),
+  status: z.enum(['ACTIVE', 'INACTIVE', 'PENDING']).default('ACTIVE'),
+  services_provided: z.string().nullable().default(null),
+  insurance_expiry: z.string().nullable().default(null),
+  license_number: z.string().nullable().default(null),
+  notes: z.string().nullable().default(null),
+});
+export type SubcontractorFormData = z.infer<typeof subcontractorSchema>;
+
+// ---------------------------------------------------------------------------
+// Staff Positions
+// ---------------------------------------------------------------------------
+export const staffPositionSchema = z.object({
+  position_code: z.string().min(1, 'Code is required'),
+  title: z.string().min(1, 'Title is required').max(200),
+  department: z.string().nullable().default(null),
+  pay_grade: z.string().nullable().default(null),
+  is_active: z.boolean().default(true),
+  notes: z.string().nullable().default(null),
+});
+export type StaffPositionFormData = z.infer<typeof staffPositionSchema>;
+
+// ---------------------------------------------------------------------------
+// Lookups
+// ---------------------------------------------------------------------------
+export const lookupSchema = z.object({
+  category: z.string().min(1, 'Category is required'),
+  code: z.string().min(1, 'Code is required'),
+  label: z.string().min(1, 'Label is required'),
+  sort_order: z.number().int().default(0),
+  is_active: z.boolean().default(true),
+});
+export type LookupFormData = z.infer<typeof lookupSchema>;
+
+// ---------------------------------------------------------------------------
 // Auth
 // ---------------------------------------------------------------------------
 export const loginSchema = z.object({

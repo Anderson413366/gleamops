@@ -4,18 +4,20 @@
 import type { NavItem, StatusColor } from '../types/app';
 
 // ---------------------------------------------------------------------------
-// Navigation (5 spaces only)
+// Navigation (12 modules)
 // ---------------------------------------------------------------------------
 export const NAV_ITEMS: NavItem[] = [
   { id: 'home', label: 'Home', href: '/home', icon: 'Home' },
   { id: 'pipeline', label: 'Pipeline', href: '/pipeline', icon: 'TrendingUp' },
-  { id: 'customers', label: 'Customers', href: '/customers', icon: 'Building2' },
-  { id: 'schedule', label: 'Schedule', href: '/schedule', icon: 'Calendar' },
-  { id: 'team', label: 'Team', href: '/team', icon: 'Users' },
+  { id: 'crm', label: 'CRM', href: '/crm', icon: 'Building2' },
+  { id: 'services', label: 'Services', href: '/services', icon: 'Layers' },
+  { id: 'operations', label: 'Operations', href: '/operations', icon: 'Calendar' },
+  { id: 'people', label: 'People', href: '/people', icon: 'Users' },
   { id: 'inventory', label: 'Inventory', href: '/inventory', icon: 'Package' },
   { id: 'assets', label: 'Assets', href: '/assets', icon: 'Truck' },
+  { id: 'subcontractors', label: 'Subcontractors', href: '/subcontractors', icon: 'HardHat' },
   { id: 'reports', label: 'Reports', href: '/reports', icon: 'BarChart3' },
-  { id: 'admin', label: 'Admin', href: '/admin/services', icon: 'Wrench' },
+  { id: 'admin', label: 'Admin', href: '/admin', icon: 'Wrench' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -172,4 +174,31 @@ export const KEY_STATUS_COLORS: Record<string, StatusColor> = {
   ASSIGNED: 'blue',
   LOST: 'red',
   RETURNED: 'gray',
+};
+
+export const EQUIPMENT_CONDITION_COLORS: Record<string, StatusColor> = {
+  GOOD: 'green',
+  FAIR: 'yellow',
+  POOR: 'orange',
+  OUT_OF_SERVICE: 'red',
+};
+
+export const SUBCONTRACTOR_STATUS_COLORS: Record<string, StatusColor> = {
+  ACTIVE: 'green',
+  INACTIVE: 'gray',
+  PENDING: 'yellow',
+};
+
+export const SUPPLY_ORDER_STATUS_COLORS: Record<string, StatusColor> = {
+  DRAFT: 'gray',
+  ORDERED: 'blue',
+  SHIPPED: 'yellow',
+  RECEIVED: 'green',
+  CANCELLED: 'red',
+};
+
+export const INVENTORY_COUNT_STATUS_COLORS: Record<string, StatusColor> = {
+  DRAFT: 'gray',
+  IN_PROGRESS: 'yellow',
+  COMPLETED: 'green',
 };

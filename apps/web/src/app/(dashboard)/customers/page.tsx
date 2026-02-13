@@ -1,7 +1,5 @@
-export const dynamic = 'force-dynamic';
+import { redirect } from 'next/navigation';
 
-import CustomersPageClient from './customers-page';
-
-export default function CustomersPage() {
-  return <CustomersPageClient />;
+export default function CustomersRedirect() {
+  redirect('/crm');
 }

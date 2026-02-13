@@ -1,7 +1,5 @@
-export const dynamic = 'force-dynamic';
+import { redirect } from 'next/navigation';
 
-import SchedulePageClient from './schedule-page';
-
-export default function SchedulePage() {
-  return <SchedulePageClient />;
+export default function ScheduleRedirect() {
+  redirect('/operations');
 }

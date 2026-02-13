@@ -12,6 +12,8 @@ import {
   Package,
   Truck,
   Wrench,
+  Layers,
+  HardHat,
   Settings,
   LogOut,
   Menu,
@@ -32,6 +34,8 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Package,
   Truck,
   Wrench,
+  Layers,
+  HardHat,
 };
 
 function getInitials(email: string): string {

@@ -1,16 +1,27 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Package, Box, Plus } from 'lucide-react';
+import { Package, Box, MapPin, ClipboardList, ShoppingCart, Plus } from 'lucide-react';
 import { ChipTabs, SearchInput, Button } from '@gleamops/ui';
 
 import SuppliesTable from './supplies/supplies-table';
 import KitsTable from './kits/kits-table';
+import SiteAssignmentsTable from './site-assignments/site-assignments-table';
+import CountsTable from './counts/counts-table';
+import OrdersTable from './orders/orders-table';
 
 const TABS = [
   { key: 'supplies', label: 'Supply Catalog', icon: <Package className="h-4 w-4" /> },
   { key: 'kits', label: 'Kits', icon: <Box className="h-4 w-4" /> },
+  { key: 'site-assignments', label: 'Site Assignments', icon: <MapPin className="h-4 w-4" /> },
+  { key: 'counts', label: 'Counts', icon: <ClipboardList className="h-4 w-4" /> },
+  { key: 'orders', label: 'Orders', icon: <ShoppingCart className="h-4 w-4" /> },
 ];
+
+const ADD_LABELS: Record<string, string> = {
+  supplies: 'New Supply',
+  kits: 'New Kit',
+};
 
 export default function InventoryPageClient() {
   const [tab, setTab] = useState(TABS[0].key);
@@ -27,24 +38,26 @@ export default function InventoryPageClient() {
   const handleAdd = () => {
     if (tab === 'supplies') {
       setAutoCreateSupply(true);
-    } else {
+    } else if (tab === 'kits') {
       setAutoCreateKit(true);
     }
   };
 
-  const addLabel = tab === 'supplies' ? 'New Supply' : 'New Kit';
+  const addLabel = ADD_LABELS[tab];
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Inventory</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage supplies and kits</p>
+          <p className="text-sm text-muted-foreground mt-1">Supplies, kits, site assignments, counts, and orders</p>
         </div>
-        <Button onClick={handleAdd}>
-          <Plus className="h-4 w-4" />
-          {addLabel}
-        </Button>
+        {addLabel && (
+          <Button onClick={handleAdd}>
+            <Plus className="h-4 w-4" />
+            {addLabel}
+          </Button>
+        )}
       </div>
 
       <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
@@ -65,6 +78,15 @@ export default function InventoryPageClient() {
           autoCreate={autoCreateKit}
           onAutoCreateHandled={() => setAutoCreateKit(false)}
         />
+      )}
+      {tab === 'site-assignments' && (
+        <SiteAssignmentsTable key={`site-assignments-${refreshKey}`} search={search} />
+      )}
+      {tab === 'counts' && (
+        <CountsTable key={`counts-${refreshKey}`} search={search} />
+      )}
+      {tab === 'orders' && (
+        <OrdersTable key={`orders-${refreshKey}`} search={search} />
       )}
     </div>
   );

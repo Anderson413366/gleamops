@@ -693,6 +693,104 @@ export interface KeyInventory extends StandardColumns {
 }
 
 // ---------------------------------------------------------------------------
+// Module F: Equipment
+// ---------------------------------------------------------------------------
+export interface Equipment extends StandardColumns {
+  equipment_code: string;
+  name: string;
+  equipment_type: string | null;
+  condition: string | null; // GOOD | FAIR | POOR | OUT_OF_SERVICE
+  serial_number: string | null;
+  purchase_date: string | null;
+  assigned_to: string | null; // staff_id
+  site_id: string | null;
+  notes: string | null;
+}
+
+export interface EquipmentAssignment extends StandardColumns {
+  equipment_id: string;
+  staff_id: string | null;
+  site_id: string | null;
+  assigned_date: string;
+  returned_date: string | null;
+  notes: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Module F: Vehicle Maintenance
+// ---------------------------------------------------------------------------
+export interface VehicleMaintenance extends StandardColumns {
+  vehicle_id: string;
+  service_date: string;
+  service_type: string;
+  description: string | null;
+  cost: number | null;
+  odometer: number | null;
+  performed_by: string | null;
+  next_service_date: string | null;
+  notes: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Module F: Supply Orders & Inventory Counts
+// ---------------------------------------------------------------------------
+export interface SupplyOrder extends StandardColumns {
+  order_code: string;
+  supplier: string | null;
+  order_date: string;
+  expected_delivery: string | null;
+  status: string; // DRAFT | ORDERED | SHIPPED | RECEIVED | CANCELLED
+  total_amount: number | null;
+  notes: string | null;
+}
+
+export interface InventoryCount extends StandardColumns {
+  count_code: string;
+  site_id: string | null;
+  counted_by: string | null; // staff_id
+  count_date: string;
+  status: string; // DRAFT | IN_PROGRESS | COMPLETED
+  notes: string | null;
+}
+
+export interface InventoryCountDetail extends StandardColumns {
+  count_id: string;
+  supply_id: string;
+  expected_qty: number | null;
+  actual_qty: number;
+  variance: number | null;
+  notes: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Module G: Subcontractors
+// ---------------------------------------------------------------------------
+export interface Subcontractor extends StandardColumns {
+  subcontractor_code: string;
+  company_name: string;
+  contact_name: string | null;
+  email: string | null;
+  phone: string | null;
+  status: string; // ACTIVE | INACTIVE | PENDING
+  services_provided: string | null;
+  insurance_expiry: string | null;
+  license_number: string | null;
+  notes: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Module G: Staff Positions
+// ---------------------------------------------------------------------------
+export interface StaffPosition extends StandardColumns {
+  position_code: string;
+  title: string;
+  department: string | null;
+  pay_grade: string | null;
+  is_active: boolean;
+  notes: string | null;
+}
+
+// ---------------------------------------------------------------------------
 // Module F: Site Supplies & Asset Gating
 // ---------------------------------------------------------------------------
 export interface SiteSupply extends StandardColumns {

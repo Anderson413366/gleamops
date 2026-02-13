@@ -13,7 +13,7 @@ export function StatCard({ label, value, icon, trend, trendUp, className }: Stat
   return (
     <div
       className={cn(
-        'rounded-2xl border border-border bg-white p-5 shadow-sm transition-shadow duration-200 hover:shadow-md dark:bg-card',
+        'rounded-xl border border-border bg-card p-5 shadow-sm',
         className
       )}
     >
@@ -44,7 +44,7 @@ export function StatCard({ label, value, icon, trend, trendUp, className }: Stat
           )}
         </div>
         {icon && (
-          <div className="ml-4 shrink-0 rounded-xl bg-gleam-50 p-3 text-gleam-600 dark:bg-gleam-950 dark:text-gleam-400">
+          <div className="ml-4 shrink-0 rounded-xl bg-primary/10 p-3 text-primary dark:bg-primary/10 dark:text-primary">
             {icon}
           </div>
         )}

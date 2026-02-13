@@ -25,8 +25,8 @@ export function ChipTabs({ tabs, active, onChange }: ChipTabsProps) {
           className={cn(
             'inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200',
             active === tab.key
-              ? 'bg-gleam-600 text-white shadow-md shadow-gleam-600/25'
-              : 'bg-card text-muted-foreground ring-1 ring-inset ring-border hover:bg-muted hover:text-foreground hover:shadow-sm'
+              ? 'bg-primary text-white shadow-sm'
+              : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
           )}
         >
           {tab.icon}

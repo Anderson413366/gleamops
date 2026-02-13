@@ -41,7 +41,7 @@ export function Select({
           'focus:outline-none focus:ring-2 focus:ring-offset-0',
           error
             ? 'border-red-300 dark:border-red-700 focus:border-red-400 focus:ring-red-500/25'
-            : 'border-border focus:border-gleam-400 focus:ring-gleam-500/25',
+            : 'border-border focus:border-primary focus:ring-primary/25',
           'disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed',
           className
         )}

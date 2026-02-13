@@ -250,7 +250,7 @@ export function Header() {
           <div className="relative" ref={profileRef}>
             <button
               onClick={() => { setProfileOpen(!profileOpen); setNotifOpen(false); }}
-              className="h-9 w-9 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold hover:bg-primary/90 transition-all duration-200 cursor-pointer ring-2 ring-white dark:ring-card shadow-sm"
+              className="h-9 w-9 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold hover:bg-primary/90 transition-all duration-200 cursor-pointer ring-2 ring-background shadow-sm"
             >
               {user ? getInitials(user.email) : '?'}
             </button>

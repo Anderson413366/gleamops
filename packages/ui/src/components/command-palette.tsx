@@ -200,14 +200,14 @@ export function CommandPalette({
                         className={cn(
                           'w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-all duration-150',
                           isActive
-                            ? 'bg-gleam-50 dark:bg-gleam-950 text-foreground'
+                            ? 'bg-primary/10 dark:bg-primary/10 text-foreground'
                             : 'text-foreground hover:bg-muted'
                         )}
                       >
                         {item.icon && (
                           <span className={cn(
                             'shrink-0',
-                            isActive ? 'text-gleam-600 dark:text-gleam-400' : 'text-muted-foreground'
+                            isActive ? 'text-primary dark:text-primary' : 'text-muted-foreground'
                           )}>
                             {item.icon}
                           </span>

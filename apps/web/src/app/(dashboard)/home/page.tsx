@@ -102,7 +102,7 @@ interface ActiveStaffRow {
 // ---------------------------------------------------------------------------
 function StatCardSkeleton() {
   return (
-    <div className="rounded-xl border border-border bg-white p-5 shadow-sm dark:bg-card">
+    <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
       <div className="flex items-start justify-between">
         <div className="flex-1 space-y-2">
           <Skeleton className="h-4 w-24" />

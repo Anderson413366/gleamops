@@ -123,7 +123,7 @@ export function Sidebar() {
         <div className="border-t border-border p-3 space-y-1">
           {user && (
             <div className="flex items-center gap-3 px-3 py-2.5 mb-1">
-              <div className="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold shrink-0 ring-2 ring-primary/20">
+              <div className="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold shrink-0 ring-2 ring-primary/30">
                 {getInitials(user.email)}
               </div>
               <div className="min-w-0">

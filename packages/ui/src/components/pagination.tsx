@@ -27,7 +27,7 @@ export function Pagination({
   if (totalItems === 0) return null;
 
   return (
-    <div className="flex items-center justify-between px-4 py-4 text-sm">
+    <div className="flex items-center justify-between pt-4 text-sm">
       <p className="text-muted-foreground">
         Showing <span className="font-semibold text-foreground">{start}</span> to{' '}
         <span className="font-semibold text-foreground">{end}</span> of{' '}
@@ -37,7 +37,7 @@ export function Pagination({
         <button
           onClick={onPrev}
           disabled={!hasPrev}
-          className="inline-flex items-center rounded-xl border border-border bg-card px-3.5 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-muted hover:shadow-md disabled:opacity-40 disabled:pointer-events-none transition-all duration-200"
+          className="inline-flex h-8 items-center justify-center rounded-md px-3 text-sm font-medium transition-colors hover:bg-muted text-foreground disabled:opacity-40 disabled:pointer-events-none"
         >
           <ChevronLeft className="h-4 w-4 mr-1" />
           Previous
@@ -48,7 +48,7 @@ export function Pagination({
         <button
           onClick={onNext}
           disabled={!hasNext}
-          className="inline-flex items-center rounded-xl border border-border bg-card px-3.5 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-muted hover:shadow-md disabled:opacity-40 disabled:pointer-events-none transition-all duration-200"
+          className="inline-flex h-8 items-center justify-center rounded-md px-3 text-sm font-medium transition-colors hover:bg-muted text-foreground disabled:opacity-40 disabled:pointer-events-none"
         >
           Next
           <ChevronRight className="h-4 w-4 ml-1" />

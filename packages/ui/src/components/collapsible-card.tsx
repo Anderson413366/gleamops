@@ -60,7 +60,7 @@ export function CollapsibleCard({
   return (
     <div
       className={cn(
-        'rounded-2xl border border-border bg-white shadow-sm transition-shadow duration-200 hover:shadow-md dark:bg-card',
+        'rounded-xl border border-border bg-card shadow-sm',
         className
       )}
     >
@@ -72,7 +72,7 @@ export function CollapsibleCard({
         onKeyDown={handleKeyDown}
         aria-expanded={isOpen}
         aria-controls={`collapsible-content-${id}`}
-        className="flex items-center justify-between px-6 py-4 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gleam-500 rounded-2xl"
+        className="flex items-center justify-between px-6 py-4 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary rounded-xl"
       >
         <div className="flex items-center gap-3 min-w-0">
           {icon && (

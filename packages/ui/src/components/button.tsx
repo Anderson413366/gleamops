@@ -8,11 +8,11 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary:
-          'bg-gleam-600 text-white shadow-sm hover:bg-gleam-700 hover:shadow-md focus-visible:ring-gleam-500',
+          'bg-primary text-white shadow-sm hover:bg-primary/90 hover:shadow-md focus-visible:ring-primary',
         secondary:
-          'bg-card text-foreground ring-1 ring-inset ring-border shadow-sm hover:bg-muted hover:shadow-md focus-visible:ring-gleam-500',
+          'bg-card text-foreground ring-1 ring-inset ring-border shadow-sm hover:bg-muted hover:shadow-md focus-visible:ring-primary',
         ghost:
-          'text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-gleam-500',
+          'text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-primary',
         danger:
           'bg-red-600 text-white shadow-sm hover:bg-red-700 hover:shadow-md focus-visible:ring-red-500',
       },

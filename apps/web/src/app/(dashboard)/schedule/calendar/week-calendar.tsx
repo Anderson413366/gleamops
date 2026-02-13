@@ -176,7 +176,7 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
           </Button>
         </div>
         <h3 className="text-sm font-semibold text-foreground">{weekLabel}</h3>
-        <div className="flex items-center gap-4 text-xs text-muted">
+        <div className="flex items-center gap-4 text-xs text-muted-foreground">
           <span>{totalTickets} tickets</span>
           <span className="text-green-600">{completedCount} done</span>
           {unassignedCount > 0 && (
@@ -190,7 +190,7 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
         {Object.entries(STATUS_DOT).map(([status, dotClass]) => (
           <div key={status} className="flex items-center gap-1">
             <div className={`w-2 h-2 rounded-full ${dotClass}`} />
-            <span className="text-muted capitalize">{status.toLowerCase().replace('_', ' ')}</span>
+            <span className="text-muted-foreground capitalize">{status.toLowerCase().replace('_', ' ')}</span>
           </div>
         ))}
       </div>
@@ -225,14 +225,14 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
               >
                 {/* Day header */}
                 <div className="text-center mb-2 pb-1 border-b border-border/50">
-                  <p className={`text-xs font-medium ${today ? 'text-gleam-600' : 'text-muted'}`}>
+                  <p className={`text-xs font-medium ${today ? 'text-gleam-600' : 'text-muted-foreground'}`}>
                     {DAY_NAMES[day.getDay()]}
                   </p>
                   <p className={`text-lg font-bold leading-tight ${today ? 'text-gleam-600' : 'text-foreground'}`}>
                     {day.getDate()}
                   </p>
                   {dayTickets.length > 0 && (
-                    <p className="text-[10px] text-muted">{dayTickets.length} ticket{dayTickets.length > 1 ? 's' : ''}</p>
+                    <p className="text-[10px] text-muted-foreground">{dayTickets.length} ticket{dayTickets.length > 1 ? 's' : ''}</p>
                   )}
                 </div>
 
@@ -269,7 +269,7 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
 
                         {/* Time */}
                         {ticket.start_time && (
-                          <div className="flex items-center gap-0.5 text-muted mt-0.5">
+                          <div className="flex items-center gap-0.5 text-muted-foreground mt-0.5">
                             <Clock className="h-2.5 w-2.5" />
                             <span>{formatTime(ticket.start_time)}{ticket.end_time ? `–${formatTime(ticket.end_time)}` : ''}</span>
                           </div>
@@ -277,7 +277,7 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
 
                         {/* Staff */}
                         {assignedNames.length > 0 ? (
-                          <div className="flex items-center gap-0.5 text-muted mt-0.5">
+                          <div className="flex items-center gap-0.5 text-muted-foreground mt-0.5">
                             <Users className="h-2.5 w-2.5" />
                             <span className="truncate">{assignedNames.join(', ')}</span>
                           </div>

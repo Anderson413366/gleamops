@@ -163,7 +163,7 @@ export function CreateInspectionForm({ open, onClose, onCreated }: CreateInspect
                 label: `${t.name} (Scale: 0-${t.scoring_scale}, Pass: ${t.pass_threshold}%)`,
               }))}
             />
-            <p className="text-xs text-muted mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Template items will be copied as inspection checklist items.
             </p>
           </div>

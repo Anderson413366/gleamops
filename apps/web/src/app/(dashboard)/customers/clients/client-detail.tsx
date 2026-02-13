@@ -86,7 +86,7 @@ export function ClientDetail({ client, open, onClose, onEdit }: ClientDetailProp
               <p className="text-sm text-foreground">
                 {addr.street && <span className="block">{addr.street}</span>}
                 {[addr.city, addr.state, addr.zip].filter(Boolean).join(', ')}
-                {addr.country && <span className="block text-muted">{addr.country}</span>}
+                {addr.country && <span className="block text-muted-foreground">{addr.country}</span>}
               </p>
             </CardContent>
           </Card>
@@ -97,7 +97,7 @@ export function ClientDetail({ client, open, onClose, onEdit }: ClientDetailProp
           <CardHeader>
             <CardTitle>
               <span className="inline-flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-muted" />
+                <MapPin className="h-4 w-4 text-muted-foreground" />
                 Sites
                 <Badge color="blue">{sites.length}</Badge>
               </span>
@@ -110,16 +110,16 @@ export function ClientDetail({ client, open, onClose, onEdit }: ClientDetailProp
                 <Skeleton className="h-8 w-full" />
               </div>
             ) : sites.length === 0 ? (
-              <p className="text-sm text-muted">No sites yet.</p>
+              <p className="text-sm text-muted-foreground">No sites yet.</p>
             ) : (
               <ul className="divide-y divide-border">
                 {sites.map((site) => (
                   <li key={site.id} className="py-2 flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-foreground">{site.name}</p>
-                      <p className="text-xs text-muted">{site.site_code}</p>
+                      <p className="text-xs text-muted-foreground">{site.site_code}</p>
                     </div>
-                    <span className="text-xs text-muted">
+                    <span className="text-xs text-muted-foreground">
                       {site.address?.city ?? ''}
                     </span>
                   </li>
@@ -134,7 +134,7 @@ export function ClientDetail({ client, open, onClose, onEdit }: ClientDetailProp
           <CardHeader>
             <CardTitle>
               <span className="inline-flex items-center gap-2">
-                <Users className="h-4 w-4 text-muted" />
+                <Users className="h-4 w-4 text-muted-foreground" />
                 Contacts
                 <Badge color="blue">{contacts.length}</Badge>
               </span>
@@ -147,7 +147,7 @@ export function ClientDetail({ client, open, onClose, onEdit }: ClientDetailProp
                 <Skeleton className="h-8 w-full" />
               </div>
             ) : contacts.length === 0 ? (
-              <p className="text-sm text-muted">No contacts yet.</p>
+              <p className="text-sm text-muted-foreground">No contacts yet.</p>
             ) : (
               <ul className="divide-y divide-border">
                 {contacts.map((contact) => (
@@ -158,13 +158,13 @@ export function ClientDetail({ client, open, onClose, onEdit }: ClientDetailProp
                     </div>
                     <div className="flex gap-4 mt-1">
                       {contact.email && (
-                        <span className="inline-flex items-center gap-1 text-xs text-muted">
+                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                           <Mail className="h-3 w-3" />
                           {contact.email}
                         </span>
                       )}
                       {contact.phone && (
-                        <span className="inline-flex items-center gap-1 text-xs text-muted">
+                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                           <Phone className="h-3 w-3" />
                           {contact.phone}
                         </span>
@@ -178,7 +178,7 @@ export function ClientDetail({ client, open, onClose, onEdit }: ClientDetailProp
         </Card>
 
         {/* Metadata */}
-        <div className="text-xs text-muted space-y-1 pt-4 border-t border-border">
+        <div className="text-xs text-muted-foreground space-y-1 pt-4 border-t border-border">
           <p>Created: {new Date(client.created_at).toLocaleDateString()}</p>
           <p>Updated: {new Date(client.updated_at).toLocaleDateString()}</p>
         </div>

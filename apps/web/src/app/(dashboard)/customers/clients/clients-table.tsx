@@ -123,7 +123,7 @@ export default function ClientsTable({ search, onSelect }: ClientsTableProps) {
               <TableCell>
                 <Badge color={STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
               </TableCell>
-              <TableCell className="text-muted">
+              <TableCell className="text-muted-foreground">
                 {row.billing_address
                   ? [row.billing_address.city, row.billing_address.state]
                       .filter(Boolean)

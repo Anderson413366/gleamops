@@ -384,7 +384,7 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
             <TableRow key={row.id} onClick={() => handleSelect(row)}>
               <TableCell className="font-mono text-xs">{row.service_code}</TableCell>
               <TableCell className="font-medium">{row.name}</TableCell>
-              <TableCell className="text-muted text-sm max-w-xs truncate">{row.description ?? '--'}</TableCell>
+              <TableCell className="text-muted-foreground text-sm max-w-xs truncate">{row.description ?? '--'}</TableCell>
               <TableCell>
                 <Badge color={row.task_count ? 'blue' : 'gray'}>
                   {row.task_count ?? 0}
@@ -471,9 +471,9 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
               </CardHeader>
               <CardContent>
                 {loadingTasks ? (
-                  <div className="text-center py-4 text-sm text-muted">Loading tasks...</div>
+                  <div className="text-center py-4 text-sm text-muted-foreground">Loading tasks...</div>
                 ) : linkedTasks.length === 0 ? (
-                  <div className="text-center py-8 text-sm text-muted">
+                  <div className="text-center py-8 text-sm text-muted-foreground">
                     No tasks linked yet. Click &quot;Add Task&quot; to attach tasks to this service.
                   </div>
                 ) : (
@@ -485,7 +485,7 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
                       >
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-foreground">{lt.task.name}</p>
-                          <p className="text-xs text-muted">
+                          <p className="text-xs text-muted-foreground">
                             {lt.task.task_code}
                             {lt.task.category && <> &middot; {lt.task.category}</>}
                           </p>
@@ -498,7 +498,7 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
                         />
                         <button
                           onClick={() => handleRemoveTask(lt.id)}
-                          className="p-1.5 rounded hover:bg-red-50 text-muted hover:text-red-500 transition-colors shrink-0"
+                          className="p-1.5 rounded hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors shrink-0"
                           title="Remove task"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -513,7 +513,7 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
                   <div className="mt-4 border border-border rounded-lg p-3">
                     <p className="text-sm font-medium text-foreground mb-2">Select a task to add:</p>
                     {availableTasks.length === 0 ? (
-                      <p className="text-sm text-muted py-2">All tasks are already linked to this service.</p>
+                      <p className="text-sm text-muted-foreground py-2">All tasks are already linked to this service.</p>
                     ) : (
                       <div className="max-h-60 overflow-y-auto space-y-1">
                         {availableTasks.map((task) => (
@@ -524,7 +524,7 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
                           >
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-foreground">{task.name}</p>
-                              <p className="text-xs text-muted">{task.task_code}</p>
+                              <p className="text-xs text-muted-foreground">{task.task_code}</p>
                             </div>
                             {task.category && (
                               <Badge color="gray">{task.category}</Badge>

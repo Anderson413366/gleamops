@@ -65,7 +65,7 @@ export default function SettingsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Settings</h1>
-        <p className="text-sm text-muted mt-1">Manage your company profile and preferences</p>
+        <p className="text-sm text-muted-foreground mt-1">Manage your company profile and preferences</p>
       </div>
 
       <div className="grid gap-6 max-w-2xl">
@@ -116,11 +116,11 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
-              <p className="text-sm font-medium text-muted">Email</p>
+              <p className="text-sm font-medium text-muted-foreground">Email</p>
               <p className="text-sm text-foreground">{user?.email ?? '—'}</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-muted">Role</p>
+              <p className="text-sm font-medium text-muted-foreground">Role</p>
               <p className="text-sm text-foreground">{role ? role.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : '—'}</p>
             </div>
           </CardContent>
@@ -135,7 +135,7 @@ export default function SettingsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted">Notification preferences coming soon.</p>
+            <p className="text-sm text-muted-foreground">Notification preferences coming soon.</p>
           </CardContent>
         </Card>
       </div>

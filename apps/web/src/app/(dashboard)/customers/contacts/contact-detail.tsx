@@ -55,7 +55,7 @@ export function ContactDetail({ contact, open, onClose, onEdit }: ContactDetailP
           <CardContent className="space-y-3">
             {contact.email && (
               <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-muted" />
+                <Mail className="h-4 w-4 text-muted-foreground" />
                 <a
                   href={`mailto:${contact.email}`}
                   className="text-sm text-primary hover:underline"
@@ -66,7 +66,7 @@ export function ContactDetail({ contact, open, onClose, onEdit }: ContactDetailP
             )}
             {contact.phone && (
               <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-muted" />
+                <Phone className="h-4 w-4 text-muted-foreground" />
                 <a
                   href={`tel:${contact.phone}`}
                   className="text-sm text-primary hover:underline"
@@ -76,7 +76,7 @@ export function ContactDetail({ contact, open, onClose, onEdit }: ContactDetailP
               </div>
             )}
             {!contact.email && !contact.phone && (
-              <p className="text-sm text-muted">No contact information provided.</p>
+              <p className="text-sm text-muted-foreground">No contact information provided.</p>
             )}
           </CardContent>
         </Card>
@@ -89,10 +89,10 @@ export function ContactDetail({ contact, open, onClose, onEdit }: ContactDetailP
           <CardContent className="space-y-3">
             {contact.client && (
               <div className="flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-muted" />
+                <Building2 className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm">
                   <span className="font-medium">{contact.client.name}</span>
-                  <span className="text-muted ml-1 text-xs font-mono">
+                  <span className="text-muted-foreground ml-1 text-xs font-mono">
                     ({contact.client.client_code})
                   </span>
                 </span>
@@ -100,23 +100,23 @@ export function ContactDetail({ contact, open, onClose, onEdit }: ContactDetailP
             )}
             {contact.site && (
               <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-muted" />
+                <MapPin className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm">
                   <span className="font-medium">{contact.site.name}</span>
-                  <span className="text-muted ml-1 text-xs font-mono">
+                  <span className="text-muted-foreground ml-1 text-xs font-mono">
                     ({contact.site.site_code})
                   </span>
                 </span>
               </div>
             )}
             {!contact.client && !contact.site && (
-              <p className="text-sm text-muted">Not linked to any client or site.</p>
+              <p className="text-sm text-muted-foreground">Not linked to any client or site.</p>
             )}
           </CardContent>
         </Card>
 
         {/* Metadata */}
-        <div className="text-xs text-muted space-y-1 pt-4 border-t border-border">
+        <div className="text-xs text-muted-foreground space-y-1 pt-4 border-t border-border">
           <p>Created: {new Date(contact.created_at).toLocaleDateString()}</p>
           <p>Updated: {new Date(contact.updated_at).toLocaleDateString()}</p>
         </div>

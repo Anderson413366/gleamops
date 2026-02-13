@@ -126,11 +126,11 @@ export default function ContactsTable({ search, onSelect }: ContactsTableProps) 
                 )}
               </TableCell>
               <TableCell>
-                {row.role ? <Badge color="blue">{row.role}</Badge> : <span className="text-muted">—</span>}
+                {row.role ? <Badge color="blue">{row.role}</Badge> : <span className="text-muted-foreground">—</span>}
               </TableCell>
-              <TableCell className="text-muted">{row.client?.name ?? '—'}</TableCell>
-              <TableCell className="text-muted">{row.email ?? '—'}</TableCell>
-              <TableCell className="text-muted">{row.phone ?? '—'}</TableCell>
+              <TableCell className="text-muted-foreground">{row.client?.name ?? '—'}</TableCell>
+              <TableCell className="text-muted-foreground">{row.email ?? '—'}</TableCell>
+              <TableCell className="text-muted-foreground">{row.phone ?? '—'}</TableCell>
             </TableRow>
           ))}
         </TableBody>

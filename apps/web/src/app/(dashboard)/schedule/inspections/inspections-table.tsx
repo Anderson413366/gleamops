@@ -118,14 +118,14 @@ export default function InspectionsTable({ search, onSelect, onCreateNew }: Insp
                   <TableCell className="font-mono text-xs">{row.inspection_code}</TableCell>
                   <TableCell className="text-sm">{row.template?.name ?? '—'}</TableCell>
                   <TableCell className="font-medium">{row.site?.name ?? '—'}</TableCell>
-                  <TableCell className="text-muted">{row.inspector?.full_name ?? '—'}</TableCell>
+                  <TableCell className="text-muted-foreground">{row.inspector?.full_name ?? '—'}</TableCell>
                   <TableCell>
                     {row.score_pct != null ? (
                       <span className={`text-sm font-medium ${Number(row.score_pct) >= 80 ? 'text-green-600' : Number(row.score_pct) >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
                         {Number(row.score_pct).toFixed(0)}%
                       </span>
                     ) : (
-                      <span className="text-muted">—</span>
+                      <span className="text-muted-foreground">—</span>
                     )}
                   </TableCell>
                   <TableCell>

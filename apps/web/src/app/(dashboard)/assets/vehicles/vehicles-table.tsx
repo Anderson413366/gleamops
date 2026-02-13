@@ -265,15 +265,15 @@ export default function VehiclesTable({ search, formOpen, onFormClose, onRefresh
             <TableRow key={row.id} onClick={() => handleEdit(row)}>
               <TableCell className="font-mono text-xs">{row.vehicle_code}</TableCell>
               <TableCell className="font-medium">{row.name ?? '—'}</TableCell>
-              <TableCell className="text-muted">
+              <TableCell className="text-muted-foreground">
                 {[row.make, row.model].filter(Boolean).join(' ') || '—'}
               </TableCell>
-              <TableCell className="text-muted">{row.year ?? '—'}</TableCell>
-              <TableCell className="text-muted">{row.license_plate ?? '—'}</TableCell>
+              <TableCell className="text-muted-foreground">{row.year ?? '—'}</TableCell>
+              <TableCell className="text-muted-foreground">{row.license_plate ?? '—'}</TableCell>
               <TableCell>
                 <Badge color={VEHICLE_STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
               </TableCell>
-              <TableCell className="text-muted">
+              <TableCell className="text-muted-foreground">
                 {row.assigned?.full_name ?? '—'}
               </TableCell>
             </TableRow>

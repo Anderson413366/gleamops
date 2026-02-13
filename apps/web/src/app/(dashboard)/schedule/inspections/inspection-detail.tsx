@@ -177,7 +177,7 @@ export function InspectionDetail({ inspection, open, onClose, onUpdate }: Inspec
             <CardContent className="pt-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <ClipboardCheck className="h-5 w-5 text-muted" />
+                  <ClipboardCheck className="h-5 w-5 text-muted-foreground" />
                   <span className="text-sm font-medium">Quality Score</span>
                 </div>
                 <span className={`text-2xl font-bold ${
@@ -194,7 +194,7 @@ export function InspectionDetail({ inspection, open, onClose, onUpdate }: Inspec
                   style={{ width: `${scorePct}%` }}
                 />
               </div>
-              <div className="flex justify-between text-xs text-muted mt-1">
+              <div className="flex justify-between text-xs text-muted-foreground mt-1">
                 <span>{totalScore}/{maxScore} points ({scoredItems.length}/{items.length} scored)</span>
                 <span>Pass: {passThreshold}%</span>
               </div>
@@ -207,23 +207,23 @@ export function InspectionDetail({ inspection, open, onClose, onUpdate }: Inspec
           <CardContent className="pt-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="flex items-start gap-2">
-                <MapPin className="h-4 w-4 text-muted mt-0.5" />
+                <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
                 <div>
-                  <p className="text-xs text-muted">Site</p>
+                  <p className="text-xs text-muted-foreground">Site</p>
                   <p className="text-sm font-medium">{inspection.site?.name ?? '—'}</p>
                 </div>
               </div>
               <div className="flex items-start gap-2">
-                <User className="h-4 w-4 text-muted mt-0.5" />
+                <User className="h-4 w-4 text-muted-foreground mt-0.5" />
                 <div>
-                  <p className="text-xs text-muted">Inspector</p>
+                  <p className="text-xs text-muted-foreground">Inspector</p>
                   <p className="text-sm font-medium">{inspection.inspector?.full_name ?? '—'}</p>
                 </div>
               </div>
               <div className="flex items-start gap-2">
-                <Calendar className="h-4 w-4 text-muted mt-0.5" />
+                <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
                 <div>
-                  <p className="text-xs text-muted">Date</p>
+                  <p className="text-xs text-muted-foreground">Date</p>
                   <p className="text-sm font-medium">{new Date(inspection.created_at).toLocaleDateString('en-US', {
                     weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
                   })}</p>
@@ -231,9 +231,9 @@ export function InspectionDetail({ inspection, open, onClose, onUpdate }: Inspec
               </div>
               {inspection.ticket && (
                 <div className="flex items-start gap-2">
-                  <FileText className="h-4 w-4 text-muted mt-0.5" />
+                  <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
                   <div>
-                    <p className="text-xs text-muted">Work Ticket</p>
+                    <p className="text-xs text-muted-foreground">Work Ticket</p>
                     <p className="text-sm font-mono">{inspection.ticket.ticket_code}</p>
                   </div>
                 </div>
@@ -250,7 +250,7 @@ export function InspectionDetail({ inspection, open, onClose, onUpdate }: Inspec
             <CardHeader>
               <CardTitle>
                 <span className="inline-flex items-center gap-2">
-                  <Star className="h-4 w-4 text-muted" />
+                  <Star className="h-4 w-4 text-muted-foreground" />
                   Inspection Items ({items.length})
                 </span>
               </CardTitle>
@@ -260,7 +260,7 @@ export function InspectionDetail({ inspection, open, onClose, onUpdate }: Inspec
                 {Array.from(sections.entries()).map(([sectionName, sectionItems]) => (
                   <div key={sectionName}>
                     {sections.size > 1 && (
-                      <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                         {sectionName}
                       </p>
                     )}
@@ -270,7 +270,7 @@ export function InspectionDetail({ inspection, open, onClose, onUpdate }: Inspec
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate">{item.label}</p>
                             {item.notes && (
-                              <p className="text-xs text-muted mt-0.5">{item.notes}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">{item.notes}</p>
                             )}
                           </div>
                           {/* Score buttons */}
@@ -309,7 +309,7 @@ export function InspectionDetail({ inspection, open, onClose, onUpdate }: Inspec
           </Card>
         ) : (
           <Card>
-            <CardContent className="py-8 text-center text-muted text-sm">
+            <CardContent className="py-8 text-center text-muted-foreground text-sm">
               No inspection items. Select a template when creating to auto-populate items.
             </CardContent>
           </Card>
@@ -340,7 +340,7 @@ export function InspectionDetail({ inspection, open, onClose, onUpdate }: Inspec
                     </div>
                     <p className="text-sm">{issue.description}</p>
                     {issue.resolution_notes && (
-                      <p className="text-xs text-muted mt-1">Resolution: {issue.resolution_notes}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Resolution: {issue.resolution_notes}</p>
                     )}
                   </div>
                 ))}
@@ -362,7 +362,7 @@ export function InspectionDetail({ inspection, open, onClose, onUpdate }: Inspec
         )}
 
         {/* Metadata */}
-        <div className="text-xs text-muted space-y-1 pt-4 border-t border-border">
+        <div className="text-xs text-muted-foreground space-y-1 pt-4 border-t border-border">
           <p>Created: {new Date(inspection.created_at).toLocaleDateString()}</p>
           <p>Updated: {new Date(inspection.updated_at).toLocaleDateString()}</p>
           {inspection.started_at && <p>Started: {new Date(inspection.started_at).toLocaleDateString()}</p>}

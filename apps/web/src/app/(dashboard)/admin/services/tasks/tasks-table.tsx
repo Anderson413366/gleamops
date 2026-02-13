@@ -269,16 +269,16 @@ export default function TasksTable({ search, autoCreate, onAutoCreateHandled, on
                     {row.category.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
                   </Badge>
                 ) : (
-                  <span className="text-muted">--</span>
+                  <span className="text-muted-foreground">--</span>
                 )}
               </TableCell>
-              <TableCell className="text-muted text-sm">
+              <TableCell className="text-muted-foreground text-sm">
                 {UNIT_OPTIONS.find((u) => u.value === row.unit_code)?.label ?? row.unit_code}
               </TableCell>
               <TableCell className="text-sm">
                 {row.production_rate_sqft_per_hour != null
                   ? `${row.production_rate_sqft_per_hour.toLocaleString()} sqft/hr`
-                  : <span className="text-muted">--</span>}
+                  : <span className="text-muted-foreground">--</span>}
               </TableCell>
             </TableRow>
           ))}

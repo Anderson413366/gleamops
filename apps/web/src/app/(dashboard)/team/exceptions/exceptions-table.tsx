@@ -136,7 +136,7 @@ export default function ExceptionsTable({ search }: ExceptionsTableProps) {
               <TableCell>
                 <Badge color={EXCEPTION_SEVERITY_COLORS[row.severity] ?? 'gray'}>{row.severity}</Badge>
               </TableCell>
-              <TableCell className="text-sm text-muted max-w-[200px] truncate">{row.description ?? '—'}</TableCell>
+              <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{row.description ?? '—'}</TableCell>
               <TableCell>
                 {row.resolved_at ? (
                   <span className="inline-flex items-center gap-1 text-green-600 text-xs">

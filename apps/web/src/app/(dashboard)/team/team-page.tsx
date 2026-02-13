@@ -34,7 +34,7 @@ export default function TeamPageClient() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Team</h1>
-          <p className="text-sm text-muted mt-1">Staff, Timekeeping, Timesheets</p>
+          <p className="text-sm text-muted-foreground mt-1">Staff, Timekeeping, Timesheets</p>
         </div>
         {tab === 'staff' && (
           <Button onClick={handleAdd}>

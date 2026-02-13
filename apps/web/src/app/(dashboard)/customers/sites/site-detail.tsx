@@ -57,7 +57,7 @@ export function SiteDetail({ site, open, onClose, onEdit }: SiteDetailProps) {
         {/* Client + Actions */}
         <div className="flex items-center justify-between">
           {site.client && (
-            <span className="inline-flex items-center gap-1.5 text-sm text-muted">
+            <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
               <Building2 className="h-4 w-4" />
               {site.client.name}
               <span className="text-xs font-mono">({site.client.client_code})</span>
@@ -75,7 +75,7 @@ export function SiteDetail({ site, open, onClose, onEdit }: SiteDetailProps) {
             <CardHeader>
               <CardTitle>
                 <span className="inline-flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-muted" />
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
                   Address
                 </span>
               </CardTitle>
@@ -84,7 +84,7 @@ export function SiteDetail({ site, open, onClose, onEdit }: SiteDetailProps) {
               <p className="text-sm text-foreground">
                 {addr.street && <span className="block">{addr.street}</span>}
                 {[addr.city, addr.state, addr.zip].filter(Boolean).join(', ')}
-                {addr.country && <span className="block text-muted">{addr.country}</span>}
+                {addr.country && <span className="block text-muted-foreground">{addr.country}</span>}
               </p>
             </CardContent>
           </Card>
@@ -98,13 +98,13 @@ export function SiteDetail({ site, open, onClose, onEdit }: SiteDetailProps) {
           <CardContent>
             <dl className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <dt className="text-muted">Square Footage</dt>
+                <dt className="text-muted-foreground">Square Footage</dt>
                 <dd className="font-medium">
                   {site.square_footage ? site.square_footage.toLocaleString() + ' sq ft' : '—'}
                 </dd>
               </div>
               <div>
-                <dt className="text-muted">Geofence Radius</dt>
+                <dt className="text-muted-foreground">Geofence Radius</dt>
                 <dd className="font-medium">
                   {site.geofence_radius_meters ? site.geofence_radius_meters + ' m' : '—'}
                 </dd>
@@ -119,7 +119,7 @@ export function SiteDetail({ site, open, onClose, onEdit }: SiteDetailProps) {
             <CardHeader>
               <CardTitle>
                 <span className="inline-flex items-center gap-2">
-                  <Key className="h-4 w-4 text-muted" />
+                  <Key className="h-4 w-4 text-muted-foreground" />
                   Access & Security
                 </span>
               </CardTitle>
@@ -127,13 +127,13 @@ export function SiteDetail({ site, open, onClose, onEdit }: SiteDetailProps) {
             <CardContent className="space-y-3">
               {site.alarm_code && (
                 <div>
-                  <dt className="text-xs text-muted">Alarm Code</dt>
+                  <dt className="text-xs text-muted-foreground">Alarm Code</dt>
                   <dd className="text-sm font-mono">{site.alarm_code}</dd>
                 </div>
               )}
               {site.access_notes && (
                 <div>
-                  <dt className="text-xs text-muted">Access Notes</dt>
+                  <dt className="text-xs text-muted-foreground">Access Notes</dt>
                   <dd className="text-sm">{site.access_notes}</dd>
                 </div>
               )}
@@ -146,7 +146,7 @@ export function SiteDetail({ site, open, onClose, onEdit }: SiteDetailProps) {
           <CardHeader>
             <CardTitle>
               <span className="inline-flex items-center gap-2">
-                <Users className="h-4 w-4 text-muted" />
+                <Users className="h-4 w-4 text-muted-foreground" />
                 Contacts
                 <Badge color="blue">{contacts.length}</Badge>
               </span>
@@ -156,14 +156,14 @@ export function SiteDetail({ site, open, onClose, onEdit }: SiteDetailProps) {
             {loadingRelated ? (
               <Skeleton className="h-8 w-full" />
             ) : contacts.length === 0 ? (
-              <p className="text-sm text-muted">No contacts linked to this site.</p>
+              <p className="text-sm text-muted-foreground">No contacts linked to this site.</p>
             ) : (
               <ul className="divide-y divide-border">
                 {contacts.map((c) => (
                   <li key={c.id} className="py-2 flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">{c.name}</p>
-                      <p className="text-xs text-muted">{c.email || c.phone || '—'}</p>
+                      <p className="text-xs text-muted-foreground">{c.email || c.phone || '—'}</p>
                     </div>
                     {c.role && <Badge color="blue">{c.role}</Badge>}
                   </li>
@@ -174,7 +174,7 @@ export function SiteDetail({ site, open, onClose, onEdit }: SiteDetailProps) {
         </Card>
 
         {/* Metadata */}
-        <div className="text-xs text-muted space-y-1 pt-4 border-t border-border">
+        <div className="text-xs text-muted-foreground space-y-1 pt-4 border-t border-border">
           <p>Created: {new Date(site.created_at).toLocaleDateString()}</p>
           <p>Updated: {new Date(site.updated_at).toLocaleDateString()}</p>
         </div>

@@ -30,7 +30,7 @@ export default function AssetsPageClient() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Assets</h1>
-          <p className="text-sm text-muted mt-1">Vehicle Registry, Key Log</p>
+          <p className="text-sm text-muted-foreground mt-1">Vehicle Registry, Key Log</p>
         </div>
         <Button onClick={handleAdd}>
           <Plus className="h-4 w-4" />

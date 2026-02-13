@@ -1,4 +1,6 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+'use client';
+
+import { cn } from '../utils';
 
 interface PaginationProps {
   currentPage: number;
@@ -9,6 +11,7 @@ interface PaginationProps {
   hasPrev: boolean;
   onNext: () => void;
   onPrev: () => void;
+  onGoTo?: (page: number) => void;
 }
 
 export function Pagination({
@@ -20,38 +23,77 @@ export function Pagination({
   hasPrev,
   onNext,
   onPrev,
+  onGoTo,
 }: PaginationProps) {
+  if (totalPages <= 1) return null;
+
   const start = (currentPage - 1) * pageSize + 1;
   const end = Math.min(currentPage * pageSize, totalItems);
 
-  if (totalItems === 0) return null;
+  // Build page numbers with ellipsis
+  const pages: (number | '...')[] = [];
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if (currentPage > 3) pages.push('...');
+    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+      pages.push(i);
+    }
+    if (currentPage < totalPages - 2) pages.push('...');
+    pages.push(totalPages);
+  }
 
   return (
     <div className="flex items-center justify-between pt-4 text-sm">
-      <p className="text-muted-foreground">
-        Showing <span className="font-semibold text-foreground">{start}</span> to{' '}
-        <span className="font-semibold text-foreground">{end}</span> of{' '}
-        <span className="font-semibold text-foreground">{totalItems}</span>
-      </p>
-      <div className="flex items-center gap-3">
+      <span className="text-muted-foreground">
+        {start}&ndash;{end} of {totalItems}
+      </span>
+      <div className="flex items-center gap-1">
         <button
           onClick={onPrev}
           disabled={!hasPrev}
-          className="inline-flex h-8 items-center justify-center rounded-md px-3 text-sm font-medium transition-colors hover:bg-muted text-foreground disabled:opacity-40 disabled:pointer-events-none"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-muted disabled:opacity-40 disabled:pointer-events-none"
+          aria-label="Previous page"
         >
-          <ChevronLeft className="h-4 w-4 mr-1" />
-          Previous
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
         </button>
-        <span className="text-muted-foreground tabular-nums font-medium">
-          {currentPage} / {totalPages}
-        </span>
+        {onGoTo
+          ? pages.map((p, i) =>
+              p === '...' ? (
+                <span key={`e${i}`} className="px-1 text-muted-foreground">...</span>
+              ) : (
+                <button
+                  key={p}
+                  onClick={() => onGoTo(p)}
+                  className={cn(
+                    'inline-flex h-8 w-8 items-center justify-center rounded-md text-sm transition-colors',
+                    p === currentPage
+                      ? 'bg-primary text-primary-foreground font-medium'
+                      : 'hover:bg-muted'
+                  )}
+                >
+                  {p}
+                </button>
+              )
+            )
+          : (
+            <span className="px-2 text-muted-foreground tabular-nums">
+              {currentPage} / {totalPages}
+            </span>
+          )
+        }
         <button
           onClick={onNext}
           disabled={!hasNext}
-          className="inline-flex h-8 items-center justify-center rounded-md px-3 text-sm font-medium transition-colors hover:bg-muted text-foreground disabled:opacity-40 disabled:pointer-events-none"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-muted disabled:opacity-40 disabled:pointer-events-none"
+          aria-label="Next page"
         >
-          Next
-          <ChevronRight className="h-4 w-4 ml-1" />
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
         </button>
       </div>
     </div>

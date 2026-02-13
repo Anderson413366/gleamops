@@ -107,7 +107,7 @@ export default function BidsTable({ search, onSelect }: BidsTableProps) {
             <TableRow key={row.id} onClick={() => onSelect?.(row)}>
               <TableCell className="font-mono text-xs">{row.bid_code}</TableCell>
               <TableCell className="font-medium">{row.client?.name ?? '—'}</TableCell>
-              <TableCell className="text-muted">{row.service?.name ?? '—'}</TableCell>
+              <TableCell className="text-muted-foreground">{row.service?.name ?? '—'}</TableCell>
               <TableCell className="text-right tabular-nums">{row.total_sqft?.toLocaleString() ?? '—'}</TableCell>
               <TableCell className="text-right tabular-nums font-medium">{formatCurrency(row.bid_monthly_price)}</TableCell>
               <TableCell>

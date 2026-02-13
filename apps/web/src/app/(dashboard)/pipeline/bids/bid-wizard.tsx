@@ -521,7 +521,7 @@ export function BidWizard({ open, onClose, onSuccess }: BidWizardProps) {
           <Select label="Client" value={form.client_id} onChange={(e) => setForm((f) => ({ ...f, client_id: e.target.value }))} options={clients} placeholder="Select a client..." required />
           <Select label="Service Template" value={form.service_id} onChange={(e) => setForm((f) => ({ ...f, service_id: e.target.value }))} options={[{ value: '', label: 'None (custom)' }, ...services]} />
           {form.service_id && serviceTasks.length > 0 && (
-            <p className="text-xs text-muted">{serviceTasks.length} tasks will be pre-loaded from the template.</p>
+            <p className="text-xs text-muted-foreground">{serviceTasks.length} tasks will be pre-loaded from the template.</p>
           )}
         </div>
       )}
@@ -534,7 +534,7 @@ export function BidWizard({ open, onClose, onSuccess }: BidWizardProps) {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>{area.name}</CardTitle>
-                  <button onClick={() => removeArea(area.tempId)} className="text-muted hover:text-red-600">
+                  <button onClick={() => removeArea(area.tempId)} className="text-muted-foreground hover:text-red-600">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
@@ -567,14 +567,14 @@ export function BidWizard({ open, onClose, onSuccess }: BidWizardProps) {
               </CardHeader>
               <CardContent>
                 {area.tasks.length === 0 ? (
-                  <p className="text-sm text-muted">No tasks. Select a service template in Step 1.</p>
+                  <p className="text-sm text-muted-foreground">No tasks. Select a service template in Step 1.</p>
                 ) : (
                   <div className="divide-y divide-border">
                     {area.tasks.map((task) => (
                       <div key={task.task_id} className="py-2 grid grid-cols-3 gap-3 items-center">
                         <div>
                           <p className="text-sm font-medium">{task.task_name}</p>
-                          <p className="text-xs text-muted font-mono">{task.task_code}</p>
+                          <p className="text-xs text-muted-foreground font-mono">{task.task_code}</p>
                         </div>
                         <Select
                           value={task.frequency_code}
@@ -673,15 +673,15 @@ export function BidWizard({ open, onClose, onSuccess }: BidWizardProps) {
                 <CardContent>
                   <div className="grid grid-cols-3 gap-4">
                     <div>
-                      <p className="text-xs text-muted">Monthly Hours</p>
+                      <p className="text-xs text-muted-foreground">Monthly Hours</p>
                       <p className="text-lg font-bold">{workloadResult.monthly_hours.toFixed(1)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted">Cleaners Needed</p>
+                      <p className="text-xs text-muted-foreground">Cleaners Needed</p>
                       <p className="text-lg font-bold">{workloadResult.cleaners_needed}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted">Lead Needed</p>
+                      <p className="text-xs text-muted-foreground">Lead Needed</p>
                       <p className="text-lg font-bold">{workloadResult.lead_needed ? 'Yes' : 'No'}</p>
                     </div>
                   </div>
@@ -693,19 +693,19 @@ export function BidWizard({ open, onClose, onSuccess }: BidWizardProps) {
                 <CardHeader><CardTitle>Pricing Breakdown</CardTitle></CardHeader>
                 <CardContent className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted">Burdened Labor</span>
+                    <span className="text-muted-foreground">Burdened Labor</span>
                     <span className="font-medium">{fmt(pricingResult.burdened_labor_cost)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted">Supplies</span>
+                    <span className="text-muted-foreground">Supplies</span>
                     <span className="font-medium">{fmt(pricingResult.supplies_cost)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted">Equipment</span>
+                    <span className="text-muted-foreground">Equipment</span>
                     <span className="font-medium">{fmt(pricingResult.equipment_cost)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted">Overhead</span>
+                    <span className="text-muted-foreground">Overhead</span>
                     <span className="font-medium">{fmt(pricingResult.overhead_cost)}</span>
                   </div>
                   <div className="flex justify-between text-sm border-t border-border pt-2">
@@ -717,7 +717,7 @@ export function BidWizard({ open, onClose, onSuccess }: BidWizardProps) {
                     <span className="font-bold text-lg text-primary">{fmt(pricingResult.recommended_price)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted">Effective Margin</span>
+                    <span className="text-muted-foreground">Effective Margin</span>
                     <Badge color={pricingResult.effective_margin_pct >= 20 ? 'green' : pricingResult.effective_margin_pct >= 10 ? 'yellow' : 'red'}>
                       {fmtPct(pricingResult.effective_margin_pct)}
                     </Badge>
@@ -728,7 +728,7 @@ export function BidWizard({ open, onClose, onSuccess }: BidWizardProps) {
               {/* Why this price */}
               <Card>
                 <CardHeader><CardTitle>Why This Price?</CardTitle></CardHeader>
-                <CardContent className="text-sm text-muted space-y-1">
+                <CardContent className="text-sm text-muted-foreground space-y-1">
                   <p>Method: <strong>{pricingResult.pricing_method}</strong></p>
                   <p>Labor: {workloadResult.monthly_hours.toFixed(1)} hrs/mo at {fmt(form.cleaner_rate)}/hr</p>
                   <p>Burden multiplier: {pricingResult.explanation.burden_multiplier.toFixed(3)}x</p>
@@ -740,7 +740,7 @@ export function BidWizard({ open, onClose, onSuccess }: BidWizardProps) {
               </Card>
             </>
           ) : (
-            <p className="text-sm text-muted">Calculating...</p>
+            <p className="text-sm text-muted-foreground">Calculating...</p>
           )}
         </div>
       )}

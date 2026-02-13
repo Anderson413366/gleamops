@@ -105,9 +105,9 @@ export default function TicketsTable({ search, onSelect }: TicketsTableProps) {
           {pag.page.map((row) => (
             <TableRow key={row.id} onClick={() => onSelect?.(row)}>
               <TableCell className="font-mono text-xs">{row.ticket_code}</TableCell>
-              <TableCell className="font-mono text-xs text-muted">{row.job?.job_code ?? '—'}</TableCell>
+              <TableCell className="font-mono text-xs text-muted-foreground">{row.job?.job_code ?? '—'}</TableCell>
               <TableCell className="font-medium">{row.site?.name ?? '—'}</TableCell>
-              <TableCell className="text-muted">{row.site?.client?.name ?? '—'}</TableCell>
+              <TableCell className="text-muted-foreground">{row.site?.client?.name ?? '—'}</TableCell>
               <TableCell>{new Date(row.scheduled_date).toLocaleDateString()}</TableCell>
               <TableCell>
                 <Badge color={TICKET_STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>

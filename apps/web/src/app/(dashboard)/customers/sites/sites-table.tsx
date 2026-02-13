@@ -116,8 +116,8 @@ export default function SitesTable({ search, onSelect }: SitesTableProps) {
             <TableRow key={row.id} onClick={() => onSelect?.(row)}>
               <TableCell className="font-mono text-xs">{row.site_code}</TableCell>
               <TableCell className="font-medium">{row.name}</TableCell>
-              <TableCell className="text-muted">{row.client?.name ?? '—'}</TableCell>
-              <TableCell className="text-muted">
+              <TableCell className="text-muted-foreground">{row.client?.name ?? '—'}</TableCell>
+              <TableCell className="text-muted-foreground">
                 {row.address
                   ? [row.address.street, row.address.city, row.address.state]
                       .filter(Boolean)

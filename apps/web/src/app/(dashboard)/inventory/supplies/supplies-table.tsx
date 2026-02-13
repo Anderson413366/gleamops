@@ -380,7 +380,7 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
             >
               <TableCell className="font-mono text-xs">{row.code}</TableCell>
               <TableCell className="font-medium">{row.name}</TableCell>
-              <TableCell className="text-muted">{row.category ?? '—'}</TableCell>
+              <TableCell className="text-muted-foreground">{row.category ?? '—'}</TableCell>
               <TableCell>{row.unit}</TableCell>
               <TableCell className="font-mono text-xs">
                 {row.unit_cost != null ? `$${Number(row.unit_cost).toFixed(2)}` : '—'}
@@ -398,7 +398,7 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
                     View
                   </a>
                 ) : (
-                  <span className="text-muted">—</span>
+                  <span className="text-muted-foreground">—</span>
                 )}
               </TableCell>
             </TableRow>

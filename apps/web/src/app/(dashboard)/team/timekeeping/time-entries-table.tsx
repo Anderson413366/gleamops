@@ -212,7 +212,7 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
                   <TableCell>{new Date(row.start_at).toLocaleDateString()}</TableCell>
                   <TableCell className="font-medium">{row.staff?.full_name ?? '—'}</TableCell>
                   <TableCell className="font-mono text-xs">{row.ticket?.ticket_code ?? '—'}</TableCell>
-                  <TableCell className="text-muted">{row.site?.name ?? '—'}</TableCell>
+                  <TableCell className="text-muted-foreground">{row.site?.name ?? '—'}</TableCell>
                   <TableCell className="text-xs">{new Date(row.start_at).toLocaleTimeString()}</TableCell>
                   <TableCell className="text-xs">{row.end_at ? new Date(row.end_at).toLocaleTimeString() : '—'}</TableCell>
                   <TableCell>

@@ -271,19 +271,19 @@ export function ProposalDetail({
           <CardContent className="pt-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-xs text-muted">Bid</p>
+                <p className="text-xs text-muted-foreground">Bid</p>
                 <p className="text-sm font-mono">{bid?.bid_code ?? '—'}</p>
               </div>
               <div>
-                <p className="text-xs text-muted">Service</p>
+                <p className="text-xs text-muted-foreground">Service</p>
                 <p className="text-sm font-medium">{bid?.service?.name ?? '—'}</p>
               </div>
               <div>
-                <p className="text-xs text-muted">Total Sq Ft</p>
+                <p className="text-xs text-muted-foreground">Total Sq Ft</p>
                 <p className="text-sm font-medium">{bid?.total_sqft?.toLocaleString() ?? '—'}</p>
               </div>
               <div>
-                <p className="text-xs text-muted">Bid Price</p>
+                <p className="text-xs text-muted-foreground">Bid Price</p>
                 <p className="text-sm font-bold">{bid?.bid_monthly_price ? fmt(bid.bid_monthly_price) : '—'}</p>
               </div>
             </div>
@@ -303,7 +303,7 @@ export function ProposalDetail({
                 <CardHeader>
                   <CardTitle>
                     <span className="inline-flex items-center gap-2">
-                      <DollarSign className="h-4 w-4 text-muted" />
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
                       Pricing Options
                     </span>
                   </CardTitle>
@@ -331,14 +331,14 @@ export function ProposalDetail({
               <CardHeader>
                 <CardTitle>
                   <span className="inline-flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-muted" />
+                    <Mail className="h-4 w-4 text-muted-foreground" />
                     Send History
                   </span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {sends.length === 0 ? (
-                  <p className="text-sm text-muted">No sends yet.</p>
+                  <p className="text-sm text-muted-foreground">No sends yet.</p>
                 ) : (
                   <div className="space-y-3">
                     {sends.map((send) => (
@@ -349,11 +349,11 @@ export function ProposalDetail({
                           ) : send.status === 'BOUNCED' || send.status === 'FAILED' ? (
                             <AlertCircle className="h-4 w-4 text-red-500" />
                           ) : (
-                            <Mail className="h-4 w-4 text-muted" />
+                            <Mail className="h-4 w-4 text-muted-foreground" />
                           )}
                           <span>{send.recipient_email}</span>
                           {send.recipient_name && (
-                            <span className="text-muted">({send.recipient_name})</span>
+                            <span className="text-muted-foreground">({send.recipient_name})</span>
                           )}
                         </div>
                         <div className="flex items-center gap-2">
@@ -363,7 +363,7 @@ export function ProposalDetail({
                             send.status === 'BOUNCED' || send.status === 'FAILED' ? 'red' :
                             'gray'
                           }>{send.status}</Badge>
-                          <span className="text-muted">
+                          <span className="text-muted-foreground">
                             {send.sent_at ? new Date(send.sent_at).toLocaleDateString() : '—'}
                           </span>
                         </div>
@@ -379,7 +379,7 @@ export function ProposalDetail({
               <CardContent className="pt-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-xs text-muted">PDF Generated</p>
+                    <p className="text-xs text-muted-foreground">PDF Generated</p>
                     <p className="text-sm font-medium">
                       {proposal.pdf_generated_at
                         ? new Date(proposal.pdf_generated_at).toLocaleDateString()
@@ -387,7 +387,7 @@ export function ProposalDetail({
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted">Valid Until</p>
+                    <p className="text-xs text-muted-foreground">Valid Until</p>
                     <p className="text-sm font-medium">
                       {proposal.valid_until
                         ? new Date(proposal.valid_until).toLocaleDateString()
@@ -401,7 +401,7 @@ export function ProposalDetail({
         )}
 
         {/* Metadata */}
-        <div className="text-xs text-muted space-y-1 pt-4 border-t border-border">
+        <div className="text-xs text-muted-foreground space-y-1 pt-4 border-t border-border">
           <p>Created: {new Date(proposal.created_at).toLocaleDateString()}</p>
           <p>Updated: {new Date(proposal.updated_at).toLocaleDateString()}</p>
         </div>

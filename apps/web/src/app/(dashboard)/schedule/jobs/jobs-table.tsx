@@ -114,8 +114,8 @@ export default function JobsTable({ search }: JobsTableProps) {
             <TableRow key={row.id}>
               <TableCell className="font-mono text-xs">{row.job_code}</TableCell>
               <TableCell className="font-medium">{row.site?.name ?? '—'}</TableCell>
-              <TableCell className="text-muted">{row.site?.client?.name ?? '—'}</TableCell>
-              <TableCell className="text-muted">{row.frequency}</TableCell>
+              <TableCell className="text-muted-foreground">{row.site?.client?.name ?? '—'}</TableCell>
+              <TableCell className="text-muted-foreground">{row.frequency}</TableCell>
               <TableCell className="text-right tabular-nums font-medium">{formatCurrency(row.billing_amount)}</TableCell>
               <TableCell>
                 <Badge color={JOB_STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>

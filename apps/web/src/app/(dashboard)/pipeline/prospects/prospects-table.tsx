@@ -122,8 +122,8 @@ export default function ProspectsTable({ search, onSelect }: ProspectsTableProps
                   {row.prospect_status_code}
                 </Badge>
               </TableCell>
-              <TableCell className="text-muted">{row.source ?? '—'}</TableCell>
-              <TableCell className="text-muted">{new Date(row.created_at).toLocaleDateString()}</TableCell>
+              <TableCell className="text-muted-foreground">{row.source ?? '—'}</TableCell>
+              <TableCell className="text-muted-foreground">{new Date(row.created_at).toLocaleDateString()}</TableCell>
             </TableRow>
           ))}
         </TableBody>

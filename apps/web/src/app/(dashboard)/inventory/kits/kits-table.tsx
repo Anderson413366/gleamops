@@ -377,7 +377,7 @@ export default function KitsTable({ search, autoCreate, onAutoCreateHandled }: K
                     <span className="text-sm font-medium text-foreground">{item.supply_name}</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-sm text-muted">Qty: {item.quantity}</span>
+                    <span className="text-sm text-muted-foreground">Qty: {item.quantity}</span>
                     <button
                       type="button"
                       onClick={() => handleRemoveItem(index)}
@@ -393,7 +393,7 @@ export default function KitsTable({ search, autoCreate, onAutoCreateHandled }: K
           )}
 
           {kitItems.length === 0 && (
-            <p className="text-sm text-muted italic">No items added yet.</p>
+            <p className="text-sm text-muted-foreground italic">No items added yet.</p>
           )}
 
           {/* Add item row */}
@@ -479,7 +479,7 @@ export default function KitsTable({ search, autoCreate, onAutoCreateHandled }: K
             >
               <TableCell className="font-mono text-xs">{row.code}</TableCell>
               <TableCell className="font-medium">{row.name}</TableCell>
-              <TableCell className="text-muted max-w-xs truncate">{row.description ?? '—'}</TableCell>
+              <TableCell className="text-muted-foreground max-w-xs truncate">{row.description ?? '—'}</TableCell>
               <TableCell>{row.item_count}</TableCell>
             </TableRow>
           ))}

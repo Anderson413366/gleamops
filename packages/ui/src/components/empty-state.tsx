@@ -13,18 +13,18 @@ interface EmptyStateProps {
 
 export function EmptyState({ title, description, actionLabel, onAction, icon }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-20 px-4 text-center animate-fade-in">
+    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-16 text-center">
       {icon && (
-        <div className="mb-4 rounded-xl bg-primary/10 dark:bg-primary/10 p-4 text-primary dark:text-primary">
+        <div className="mb-4 text-muted-foreground">
           {icon}
         </div>
       )}
-      <h3 className="text-lg font-semibold text-foreground">{title}</h3>
-      <p className="mt-1.5 text-sm text-muted-foreground max-w-sm">{description}</p>
+      <h3 className="text-sm font-medium text-foreground">{title}</h3>
+      <p className="mt-1 text-sm text-muted-foreground max-w-sm">{description}</p>
       {actionLabel && onAction && (
         <button
           onClick={onAction}
-          className="mt-5 inline-flex items-center rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-all duration-200"
+          className="mt-5 inline-flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-colors"
         >
           {actionLabel}
         </button>

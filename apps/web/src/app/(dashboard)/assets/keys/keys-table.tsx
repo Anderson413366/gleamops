@@ -283,16 +283,16 @@ export default function KeysTable({ search, formOpen, onFormClose, onRefresh }: 
               <TableCell>
                 <Badge color="blue">{row.key_type}</Badge>
               </TableCell>
-              <TableCell className="text-muted">
+              <TableCell className="text-muted-foreground">
                 {row.site?.name ?? '—'}
               </TableCell>
               <TableCell>
                 <Badge color={KEY_STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
               </TableCell>
-              <TableCell className="text-muted">
+              <TableCell className="text-muted-foreground">
                 {row.assigned?.full_name ?? '—'}
               </TableCell>
-              <TableCell className="text-muted">{row.total_count ?? 0}</TableCell>
+              <TableCell className="text-muted-foreground">{row.total_count ?? 0}</TableCell>
             </TableRow>
           ))}
         </TableBody>

@@ -120,7 +120,7 @@ export default function ProposalsTable({ search, onSelect }: ProposalsTableProps
           {pag.page.map((row) => (
             <TableRow key={row.id} onClick={() => onSelect?.(row)}>
               <TableCell className="font-mono text-xs">{row.proposal_code}</TableCell>
-              <TableCell className="font-mono text-xs text-muted">
+              <TableCell className="font-mono text-xs text-muted-foreground">
                 {row.bid_version?.bid?.bid_code ?? '—'}
               </TableCell>
               <TableCell className="font-medium">
@@ -129,10 +129,10 @@ export default function ProposalsTable({ search, onSelect }: ProposalsTableProps
               <TableCell>
                 <Badge color={PROPOSAL_STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
               </TableCell>
-              <TableCell className="text-muted">
+              <TableCell className="text-muted-foreground">
                 {new Date(row.created_at).toLocaleDateString()}
               </TableCell>
-              <TableCell className="text-muted">
+              <TableCell className="text-muted-foreground">
                 {row.pdf_generated_at ? new Date(row.pdf_generated_at).toLocaleDateString() : '—'}
               </TableCell>
             </TableRow>

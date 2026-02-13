@@ -252,7 +252,7 @@ export default function PipelinePageClient() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Pipeline</h1>
-          <p className="text-sm text-muted mt-1">Prospects, Bids, Proposals</p>
+          <p className="text-sm text-muted-foreground mt-1">Prospects, Bids, Proposals</p>
         </div>
         {addLabel && (
           <Button onClick={handleAdd}>

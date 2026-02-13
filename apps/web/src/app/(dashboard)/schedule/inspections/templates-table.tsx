@@ -148,7 +148,7 @@ export default function TemplatesTable({ search }: TemplatesTableProps) {
                 <TableRow key={row.id}>
                   <TableCell className="font-mono text-xs">{row.template_code}</TableCell>
                   <TableCell className="font-medium">{row.name}</TableCell>
-                  <TableCell className="text-muted text-sm">{row.service?.name ?? '—'}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">{row.service?.name ?? '—'}</TableCell>
                   <TableCell>
                     <Badge color="gray">{row.item_count ?? 0}</Badge>
                   </TableCell>
@@ -157,7 +157,7 @@ export default function TemplatesTable({ search }: TemplatesTableProps) {
                   <TableCell>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleToggleActive(row); }}
-                      className="text-muted hover:text-foreground"
+                      className="text-muted-foreground hover:text-foreground"
                     >
                       {row.is_active ? (
                         <ToggleRight className="h-5 w-5 text-green-500" />

@@ -109,8 +109,8 @@ export function BidDetail({ bid, open, onClose, onGenerateProposal }: BidDetailP
           <Card>
             <CardContent className="pt-4">
               <div className="flex items-center gap-2 mb-1">
-                <Building2 className="h-4 w-4 text-muted" />
-                <p className="text-xs text-muted">Client</p>
+                <Building2 className="h-4 w-4 text-muted-foreground" />
+                <p className="text-xs text-muted-foreground">Client</p>
               </div>
               <p className="text-sm font-medium">{bid.client?.name ?? '—'}</p>
             </CardContent>
@@ -118,8 +118,8 @@ export function BidDetail({ bid, open, onClose, onGenerateProposal }: BidDetailP
           <Card>
             <CardContent className="pt-4">
               <div className="flex items-center gap-2 mb-1">
-                <FileText className="h-4 w-4 text-muted" />
-                <p className="text-xs text-muted">Service</p>
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <p className="text-xs text-muted-foreground">Service</p>
               </div>
               <p className="text-sm font-medium">{bid.service?.name ?? '—'}</p>
             </CardContent>
@@ -139,7 +139,7 @@ export function BidDetail({ bid, open, onClose, onGenerateProposal }: BidDetailP
                 <CardHeader>
                   <CardTitle>
                     <span className="inline-flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted" />
+                      <Clock className="h-4 w-4 text-muted-foreground" />
                       Workload
                     </span>
                   </CardTitle>
@@ -147,29 +147,29 @@ export function BidDetail({ bid, open, onClose, onGenerateProposal }: BidDetailP
                 <CardContent>
                   <div className="grid grid-cols-3 gap-4">
                     <div>
-                      <p className="text-xs text-muted">Monthly Hours</p>
+                      <p className="text-xs text-muted-foreground">Monthly Hours</p>
                       <p className="text-xl font-bold">{workload.monthly_hours.toFixed(1)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted">Cleaners</p>
+                      <p className="text-xs text-muted-foreground">Cleaners</p>
                       <p className="text-xl font-bold">{workload.cleaners_needed}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted">Lead</p>
+                      <p className="text-xs text-muted-foreground">Lead</p>
                       <p className="text-xl font-bold">{workload.lead_needed ? 'Yes' : 'No'}</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-4 mt-4 text-sm">
                     <div>
-                      <p className="text-xs text-muted">Min/Visit</p>
+                      <p className="text-xs text-muted-foreground">Min/Visit</p>
                       <p className="font-medium">{workload.total_minutes_per_visit.toFixed(0)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted">Weekly Min</p>
+                      <p className="text-xs text-muted-foreground">Weekly Min</p>
                       <p className="font-medium">{workload.weekly_minutes.toFixed(0)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted">Hrs/Visit</p>
+                      <p className="text-xs text-muted-foreground">Hrs/Visit</p>
                       <p className="font-medium">{workload.hours_per_visit.toFixed(1)}</p>
                     </div>
                   </div>
@@ -183,26 +183,26 @@ export function BidDetail({ bid, open, onClose, onGenerateProposal }: BidDetailP
                 <CardHeader>
                   <CardTitle>
                     <span className="inline-flex items-center gap-2">
-                      <DollarSign className="h-4 w-4 text-muted" />
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
                       Pricing
                     </span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted">Burdened Labor</span>
+                    <span className="text-muted-foreground">Burdened Labor</span>
                     <span className="font-medium">{fmt(pricing.burdened_labor_cost)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted">Supplies</span>
+                    <span className="text-muted-foreground">Supplies</span>
                     <span className="font-medium">{fmt(pricing.supplies_cost)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted">Equipment</span>
+                    <span className="text-muted-foreground">Equipment</span>
                     <span className="font-medium">{fmt(pricing.equipment_cost)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted">Overhead</span>
+                    <span className="text-muted-foreground">Overhead</span>
                     <span className="font-medium">{fmt(pricing.overhead_cost)}</span>
                   </div>
                   <div className="flex justify-between text-sm border-t border-border pt-2 mt-2">
@@ -214,13 +214,13 @@ export function BidDetail({ bid, open, onClose, onGenerateProposal }: BidDetailP
                     <span className="font-bold text-xl text-primary">{fmt(pricing.recommended_price)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted">Margin</span>
+                    <span className="text-muted-foreground">Margin</span>
                     <Badge color={pricing.effective_margin_pct >= 20 ? 'green' : pricing.effective_margin_pct >= 10 ? 'yellow' : 'red'}>
                       {fmtPct(pricing.effective_margin_pct)}
                     </Badge>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted">Method</span>
+                    <span className="text-muted-foreground">Method</span>
                     <span className="font-medium">{pricing.pricing_method}</span>
                   </div>
                 </CardContent>
@@ -233,11 +233,11 @@ export function BidDetail({ bid, open, onClose, onGenerateProposal }: BidDetailP
               <CardContent>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-xs text-muted">Total Sq Ft</p>
+                    <p className="text-xs text-muted-foreground">Total Sq Ft</p>
                     <p className="text-lg font-bold">{bid.total_sqft?.toLocaleString() ?? '—'}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted">Monthly Price</p>
+                    <p className="text-xs text-muted-foreground">Monthly Price</p>
                     <p className="text-lg font-bold">{bid.bid_monthly_price ? fmt(bid.bid_monthly_price) : '—'}</p>
                   </div>
                 </div>
@@ -247,7 +247,7 @@ export function BidDetail({ bid, open, onClose, onGenerateProposal }: BidDetailP
         )}
 
         {/* Metadata */}
-        <div className="text-xs text-muted space-y-1 pt-4 border-t border-border">
+        <div className="text-xs text-muted-foreground space-y-1 pt-4 border-t border-border">
           <p>Created: {new Date(bid.created_at).toLocaleDateString()}</p>
           <p>Updated: {new Date(bid.updated_at).toLocaleDateString()}</p>
         </div>

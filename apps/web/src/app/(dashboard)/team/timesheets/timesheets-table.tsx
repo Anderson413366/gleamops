@@ -155,12 +155,12 @@ export default function TimesheetsTable({ search }: TimesheetsTableProps) {
               <TableCell className={Number(row.overtime_hours) > 0 ? 'text-orange-600 font-medium' : ''}>
                 {Number(row.overtime_hours).toFixed(1)}
               </TableCell>
-              <TableCell className="text-muted">{Number(row.break_hours).toFixed(1)}</TableCell>
+              <TableCell className="text-muted-foreground">{Number(row.break_hours).toFixed(1)}</TableCell>
               <TableCell>
                 {row.exception_count > 0 ? (
                   <Badge color="red">{row.exception_count}</Badge>
                 ) : (
-                  <span className="text-muted">0</span>
+                  <span className="text-muted-foreground">0</span>
                 )}
               </TableCell>
               <TableCell>

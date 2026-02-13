@@ -351,7 +351,7 @@ export function TemplateBuilder({ open, onClose, templateId, onSaved }: Template
             <CardHeader>
               <CardTitle>
                 <span className="inline-flex items-center gap-2">
-                  <Settings className="h-4 w-4 text-muted" />
+                  <Settings className="h-4 w-4 text-muted-foreground" />
                   Template Settings
                 </span>
               </CardTitle>
@@ -429,7 +429,7 @@ export function TemplateBuilder({ open, onClose, templateId, onSaved }: Template
               <div className="flex items-center justify-between">
                 <CardTitle>
                   <span className="inline-flex items-center gap-2">
-                    <ClipboardCheck className="h-4 w-4 text-muted" />
+                    <ClipboardCheck className="h-4 w-4 text-muted-foreground" />
                     Inspection Items ({activeItems.length})
                   </span>
                 </CardTitle>
@@ -443,7 +443,7 @@ export function TemplateBuilder({ open, onClose, templateId, onSaved }: Template
             </CardHeader>
             <CardContent>
               {activeItems.length === 0 ? (
-                <div className="text-center py-8 text-sm text-muted">
+                <div className="text-center py-8 text-sm text-muted-foreground">
                   No items yet. Click "Add Item" to start building your inspection checklist.
                 </div>
               ) : (
@@ -452,7 +452,7 @@ export function TemplateBuilder({ open, onClose, templateId, onSaved }: Template
                     <div key={sectionName}>
                       {/* Section header */}
                       <div className="flex items-center gap-2 mb-2">
-                        <p className="text-xs font-semibold text-muted uppercase tracking-wider">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                           {sectionName}
                         </p>
                         <Badge color="gray">{sectionItems.length}</Badge>
@@ -472,14 +472,14 @@ export function TemplateBuilder({ open, onClose, templateId, onSaved }: Template
                                 <button
                                   onClick={() => moveItem(activeIdx, 'up')}
                                   disabled={activeIdx === 0}
-                                  className="p-0.5 rounded hover:bg-gray-100 text-muted disabled:opacity-30"
+                                  className="p-0.5 rounded hover:bg-gray-100 text-muted-foreground disabled:opacity-30"
                                 >
                                   <GripVertical className="h-3 w-3 rotate-180" />
                                 </button>
                                 <button
                                   onClick={() => moveItem(activeIdx, 'down')}
                                   disabled={activeIdx === activeItems.length - 1}
-                                  className="p-0.5 rounded hover:bg-gray-100 text-muted disabled:opacity-30"
+                                  className="p-0.5 rounded hover:bg-gray-100 text-muted-foreground disabled:opacity-30"
                                 >
                                   <GripVertical className="h-3 w-3" />
                                 </button>
@@ -498,7 +498,7 @@ export function TemplateBuilder({ open, onClose, templateId, onSaved }: Template
                                     value={item.section ?? ''}
                                     onChange={(e) => updateItem(globalIndex, { section: e.target.value || null })}
                                     placeholder="Section..."
-                                    className="w-32 text-xs border border-border rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary text-muted"
+                                    className="w-32 text-xs border border-border rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary text-muted-foreground"
                                   />
                                 </div>
 
@@ -515,7 +515,7 @@ export function TemplateBuilder({ open, onClose, templateId, onSaved }: Template
                                     Photo
                                   </label>
                                   <div className="flex items-center gap-1">
-                                    <span className="text-muted">Weight:</span>
+                                    <span className="text-muted-foreground">Weight:</span>
                                     <input
                                       type="number"
                                       value={item.weight ?? 1}
@@ -531,7 +531,7 @@ export function TemplateBuilder({ open, onClose, templateId, onSaved }: Template
                               {/* Delete */}
                               <button
                                 onClick={() => removeItem(globalIndex)}
-                                className="p-1.5 rounded hover:bg-red-50 text-muted hover:text-red-500 transition-colors shrink-0"
+                                className="p-1.5 rounded hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors shrink-0"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </button>
@@ -543,7 +543,7 @@ export function TemplateBuilder({ open, onClose, templateId, onSaved }: Template
                       {/* Add to section */}
                       <button
                         onClick={() => addItem(sectionName === 'General' ? undefined : sectionName)}
-                        className="mt-2 text-xs text-muted hover:text-foreground flex items-center gap-1"
+                        className="mt-2 text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
                       >
                         <Plus className="h-3 w-3" />
                         Add to {sectionName}
@@ -565,7 +565,7 @@ export function TemplateBuilder({ open, onClose, templateId, onSaved }: Template
               Cancel
             </Button>
             {isEdit && (
-              <span className="ml-auto text-xs text-muted self-center">
+              <span className="ml-auto text-xs text-muted-foreground self-center">
                 {activeItems.length} items across {sectionNames.length} section{sectionNames.length > 1 ? 's' : ''}
               </span>
             )}

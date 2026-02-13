@@ -138,8 +138,8 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
                   {row.role.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
                 </Badge>
               </TableCell>
-              <TableCell className="text-muted">{row.email ?? '—'}</TableCell>
-              <TableCell className="text-muted">{row.phone ?? '—'}</TableCell>
+              <TableCell className="text-muted-foreground">{row.email ?? '—'}</TableCell>
+              <TableCell className="text-muted-foreground">{row.phone ?? '—'}</TableCell>
             </TableRow>
           ))}
         </TableBody>

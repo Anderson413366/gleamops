@@ -3,7 +3,10 @@ import { Inter } from 'next/font/google';
 import { Toaster } from 'sonner';
 import './globals.css';
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'GleamOps',
@@ -21,8 +24,10 @@ export default function RootLayout({
         {children}
         <Toaster
           position="top-right"
+          gap={8}
           toastOptions={{
             duration: 3000,
+            className: 'shadow-lg border-border',
           }}
         />
       </body>

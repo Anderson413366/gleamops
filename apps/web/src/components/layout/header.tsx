@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Bell, Search, Building2, MapPin, Users, TrendingUp, FileText, Settings, LogOut, User } from 'lucide-react';
+import { Bell, Search, Building2, MapPin, Users, TrendingUp, FileText, Settings, LogOut } from 'lucide-react';
 import { CommandPalette, type CommandItem } from '@gleamops/ui';
 import { useAuth } from '@/hooks/use-auth';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -173,40 +173,44 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 h-16 bg-white border-b border-border flex items-center justify-between px-6">
+      <header className="sticky top-0 z-30 h-16 bg-white/80 backdrop-blur-md border-b border-border flex items-center justify-between px-6">
         {/* Left: breadcrumb / page title area (filled by each page) */}
         <div className="flex-1" />
 
         {/* Right: search + notifications + avatar */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => setPaletteOpen(true)}
-            className="rounded-lg p-2 text-muted hover:bg-gray-50 hover:text-foreground transition-colors inline-flex items-center gap-2"
+            className="rounded-lg px-3 py-2 text-muted hover:bg-gray-100 hover:text-foreground transition-all duration-200 inline-flex items-center gap-2"
             aria-label="Search"
           >
-            <Search className="h-5 w-5" />
-            <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded border border-border px-1.5 py-0.5 text-[10px] font-medium text-muted">
+            <Search className="h-4 w-4" />
+            <span className="hidden sm:inline text-sm text-gray-400">Search...</span>
+            <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded-md border border-border bg-gray-50 px-1.5 py-0.5 text-[10px] font-medium text-muted">
               ⌘K
             </kbd>
           </button>
+
           {/* Notifications dropdown */}
           <div className="relative" ref={notifRef}>
             <button
               onClick={() => { setNotifOpen(!notifOpen); setProfileOpen(false); }}
-              className="rounded-lg p-2 text-muted hover:bg-gray-50 hover:text-foreground transition-colors relative"
+              className="rounded-lg p-2 text-muted hover:bg-gray-100 hover:text-foreground transition-all duration-200 relative"
               aria-label="Notifications"
             >
               <Bell className="h-5 w-5" />
             </button>
             {notifOpen && (
-              <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-lg shadow-lg border border-border z-50">
-                <div className="p-3 border-b border-border">
-                  <p className="text-sm font-medium text-foreground">Notifications</p>
+              <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-lg border border-border z-50 animate-scale-in overflow-hidden">
+                <div className="px-4 py-3 border-b border-border bg-gray-50/50">
+                  <p className="text-sm font-semibold text-foreground">Notifications</p>
                 </div>
-                <div className="p-6 text-center">
-                  <Bell className="h-8 w-8 text-muted mx-auto mb-2" />
-                  <p className="text-sm text-muted">No notifications</p>
-                  <p className="text-xs text-muted mt-1">You&apos;re all caught up!</p>
+                <div className="p-8 text-center">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3">
+                    <Bell className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <p className="text-sm font-medium text-foreground">All caught up!</p>
+                  <p className="text-xs text-muted mt-1">No new notifications</p>
                 </div>
               </div>
             )}
@@ -216,32 +220,32 @@ export function Header() {
           <div className="relative" ref={profileRef}>
             <button
               onClick={() => { setProfileOpen(!profileOpen); setNotifOpen(false); }}
-              className="h-8 w-8 rounded-full bg-gleam-500 text-white flex items-center justify-center text-sm font-medium hover:bg-gleam-600 transition-colors cursor-pointer"
+              className="h-9 w-9 rounded-full bg-gleam-600 text-white flex items-center justify-center text-sm font-bold hover:bg-gleam-700 transition-all duration-200 cursor-pointer ring-2 ring-white shadow-sm"
             >
               {user ? getInitials(user.email) : '?'}
             </button>
             {profileOpen && (
-              <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg shadow-lg border border-border z-50">
-                <div className="p-3 border-b border-border">
-                  <p className="text-sm font-medium text-foreground truncate">{user?.email}</p>
+              <div className="absolute right-0 top-full mt-2 w-60 bg-white rounded-xl shadow-lg border border-border z-50 animate-scale-in overflow-hidden">
+                <div className="px-4 py-3 border-b border-border bg-gray-50/50">
+                  <p className="text-sm font-semibold text-foreground truncate">{user?.email}</p>
                   {role && (
                     <p className="text-xs text-muted mt-0.5">
                       {role.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
                     </p>
                   )}
                 </div>
-                <div className="p-1">
+                <div className="p-1.5">
                   <Link
                     href="/settings"
                     onClick={() => setProfileOpen(false)}
-                    className="flex items-center gap-2 px-3 py-2 text-sm text-foreground rounded-md hover:bg-gray-50 transition-colors"
+                    className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     <Settings className="h-4 w-4 text-muted" />
                     Settings
                   </Link>
                   <button
                     onClick={() => { setProfileOpen(false); signOut(); }}
-                    className="flex items-center gap-2 px-3 py-2 text-sm text-foreground rounded-md hover:bg-gray-50 transition-colors w-full"
+                    className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground rounded-lg hover:bg-gray-50 transition-colors w-full"
                   >
                     <LogOut className="h-4 w-4 text-muted" />
                     Sign out

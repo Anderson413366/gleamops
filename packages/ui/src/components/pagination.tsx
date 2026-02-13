@@ -27,28 +27,28 @@ export function Pagination({
   if (totalItems === 0) return null;
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 text-sm">
+    <div className="flex items-center justify-between px-4 py-4 text-sm">
       <p className="text-muted">
-        Showing <span className="font-medium text-foreground">{start}</span> to{' '}
-        <span className="font-medium text-foreground">{end}</span> of{' '}
-        <span className="font-medium text-foreground">{totalItems}</span>
+        Showing <span className="font-semibold text-foreground">{start}</span> to{' '}
+        <span className="font-semibold text-foreground">{end}</span> of{' '}
+        <span className="font-semibold text-foreground">{totalItems}</span>
       </p>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <button
           onClick={onPrev}
           disabled={!hasPrev}
-          className="inline-flex items-center rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+          className="inline-flex items-center rounded-lg border border-border bg-white px-3.5 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-gray-50 hover:shadow-md disabled:opacity-40 disabled:pointer-events-none transition-all duration-200"
         >
           <ChevronLeft className="h-4 w-4 mr-1" />
           Previous
         </button>
-        <span className="text-muted">
+        <span className="text-muted tabular-nums font-medium">
           {currentPage} / {totalPages}
         </span>
         <button
           onClick={onNext}
           disabled={!hasNext}
-          className="inline-flex items-center rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+          className="inline-flex items-center rounded-lg border border-border bg-white px-3.5 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-gray-50 hover:shadow-md disabled:opacity-40 disabled:pointer-events-none transition-all duration-200"
         >
           Next
           <ChevronRight className="h-4 w-4 ml-1" />

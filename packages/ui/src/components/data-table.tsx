@@ -6,14 +6,14 @@ import { cn } from '../utils';
 // ---------------------------------------------------------------------------
 export function Table({ className, ...props }: React.HTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-border">
+    <div className="overflow-x-auto rounded-xl border border-border shadow-sm">
       <table className={cn('min-w-full divide-y divide-border', className)} {...props} />
     </div>
   );
 }
 
 export function TableHeader({ className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
-  return <thead className={cn('bg-gray-50', className)} {...props} />;
+  return <thead className={cn('bg-gray-50/80', className)} {...props} />;
 }
 
 export function TableBody({ className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
@@ -24,7 +24,9 @@ export function TableRow({ className, onClick, ...props }: React.HTMLAttributes<
   return (
     <tr
       className={cn(
-        onClick && 'cursor-pointer hover:bg-gray-50 transition-colors',
+        'transition-colors duration-150',
+        'even:bg-gray-50/40',
+        onClick && 'cursor-pointer hover:bg-gleam-50/50',
         className
       )}
       onClick={onClick}
@@ -36,7 +38,7 @@ export function TableRow({ className, onClick, ...props }: React.HTMLAttributes<
 export function TableCell({ className, ...props }: React.TdHTMLAttributes<HTMLTableCellElement>) {
   return (
     <td
-      className={cn('px-4 py-3 text-sm text-foreground whitespace-nowrap', className)}
+      className={cn('px-4 py-3.5 text-sm text-foreground whitespace-nowrap', className)}
       {...props}
     />
   );
@@ -70,8 +72,8 @@ export function TableHead({
   return (
     <th
       className={cn(
-        'px-4 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider',
-        sortable && 'cursor-pointer select-none hover:text-foreground',
+        'px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider',
+        sortable && 'cursor-pointer select-none hover:text-foreground transition-colors',
         className
       )}
       onClick={sortable ? onSort : undefined}
@@ -79,7 +81,12 @@ export function TableHead({
     >
       <span className="inline-flex items-center gap-1">
         {children}
-        {sortable && <SortIcon className="h-3.5 w-3.5" />}
+        {sortable && (
+          <SortIcon className={cn(
+            'h-3.5 w-3.5 transition-colors',
+            sorted ? 'text-gleam-600' : 'text-gray-400'
+          )} />
+        )}
       </span>
     </th>
   );

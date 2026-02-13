@@ -3,14 +3,18 @@ import { cn } from '../utils';
 import { Loader2 } from 'lucide-react';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.97]',
   {
     variants: {
       variant: {
-        primary: 'bg-gleam-600 text-white hover:bg-gleam-700 focus-visible:outline-gleam-600',
-        secondary: 'bg-white text-foreground ring-1 ring-inset ring-border hover:bg-gray-50',
-        ghost: 'text-muted hover:bg-gray-50 hover:text-foreground',
-        danger: 'bg-red-600 text-white hover:bg-red-700 focus-visible:outline-red-600',
+        primary:
+          'bg-gleam-600 text-white shadow-sm hover:bg-gleam-700 hover:shadow-md focus-visible:ring-gleam-500',
+        secondary:
+          'bg-white text-foreground ring-1 ring-inset ring-border shadow-sm hover:bg-gray-50 hover:shadow-md focus-visible:ring-gleam-500',
+        ghost:
+          'text-muted hover:bg-gray-100 hover:text-foreground focus-visible:ring-gleam-500',
+        danger:
+          'bg-red-600 text-white shadow-sm hover:bg-red-700 hover:shadow-md focus-visible:ring-red-500',
       },
       size: {
         sm: 'h-8 px-3 text-xs',

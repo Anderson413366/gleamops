@@ -5,14 +5,17 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {}
 export function Card({ className, ...props }: CardProps) {
   return (
     <div
-      className={cn('rounded-xl border border-border bg-white shadow-sm', className)}
+      className={cn(
+        'rounded-xl border border-border bg-white shadow-sm hover:shadow-md transition-shadow duration-200',
+        className
+      )}
       {...props}
     />
   );
 }
 
 export function CardHeader({ className, ...props }: CardProps) {
-  return <div className={cn('px-6 py-4 border-b border-border', className)} {...props} />;
+  return <div className={cn('px-6 py-5 border-b border-border', className)} {...props} />;
 }
 
 export function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
@@ -20,7 +23,7 @@ export function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHead
 }
 
 export function CardContent({ className, ...props }: CardProps) {
-  return <div className={cn('px-6 py-4', className)} {...props} />;
+  return <div className={cn('px-6 py-5', className)} {...props} />;
 }
 
 export function CardFooter({ className, ...props }: CardProps) {

@@ -23,10 +23,10 @@ export function ChipTabs({ tabs, active, onChange }: ChipTabsProps) {
           key={tab.key}
           onClick={() => onChange(tab.key)}
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-colors',
+            'inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200',
             active === tab.key
-              ? 'bg-gleam-600 text-white shadow-sm'
-              : 'bg-gray-100 text-muted hover:bg-gray-200 hover:text-foreground'
+              ? 'bg-gleam-600 text-white shadow-md shadow-gleam-600/25'
+              : 'bg-white text-gray-600 ring-1 ring-inset ring-border hover:bg-gray-50 hover:text-foreground hover:shadow-sm'
           )}
         >
           {tab.icon}
@@ -34,10 +34,10 @@ export function ChipTabs({ tabs, active, onChange }: ChipTabsProps) {
           {tab.count != null && (
             <span
               className={cn(
-                'ml-0.5 rounded-full px-1.5 py-0.5 text-xs font-medium',
+                'ml-0.5 rounded-full px-1.5 py-0.5 text-xs font-semibold',
                 active === tab.key
                   ? 'bg-white/20 text-white'
-                  : 'bg-gray-200 text-muted'
+                  : 'bg-gray-100 text-gray-500'
               )}
             >
               {tab.count}

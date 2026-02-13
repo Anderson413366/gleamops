@@ -15,6 +15,7 @@ import {
   LogOut,
   Menu,
   X,
+  Sparkles,
 } from 'lucide-react';
 import { useState } from 'react';
 import { NAV_ITEMS } from '@gleamops/shared';
@@ -31,6 +32,16 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Wrench,
 };
 
+function getInitials(email: string): string {
+  const name = email.split('@')[0];
+  if (!name) return '?';
+  const parts = name.split(/[._-]/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+}
+
 export function Sidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -41,34 +52,37 @@ export function Sidebar() {
       {/* Mobile hamburger */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="fixed top-4 left-4 z-50 md:hidden rounded-md bg-white p-2 shadow-md"
+        className="fixed top-4 left-4 z-50 md:hidden rounded-lg bg-white p-2 shadow-md border border-border"
         aria-label="Open navigation"
       >
-        <Menu className="h-5 w-5" />
+        <Menu className="h-5 w-5 text-foreground" />
       </button>
 
       {/* Overlay */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/30 md:hidden"
+          className="fixed inset-0 z-40 bg-gray-900/40 backdrop-blur-sm md:hidden animate-fade-in"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-border flex flex-col transition-transform md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-border flex flex-col transition-transform duration-300 ease-out md:translate-x-0 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between h-16 px-4 border-b border-border">
-          <Link href="/pipeline" className="text-xl font-bold text-gleam-600">
-            GleamOps
+        <div className="flex items-center justify-between h-16 px-5 border-b border-border">
+          <Link href="/pipeline" className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-lg bg-gleam-600 flex items-center justify-center">
+              <Sparkles className="h-4 w-4 text-white" />
+            </div>
+            <span className="text-lg font-bold text-foreground">GleamOps</span>
           </Link>
           <button
             onClick={() => setMobileOpen(false)}
-            className="md:hidden rounded-md p-1 hover:bg-gray-100"
+            className="md:hidden rounded-lg p-1.5 hover:bg-gray-100 transition-colors"
             aria-label="Close navigation"
           >
             <X className="h-5 w-5" />
@@ -86,13 +100,13 @@ export function Sidebar() {
                 key={item.id}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive
-                    ? 'bg-gleam-50 text-gleam-700'
-                    : 'text-muted hover:bg-gray-50 hover:text-foreground'
+                    ? 'bg-gleam-50 text-gleam-700 shadow-sm shadow-gleam-500/10'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-foreground'
                 }`}
               >
-                <Icon className="h-5 w-5 shrink-0" />
+                <Icon className={`h-5 w-5 shrink-0 ${isActive ? 'text-gleam-600' : ''}`} />
                 {item.label}
               </Link>
             );
@@ -102,23 +116,30 @@ export function Sidebar() {
         {/* Footer */}
         <div className="border-t border-border p-3 space-y-1">
           {user && (
-            <div className="px-3 py-2 mb-1">
-              <p className="text-sm font-medium text-foreground truncate">{user.email}</p>
-              {role && (
-                <p className="text-xs text-muted">{role.replace('_', ' ')}</p>
-              )}
+            <div className="flex items-center gap-3 px-3 py-2.5 mb-1">
+              <div className="h-8 w-8 rounded-full bg-gleam-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                {getInitials(user.email)}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">{user.email}</p>
+                {role && (
+                  <p className="text-xs text-muted">
+                    {role.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                  </p>
+                )}
+              </div>
             </div>
           )}
           <Link
             href="/settings"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted hover:bg-gray-50 hover:text-foreground transition-colors"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-foreground transition-colors"
           >
             <Settings className="h-5 w-5 shrink-0" />
             Settings
           </Link>
           <button
             onClick={signOut}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted hover:bg-gray-50 hover:text-foreground transition-colors w-full"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-foreground transition-colors w-full"
           >
             <LogOut className="h-5 w-5 shrink-0" />
             Sign out

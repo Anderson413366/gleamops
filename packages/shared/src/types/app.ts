@@ -11,7 +11,7 @@ export type UserRole =
   | 'INSPECTOR'
   | 'SALES';
 
-// Navigation spaces (7-item nav with Pipeline)
+// Navigation spaces
 export type NavSpace =
   | 'home'
   | 'pipeline'
@@ -19,6 +19,8 @@ export type NavSpace =
   | 'operations'
   | 'workforce'
   | 'inventory'
+  | 'assets'
+  | 'vendors'
   | 'safety'
   | 'admin';
 

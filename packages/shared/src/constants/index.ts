@@ -12,7 +12,9 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'crm', label: 'CRM', href: '/crm', icon: 'Building2' },
   { id: 'operations', label: 'Operations', href: '/operations', icon: 'Calendar' },
   { id: 'workforce', label: 'Workforce', href: '/workforce', icon: 'Users' },
-  { id: 'inventory', label: 'Inventory & Assets', href: '/inventory', icon: 'Package' },
+  { id: 'inventory', label: 'Inventory', href: '/inventory', icon: 'Package' },
+  { id: 'assets', label: 'Assets', href: '/assets', icon: 'Wrench' },
+  { id: 'vendors', label: 'Vendors', href: '/vendors', icon: 'Truck' },
   { id: 'safety', label: 'Safety', href: '/safety', icon: 'ShieldCheck' },
   { id: 'admin', label: 'Admin', href: '/admin', icon: 'Wrench' },
 ];

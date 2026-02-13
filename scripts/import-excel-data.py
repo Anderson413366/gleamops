@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """
 Import data from Anderson_Cleaning_Database_UPDATED_Feb2026.xlsx into GleamOps Supabase.
+Comprehensive import mapping EVERY Excel column to its Supabase equivalent.
+
 Steps:
-  1. Delete all existing test/sample data (respecting FK order)
+  1. Delete all existing data (respecting FK order)
   2. Import real data from Excel (respecting FK order)
+  3. Update system_sequences with max codes
 """
 
 import openpyxl
@@ -11,9 +14,10 @@ import json
 import urllib.request
 import urllib.error
 import uuid
+import re
 import sys
 import os
-from datetime import datetime, date
+from datetime import datetime, date, time as dtime
 
 # ── Config ────────────────────────────────────────────────────────────────────
 SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
@@ -35,70 +39,108 @@ HEADERS = {
 }
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
-def api(method, table, data=None, params=''):
-    url = f'{SUPABASE_URL}/rest/v1/{table}{params}'
-    body = json.dumps(data).encode() if data else None
-    req = urllib.request.Request(url, data=body, headers=HEADERS, method=method)
-    try:
-        resp = urllib.request.urlopen(req)
-        if resp.status in (200, 201):
-            body_text = resp.read().decode()
-            return json.loads(body_text) if body_text.strip() else None
-        return None
-    except urllib.error.HTTPError as e:
-        error_body = e.read().decode()
-        print(f'  ERROR {method} {table}: {e.code} - {error_body[:300]}')
-        return None
+def gen_uuid():
+    return str(uuid.uuid4())
 
-def delete_all(table):
-    """Delete all rows from a table using service role (bypasses RLS)."""
-    url = f'{SUPABASE_URL}/rest/v1/{table}?id=not.is.null'
-    req = urllib.request.Request(url, headers=HEADERS, method='DELETE')
-    try:
-        resp = urllib.request.urlopen(req)
-        print(f'  Deleted from {table}')
-    except urllib.error.HTTPError as e:
-        error_body = e.read().decode()
-        if '404' in str(e.code):
-            print(f'  {table}: table not found, skipping')
-        else:
-            print(f'  ERROR deleting {table}: {e.code} - {error_body[:200]}')
+def clean_str(v):
+    if v is None:
+        return None
+    s = str(v).strip()
+    return s if s and s not in ('N/A', 'n/a', 'None', 'NULL', '-') else None
 
-def batch_insert(table, rows, batch_size=100):
-    """Insert rows in batches."""
-    if not rows:
-        print(f'  {table}: 0 rows, skipping')
-        return 0
-    total = 0
-    for i in range(0, len(rows), batch_size):
-        batch = rows[i:i+batch_size]
-        url = f'{SUPABASE_URL}/rest/v1/{table}'
-        body = json.dumps(batch).encode()
-        h = dict(HEADERS)
-        h['Prefer'] = 'return=minimal,resolution=ignore-duplicates'
-        req = urllib.request.Request(url, data=body, headers=h, method='POST')
+def clean_date(v):
+    if v is None:
+        return None
+    if isinstance(v, datetime):
+        return v.strftime('%Y-%m-%d')
+    if isinstance(v, date):
+        return v.strftime('%Y-%m-%d')
+    s = str(v).strip()
+    if not s or s in ('N/A', 'n/a', 'None', '', '-'):
+        return None
+    for fmt in ('%Y-%m-%d', '%m/%d/%Y', '%m/%d/%y', '%Y-%m-%dT%H:%M:%S'):
         try:
-            urllib.request.urlopen(req)
-            total += len(batch)
-        except urllib.error.HTTPError as e:
-            error_body = e.read().decode()
-            print(f'  ERROR inserting {table} batch {i//batch_size}: {error_body[:400]}')
-            # Try one by one
-            for row in batch:
-                try:
-                    req2 = urllib.request.Request(url, data=json.dumps(row).encode(), headers=h, method='POST')
-                    urllib.request.urlopen(req2)
-                    total += 1
-                except urllib.error.HTTPError as e2:
-                    err = e2.read().decode()
-                    code_val = row.get(next((k for k in row if 'code' in k.lower()), 'id'), '?')
-                    print(f'    SKIP {table} row {code_val}: {err[:200]}')
-    print(f'  {table}: {total}/{len(rows)} rows inserted')
-    return total
+            return datetime.strptime(s, fmt).strftime('%Y-%m-%d')
+        except ValueError:
+            continue
+    return None
+
+def clean_time(v):
+    """Convert to HH:MM:SS time string."""
+    if v is None:
+        return None
+    if isinstance(v, dtime):
+        return v.strftime('%H:%M:%S')
+    if isinstance(v, datetime):
+        return v.strftime('%H:%M:%S')
+    s = str(v).strip()
+    if not s or s in ('N/A', 'n/a', 'None', '', '-'):
+        return None
+    # Try parsing common formats
+    for fmt in ('%H:%M:%S', '%H:%M', '%I:%M %p', '%I:%M%p', '%I:%M:%S %p'):
+        try:
+            return datetime.strptime(s, fmt).strftime('%H:%M:%S')
+        except ValueError:
+            continue
+    return None
+
+def clean_num(v, default=None):
+    if v is None:
+        return default
+    if isinstance(v, (int, float)):
+        return v
+    s = str(v).strip().replace(',', '').replace('$', '').replace('%', '')
+    if not s or s in ('N/A', 'n/a', 'None', '-', ''):
+        return default
+    try:
+        return float(s)
+    except ValueError:
+        return default
+
+def clean_int(v, default=None):
+    n = clean_num(v, default)
+    if n is None:
+        return default
+    return int(round(n))
+
+def clean_bool(v, default=True):
+    if v is None:
+        return default
+    if isinstance(v, bool):
+        return v
+    s = str(v).strip().upper()
+    if s in ('TRUE', 'YES', '1', 'Y', 'ACTIVE'):
+        return True
+    if s in ('FALSE', 'NO', '0', 'N', 'INACTIVE'):
+        return False
+    return default
+
+def clean_role(raw):
+    """Clean staff role, removing emoji prefixes and level suffixes."""
+    if not raw:
+        return 'CLEANER'
+    role_clean = re.sub(r'^[^\w]+', '', raw).strip()
+    role_clean = role_clean.split('•')[0].strip()
+    role_clean = role_clean.split('·')[0].strip()
+    role_map = {
+        'Owner': 'OWNER_ADMIN', 'Manager': 'MANAGER', 'Supervisor': 'SUPERVISOR',
+        'Cleaner': 'CLEANER', 'Inspector': 'INSPECTOR', 'Sales': 'SALES',
+        'Admin': 'OWNER_ADMIN', 'Lead': 'SUPERVISOR', 'Account Manager': 'MANAGER',
+        'Operations Manager': 'MANAGER', 'Project Manager': 'MANAGER',
+    }
+    return role_map.get(role_clean, 'CLEANER')
+
+def map_status(raw, mapping, default='ACTIVE'):
+    if not raw:
+        return default
+    s = str(raw).strip()
+    if s in mapping:
+        return mapping[s]
+    return s.upper().replace(' ', '_')
 
 def read_sheet(wb, sheet_name):
-    """Read sheet into list of dicts using header row."""
     if sheet_name not in wb.sheetnames:
+        print(f'  Sheet "{sheet_name}" not found')
         return []
     ws = wb[sheet_name]
     headers = []
@@ -108,7 +150,6 @@ def read_sheet(wb, sheet_name):
             headers.append(str(v).strip())
         else:
             headers.append(f'_col{c}')
-
     rows = []
     for r in range(2, ws.max_row + 1):
         row = {}
@@ -122,68 +163,53 @@ def read_sheet(wb, sheet_name):
             rows.append(row)
     return rows
 
-def clean_str(v):
-    """Clean string value."""
-    if v is None:
-        return None
-    s = str(v).strip()
-    return s if s else None
-
-def clean_date(v):
-    """Convert Excel date to ISO string."""
-    if v is None:
-        return None
-    if isinstance(v, datetime):
-        return v.strftime('%Y-%m-%d')
-    if isinstance(v, date):
-        return v.strftime('%Y-%m-%d')
-    s = str(v).strip()
-    if not s or s in ('N/A', 'n/a', 'None', ''):
-        return None
-    # Try common formats
-    for fmt in ('%Y-%m-%d', '%m/%d/%Y', '%m/%d/%y', '%Y-%m-%dT%H:%M:%S'):
-        try:
-            return datetime.strptime(s, fmt).strftime('%Y-%m-%d')
-        except ValueError:
-            continue
-    return None
-
-def clean_num(v, default=None):
-    """Convert to number."""
-    if v is None:
-        return default
-    if isinstance(v, (int, float)):
-        return v
-    s = str(v).strip().replace(',', '').replace('$', '')
-    if not s or s in ('N/A', 'n/a', 'None', '-', ''):
-        return default
+def delete_all(table):
+    url = f'{SUPABASE_URL}/rest/v1/{table}?id=not.is.null'
+    req = urllib.request.Request(url, headers=HEADERS, method='DELETE')
     try:
-        return float(s)
-    except ValueError:
-        return default
+        urllib.request.urlopen(req)
+        print(f'  Deleted from {table}')
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode()
+        if '404' in str(e.code):
+            print(f'  {table}: table not found, skipping')
+        else:
+            print(f'  ERROR deleting {table}: {e.code} - {error_body[:200]}')
 
-def clean_bool(v, default=True):
-    """Convert to boolean."""
-    if v is None:
-        return default
-    if isinstance(v, bool):
-        return v
-    s = str(v).strip().upper()
-    if s in ('TRUE', 'YES', '1', 'Y', 'ACTIVE'):
-        return True
-    if s in ('FALSE', 'NO', '0', 'N', 'INACTIVE'):
-        return False
-    return default
-
-def gen_uuid():
-    return str(uuid.uuid4())
+def batch_insert(table, rows, batch_size=100):
+    if not rows:
+        print(f'  {table}: 0 rows, skipping')
+        return 0
+    total = 0
+    for i in range(0, len(rows), batch_size):
+        batch = rows[i:i+batch_size]
+        url = f'{SUPABASE_URL}/rest/v1/{table}'
+        body = json.dumps(batch, default=str).encode()
+        h = dict(HEADERS)
+        h['Prefer'] = 'return=minimal,resolution=ignore-duplicates'
+        req = urllib.request.Request(url, data=body, headers=h, method='POST')
+        try:
+            urllib.request.urlopen(req)
+            total += len(batch)
+        except urllib.error.HTTPError as e:
+            error_body = e.read().decode()
+            print(f'  ERROR inserting {table} batch {i//batch_size}: {error_body[:400]}')
+            for row in batch:
+                try:
+                    req2 = urllib.request.Request(url, data=json.dumps(row, default=str).encode(), headers=h, method='POST')
+                    urllib.request.urlopen(req2)
+                    total += 1
+                except urllib.error.HTTPError as e2:
+                    err = e2.read().decode()
+                    code_val = row.get(next((k for k in row if 'code' in k.lower()), 'id'), '?')
+                    print(f'    SKIP {table} row {code_val}: {err[:200]}')
+    print(f'  {table}: {total}/{len(rows)} rows inserted')
+    return total
 
 
 # ── Step 1: Delete all existing data ─────────────────────────────────────────
 def delete_all_data():
-    print('\n=== STEP 1: Deleting all existing test data ===\n')
-
-    # Delete in reverse FK order (children first, parents last)
+    print('\n=== STEP 1: Deleting all existing data ===\n')
     delete_order = [
         # Sales pipeline children
         'sales_followup_sends', 'sales_followup_sequences',
@@ -236,35 +262,48 @@ def delete_all_data():
         'sites', 'clients', 'staff',
         # User/RBAC
         'user_profiles', 'user_client_access',
-        # System (keep tenants, tenant_memberships, system_sequences, lookups, status_transitions)
+        # System
         'audit_events', 'notifications', 'files',
     ]
-
     for table in delete_order:
         delete_all(table)
-
-    # Also clear lookups and status_transitions (will re-seed)
     delete_all('lookups')
     delete_all('status_transitions')
-
     print('\n  All existing data deleted.')
 
 
 # ── Step 2: Import Excel data ────────────────────────────────────────────────
 def import_data():
     print('\n=== STEP 2: Importing Excel data ===\n')
-
     wb = openpyxl.load_workbook(EXCEL_PATH, data_only=True)
 
     # ID maps: Excel code → Supabase UUID
-    client_ids = {}   # client_code → uuid
-    site_ids = {}     # site_code → uuid
-    staff_ids = {}    # staff_code → uuid
-    service_ids = {}  # service_code → uuid
-    task_ids = {}     # task_code → uuid
-    job_ids = {}      # job_code → uuid
-    supply_ids = {}   # supply_code → uuid
-    position_ids = {} # position_code → uuid
+    client_ids = {}
+    site_ids = {}
+    staff_ids = {}
+    service_ids = {}
+    task_ids = {}
+    job_ids = {}
+    supply_ids = {}
+    position_ids = {}
+    equipment_ids = {}
+    subcontractor_ids = {}
+    count_ids = {}
+
+    CLIENT_STATUS = {'Active': 'ACTIVE', 'Inactive': 'INACTIVE', 'On Hold': 'ON_HOLD',
+                     'Prospect': 'PROSPECT', 'Cancelled': 'CANCELED', 'Canceled': 'CANCELED'}
+    SITE_STATUS = {'Active': 'ACTIVE', 'Inactive': 'INACTIVE', 'On Hold': 'ON_HOLD',
+                   'Canceled': 'CANCELED', 'Cancelled': 'CANCELED'}
+    STAFF_STATUS = {'Active': 'ACTIVE', 'Inactive': 'INACTIVE', 'On Leave': 'ON_LEAVE',
+                    'Terminated': 'TERMINATED'}
+    JOB_STATUS = {'Active': 'ACTIVE', 'Inactive': 'INACTIVE', 'On Hold': 'ON_HOLD',
+                  'Canceled': 'CANCELED', 'Cancelled': 'CANCELED', 'Completed': 'COMPLETED'}
+    FREQ_MAP = {
+        'Daily': 'DAILY', 'Weekly': 'WEEKLY', 'Monthly': 'MONTHLY',
+        'Bi-Weekly': 'BIWEEKLY', 'Biweekly': 'BIWEEKLY',
+        '2x Weekly': '2X_WEEK', '3x Weekly': '3X_WEEK', '4x Weekly': '4X_WEEK', '5x Weekly': '5X_WEEK',
+        'As Needed': 'AS_NEEDED', 'One-Time': 'AS_NEEDED',
+    }
 
     # ── 2a. Lookups ──────────────────────────────────────────────────────
     print('Importing lookups...')
@@ -278,40 +317,16 @@ def import_data():
             continue
         lookups.append({
             'id': gen_uuid(),
-            'tenant_id': None,  # Global lookups
+            'tenant_id': None,
             'category': cat,
             'code': code,
             'label': label,
-            'sort_order': int(clean_num(r.get('Sort'), 0)),
+            'sort_order': clean_int(r.get('Sort'), 0),
             'is_active': clean_bool(r.get('Active')),
         })
     batch_insert('lookups', lookups)
 
-    # ── 2b. Status Rules → status_transitions ────────────────────────────
-    print('Importing status transitions...')
-    status_rows = read_sheet(wb, 'Status Rules')
-    transitions = []
-    for r in status_rows:
-        entity = clean_str(r.get('Entity'))
-        code = clean_str(r.get('Status Code'))
-        label = clean_str(r.get('Status Label'))
-        if not entity or not code:
-            continue
-        # Add as lookups too
-        cat = f'{entity.lower()}_status'
-        lookups.append({
-            'id': gen_uuid(),
-            'tenant_id': None,
-            'category': cat,
-            'code': code,
-            'label': label or code,
-            'sort_order': int(clean_num(r.get('Sort'), 0)),
-            'is_active': clean_bool(r.get('Active')),
-        })
-    # Re-insert lookups with status rules added
-    # (skip — the lookups are already inserted; status rules as lookups would duplicate)
-
-    # ── 2c. Staff Positions ──────────────────────────────────────────────
+    # ── 2b. Staff Positions ──────────────────────────────────────────────
     print('Importing staff positions...')
     pos_rows = read_sheet(wb, 'Staff Position')
     positions = []
@@ -333,7 +348,7 @@ def import_data():
         })
     batch_insert('staff_positions', positions)
 
-    # ── 2d. Services ─────────────────────────────────────────────────────
+    # ── 2c. Services ─────────────────────────────────────────────────────
     print('Importing services...')
     svc_rows = read_sheet(wb, 'Service')
     services = []
@@ -353,7 +368,7 @@ def import_data():
         })
     batch_insert('services', services)
 
-    # ── 2e. Tasks ────────────────────────────────────────────────────────
+    # ── 2d. Tasks ────────────────────────────────────────────────────────
     print('Importing tasks...')
     task_rows = read_sheet(wb, 'Task')
     tasks = []
@@ -364,22 +379,36 @@ def import_data():
             continue
         tid = gen_uuid()
         task_ids[code] = tid
-        prod_rate = clean_num(r.get('Production Rate'))
+
+        freq_raw = clean_str(r.get('Frequency')) or 'DAILY'
+        freq = FREQ_MAP.get(freq_raw, freq_raw.upper().replace(' ', '_').replace('-', '_'))
+
         tasks.append({
             'id': tid,
             'tenant_id': TENANT_ID,
             'task_code': code,
             'name': name,
             'category': clean_str(r.get('Category')),
+            'subcategory': clean_str(r.get('Subcategory')),
+            'area_type': clean_str(r.get('Area Type')),
+            'floor_type': clean_str(r.get('Floor Type')),
+            'priority_level': clean_str(r.get('Priority Level')),
+            'default_minutes': clean_int(r.get('Default Minutes')),
+            'production_rate_sqft_per_hour': clean_num(r.get('Production Rate')),
             'unit_code': clean_str(r.get('Default UOM')) or 'SQFT_1000',
-            'production_rate_sqft_per_hour': prod_rate,
+            'spec_description': clean_str(r.get('Spec Description')),
+            'work_description': clean_str(r.get('Work Description')),
+            'tools_materials': clean_str(r.get('Tools Materials')),
+            'notes': clean_str(r.get('Notes')),
+            'is_active': clean_bool(r.get('Is Active')),
         })
     batch_insert('tasks', tasks)
 
-    # ── 2f. Service Tasks ────────────────────────────────────────────────
+    # ── 2e. Service Tasks ────────────────────────────────────────────────
     print('Importing service tasks...')
     st_rows = read_sheet(wb, 'Service Task')
     service_tasks = []
+    seen_st = set()
     for r in st_rows:
         svc_code = clean_str(r.get('Service Code'))
         tsk_code = clean_str(r.get('Task Code'))
@@ -389,24 +418,30 @@ def import_data():
         tid = task_ids.get(tsk_code)
         if not sid or not tid:
             continue
-        freq = clean_str(r.get('Typical Frequency')) or 'DAILY'
-        # Normalize frequency
-        freq_map = {
-            'Daily': 'DAILY', 'Weekly': 'WEEKLY', 'Monthly': 'MONTHLY',
-            'Bi-Weekly': 'BIWEEKLY', 'As Needed': 'AS_NEEDED',
-            '2x Weekly': '2X_WEEK', '3x Weekly': '3X_WEEK', '5x Weekly': '5X_WEEK',
-        }
-        freq = freq_map.get(freq, freq.upper().replace(' ', '_').replace('-', '_'))
+        key = (sid, tid)
+        if key in seen_st:
+            continue
+        seen_st.add(key)
+
+        freq_raw = clean_str(r.get('Typical Frequency')) or 'DAILY'
+        freq = FREQ_MAP.get(freq_raw, freq_raw.upper().replace(' ', '_').replace('-', '_'))
+
         service_tasks.append({
             'id': gen_uuid(),
             'tenant_id': TENANT_ID,
             'service_id': sid,
             'task_id': tid,
             'frequency_default': freq,
+            'sequence_order': clean_int(r.get('Sequence Order'), 0),
+            'priority_level': clean_str(r.get('Priority Level')),
+            'is_required': clean_bool(r.get('Is Required')),
+            'estimated_minutes': clean_int(r.get('Estimated Minutes')),
+            'quality_weight': clean_num(r.get('Quality Weight'), 1),
+            'notes': clean_str(r.get('Notes')),
         })
     batch_insert('service_tasks', service_tasks)
 
-    # ── 2g. Clients ──────────────────────────────────────────────────────
+    # ── 2f. Clients ──────────────────────────────────────────────────────
     print('Importing clients...')
     cli_rows = read_sheet(wb, 'Client')
     clients = []
@@ -418,15 +453,13 @@ def import_data():
         cid = gen_uuid()
         client_ids[code] = cid
 
-        status = clean_str(r.get('Client Status')) or 'ACTIVE'
-        status_map = {'Active': 'ACTIVE', 'Inactive': 'INACTIVE', 'On Hold': 'ON_HOLD',
-                       'Prospect': 'PROSPECT', 'Cancelled': 'CANCELED', 'Canceled': 'CANCELED'}
-        status = status_map.get(status, status.upper().replace(' ', '_'))
+        status = map_status(r.get('Client Status'), CLIENT_STATUS)
 
         billing_addr = {}
-        if clean_str(r.get('Billing Address')):
+        street = clean_str(r.get('Billing Address'))
+        if street:
             billing_addr = {
-                'street': clean_str(r.get('Billing Address')),
+                'street': street,
                 'suite': clean_str(r.get('Suite/Unit')),
                 'city': clean_str(r.get('Billing City')),
                 'state': clean_str(r.get('Billing State')),
@@ -440,32 +473,45 @@ def import_data():
             'name': name,
             'status': status,
             'billing_address': billing_addr if billing_addr else None,
+            'client_since': clean_date(r.get('Client Since')),
+            'client_type': clean_str(r.get('Client Type')),
+            'industry': clean_str(r.get('Industry')),
+            'bill_to_name': clean_str(r.get('Bill To Name')),
+            'payment_terms': clean_str(r.get('Payment Terms')),
+            'po_required': clean_bool(r.get('PO Required'), False),
+            'insurance_required': clean_bool(r.get('Insurance Required'), False),
+            'insurance_expiry': clean_date(r.get('Insurance Expiry Date')),
+            'credit_limit': clean_num(r.get('Credit Limit')),
+            'website': clean_str(r.get('Website')),
+            'tax_id': clean_str(r.get('Tax ID')),
+            'contract_start_date': clean_date(r.get('Contract Start Date')),
+            'contract_end_date': clean_date(r.get('Contract End Date')),
+            'auto_renewal': clean_bool(r.get('Auto Renewal'), False),
+            'invoice_frequency': clean_str(r.get('Invoice Frequency')),
             'notes': clean_str(r.get('Notes')),
         })
     batch_insert('clients', clients)
 
-    # ── 2h. Sites ────────────────────────────────────────────────────────
-    print('Importing sites...')
-    site_rows = read_sheet(wb, 'Site')
-    sites = []
-    for r in site_rows:
-        code = clean_str(r.get('Site Code'))
-        name = clean_str(r.get('Site Name'))
-        if not code or not name:
+    # ── 2g. Staff ────────────────────────────────────────────────────────
+    print('Importing staff...')
+    stf_rows = read_sheet(wb, 'Staff')
+    staff_list = []
+    staff_supervisor_map = {}  # staff_code → supervisor_code (resolve after insert)
+    for r in stf_rows:
+        code = clean_str(r.get('Staff Code'))
+        if not code:
             continue
-
-        client_code = clean_str(r.get('Client Code'))
-        client_id = client_ids.get(client_code)
-        if not client_id:
-            continue  # Skip orphaned sites
+        first = clean_str(r.get('First Name'))
+        last = clean_str(r.get('Last Name'))
+        full_name = f'{first or ""} {last or ""}'.strip()
+        if not full_name:
+            full_name = code  # fallback
 
         sid = gen_uuid()
-        site_ids[code] = sid
+        staff_ids[code] = sid
 
-        status = clean_str(r.get('Site Status')) or 'ACTIVE'
-        status_map = {'Active': 'ACTIVE', 'Inactive': 'INACTIVE', 'On Hold': 'ON_HOLD',
-                       'Canceled': 'CANCELED', 'Cancelled': 'CANCELED'}
-        status = status_map.get(status, status.upper().replace(' ', '_'))
+        role = clean_role(clean_str(r.get('Staff Role')))
+        status = map_status(r.get('Staff Status'), STAFF_STATUS)
 
         address = {}
         street = clean_str(r.get('Street Address'))
@@ -478,7 +524,94 @@ def import_data():
                 'zip': clean_str(r.get('ZIP Code')),
             }
 
-        sqft = clean_num(r.get('Total Cleanable SqFt'))
+        sup_code = clean_str(r.get('Supervisor Code'))
+        if sup_code:
+            staff_supervisor_map[code] = sup_code
+
+        staff_list.append({
+            'id': sid,
+            'tenant_id': TENANT_ID,
+            'staff_code': code,
+            'full_name': full_name,
+            'first_name': first,
+            'last_name': last,
+            'preferred_name': clean_str(r.get('Preferred Name')),
+            'role': role,
+            'staff_status': status,
+            'staff_type': clean_str(r.get('Staff Type')),
+            'employment_type': clean_str(r.get('Employment Type')),
+            'hire_date': clean_date(r.get('Hire Date')),
+            'termination_date': clean_date(r.get('Termination Date')),
+            'email': clean_str(r.get('Email')),
+            'phone': clean_str(r.get('Mobile Phone')),
+            'mobile_phone': clean_str(r.get('Mobile Phone')),
+            'pay_rate': clean_num(r.get('Pay Rate')),
+            'schedule_type': clean_str(r.get('Schedule Type')),
+            'address': address if address else None,
+            'emergency_contact_name': clean_str(r.get('Emergency Contact Name')),
+            'emergency_contact_phone': clean_str(r.get('Emergency Contact Phone')),
+            'emergency_contact_relationship': clean_str(r.get('Emergency Contact Relationship')),
+            'certifications': clean_str(r.get('Certifications')),
+            'performance_rating': clean_num(r.get('Performance Rating')),
+            'background_check_date': clean_date(r.get('Background Check Date')),
+            'photo_url': clean_str(r.get('Photo URL')),
+            'notes': clean_str(r.get('Notes')),
+        })
+    batch_insert('staff', staff_list)
+
+    # Patch supervisor_id references
+    if staff_supervisor_map:
+        print(f'  Patching {len(staff_supervisor_map)} supervisor references...')
+        patched = 0
+        for staff_code, sup_code in staff_supervisor_map.items():
+            staff_id = staff_ids.get(staff_code)
+            sup_id = staff_ids.get(sup_code)
+            if staff_id and sup_id:
+                url = f'{SUPABASE_URL}/rest/v1/staff?id=eq.{staff_id}'
+                data = json.dumps({'supervisor_id': sup_id}).encode()
+                req = urllib.request.Request(url, data=data, method='PATCH', headers=HEADERS)
+                try:
+                    urllib.request.urlopen(req)
+                    patched += 1
+                except urllib.error.HTTPError:
+                    pass
+        print(f'  Patched {patched}/{len(staff_supervisor_map)} supervisors')
+
+    # ── 2h. Sites ────────────────────────────────────────────────────────
+    print('Importing sites...')
+    site_rows = read_sheet(wb, 'Site')
+    sites = []
+    site_contact_refs = []  # (site_code, primary_code, emergency_code, supervisor_code) for later
+    for r in site_rows:
+        code = clean_str(r.get('Site Code'))
+        name = clean_str(r.get('Site Name'))
+        if not code or not name:
+            continue
+
+        client_code = clean_str(r.get('Client Code'))
+        client_id = client_ids.get(client_code)
+        if not client_id:
+            print(f'    WARN: Site {code} has unknown client {client_code}, skipping')
+            continue
+
+        sid = gen_uuid()
+        site_ids[code] = sid
+
+        status = map_status(r.get('Site Status'), SITE_STATUS)
+
+        address = {}
+        street = clean_str(r.get('Street Address'))
+        if street:
+            address = {
+                'street': street,
+                'suite': clean_str(r.get('Suite/Unit')),
+                'city': clean_str(r.get('City')),
+                'state': clean_str(r.get('State')),
+                'zip': clean_str(r.get('ZIP Code')),
+            }
+
+        sup_code = clean_str(r.get('Supervisor Code'))
+        sup_id = staff_ids.get(sup_code) if sup_code else None
 
         sites.append({
             'id': sid,
@@ -487,75 +620,110 @@ def import_data():
             'site_code': code,
             'name': name,
             'status': status,
-            'address': address if address else None,
+            'status_date': clean_date(r.get('Status Date')),
+            'status_reason': clean_str(r.get('Status Reason')),
+            'service_start_date': clean_date(r.get('Service Start Date')),
+            'address': address if address else {},
             'alarm_code': clean_str(r.get('Alarm Code')),
+            'alarm_system': clean_str(r.get('Alarm System')),
+            'alarm_company': clean_str(r.get('Alarm Company')),
+            'security_protocol': clean_str(r.get('Security Protocol')),
             'access_notes': clean_str(r.get('Entry Instructions')),
-            'square_footage': sqft,
+            'entry_instructions': clean_str(r.get('Entry Instructions')),
+            'parking_instructions': clean_str(r.get('Parking Instructions')),
+            'square_footage': clean_num(r.get('Total Cleanable SqFt')),
+            'number_of_floors': clean_int(r.get('Number Of Floors')),
+            'employees_on_site': clean_int(r.get('Employees On Site')),
+            'earliest_start_time': clean_time(r.get('Earliest Start Time')),
+            'latest_start_time': clean_time(r.get('Latest Start Time')),
+            'business_hours_start': clean_time(r.get('Business Hours Start')),
+            'business_hours_end': clean_time(r.get('Business Hours End')),
+            'weekend_access': clean_bool(r.get('Weekend Access'), False),
+            'janitorial_closet_location': clean_str(r.get('Janitorial Closet Location')),
+            'supply_storage_location': clean_str(r.get('Supply Storage Location')),
+            'water_source_location': clean_str(r.get('Water Source Location')),
+            'dumpster_location': clean_str(r.get('Dumpster Location')),
+            'supervisor_id': sup_id,
+            'risk_level': clean_str(r.get('Risk Level')),
+            'priority_level': clean_str(r.get('Priority Level')),
+            'osha_compliance_required': clean_bool(r.get('OSHA Compliance Required'), False),
+            'background_check_required': clean_bool(r.get('Background Check Required'), False),
+            'last_inspection_date': clean_date(r.get('Last Inspection Date')),
+            'next_inspection_date': clean_date(r.get('Next Inspection Date')),
+            'notes': clean_str(r.get('Notes')),
         })
     batch_insert('sites', sites)
 
-    # ── 2i. Staff ────────────────────────────────────────────────────────
-    print('Importing staff...')
-    stf_rows = read_sheet(wb, 'Staff')
-    staff_list = []
-    for r in stf_rows:
-        code = clean_str(r.get('Staff Code'))
-        first = clean_str(r.get('First Name'))
-        last = clean_str(r.get('Last Name'))
-        if not first and not last:
-            continue
-        if not code:
+    # ── 2i. Subcontractors ───────────────────────────────────────────────
+    print('Importing subcontractors...')
+    sub_rows = read_sheet(wb, 'Subcontractor')
+    subs = []
+    for r in sub_rows:
+        code = clean_str(r.get('Subcontractor Code'))
+        name = clean_str(r.get('Subcontractor Name'))
+        if not code or not name:
             continue
 
-        sid = gen_uuid()
-        staff_ids[code] = sid
+        sub_id = gen_uuid()
+        subcontractor_ids[code] = sub_id
 
-        full_name = f'{first or ""} {last or ""}'.strip()
-        raw_role = clean_str(r.get('Staff Role')) or 'CLEANER'
-        # Remove emoji prefixes (e.g., "🟢 Cleaner • Level 1" → "Cleaner")
-        import re
-        role_clean = re.sub(r'^[^\w]+', '', raw_role).strip()  # Remove leading non-word chars
-        role_clean = role_clean.split('•')[0].strip()  # Remove "• Level X" suffix
-        role_clean = role_clean.split('·')[0].strip()  # Alternative bullet
-        role_map = {'Owner': 'OWNER_ADMIN', 'Manager': 'MANAGER', 'Supervisor': 'SUPERVISOR',
-                     'Cleaner': 'CLEANER', 'Inspector': 'INSPECTOR', 'Sales': 'SALES',
-                     'Admin': 'OWNER_ADMIN', 'Lead': 'SUPERVISOR', 'Account Manager': 'MANAGER',
-                     'Operations Manager': 'MANAGER', 'Project Manager': 'MANAGER'}
-        role = role_map.get(role_clean, 'CLEANER')
+        address = {}
+        street = clean_str(r.get('Street Address'))
+        if street:
+            address = {
+                'street': street,
+                'city': clean_str(r.get('City')),
+                'state': clean_str(r.get('State')),
+                'zip': clean_str(r.get('ZIP Code')),
+            }
 
-        status = clean_str(r.get('Staff Status')) or 'ACTIVE'
-        status_map = {'Active': 'ACTIVE', 'Inactive': 'INACTIVE', 'On Leave': 'ON_LEAVE',
-                       'Terminated': 'TERMINATED'}
-        status = status_map.get(status, status.upper().replace(' ', '_'))
-
-        pay_rate = clean_num(r.get('Pay Rate'))
-
-        staff_list.append({
-            'id': sid,
+        subs.append({
+            'id': sub_id,
             'tenant_id': TENANT_ID,
-            'staff_code': code,
-            'full_name': full_name,
-            'role': role,
-            'staff_status': status,
-            'pay_rate': pay_rate,
+            'subcontractor_code': code,
+            'company_name': name,
+            'contact_name': clean_str(r.get('Contact Name')),
+            'contact_title': clean_str(r.get('Contact Title')),
             'email': clean_str(r.get('Email')),
-            'phone': clean_str(r.get('Mobile Phone')),
+            'phone': clean_str(r.get('Business Phone')),
+            'business_phone': clean_str(r.get('Business Phone')),
+            'mobile_phone': clean_str(r.get('Mobile Phone')),
+            'website': clean_str(r.get('Website')),
+            'address': address if address else None,
+            'status': 'ACTIVE',
+            'services_provided': clean_str(r.get('Services Provided')),
+            'license_number': clean_str(r.get('License Number')),
+            'license_expiry': clean_date(r.get('License Expiry')),
+            'insurance_company': clean_str(r.get('Insurance Company')),
+            'insurance_policy_number': clean_str(r.get('Insurance Policy Number')),
+            'insurance_expiry': clean_date(r.get('Insurance Expiry')),
+            'hourly_rate': clean_num(r.get('Hourly Rate')),
+            'payment_terms': clean_str(r.get('Payment Terms')),
+            'tax_id': clean_str(r.get('Tax ID')),
+            'w9_on_file': clean_bool(r.get('W9 On File'), False),
+            'notes': clean_str(r.get('Notes')),
         })
-    batch_insert('staff', staff_list)
+    batch_insert('subcontractors', subs)
 
     # ── 2j. Site Jobs ────────────────────────────────────────────────────
     print('Importing site jobs...')
     job_rows = read_sheet(wb, 'Site Job')
     jobs = []
+    seen_job_codes = set()
     for r in job_rows:
         code = clean_str(r.get('Job Code'))
         name = clean_str(r.get('Job Name'))
         site_code = clean_str(r.get('Site Code'))
         if not code or not name:
             continue
+        if code in seen_job_codes:
+            print(f'    WARN: Duplicate job code {code}, skipping')
+            continue
+        seen_job_codes.add(code)
 
         site_id = site_ids.get(site_code)
         if not site_id:
+            print(f'    WARN: Job {code} has unknown site {site_code}, skipping')
             continue
 
         jid = gen_uuid()
@@ -564,21 +732,13 @@ def import_data():
         svc_code = clean_str(r.get('Service Code'))
         svc_id = service_ids.get(svc_code)
 
-        status = clean_str(r.get('Job Status')) or 'ACTIVE'
-        status_map = {'Active': 'ACTIVE', 'Inactive': 'INACTIVE', 'On Hold': 'ON_HOLD',
-                       'Canceled': 'CANCELED', 'Cancelled': 'CANCELED', 'Completed': 'COMPLETED'}
-        status = status_map.get(status, status.upper().replace(' ', '_'))
+        status = map_status(r.get('Job Status'), JOB_STATUS)
 
-        freq = clean_str(r.get('Frequency')) or 'WEEKLY'
-        freq_map = {
-            'Daily': 'DAILY', 'Weekly': 'WEEKLY', 'Monthly': 'MONTHLY',
-            'Bi-Weekly': 'BIWEEKLY', 'Biweekly': 'BIWEEKLY',
-            '2x Weekly': '2X_WEEK', '3x Weekly': '3X_WEEK', '5x Weekly': '5X_WEEK',
-            'As Needed': 'AS_NEEDED', 'One-Time': 'AS_NEEDED',
-        }
-        freq = freq_map.get(freq, freq.upper().replace(' ', '_').replace('-', '_'))
+        freq_raw = clean_str(r.get('Frequency')) or 'WEEKLY'
+        freq = FREQ_MAP.get(freq_raw, freq_raw.upper().replace(' ', '_').replace('-', '_'))
 
-        billing = clean_num(r.get('Billing Amount'))
+        sub_code = clean_str(r.get('Subcontractor Code'))
+        sub_id = subcontractor_ids.get(sub_code) if sub_code else None
 
         jobs.append({
             'id': jid,
@@ -588,9 +748,26 @@ def import_data():
             'job_name': name,
             'status': status,
             'frequency': freq,
-            'billing_amount': billing,
-            'billing_uom': clean_str(r.get('Billing UOM')) or 'MONTHLY',
             'service_id': svc_id,
+            'job_type': clean_str(r.get('Job Type')),
+            'priority_level': clean_str(r.get('Priority Level')),
+            'schedule_days': clean_str(r.get('Schedule Days')),
+            'staff_needed': clean_int(r.get('Staff Needed')),
+            'start_time': clean_time(r.get('Start Time')),
+            'end_time': clean_time(r.get('End Time')),
+            'estimated_hours_per_service': clean_num(r.get('Estimated Hours Svc')),
+            'estimated_hours_per_month': clean_num(r.get('Estimated Hours Mo')),
+            'last_service_date': clean_date(r.get('Last Service Date')),
+            'next_service_date': clean_date(r.get('Next Service Date')),
+            'quality_score': clean_num(r.get('Quality Score')),
+            'billing_uom': clean_str(r.get('Billing UOM')) or 'MONTHLY',
+            'billing_amount': clean_num(r.get('Billing Amount')),
+            'job_assigned_to': clean_str(r.get('Job Assigned To')),
+            'subcontractor_id': sub_id,
+            'invoice_description': clean_str(r.get('Invoice Service Description')),
+            'specifications': clean_str(r.get('Job Specifications')),
+            'special_requirements': clean_str(r.get('Special Requirements')),
+            'notes': clean_str(r.get('Notes')),
         })
     batch_insert('site_jobs', jobs)
 
@@ -614,8 +791,9 @@ def import_data():
             'job_id': job_id,
             'task_id': task_id,
             'task_code': task_code,
-            'planned_minutes': int(round(clean_num(r.get('Planned Minutes'), 0))),
-            'qc_weight': int(round(clean_num(r.get('Qc Weight'), 0))),
+            'task_name': clean_str(r.get('Task Name')),
+            'planned_minutes': clean_int(r.get('Planned Minutes'), 0),
+            'qc_weight': clean_num(r.get('Qc Weight'), 1),
             'is_required': clean_bool(r.get('Is Required')),
             'status': clean_str(r.get('Status')) or 'ACTIVE',
             'notes': clean_str(r.get('Notes')),
@@ -627,21 +805,36 @@ def import_data():
     sup_rows = read_sheet(wb, 'Supply')
     supplies = []
     for r in sup_rows:
-        # Headers have emoji prefixes
-        code = clean_str(r.get('🏷️ Supply_Code'))
-        name = clean_str(r.get('🇺🇸 Supply_Name_EN'))
+        code = clean_str(r.get('\U0001f3f7\ufe0f Supply_Code'))
+        name = clean_str(r.get('\U0001f1fa\U0001f1f8 Supply_Name_EN'))
         if not code or not name:
             continue
         supid = gen_uuid()
         supply_ids[code] = supid
+
         supplies.append({
             'id': supid,
             'tenant_id': TENANT_ID,
             'code': code,
             'name': name,
-            'category': clean_str(r.get('📁 Supply_Category')),
-            'unit': clean_str(r.get('Unit_Of_Measure')),
-            'notes': clean_str(r.get('📝 Description_EN')),
+            'description': clean_str(r.get('\U0001f4dd Description_EN')),
+            'category': clean_str(r.get('\U0001f4c1 Supply_Category')),
+            'supply_status': clean_str(r.get('\U0001f504 Supply_Status')) or 'ACTIVE',
+            'unit': clean_str(r.get('Unit_Of_Measure')) or 'EA',
+            'pack_size': clean_str(r.get('Pack_Size')),
+            'min_stock_level': clean_int(r.get('\u26a0\ufe0f Min_Stock_Level')),
+            'brand': clean_str(r.get('Brand')),
+            'manufacturer': clean_str(r.get('Manufacturer')),
+            'model_number': clean_str(r.get('Model_Number')),
+            'markup_percentage': clean_num(r.get('Markup_Percentage')),
+            'billing_rate': clean_num(r.get('Billing_Rate')),
+            'preferred_vendor': clean_str(r.get('Preferred_Vendor')),
+            'vendor_sku': clean_str(r.get('Vendor_Item_Sku')),
+            'eco_rating': clean_str(r.get('Eco_Rating')),
+            'ppe_required': clean_bool(r.get('PPE'), False),
+            'sds_url': clean_str(r.get('SDS_Link')),
+            'image_url': clean_str(r.get('\U0001f5bc\ufe0f Supply_Image_URL')),
+            'notes': clean_str(r.get('Notes')),
         })
     batch_insert('supply_catalog', supplies)
 
@@ -652,151 +845,241 @@ def import_data():
     for r in eq_rows:
         code = clean_str(r.get('Equipment Code'))
         name = clean_str(r.get('Equipment Name'))
-        if not code or not name:
+        if not code:
             continue
+        if not name:
+            name = code
+
+        eid = gen_uuid()
+        equipment_ids[code] = eid
 
         condition = clean_str(r.get('Condition')) or 'GOOD'
-        condition_map = {'Good': 'GOOD', 'Fair': 'FAIR', 'Poor': 'POOR',
-                          'Out of Service': 'OUT_OF_SERVICE', 'New': 'GOOD'}
-        condition = condition_map.get(condition, condition.upper().replace(' ', '_'))
+        condition = condition.upper().replace(' ', '_')
 
         equip_list.append({
-            'id': gen_uuid(),
+            'id': eid,
             'tenant_id': TENANT_ID,
             'equipment_code': code,
             'name': name,
             'equipment_type': clean_str(r.get('Equipment Type')),
+            'equipment_category': clean_str(r.get('Equipment Category')),
+            'manufacturer': clean_str(r.get('Manufacturer')),
+            'brand': clean_str(r.get('Brand')),
+            'model_number': clean_str(r.get('Model Number')),
             'condition': condition,
             'serial_number': clean_str(r.get('Serial Number')),
             'purchase_date': clean_date(r.get('Purchase Date')),
+            'purchase_price': clean_num(r.get('Purchase Price')),
+            'maintenance_specs': clean_str(r.get('Maintenance Specs')),
+            'maintenance_schedule': clean_str(r.get('Maintenance Schedule')),
+            'last_maintenance_date': clean_date(r.get('Last Maintenance Date')),
+            'next_maintenance_date': clean_date(r.get('Next Maintenance Date')),
+            'photo_url': clean_str(r.get('Equipment Photo URL')),
             'notes': clean_str(r.get('Notes')),
         })
     batch_insert('equipment', equip_list)
 
-    # ── 2n. Subcontractors ───────────────────────────────────────────────
-    print('Importing subcontractors...')
-    sub_rows = read_sheet(wb, 'Subcontractor')
-    subs = []
-    for r in sub_rows:
-        code = clean_str(r.get('Subcontractor Code'))
-        name = clean_str(r.get('Subcontractor Name'))
-        if not code or not name:
+    # ── 2n. Equipment Assignments ────────────────────────────────────────
+    print('Importing equipment assignments...')
+    ea_rows = read_sheet(wb, 'Equipment Assignment')
+    equip_assigns = []
+    for r in ea_rows:
+        eq_code = clean_str(r.get('Equipment Code'))
+        if not eq_code:
             continue
-        subs.append({
+        eq_id = equipment_ids.get(eq_code)
+        if not eq_id:
+            continue
+
+        staff_code = clean_str(r.get('Assigned Employee Code'))
+        site_code = clean_str(r.get('Assigned Site Code'))
+
+        equip_assigns.append({
             'id': gen_uuid(),
             'tenant_id': TENANT_ID,
-            'subcontractor_code': code,
-            'company_name': name,
-            'contact_name': clean_str(r.get('Contact Name')),
-            'email': clean_str(r.get('Email')),
-            'phone': clean_str(r.get('Business Phone')),
-            'status': 'ACTIVE',
-            'services_provided': clean_str(r.get('Services Provided')),
-            'license_number': clean_str(r.get('License Number')),
-            'insurance_expiry': clean_date(r.get('Insurance Expiry')),
+            'equipment_id': eq_id,
+            'staff_id': staff_ids.get(staff_code),
+            'site_id': site_ids.get(site_code),
+            'assigned_date': clean_date(r.get('Assignment Date')) or datetime.now().strftime('%Y-%m-%d'),
+            'returned_date': clean_date(r.get('Return Date')),
             'notes': clean_str(r.get('Notes')),
         })
-    batch_insert('subcontractors', subs)
+    batch_insert('equipment_assignments', equip_assigns)
 
-    # ── 2o. Inventory Counts ─────────────────────────────────────────────
-    print('Importing inventory counts...')
-    ic_rows = read_sheet(wb, 'Inventory Count')
-    counts = []
-    count_ids = {}  # count_code → uuid
-    for r in ic_rows:
-        code = clean_str(r.get('🔖 Count Code'))
-        site_code = clean_str(r.get('🏢 Site Code'))
-        if not code or not site_code:
+    # ── 2o. Supply Assignments → site_supplies ───────────────────────────
+    print('Importing site supplies (supply assignments)...')
+    sa_rows = read_sheet(wb, 'Supply Assignment')
+    site_supplies = []
+    seen_ss = set()
+    for r in sa_rows:
+        site_code = clean_str(r.get('\U0001f3e2 Site_Code'))
+        supply_code = clean_str(r.get('\U0001f3f7\ufe0f Supply_Code'))
+        supply_name = clean_str(r.get('\U0001f4e6 Supply_Name'))
+        if not site_code or not supply_code:
             continue
         site_id = site_ids.get(site_code)
         if not site_id:
             continue
+        key = (site_id, supply_code)
+        if key in seen_ss:
+            continue
+        seen_ss.add(key)
+
+        site_supplies.append({
+            'id': gen_uuid(),
+            'tenant_id': TENANT_ID,
+            'site_id': site_id,
+            'name': supply_name or supply_code,
+            'category': None,
+            'notes': clean_str(r.get('Notes')),
+        })
+    batch_insert('site_supplies', site_supplies)
+
+    # ── 2p. Inventory Counts ─────────────────────────────────────────────
+    # NOTE: Excel headers are MISALIGNED with data. Actual data mapping:
+    #   Col 0 (📊 Count ID)       → count_code (CNT-*)
+    #   Col 1 (🔖 Count Code)     → site_code (SIT-*)
+    #   Col 2 (🏢 Site Code)      → counted_by name
+    #   Col 3 (📝 Form Code)      → count_date
+    #   Col 6 (⏰ Count Timestamp) → notes
+    print('Importing inventory counts...')
+    ic_rows = read_sheet(wb, 'Inventory Count')
+    counts = []
+    for r in ic_rows:
+        # Use ACTUAL data positions (headers are wrong)
+        count_code = clean_str(r.get('\U0001f4ca Count ID'))  # col 0 = count code
+        site_code = clean_str(r.get('\U0001f516 Count Code'))  # col 1 = site code
+        if not count_code or not site_code:
+            continue
+        site_id = site_ids.get(site_code)
+        if not site_id:
+            continue
+
         cid = gen_uuid()
-        count_ids[code] = cid
+        count_ids[count_code] = cid
+
+        # Col 3 (📝 Form Code) is actually count_date
+        count_date = clean_date(r.get('\U0001f4dd Form Code'))
+        if not count_date:
+            count_date = datetime.now().strftime('%Y-%m-%d')
+
+        # Col 6 (⏰ Count Timestamp) is actually notes
+        notes = clean_str(r.get('\u23f0 Count Timestamp'))
+
         counts.append({
             'id': cid,
             'tenant_id': TENANT_ID,
-            'count_code': code,
+            'count_code': count_code,
             'site_id': site_id,
-            'count_date': clean_date(r.get('📅 Count Date')) or datetime.now().strftime('%Y-%m-%d'),
-            'status': clean_str(r.get('Status')) or 'COMPLETED',
-            'notes': clean_str(r.get('Notes')),
+            'count_date': count_date,
+            'status': 'COMPLETED',
+            'notes': notes,
         })
     batch_insert('inventory_counts', counts)
 
-    # ── 2p. Inventory Count Details ──────────────────────────────────────
+    # ── 2q. Inventory Count Details ──────────────────────────────────────
+    # NOTE: Excel headers also misaligned. Actual data mapping:
+    #   Col 0 (🔢 Detail ID)       → count_code (FK to parent)
+    #   Col 2 (🏷️ Supply Code)     → supply description with [CODE] in brackets
+    #   Col 3 (📦 Supply Category)  → quantity counted
     print('Importing inventory count details...')
+    # Build supply name → supply_id map for fuzzy matching
+    supply_name_map = {}
+    for r in read_sheet(wb, 'Supply'):
+        scode = clean_str(r.get('\U0001f3f7\ufe0f Supply_Code'))
+        sname = clean_str(r.get('\U0001f1fa\U0001f1f8 Supply_Name_EN'))
+        if scode and sname and scode in supply_ids:
+            supply_name_map[sname.upper()] = supply_ids[scode]
+
     icd_rows = read_sheet(wb, 'Inventory Count Detail')
     details = []
     for r in icd_rows:
-        count_code = clean_str(r.get('🔖 Count Code'))
-        supply_code = clean_str(r.get('🏷️ Supply Code'))
-        if not count_code or not supply_code:
+        # Col 0 = count_code (parent FK)
+        parent_count_code = clean_str(r.get('\U0001f522 Detail ID'))
+        if not parent_count_code:
             continue
-        count_id = count_ids.get(count_code)
-        supply_id = supply_ids.get(supply_code)
-        if not count_id or not supply_id:
+        count_id = count_ids.get(parent_count_code)
+        if not count_id:
             continue
+
+        # Col 2 = supply description like "CLEANER FOO BAR [CODE]"
+        supply_desc = clean_str(r.get('\U0001f3f7\ufe0f Supply Code'))
+        if not supply_desc:
+            continue
+
+        # Try to match supply by name (strip bracketed code)
+        name_part = re.sub(r'\s*\[.*?\]\s*$', '', supply_desc).strip().upper()
+        supply_id = supply_name_map.get(name_part)
+        if not supply_id:
+            # Try partial match
+            for sname, sid in supply_name_map.items():
+                if sname.startswith(name_part[:30]) or name_part.startswith(sname[:30]):
+                    supply_id = sid
+                    break
+        if not supply_id:
+            continue
+
+        # Col 3 = actual quantity
+        qty = clean_num(r.get('\U0001f4e6 Supply Category'), 0)
+
         details.append({
             'id': gen_uuid(),
             'tenant_id': TENANT_ID,
             'count_id': count_id,
             'supply_id': supply_id,
-            'expected_qty': clean_num(r.get('⚠️ Minimum Stock Level')),
-            'actual_qty': clean_num(r.get('📊 Quantity Counted')),
-            'notes': clean_str(r.get('Condition Notes')),
+            'actual_qty': qty,
+            'notes': None,
         })
     batch_insert('inventory_count_details', details)
 
-    # ── 2q. Update system_sequences with actual max codes ────────────────
+    # ── 2r. Update system_sequences ──────────────────────────────────────
     print('Updating system_sequences...')
     prefix_maxes = {}
-    for code in client_ids.keys():
-        num = int(code.split('-')[1]) if '-' in code else 0
-        prefix_maxes['CLI'] = max(prefix_maxes.get('CLI', 0), num)
-    for code in site_ids.keys():
-        num = int(code.split('-')[1]) if '-' in code else 0
-        prefix_maxes['SIT'] = max(prefix_maxes.get('SIT', 0), num)
+    for code_map, prefix in [(client_ids, 'CLI'), (site_ids, 'SIT'), (supply_ids, 'SUP')]:
+        for code in code_map.keys():
+            parts = code.split('-')
+            if len(parts) >= 2:
+                try:
+                    num = int(parts[1])
+                    prefix_maxes[prefix] = max(prefix_maxes.get(prefix, 0), num)
+                except ValueError:
+                    pass
+
     for code in staff_ids.keys():
         parts = code.split('-')
         if len(parts) >= 2:
             try:
-                num = int(parts[1].split('-')[0].rstrip('A'))
+                num = int(parts[1].rstrip('A'))
+                prefix_maxes['STF'] = max(prefix_maxes.get('STF', 0), num)
             except ValueError:
-                num = 0
-            prefix_maxes['STF'] = max(prefix_maxes.get('STF', 0), num)
+                pass
+
     for code in job_ids.keys():
         parts = code.split('-')
         if len(parts) >= 2:
             try:
                 num = int(parts[1])
+                prefix_maxes['JOB'] = max(prefix_maxes.get('JOB', 0), num)
             except ValueError:
-                num = 0
-            prefix_maxes['JOB'] = max(prefix_maxes.get('JOB', 0), num)
+                pass
+
     for code in task_ids.keys():
         parts = code.split('-')
         if len(parts) >= 2:
             try:
                 num = int(parts[1])
+                prefix_maxes['TSK'] = max(prefix_maxes.get('TSK', 0), num)
             except ValueError:
-                num = 0
-            prefix_maxes['TSK'] = max(prefix_maxes.get('TSK', 0), num)
+                pass
+
     for code in service_ids.keys():
         parts = code.split('-')
         if len(parts) >= 2:
             try:
                 num = int(parts[1])
+                prefix_maxes['SER'] = max(prefix_maxes.get('SER', 0), num)
             except ValueError:
-                num = 0
-            prefix_maxes['SER'] = max(prefix_maxes.get('SER', 0), num)
-    for code in supply_ids.keys():
-        parts = code.split('-')
-        if len(parts) >= 2:
-            try:
-                num = int(parts[1])
-            except ValueError:
-                num = 0
-            prefix_maxes['SUP'] = max(prefix_maxes.get('SUP', 0), num)
+                pass
 
     for prefix, max_val in prefix_maxes.items():
         url = f'{SUPABASE_URL}/rest/v1/system_sequences?tenant_id=eq.{TENANT_ID}&prefix=eq.{prefix}'
@@ -808,33 +1091,27 @@ def import_data():
             urllib.request.urlopen(req)
             print(f'  {prefix}: set to {max_val}')
         except urllib.error.HTTPError as e:
-            print(f'  {prefix}: ERROR updating - {e.read().decode()[:100]}')
+            print(f'  {prefix}: ERROR - {e.read().decode()[:100]}')
 
+    # ── Summary ──────────────────────────────────────────────────────────
     print(f'\n=== IMPORT COMPLETE ===')
-    print(f'Clients: {len(client_ids)}')
-    print(f'Sites: {len(site_ids)}')
-    print(f'Staff: {len(staff_ids)}')
-    print(f'Services: {len(service_ids)}')
-    print(f'Tasks: {len(task_ids)}')
-    print(f'Site Jobs: {len(job_ids)}')
-    print(f'Job Tasks: {len(job_tasks)}')
-    print(f'Supplies: {len(supply_ids)}')
-    print(f'Positions: {len(position_ids)}')
-    print(f'Equipment: {len(equip_list)}')
-    print(f'Subcontractors: {len(subs)}')
-    print(f'Inventory Counts: {len(counts)}')
-    print(f'Inventory Details: {len(details)}')
-    print(f'Lookups: {len(lookups)}')
-
-    return {
-        'client_ids': client_ids,
-        'site_ids': site_ids,
-        'staff_ids': staff_ids,
-        'service_ids': service_ids,
-        'task_ids': task_ids,
-        'job_ids': job_ids,
-        'supply_ids': supply_ids,
-    }
+    print(f'Clients:              {len(client_ids)}')
+    print(f'Sites:                {len(site_ids)}')
+    print(f'Staff:                {len(staff_ids)}')
+    print(f'Services:             {len(service_ids)}')
+    print(f'Tasks:                {len(task_ids)}')
+    print(f'Service Tasks:        {len(service_tasks)}')
+    print(f'Site Jobs:            {len(job_ids)}')
+    print(f'Job Tasks:            {len(job_tasks)}')
+    print(f'Supplies:             {len(supply_ids)}')
+    print(f'Equipment:            {len(equipment_ids)}')
+    print(f'Equipment Assigns:    {len(equip_assigns)}')
+    print(f'Site Supplies:        {len(site_supplies)}')
+    print(f'Subcontractors:       {len(subcontractor_ids)}')
+    print(f'Positions:            {len(position_ids)}')
+    print(f'Inventory Counts:     {len(count_ids)}')
+    print(f'Inventory Details:    {len(details)}')
+    print(f'Lookups:              {len(lookups)}')
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 'use client';
 
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { useForm } from '@/hooks/use-form';
+import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { equipmentSchema, type EquipmentFormData } from '@gleamops/shared';
 import { SlideOver, Input, Select, Textarea, Button } from '@gleamops/ui';
 import type { Equipment } from '@gleamops/shared';
@@ -53,7 +53,7 @@ export function EquipmentForm({ open, onClose, initialData, onSuccess }: Equipme
       : DEFAULTS,
     onSubmit: async (data) => {
       if (isEdit) {
-        const { error } = await supabase
+        const result = await supabase
           .from('equipment')
           .update({
             name: data.name,
@@ -66,8 +66,9 @@ export function EquipmentForm({ open, onClose, initialData, onSuccess }: Equipme
             notes: data.notes,
           })
           .eq('id', initialData!.id)
-          .eq('version_etag', initialData!.version_etag);
-        if (error) throw error;
+          .eq('version_etag', initialData!.version_etag)
+          .select();
+        assertUpdateSucceeded(result);
       } else {
         const { error } = await supabase.from('equipment').insert({
           ...data,

@@ -400,7 +400,9 @@ export interface SalesProposalPricingOption extends StandardColumns {
   proposal_id: string;
   label: string; // Good | Better | Best
   monthly_price: number;
+  description: string | null;
   is_recommended: boolean;
+  sort_order: number;
 }
 
 export interface SalesProposalSend extends StandardColumns {
@@ -517,7 +519,7 @@ export interface WorkTicket extends StandardColumns {
   scheduled_date: string;
   start_time: string | null;
   end_time: string | null;
-  status: string; // SCHEDULED | IN_PROGRESS | COMPLETED | VERIFIED | CANCELLED
+  status: string; // SCHEDULED | IN_PROGRESS | COMPLETED | VERIFIED | CANCELED
 }
 
 export interface TicketAssignment extends StandardColumns {
@@ -893,7 +895,7 @@ export interface SupplyOrder extends StandardColumns {
   supplier: string | null;
   order_date: string;
   expected_delivery: string | null;
-  status: string; // DRAFT | ORDERED | SHIPPED | RECEIVED | CANCELLED
+  status: string; // DRAFT | ORDERED | SHIPPED | RECEIVED | CANCELED
   total_amount: number | null;
   notes: string | null;
 }
@@ -962,6 +964,71 @@ export interface StaffPosition extends StandardColumns {
 }
 
 // ---------------------------------------------------------------------------
+// Module D: Job Logs & Job Tasks
+// ---------------------------------------------------------------------------
+export interface JobLog extends StandardColumns {
+  site_id: string;
+  job_id: string | null;
+  log_date: string;
+  event_type: string; // Lookups "Log Event Type"
+  message: string | null;
+  severity: 'MINOR' | 'MAJOR' | 'CRITICAL';
+  description: string | null;
+  photos_link: string | null;
+  corrective_action: string | null;
+  closed_at: string | null;
+  status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
+  notes: string | null;
+}
+
+export interface JobTask extends StandardColumns {
+  job_id: string;
+  task_id: string | null;
+  task_code: string | null;
+  task_name: string | null;
+  planned_minutes: number | null;
+  qc_weight: number | null;
+  is_required: boolean;
+  status: string | null;
+  notes: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Job Staff Assignments
+// ---------------------------------------------------------------------------
+export interface JobStaffAssignment extends StandardColumns {
+  job_id: string;
+  staff_id: string;
+  role: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  notes: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// RBAC: User Profiles & Client Access
+// ---------------------------------------------------------------------------
+export interface UserProfile {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  phone: string | null;
+  preferences: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserClientAccess {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  client_id: string;
+  created_at: string;
+}
+
+// ---------------------------------------------------------------------------
 // Module F: Site Supplies & Asset Gating
 // ---------------------------------------------------------------------------
 export interface SiteSupply extends StandardColumns {
@@ -985,4 +1052,311 @@ export interface TicketAssetCheckout extends StandardColumns {
   staff_id: string;
   checked_out_at: string;
   returned_at: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Materialized Views (read-only)
+// ---------------------------------------------------------------------------
+export interface MvJobFinancials {
+  job_id: string;
+  tenant_id: string;
+  job_code: string;
+  job_name: string | null;
+  status: string;
+  frequency: string;
+  billing_amount: number | null;
+  billing_uom: string | null;
+  site_id: string;
+  site_code: string;
+  site_name: string;
+  client_id: string;
+  client_code: string;
+  client_name: string;
+  actual_hours_30d: number;
+  time_entries_30d: number;
+}
+
+export interface MvClientSummary {
+  client_id: string;
+  tenant_id: string;
+  client_code: string;
+  client_name: string;
+  status: string;
+  site_count: number;
+  job_count: number;
+  total_monthly_revenue: number;
+}
+
+export interface MvStaffPerformance {
+  staff_id: string;
+  tenant_id: string;
+  staff_code: string;
+  full_name: string;
+  role: string;
+  staff_status: string | null;
+  hours_last_30d: number;
+  entries_last_30d: number;
+  exceptions_last_30d: number;
+}
+
+// ---------------------------------------------------------------------------
+// Module B+: Sales Expansion Tables (Milestone 9)
+// ---------------------------------------------------------------------------
+export interface SalesBidSite extends StandardColumns {
+  bid_version_id: string;
+  site_name: string;
+  street_address: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  country: string | null;
+  building_type_code: string | null;
+  total_square_footage: number | null;
+  building_occupancy: number | null;
+  public_traffic_code: string | null;
+  security_clearance_required: boolean;
+  union_required: boolean;
+  sustainability_required: boolean;
+  walkthrough_date: string | null;
+  notes: string | null;
+}
+
+export interface SalesBidGeneralTask extends StandardColumns {
+  bid_version_id: string;
+  task_name: string;
+  category_code: string; // QUALITY | CLOSING | SETUP | TRAVEL | BREAK | MANAGEMENT | OTHER
+  time_minutes: number;
+  enabled: boolean;
+}
+
+export interface SalesProductionRate extends StandardColumns {
+  rate_code: string;
+  task_name: string;
+  unit_code: string; // SQFT_1000 | EACH
+  base_minutes: number;
+  default_ml_adjustment: number;
+  floor_type_code: string | null;
+  building_type_code: string | null;
+  is_active: boolean;
+  notes: string | null;
+}
+
+export interface SalesBidConsumables extends StandardColumns {
+  bid_version_id: string;
+  include_consumables: boolean;
+  toilet_paper_case_cost: number;
+  toilet_paper_usage_per_person_month: number;
+  paper_towel_case_cost: number;
+  paper_towel_usage_per_person_month: number;
+  soap_case_cost: number;
+  soap_usage_per_person_month: number;
+  liner_case_cost: number;
+  liner_usage_per_person_month: number;
+  seat_cover_case_cost: number;
+  seat_cover_usage_per_person_month: number;
+  markup_pct: number;
+  monthly_consumables_cost: number; // computed
+}
+
+export interface SalesBidSupplyAllowance extends StandardColumns {
+  bid_version_id: string;
+  allowance_per_sqft: number;
+  monthly_supply_allowance: number;
+}
+
+export interface SalesBidSupplyKit extends StandardColumns {
+  bid_version_id: string;
+  kit_id: string;
+  quantity_multiplier: number;
+  include_in_conversion: boolean;
+}
+
+export interface SalesBidEquipmentPlanItem extends StandardColumns {
+  bid_version_id: string;
+  equipment_type_code: string | null;
+  cost: number;
+  life_years: number;
+  quantity_needed: number;
+  condition_code: string; // NEW | GOOD | FAIR | POOR
+  monthly_depreciation: number; // computed
+}
+
+export interface SalesBidOverhead extends StandardColumns {
+  bid_version_id: string;
+  office_rent: number;
+  utilities: number;
+  phones_internet: number;
+  marketing: number;
+  insurance: number;
+  vehicle: number;
+  misc: number;
+  allocation_percentage: number;
+  industry_benchmark_percentage: number;
+  overhead_total: number; // computed
+  overhead_allocated: number; // computed
+}
+
+export interface SalesBidPricingStrategy extends StandardColumns {
+  bid_version_id: string;
+  method_code: string; // COST_PLUS | TARGET_MARGIN | MARKET_RATE | HYBRID
+  cost_plus_markup_pct: number;
+  target_margin_pct: number;
+  market_rate_low: number | null;
+  market_rate_high: number | null;
+  minimum_monthly: number | null;
+  include_initial_clean: boolean;
+  initial_clean_multiplier: number;
+  annual_increase_pct: number;
+  final_price_override: number | null;
+  price_elasticity_code: string; // LOW | MEDIUM | HIGH
+}
+
+export interface SalesProposalAttachment extends StandardColumns {
+  proposal_id: string;
+  file_id: string;
+  sort_order: number;
+  one_page_confirmed: boolean;
+}
+
+export interface SalesMarketingInsert extends StandardColumns {
+  insert_code: string;
+  title: string;
+  file_id: string;
+  is_active: boolean;
+}
+
+export interface SalesProposalMarketingInsert extends StandardColumns {
+  proposal_id: string;
+  insert_code: string;
+  sort_order: number;
+}
+
+export interface SalesProposalSignature extends StandardColumns {
+  proposal_id: string;
+  signer_name: string;
+  signer_email: string;
+  signature_type_code: string; // DRAWN | TYPED | UPLOADED
+  signature_file_id: string | null;
+  signature_font_name: string | null;
+  signed_at: string | null;
+  ip_address: string | null;
+  user_agent: string | null;
+}
+
+export interface SalesFollowupTemplate extends StandardColumns {
+  template_code: string;
+  name: string;
+  step_number: number;
+  subject_template: string;
+  body_template_markdown: string;
+  delay_days: number;
+  is_active: boolean;
+}
+
+// =====================================================================
+// Module H: Safety, Compliance & Access Control
+// =====================================================================
+
+export interface StaffCertification extends StandardColumns {
+  staff_id: string;
+  certification_name: string;
+  issuing_authority: string | null;
+  certification_number: string | null;
+  issued_date: string | null;
+  expiry_date: string | null;
+  status: 'ACTIVE' | 'EXPIRED' | 'REVOKED' | 'PENDING';
+  document_file_id: string | null;
+  notes: string | null;
+}
+
+export interface PayRateHistory extends StandardColumns {
+  staff_id: string;
+  effective_date: string;
+  previous_rate: number | null;
+  new_rate: number;
+  previous_pay_type: string | null;
+  new_pay_type: string | null;
+  change_reason: string | null;
+  changed_by: string | null;
+}
+
+export interface VehicleCheckout extends StandardColumns {
+  vehicle_id: string;
+  ticket_id: string | null;
+  staff_id: string | null;
+  checked_out_at: string;
+  returned_at: string | null;
+  checkout_odometer: number | null;
+  return_odometer: number | null;
+  fuel_level_out: string | null;
+  fuel_level_in: string | null;
+  condition_notes: string | null;
+  status: 'OUT' | 'RETURNED' | 'OVERDUE';
+}
+
+export interface KeyEventLog extends StandardColumns {
+  key_id: string;
+  event_type: 'ASSIGNED' | 'RETURNED' | 'LOST' | 'REPLACED' | 'DEACTIVATED';
+  staff_id: string | null;
+  event_date: string;
+  quantity: number;
+  notes: string | null;
+}
+
+export interface SafetyDocument extends StandardColumns {
+  document_code: string;
+  title: string;
+  document_type: 'SDS' | 'SAFETY_PLAN' | 'PROCEDURE' | 'REGULATION' | 'TRAINING_MATERIAL' | 'OTHER';
+  category: string | null;
+  file_id: string | null;
+  effective_date: string | null;
+  review_date: string | null;
+  expiry_date: string | null;
+  status: 'ACTIVE' | 'UNDER_REVIEW' | 'EXPIRED' | 'SUPERSEDED' | 'DRAFT';
+  applies_to_sites: boolean;
+  site_ids: string[] | null;
+  notes: string | null;
+}
+
+export interface TrainingCourse extends StandardColumns {
+  course_code: string;
+  name: string;
+  description: string | null;
+  category: string | null;
+  is_required: boolean;
+  recurrence_months: number | null;
+  duration_hours: number | null;
+  provider: string | null;
+  is_active: boolean;
+  notes: string | null;
+}
+
+export interface TrainingCompletion extends StandardColumns {
+  course_id: string;
+  staff_id: string;
+  completed_date: string;
+  expiry_date: string | null;
+  score: number | null;
+  passed: boolean | null;
+  certificate_file_id: string | null;
+  instructor: string | null;
+  notes: string | null;
+}
+
+export interface UserTeamMembership extends StandardColumns {
+  team_name: string;
+  user_id: string;
+  role_in_team: 'LEAD' | 'MEMBER';
+  joined_at: string;
+  left_at: string | null;
+}
+
+export interface UserAccessGrant extends StandardColumns {
+  user_id: string;
+  entity_type: 'client' | 'site' | 'job' | 'team';
+  entity_id: string;
+  permission: 'READ' | 'WRITE' | 'ADMIN';
+  granted_by: string | null;
+  granted_at: string;
+  expires_at: string | null;
 }

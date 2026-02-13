@@ -16,7 +16,7 @@ const SITE_STATUS_COLORS: Record<string, 'green' | 'gray' | 'yellow' | 'red'> = 
   ACTIVE: 'green',
   INACTIVE: 'gray',
   ON_HOLD: 'yellow',
-  CANCELLED: 'red',
+  CANCELED: 'red',
 };
 
 const PRIORITY_COLORS: Record<string, 'red' | 'orange' | 'yellow' | 'blue' | 'gray'> = {

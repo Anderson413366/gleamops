@@ -55,7 +55,7 @@ export function useMyDay() {
         `)
         .eq('scheduled_date', today)
         .is('archived_at', null)
-        .neq('status', 'CANCELLED')
+        .neq('status', 'CANCELED')
         .order('start_time', { ascending: true });
       if (error) throw error;
       return (data as unknown as TodayTicket[]) ?? [];

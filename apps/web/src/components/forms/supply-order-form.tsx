@@ -1,7 +1,7 @@
 'use client';
 
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { useForm } from '@/hooks/use-form';
+import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { supplyOrderSchema, type SupplyOrderFormData } from '@gleamops/shared';
 import { SlideOver, Input, Select, Textarea, Button } from '@gleamops/ui';
 import type { SupplyOrder } from '@gleamops/shared';
@@ -11,7 +11,7 @@ const STATUS_OPTIONS = [
   { value: 'ORDERED', label: 'Ordered' },
   { value: 'SHIPPED', label: 'Shipped' },
   { value: 'RECEIVED', label: 'Received' },
-  { value: 'CANCELLED', label: 'Cancelled' },
+  { value: 'CANCELED', label: 'Canceled' },
 ];
 
 const DEFAULTS: SupplyOrderFormData = {
@@ -43,14 +43,14 @@ export function SupplyOrderForm({ open, onClose, initialData, onSuccess }: Suppl
           supplier: initialData.supplier,
           order_date: initialData.order_date,
           expected_delivery: initialData.expected_delivery,
-          status: initialData.status as 'DRAFT' | 'ORDERED' | 'SHIPPED' | 'RECEIVED' | 'CANCELLED',
+          status: initialData.status as 'DRAFT' | 'ORDERED' | 'SHIPPED' | 'RECEIVED' | 'CANCELED',
           total_amount: initialData.total_amount,
           notes: initialData.notes,
         }
       : DEFAULTS,
     onSubmit: async (data) => {
       if (isEdit) {
-        const { error } = await supabase
+        const result = await supabase
           .from('supply_orders')
           .update({
             supplier: data.supplier,
@@ -61,8 +61,9 @@ export function SupplyOrderForm({ open, onClose, initialData, onSuccess }: Suppl
             notes: data.notes,
           })
           .eq('id', initialData!.id)
-          .eq('version_etag', initialData!.version_etag);
-        if (error) throw error;
+          .eq('version_etag', initialData!.version_etag)
+          .select();
+        assertUpdateSucceeded(result);
       } else {
         const { error } = await supabase.from('supply_orders').insert({
           ...data,
@@ -108,7 +109,7 @@ export function SupplyOrderForm({ open, onClose, initialData, onSuccess }: Suppl
           <Select
             label="Status"
             value={values.status}
-            onChange={(e) => setValue('status', e.target.value as 'DRAFT' | 'ORDERED' | 'SHIPPED' | 'RECEIVED' | 'CANCELLED')}
+            onChange={(e) => setValue('status', e.target.value as 'DRAFT' | 'ORDERED' | 'SHIPPED' | 'RECEIVED' | 'CANCELED')}
             options={STATUS_OPTIONS}
           />
         </div>

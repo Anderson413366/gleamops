@@ -26,6 +26,11 @@ interface LinkedTask {
   id: string;
   task_id: string;
   frequency_default: string;
+  sequence_order: number;
+  is_required: boolean;
+  estimated_minutes: number | null;
+  quality_weight: number;
+  priority_level: string | null;
   task: {
     task_code: string;
     name: string;
@@ -154,10 +159,10 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
     const supabase = getSupabaseBrowserClient();
     const { data } = await supabase
       .from('service_tasks')
-      .select('id, task_id, frequency_default, task:task_id(task_code, name, category)')
+      .select('id, task_id, frequency_default, sequence_order, is_required, estimated_minutes, quality_weight, priority_level, task:task_id(task_code, name, category)')
       .eq('service_id', serviceId)
       .is('archived_at', null)
-      .order('created_at');
+      .order('sequence_order', { ascending: true });
     if (data) setLinkedTasks(data as unknown as LinkedTask[]);
     setLoadingTasks(false);
   }, []);
@@ -304,13 +309,13 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
   };
 
   // ---------------------------------------------------------------------------
-  // Update task frequency
+  // Update any service_task field inline
   // ---------------------------------------------------------------------------
-  const handleUpdateFrequency = async (serviceTaskId: string, frequency: string) => {
+  const handleUpdateField = async (serviceTaskId: string, field: string, value: unknown) => {
     const supabase = getSupabaseBrowserClient();
     await supabase
       .from('service_tasks')
-      .update({ frequency_default: frequency })
+      .update({ [field]: value })
       .eq('id', serviceTaskId);
 
     if (selectedService) {
@@ -477,32 +482,80 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
                     No tasks linked yet. Click &quot;Add Task&quot; to attach tasks to this service.
                   </div>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {linkedTasks.map((lt) => (
                       <div
                         key={lt.id}
-                        className="flex items-center gap-3 p-3 rounded-lg border border-border hover:border-gray-300 transition-colors"
+                        className="p-3 rounded-lg border border-border hover:border-gray-300 transition-colors space-y-3"
                       >
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground">{lt.task.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {lt.task.task_code}
-                            {lt.task.category && <> &middot; {lt.task.category}</>}
-                          </p>
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground">{lt.task.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {lt.task.task_code}
+                              {lt.task.category && <> &middot; {lt.task.category}</>}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleRemoveTask(lt.id)}
+                            className="p-1.5 rounded hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors shrink-0"
+                            title="Remove task"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         </div>
-                        <Select
-                          value={lt.frequency_default}
-                          onChange={(e) => handleUpdateFrequency(lt.id, e.target.value)}
-                          options={FREQUENCIES.map((f) => ({ value: f, label: f.charAt(0) + f.slice(1).toLowerCase() }))}
-                          className="w-36"
-                        />
-                        <button
-                          onClick={() => handleRemoveTask(lt.id)}
-                          className="p-1.5 rounded hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors shrink-0"
-                          title="Remove task"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        {/* Inline editable fields */}
+                        <div className="grid grid-cols-5 gap-2">
+                          <Input
+                            label="Seq #"
+                            type="number"
+                            value={lt.sequence_order}
+                            onChange={(e) => handleUpdateField(lt.id, 'sequence_order', Number(e.target.value) || 0)}
+                            className="text-xs"
+                          />
+                          <Input
+                            label="Est. Min"
+                            type="number"
+                            value={lt.estimated_minutes ?? ''}
+                            onChange={(e) => handleUpdateField(lt.id, 'estimated_minutes', e.target.value ? Number(e.target.value) : null)}
+                            className="text-xs"
+                          />
+                          <Input
+                            label="QC Weight"
+                            type="number"
+                            value={lt.quality_weight}
+                            onChange={(e) => handleUpdateField(lt.id, 'quality_weight', Number(e.target.value) || 1)}
+                            className="text-xs"
+                          />
+                          <Select
+                            label="Frequency"
+                            value={lt.frequency_default}
+                            onChange={(e) => handleUpdateField(lt.id, 'frequency_default', e.target.value)}
+                            options={FREQUENCIES.map((f) => ({ value: f, label: f.charAt(0) + f.slice(1).toLowerCase() }))}
+                            className="text-xs"
+                          />
+                          <Select
+                            label="Priority"
+                            value={lt.priority_level ?? ''}
+                            onChange={(e) => handleUpdateField(lt.id, 'priority_level', e.target.value || null)}
+                            options={[
+                              { value: '', label: 'None' },
+                              { value: 'LOW', label: 'Low' },
+                              { value: 'MEDIUM', label: 'Med' },
+                              { value: 'HIGH', label: 'High' },
+                            ]}
+                            className="text-xs"
+                          />
+                        </div>
+                        <label className="flex items-center gap-2 text-sm text-foreground">
+                          <input
+                            type="checkbox"
+                            checked={lt.is_required}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUpdateField(lt.id, 'is_required', e.target.checked)}
+                            className="rounded border-border"
+                          />
+                          Required
+                        </label>
                       </div>
                     ))}
                   </div>

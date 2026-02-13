@@ -1,7 +1,7 @@
 'use client';
 
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { useForm } from '@/hooks/use-form';
+import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { supplySchema, type SupplyFormData } from '@gleamops/shared';
 import { SlideOver, Input, Textarea, Button } from '@gleamops/ui';
 import type { SupplyCatalog } from '@gleamops/shared';
@@ -42,7 +42,7 @@ export function SupplyForm({ open, onClose, initialData, onSuccess }: SupplyForm
       : DEFAULTS,
     onSubmit: async (data) => {
       if (isEdit) {
-        const { error } = await supabase
+        const result = await supabase
           .from('supply_catalog')
           .update({
             name: data.name,
@@ -53,8 +53,9 @@ export function SupplyForm({ open, onClose, initialData, onSuccess }: SupplyForm
             notes: data.notes,
           })
           .eq('id', initialData!.id)
-          .eq('version_etag', initialData!.version_etag);
-        if (error) throw error;
+          .eq('version_etag', initialData!.version_etag)
+          .select();
+        assertUpdateSucceeded(result);
       } else {
         const { error } = await supabase.from('supply_catalog').insert({
           ...data,

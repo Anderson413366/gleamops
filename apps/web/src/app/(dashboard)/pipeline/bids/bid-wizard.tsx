@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2, ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { Plus, Trash2, ChevronLeft, ChevronRight, Check, Zap, AlertTriangle, BarChart3 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   SlideOver,
@@ -15,7 +15,7 @@ import {
   CardTitle,
   Badge,
 } from '@gleamops/ui';
-import { calculateWorkload, calculatePricing } from '@gleamops/cleanflow';
+import { calculateWorkload, calculatePricing, expressLoad } from '@gleamops/cleanflow';
 import type { BidVersionSnapshot, WorkloadResult, PricingResult } from '@gleamops/cleanflow';
 
 // ---------------------------------------------------------------------------
@@ -60,6 +60,9 @@ interface WizardState {
   // Step 1: Basics
   client_id: string;
   service_id: string;
+  bid_type_code: string;
+  opportunity_id: string;
+  building_type_code: string;
   total_sqft: number;
   // Step 2-3: Areas + tasks
   areas: WizardArea[];
@@ -90,6 +93,9 @@ interface WizardState {
 const DEFAULTS: WizardState = {
   client_id: '',
   service_id: '',
+  bid_type_code: 'JANITORIAL',
+  opportunity_id: '',
+  building_type_code: '',
   total_sqft: 0,
   areas: [],
   days_per_week: 5,
@@ -121,9 +127,44 @@ const DIFFICULTY_OPTIONS = [
 
 const FREQUENCY_OPTIONS = [
   { value: 'DAILY', label: 'Daily' },
+  { value: '2X_WEEK', label: '2x/Week' },
+  { value: '3X_WEEK', label: '3x/Week' },
+  { value: '5X_WEEK', label: '5x/Week' },
   { value: 'WEEKLY', label: 'Weekly' },
   { value: 'BIWEEKLY', label: 'Bi-Weekly' },
   { value: 'MONTHLY', label: 'Monthly' },
+  { value: 'AS_NEEDED', label: 'As Needed' },
+];
+
+const BID_TYPE_OPTIONS = [
+  { value: 'JANITORIAL', label: 'Janitorial' },
+  { value: 'DISINFECTING', label: 'Disinfecting' },
+  { value: 'CARPET', label: 'Carpet' },
+  { value: 'WINDOW', label: 'Window' },
+  { value: 'TILE', label: 'Tile' },
+  { value: 'MOVE_IN_OUT', label: 'Move In/Out' },
+  { value: 'POST_CONSTRUCTION', label: 'Post Construction' },
+  { value: 'MAID', label: 'Maid' },
+];
+
+const FLOOR_TYPE_OPTIONS = [
+  { value: 'CARPET', label: 'Carpet' },
+  { value: 'VCT', label: 'VCT' },
+  { value: 'CERAMIC', label: 'Ceramic' },
+  { value: 'HARDWOOD', label: 'Hardwood' },
+  { value: 'CONCRETE', label: 'Concrete' },
+  { value: 'LVT', label: 'LVT' },
+];
+
+const BUILDING_TYPE_OPTIONS = [
+  { value: 'OFFICE', label: 'Office' },
+  { value: 'MEDICAL_HEALTHCARE', label: 'Medical / Healthcare' },
+  { value: 'RETAIL', label: 'Retail' },
+  { value: 'SCHOOL_EDUCATION', label: 'School / Education' },
+  { value: 'INDUSTRIAL_MANUFACTURING', label: 'Industrial / Manufacturing' },
+  { value: 'GOVERNMENT', label: 'Government' },
+  { value: 'RESTAURANT_FOOD', label: 'Restaurant / Food' },
+  { value: 'GYM_FITNESS', label: 'Gym / Fitness' },
 ];
 
 const PRICING_METHOD_OPTIONS = [
@@ -140,9 +181,10 @@ interface BidWizardProps {
   open: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  editBidId?: string | null;
 }
 
-export function BidWizard({ open, onClose, onSuccess }: BidWizardProps) {
+export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProps) {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<WizardState>({ ...DEFAULTS });
   const [saving, setSaving] = useState(false);
@@ -150,6 +192,7 @@ export function BidWizard({ open, onClose, onSuccess }: BidWizardProps) {
   // Lookup data
   const [clients, setClients] = useState<{ value: string; label: string }[]>([]);
   const [services, setServices] = useState<{ value: string; label: string }[]>([]);
+  const [opportunities, setOpportunities] = useState<{ value: string; label: string }[]>([]);
   const [serviceTasks, setServiceTasks] = useState<{ task_id: string; task_code: string; task_name: string; frequency: string }[]>([]);
   const [productionRates, setProductionRates] = useState<BidVersionSnapshot['production_rates']>([]);
 
@@ -175,7 +218,102 @@ export function BidWizard({ open, onClose, onSuccess }: BidWizardProps) {
       .then(({ data }) => {
         if (data) setServices(data.map((s) => ({ value: s.id, label: `${s.name} (${s.service_code})` })));
       });
+    supabase.from('sales_opportunities').select('id, name, opportunity_code, stage_code')
+      .is('archived_at', null)
+      .not('stage_code', 'in', '("WON","LOST")')
+      .order('name')
+      .then(({ data }) => {
+        if (data) setOpportunities(data.map((o) => ({ value: o.id, label: `${o.name} (${o.opportunity_code})` })));
+      });
   }, [open, supabase]);
+
+  // Load existing bid data for editing
+  useEffect(() => {
+    if (!open || !editBidId) return;
+
+    const loadBid = async () => {
+      // Get bid
+      const { data: bid } = await supabase
+        .from('sales_bids')
+        .select('*')
+        .eq('id', editBidId)
+        .single();
+      if (!bid) return;
+
+      // Get latest version
+      const { data: version } = await supabase
+        .from('sales_bid_versions')
+        .select('id, version_number')
+        .eq('bid_id', editBidId)
+        .order('version_number', { ascending: false })
+        .limit(1)
+        .single();
+      if (!version) return;
+
+      // Load all child data in parallel
+      const [areasRes, scheduleRes, laborRes, burdenRes] = await Promise.all([
+        supabase.from('sales_bid_areas').select('*, tasks:sales_bid_area_tasks(*)').eq('bid_version_id', version.id).is('archived_at', null),
+        supabase.from('sales_bid_schedule').select('*').eq('bid_version_id', version.id).single(),
+        supabase.from('sales_bid_labor_rates').select('*').eq('bid_version_id', version.id).single(),
+        supabase.from('sales_bid_burden').select('*').eq('bid_version_id', version.id).single(),
+      ]);
+
+      const wizardAreas: WizardArea[] = (areasRes.data ?? []).map((a: Record<string, unknown>) => ({
+        tempId: crypto.randomUUID(),
+        name: a.name as string,
+        area_type_code: (a.area_type_code as string) || '',
+        floor_type_code: (a.floor_type_code as string) || '',
+        building_type_code: (a.building_type_code as string) || '',
+        difficulty_code: (a.difficulty_code as WizardArea['difficulty_code']) || 'STANDARD',
+        square_footage: a.square_footage as number,
+        quantity: (a.quantity as number) || 1,
+        fixtures: (a.fixtures as Record<string, number>) || {},
+        tasks: ((a.tasks as Record<string, unknown>[]) || []).map((t) => ({
+          task_id: t.task_id as string,
+          task_code: (t.task_code as string) || '',
+          task_name: '',
+          frequency_code: (t.frequency_code as string) || 'DAILY',
+          use_ai: (t.use_ai as boolean) || false,
+          custom_minutes: (t.custom_minutes as number | null) ?? null,
+        })),
+      }));
+
+      const sched = scheduleRes.data as Record<string, unknown> | null;
+      const labor = laborRes.data as Record<string, unknown> | null;
+      const burd = burdenRes.data as Record<string, unknown> | null;
+
+      setForm({
+        client_id: bid.client_id || '',
+        service_id: bid.service_id || '',
+        bid_type_code: bid.bid_type_code || 'JANITORIAL',
+        opportunity_id: bid.opportunity_id || '',
+        building_type_code: '',
+        total_sqft: bid.total_sqft || 0,
+        areas: wizardAreas,
+        days_per_week: (sched?.days_per_week as number) || 5,
+        visits_per_day: (sched?.visits_per_day as number) || 1,
+        hours_per_shift: (sched?.hours_per_shift as number) || 4,
+        lead_required: (sched?.lead_required as boolean) || false,
+        supervisor_hours_week: (sched?.supervisor_hours_week as number) || 0,
+        cleaner_rate: (labor?.cleaner_rate as number) || 15,
+        lead_rate: (labor?.lead_rate as number) || 18,
+        supervisor_rate: (labor?.supervisor_rate as number) || 22,
+        employer_tax_pct: (burd?.employer_tax_pct as number) || 7.65,
+        workers_comp_pct: (burd?.workers_comp_pct as number) || 5,
+        insurance_pct: (burd?.insurance_pct as number) || 3,
+        other_pct: (burd?.other_pct as number) || 0,
+        monthly_overhead: 0,
+        supply_allowance_sqft: 0.01,
+        consumables_monthly: 0,
+        pricing_method: 'TARGET_MARGIN',
+        target_margin_pct: bid.target_margin_percent || 25,
+        cost_plus_pct: 30,
+        market_price_monthly: 0,
+      });
+    };
+
+    loadBid();
+  }, [open, editBidId, supabase]);
 
   // Load service tasks when service changes
   useEffect(() => {
@@ -274,6 +412,134 @@ export function BidWizard({ open, onClose, onSuccess }: BidWizardProps) {
     }));
   };
 
+  // Express Load: auto-generate areas from building type + sqft
+  const handleExpressLoad = () => {
+    if (!form.building_type_code || form.total_sqft <= 0) return;
+    const generated = expressLoad({
+      building_type_code: form.building_type_code,
+      total_sqft: form.total_sqft,
+    });
+    const wizardAreas: WizardArea[] = generated.map((area) => ({
+      tempId: crypto.randomUUID(),
+      name: area.name,
+      area_type_code: area.area_type_code,
+      floor_type_code: area.floor_type_code,
+      building_type_code: form.building_type_code,
+      difficulty_code: 'STANDARD',
+      square_footage: area.square_footage,
+      quantity: area.quantity,
+      fixtures: area.fixtures,
+      tasks: serviceTasks.map((st) => ({
+        task_id: st.task_id,
+        task_code: st.task_code,
+        task_name: st.task_name,
+        frequency_code: st.frequency,
+        use_ai: false,
+        custom_minutes: null,
+      })),
+    }));
+    setForm((prev) => ({ ...prev, areas: wizardAreas }));
+  };
+
+  // ---------------------------------------------------------------------------
+  // Live estimate — debounced recalculation as wizard state changes
+  // ---------------------------------------------------------------------------
+  const [liveWorkload, setLiveWorkload] = useState<WorkloadResult | null>(null);
+  const [livePricing, setLivePricing] = useState<PricingResult | null>(null);
+  const liveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // Check if we have enough data for a live estimate
+  const hasEnoughForEstimate = form.areas.length > 0
+    && form.areas.some((a) => a.square_footage > 0 && a.tasks.length > 0)
+    && form.days_per_week > 0
+    && form.cleaner_rate > 0;
+
+  useEffect(() => {
+    if (!hasEnoughForEstimate || productionRates.length === 0) {
+      setLiveWorkload(null);
+      setLivePricing(null);
+      return;
+    }
+
+    // Debounce 300ms
+    if (liveTimerRef.current) clearTimeout(liveTimerRef.current);
+    liveTimerRef.current = setTimeout(() => {
+      try {
+        const snapshot: BidVersionSnapshot = {
+          bid_version_id: 'live-preview',
+          service_code: form.service_id || null,
+          areas: form.areas.map((a) => ({
+            area_id: a.tempId,
+            name: a.name,
+            area_type_code: a.area_type_code || null,
+            floor_type_code: a.floor_type_code || null,
+            building_type_code: a.building_type_code || null,
+            difficulty_code: a.difficulty_code,
+            square_footage: a.square_footage,
+            quantity: a.quantity,
+            fixtures: a.fixtures,
+            tasks: a.tasks.map((t) => ({
+              task_code: t.task_code,
+              frequency_code: t.frequency_code,
+              use_ai: t.use_ai,
+              custom_minutes: t.custom_minutes,
+            })),
+          })),
+          schedule: {
+            days_per_week: form.days_per_week,
+            visits_per_day: form.visits_per_day,
+            hours_per_shift: form.hours_per_shift,
+            lead_required: form.lead_required,
+            supervisor_hours_week: form.supervisor_hours_week,
+          },
+          labor_rates: {
+            cleaner_rate: form.cleaner_rate,
+            lead_rate: form.lead_rate,
+            supervisor_rate: form.supervisor_rate,
+          },
+          burden: {
+            employer_tax_pct: form.employer_tax_pct,
+            workers_comp_pct: form.workers_comp_pct,
+            insurance_pct: form.insurance_pct,
+            other_pct: form.other_pct,
+          },
+          overhead: { monthly_overhead_allocated: form.monthly_overhead },
+          supplies: {
+            allowance_per_sqft_monthly: form.supply_allowance_sqft,
+            consumables_monthly: form.consumables_monthly,
+          },
+          equipment: [],
+          production_rates: productionRates,
+          pricing_strategy: {
+            method: form.pricing_method,
+            target_margin_pct: form.target_margin_pct,
+            cost_plus_pct: form.cost_plus_pct,
+            market_price_monthly: form.market_price_monthly,
+          },
+        };
+        const w = calculateWorkload(snapshot);
+        const p = calculatePricing(snapshot, w);
+        setLiveWorkload(w);
+        setLivePricing(p);
+      } catch {
+        // Silently ignore — live preview is best-effort
+        setLiveWorkload(null);
+        setLivePricing(null);
+      }
+    }, 300);
+
+    return () => {
+      if (liveTimerRef.current) clearTimeout(liveTimerRef.current);
+    };
+  }, [
+    form.areas, form.days_per_week, form.visits_per_day, form.hours_per_shift,
+    form.lead_required, form.supervisor_hours_week, form.cleaner_rate, form.lead_rate,
+    form.supervisor_rate, form.employer_tax_pct, form.workers_comp_pct, form.insurance_pct,
+    form.other_pct, form.monthly_overhead, form.supply_allowance_sqft, form.consumables_monthly,
+    form.pricing_method, form.target_margin_pct, form.cost_plus_pct, form.market_price_monthly,
+    form.service_id, productionRates, hasEnoughForEstimate,
+  ]);
+
   // Calculate on step 6 → step 7
   const runCalculation = useCallback(() => {
     const totalSqft = form.areas.reduce((sum, a) => sum + a.square_footage * a.quantity, 0);
@@ -342,7 +608,7 @@ export function BidWizard({ open, onClose, onSuccess }: BidWizardProps) {
     }
   }, [form, productionRates]);
 
-  // Save bid
+  // Save bid (create new or create new version for edit)
   const saveBid = async () => {
     if (!workloadResult || !pricingResult) return;
     setSaving(true);
@@ -350,33 +616,69 @@ export function BidWizard({ open, onClose, onSuccess }: BidWizardProps) {
     try {
       const user = (await supabase.auth.getUser()).data.user;
       const tenantId = user?.app_metadata?.tenant_id;
-      const { data: codeData } = await supabase.rpc('next_code', { p_tenant_id: tenantId, p_prefix: 'BID' });
-      const bidCode = codeData || `BID-${Date.now()}`;
 
-      // 1. Create bid
-      const { data: bid, error: bidErr } = await supabase
-        .from('sales_bids')
-        .insert({
-          tenant_id: tenantId,
-          bid_code: bidCode,
-          client_id: form.client_id,
-          service_id: form.service_id || null,
-          status: 'DRAFT',
-          total_sqft: form.total_sqft,
-          bid_monthly_price: pricingResult.recommended_price,
-          target_margin_percent: pricingResult.effective_margin_pct,
-        })
-        .select('id')
-        .single();
-      if (bidErr || !bid) throw bidErr;
+      let bidId: string;
+      let versionNumber = 1;
 
-      // 2. Create bid version
+      if (editBidId) {
+        // EDIT MODE: create new version under existing bid
+        bidId = editBidId;
+
+        // Get latest version number
+        const { data: latestVer } = await supabase
+          .from('sales_bid_versions')
+          .select('version_number')
+          .eq('bid_id', editBidId)
+          .order('version_number', { ascending: false })
+          .limit(1)
+          .single();
+        versionNumber = (latestVer?.version_number ?? 0) + 1;
+
+        // Update bid summary fields
+        await supabase
+          .from('sales_bids')
+          .update({
+            total_sqft: form.total_sqft,
+            bid_monthly_price: pricingResult.recommended_price,
+            target_margin_percent: pricingResult.effective_margin_pct,
+            client_id: form.client_id,
+            service_id: form.service_id || null,
+            bid_type_code: form.bid_type_code || null,
+            opportunity_id: form.opportunity_id || null,
+          })
+          .eq('id', editBidId);
+      } else {
+        // CREATE MODE: new bid
+        const { data: codeData } = await supabase.rpc('next_code', { p_tenant_id: tenantId, p_prefix: 'BID' });
+        const bidCode = codeData || `BID-${Date.now()}`;
+
+        const { data: bid, error: bidErr } = await supabase
+          .from('sales_bids')
+          .insert({
+            tenant_id: tenantId,
+            bid_code: bidCode,
+            client_id: form.client_id,
+            service_id: form.service_id || null,
+            bid_type_code: form.bid_type_code || null,
+            opportunity_id: form.opportunity_id || null,
+            status: 'DRAFT',
+            total_sqft: form.total_sqft,
+            bid_monthly_price: pricingResult.recommended_price,
+            target_margin_percent: pricingResult.effective_margin_pct,
+          })
+          .select('id')
+          .single();
+        if (bidErr || !bid) throw bidErr;
+        bidId = bid.id;
+      }
+
+      // Create bid version
       const { data: version, error: verErr } = await supabase
         .from('sales_bid_versions')
         .insert({
           tenant_id: tenantId,
-          bid_id: bid.id,
-          version_number: 1,
+          bid_id: bidId,
+          version_number: versionNumber,
           is_sent_snapshot: false,
         })
         .select('id')
@@ -504,7 +806,7 @@ export function BidWizard({ open, onClose, onSuccess }: BidWizardProps) {
   const fmtPct = (n: number) => `${n.toFixed(1)}%`;
 
   return (
-    <SlideOver open={open} onClose={onClose} title="New Bid" subtitle={`Step ${step + 1} of ${STEPS.length}: ${STEPS[step]}`} wide>
+    <SlideOver open={open} onClose={onClose} title={editBidId ? 'Edit Bid' : 'New Bid'} subtitle={`Step ${step + 1} of ${STEPS.length}: ${STEPS[step]}`} wide>
       {/* Step indicator */}
       <div className="flex gap-1 mb-6">
         {STEPS.map((_, i) => (
@@ -519,7 +821,9 @@ export function BidWizard({ open, onClose, onSuccess }: BidWizardProps) {
       {step === 0 && (
         <div className="space-y-4">
           <Select label="Client" value={form.client_id} onChange={(e) => setForm((f) => ({ ...f, client_id: e.target.value }))} options={clients} placeholder="Select a client..." required />
+          <Select label="Bid Type" value={form.bid_type_code} onChange={(e) => setForm((f) => ({ ...f, bid_type_code: e.target.value }))} options={BID_TYPE_OPTIONS} />
           <Select label="Service Template" value={form.service_id} onChange={(e) => setForm((f) => ({ ...f, service_id: e.target.value }))} options={[{ value: '', label: 'None (custom)' }, ...services]} />
+          <Select label="Link to Opportunity (optional)" value={form.opportunity_id} onChange={(e) => setForm((f) => ({ ...f, opportunity_id: e.target.value }))} options={[{ value: '', label: 'None' }, ...opportunities]} />
           {form.service_id && serviceTasks.length > 0 && (
             <p className="text-xs text-muted-foreground">{serviceTasks.length} tasks will be pre-loaded from the template.</p>
           )}
@@ -529,6 +833,21 @@ export function BidWizard({ open, onClose, onSuccess }: BidWizardProps) {
       {/* Step 1: Areas */}
       {step === 1 && (
         <div className="space-y-4">
+          {/* Express Load section */}
+          <Card>
+            <CardHeader><CardTitle>Express Load</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-xs text-muted-foreground">Auto-generate areas based on building type and total square footage.</p>
+              <div className="grid grid-cols-2 gap-3">
+                <Select label="Building Type" value={form.building_type_code} onChange={(e) => setForm((f) => ({ ...f, building_type_code: e.target.value }))} options={[{ value: '', label: 'Select...' }, ...BUILDING_TYPE_OPTIONS]} />
+                <Input label="Total Sq Ft" type="number" value={form.total_sqft || ''} onChange={(e) => setForm((f) => ({ ...f, total_sqft: Number(e.target.value) }))} placeholder="e.g. 25000" />
+              </div>
+              <Button variant="secondary" onClick={handleExpressLoad} disabled={!form.building_type_code || form.total_sqft <= 0}>
+                <Zap className="h-4 w-4" /> Express Load
+              </Button>
+            </CardContent>
+          </Card>
+
           {form.areas.map((area) => (
             <Card key={area.tempId}>
               <CardHeader>
@@ -547,8 +866,8 @@ export function BidWizard({ open, onClose, onSuccess }: BidWizardProps) {
                 </div>
                 <Select label="Difficulty" value={area.difficulty_code} onChange={(e) => updateArea(area.tempId, { difficulty_code: e.target.value as WizardArea['difficulty_code'] })} options={DIFFICULTY_OPTIONS} />
                 <div className="grid grid-cols-2 gap-3">
-                  <Input label="Floor Type" value={area.floor_type_code} onChange={(e) => updateArea(area.tempId, { floor_type_code: e.target.value })} placeholder="e.g. TILE, CARPET" />
-                  <Input label="Building Type" value={area.building_type_code} onChange={(e) => updateArea(area.tempId, { building_type_code: e.target.value })} placeholder="e.g. OFFICE, RETAIL" />
+                  <Select label="Floor Type" value={area.floor_type_code} onChange={(e) => updateArea(area.tempId, { floor_type_code: e.target.value })} options={[{ value: '', label: 'Select...' }, ...FLOOR_TYPE_OPTIONS]} />
+                  <Select label="Building Type" value={area.building_type_code} onChange={(e) => updateArea(area.tempId, { building_type_code: e.target.value })} options={[{ value: '', label: 'Select...' }, ...BUILDING_TYPE_OPTIONS]} />
                 </div>
               </CardContent>
             </Card>
@@ -662,6 +981,48 @@ export function BidWizard({ open, onClose, onSuccess }: BidWizardProps) {
         </div>
       )}
 
+      {/* Live Estimate Panel — visible on steps 0-5 */}
+      {step < 6 && (
+        <div className="mt-6 rounded-lg border border-border bg-muted/30 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Live Estimate</h3>
+          </div>
+          {liveWorkload && livePricing ? (
+            <div className="grid grid-cols-4 gap-3">
+              <div>
+                <p className="text-[10px] text-muted-foreground">Monthly Hours</p>
+                <p className="text-sm font-bold">{liveWorkload.monthly_hours.toFixed(1)}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground">Cleaners</p>
+                <p className="text-sm font-bold">{liveWorkload.cleaners_needed}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground">Est. Monthly Price</p>
+                <p className="text-sm font-bold text-primary">{fmt(livePricing.recommended_price)}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground">Margin</p>
+                <p className="text-sm font-bold">
+                  <Badge color={livePricing.effective_margin_pct >= 20 ? 'green' : livePricing.effective_margin_pct >= 10 ? 'yellow' : 'red'}>
+                    {fmtPct(livePricing.effective_margin_pct)}
+                  </Badge>
+                </p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">Add areas & tasks to see estimate</p>
+          )}
+          {liveWorkload && liveWorkload.warnings.length > 0 && (
+            <div className="mt-2 flex items-start gap-1.5">
+              <AlertTriangle className="h-3 w-3 text-yellow-500 mt-0.5 shrink-0" />
+              <p className="text-[10px] text-yellow-700">{liveWorkload.warnings.join('; ')}</p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Step 6: Review */}
       {step === 6 && (
         <div className="space-y-6">
@@ -687,6 +1048,18 @@ export function BidWizard({ open, onClose, onSuccess }: BidWizardProps) {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Guardrail Warnings */}
+              {workloadResult.warnings.length > 0 && (
+                <div className="p-3 rounded-lg bg-yellow-50 border border-yellow-200">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 shrink-0" />
+                    <div className="text-sm text-yellow-800 space-y-1">
+                      {workloadResult.warnings.map((w, i) => <p key={i}>{w}</p>)}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Pricing Breakdown */}
               <Card>
@@ -759,7 +1132,7 @@ export function BidWizard({ open, onClose, onSuccess }: BidWizardProps) {
         ) : (
           <Button onClick={saveBid} loading={saving} disabled={!workloadResult || !pricingResult}>
             <Check className="h-4 w-4" />
-            Save as Draft
+            {editBidId ? 'Save New Version' : 'Save as Draft'}
           </Button>
         )}
       </div>

@@ -2,10 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { useForm } from '@/hooks/use-form';
+import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { contactSchema, type ContactFormData } from '@gleamops/shared';
-import { SlideOver, Input, Select, Button } from '@gleamops/ui';
+import { SlideOver, Input, Select, Textarea, Button } from '@gleamops/ui';
 import type { Contact } from '@gleamops/shared';
+
+const CONTACT_TYPE_OPTIONS = [
+  { value: '', label: 'Select...' },
+  { value: 'CLIENT', label: 'Client Contact' },
+  { value: 'SITE', label: 'Site Contact' },
+  { value: 'VENDOR', label: 'Vendor' },
+  { value: 'OTHER', label: 'Other' },
+];
 
 const ROLE_OPTIONS = [
   { value: '', label: 'None' },
@@ -16,16 +24,40 @@ const ROLE_OPTIONS = [
   { value: 'OTHER', label: 'Other' },
 ];
 
+const CONTACT_METHOD_OPTIONS = [
+  { value: '', label: 'No preference' },
+  { value: 'EMAIL', label: 'Email' },
+  { value: 'PHONE', label: 'Phone' },
+  { value: 'TEXT', label: 'Text/SMS' },
+];
+
+const LANGUAGE_OPTIONS = [
+  { value: '', label: 'No preference' },
+  { value: 'EN', label: 'English' },
+  { value: 'ES', label: 'Spanish' },
+  { value: 'PT', label: 'Portuguese' },
+];
+
 const DEFAULTS: ContactFormData = {
   contact_code: '',
   client_id: null,
   site_id: null,
+  first_name: '',
+  last_name: '',
   name: '',
+  contact_type: null,
+  company_name: null,
+  role_title: null,
   email: null,
   phone: null,
+  mobile_phone: null,
+  work_phone: null,
   role: null,
+  preferred_contact_method: null,
+  preferred_language: null,
   is_primary: false,
   timezone: null,
+  notes: null,
 };
 
 interface ContactFormProps {
@@ -57,12 +89,22 @@ export function ContactForm({
           contact_code: initialData.contact_code,
           client_id: initialData.client_id,
           site_id: initialData.site_id,
+          first_name: initialData.first_name ?? '',
+          last_name: initialData.last_name ?? '',
           name: initialData.name,
+          contact_type: initialData.contact_type,
+          company_name: initialData.company_name,
+          role_title: initialData.role_title,
           email: initialData.email,
           phone: initialData.phone,
+          mobile_phone: initialData.mobile_phone,
+          work_phone: initialData.work_phone,
           role: initialData.role,
+          preferred_contact_method: initialData.preferred_contact_method,
+          preferred_language: initialData.preferred_language,
           is_primary: initialData.is_primary,
           timezone: initialData.timezone,
+          notes: initialData.notes,
         }
       : {
           ...DEFAULTS,
@@ -70,25 +112,22 @@ export function ContactForm({
           site_id: preselectedSiteId ?? null,
         },
     onSubmit: async (data) => {
+      // Compute full name
+      const fullName = `${data.first_name} ${data.last_name}`.trim();
+      const submitData = { ...data, name: fullName };
+
       if (isEdit) {
-        const { error } = await supabase
+        const { contact_code: _code, ...updateData } = submitData;
+        const result = await supabase
           .from('contacts')
-          .update({
-            name: data.name,
-            client_id: data.client_id,
-            site_id: data.site_id,
-            email: data.email,
-            phone: data.phone,
-            role: data.role,
-            is_primary: data.is_primary,
-            timezone: data.timezone,
-          })
+          .update(updateData)
           .eq('id', initialData!.id)
-          .eq('version_etag', initialData!.version_etag);
-        if (error) throw error;
+          .eq('version_etag', initialData!.version_etag)
+          .select();
+        assertUpdateSucceeded(result);
       } else {
         const { error } = await supabase.from('contacts').insert({
-          ...data,
+          ...submitData,
           tenant_id: (await supabase.auth.getUser()).data.user?.app_metadata?.tenant_id,
         });
         if (error) throw error;
@@ -143,28 +182,43 @@ export function ContactForm({
   };
 
   return (
-    <SlideOver open={open} onClose={handleClose} title={isEdit ? 'Edit Contact' : 'New Contact'} subtitle={isEdit ? initialData?.contact_code : undefined}>
+    <SlideOver open={open} onClose={handleClose} title={isEdit ? 'Edit Contact' : 'New Contact'} subtitle={isEdit ? initialData?.contact_code : undefined} wide>
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Identity */}
         <div className="space-y-4">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Identity</h3>
           <Input label="Contact Code" value={values.contact_code} readOnly disabled hint="Auto-generated" />
-          <Input
-            label="Name"
-            value={values.name}
-            onChange={(e) => setValue('name', e.target.value)}
-            onBlur={() => onBlur('name')}
-            error={errors.name}
-            required
-          />
-          <Select
-            label="Role"
-            value={values.role ?? ''}
-            onChange={(e) => setValue('role', e.target.value || null)}
-            options={ROLE_OPTIONS}
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="First Name"
+              value={values.first_name}
+              onChange={(e) => setValue('first_name', e.target.value)}
+              onBlur={() => onBlur('first_name')}
+              error={errors.first_name}
+              required
+            />
+            <Input
+              label="Last Name"
+              value={values.last_name}
+              onChange={(e) => setValue('last_name', e.target.value)}
+              onBlur={() => onBlur('last_name')}
+              error={errors.last_name}
+              required
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Select label="Contact Type" value={values.contact_type ?? ''} onChange={(e) => setValue('contact_type', e.target.value || null)} options={CONTACT_TYPE_OPTIONS} />
+            <Select label="Role" value={values.role ?? ''} onChange={(e) => setValue('role', e.target.value || null)} options={ROLE_OPTIONS} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Input label="Company Name" value={values.company_name ?? ''} onChange={(e) => setValue('company_name', e.target.value || null)} />
+            <Input label="Role/Title" value={values.role_title ?? ''} onChange={(e) => setValue('role_title', e.target.value || null)} placeholder="e.g., Facility Manager" />
+          </div>
         </div>
 
+        {/* Contact Info */}
         <div className="space-y-4">
-          <h3 className="text-sm font-medium text-foreground">Contact Info</h3>
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Contact Info</h3>
           <Input
             label="Email"
             type="email"
@@ -173,15 +227,20 @@ export function ContactForm({
             onBlur={() => onBlur('email')}
             error={errors.email}
           />
-          <Input
-            label="Phone"
-            value={values.phone ?? ''}
-            onChange={(e) => setValue('phone', e.target.value || null)}
-          />
+          <div className="grid grid-cols-3 gap-3">
+            <Input label="Phone" value={values.phone ?? ''} onChange={(e) => setValue('phone', e.target.value || null)} />
+            <Input label="Mobile" value={values.mobile_phone ?? ''} onChange={(e) => setValue('mobile_phone', e.target.value || null)} />
+            <Input label="Work Phone" value={values.work_phone ?? ''} onChange={(e) => setValue('work_phone', e.target.value || null)} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Select label="Preferred Contact" value={values.preferred_contact_method ?? ''} onChange={(e) => setValue('preferred_contact_method', e.target.value || null)} options={CONTACT_METHOD_OPTIONS} />
+            <Select label="Preferred Language" value={values.preferred_language ?? ''} onChange={(e) => setValue('preferred_language', e.target.value || null)} options={LANGUAGE_OPTIONS} />
+          </div>
         </div>
 
+        {/* Linked To */}
         <div className="space-y-4">
-          <h3 className="text-sm font-medium text-foreground">Linked To</h3>
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Linked To</h3>
           <Select
             label="Client"
             value={values.client_id ?? ''}
@@ -194,19 +253,19 @@ export function ContactForm({
             onChange={(e) => setValue('site_id', e.target.value || null)}
             options={[{ value: '', label: 'None' }, ...sites]}
           />
-        </div>
-
-        <div className="space-y-4">
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
               checked={values.is_primary}
-              onChange={(e) => setValue('is_primary', e.target.checked)}
-              className="rounded border-border text-primary focus:ring-primary"
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue('is_primary', e.target.checked)}
+              className="rounded border-border"
             />
-            <span className="font-medium text-foreground">Primary contact</span>
+            Primary Contact
           </label>
         </div>
+
+        {/* Notes */}
+        <Textarea label="Notes" value={values.notes ?? ''} onChange={(e) => setValue('notes', e.target.value || null)} rows={3} />
 
         <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <Button variant="secondary" type="button" onClick={handleClose}>Cancel</Button>

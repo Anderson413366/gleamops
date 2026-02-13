@@ -1,7 +1,7 @@
 'use client';
 
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { useForm } from '@/hooks/use-form';
+import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { staffPositionSchema, type StaffPositionFormData } from '@gleamops/shared';
 import { SlideOver, Input, Select, Textarea, Button } from '@gleamops/ui';
 import type { StaffPosition } from '@gleamops/shared';
@@ -40,7 +40,7 @@ export function PositionForm({ open, onClose, initialData, onSuccess }: Position
       : DEFAULTS,
     onSubmit: async (data) => {
       if (isEdit) {
-        const { error } = await supabase
+        const result = await supabase
           .from('staff_positions')
           .update({
             title: data.title,
@@ -50,8 +50,9 @@ export function PositionForm({ open, onClose, initialData, onSuccess }: Position
             notes: data.notes,
           })
           .eq('id', initialData!.id)
-          .eq('version_etag', initialData!.version_etag);
-        if (error) throw error;
+          .eq('version_etag', initialData!.version_etag)
+          .select();
+        assertUpdateSucceeded(result);
       } else {
         const { error } = await supabase.from('staff_positions').insert({
           ...data,

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { useForm } from '@/hooks/use-form';
+import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { prospectSchema, type ProspectFormData } from '@gleamops/shared';
 import { SlideOver, Input, Select, Textarea, Button } from '@gleamops/ui';
 import type { SalesProspect } from '@gleamops/shared';
@@ -25,10 +25,25 @@ const SOURCE_OPTIONS = [
   { value: 'OTHER', label: 'Other' },
 ];
 
+const INDUSTRY_OPTIONS = [
+  { value: '', label: 'None' },
+  { value: 'OFFICE', label: 'Office' },
+  { value: 'MEDICAL_HEALTHCARE', label: 'Medical / Healthcare' },
+  { value: 'RETAIL', label: 'Retail' },
+  { value: 'SCHOOL_EDUCATION', label: 'School / Education' },
+  { value: 'INDUSTRIAL_MANUFACTURING', label: 'Industrial / Manufacturing' },
+  { value: 'GOVERNMENT', label: 'Government' },
+  { value: 'RESTAURANT_FOOD', label: 'Restaurant / Food Service' },
+  { value: 'GYM_FITNESS', label: 'Gym / Fitness' },
+  { value: 'OTHER', label: 'Other' },
+];
+
 const DEFAULTS: ProspectFormData = {
   company_name: '',
   prospect_status_code: 'NEW',
   owner_user_id: null,
+  industry_type: null,
+  website: null,
   notes: null,
   source: null,
   contacts: [],
@@ -53,6 +68,8 @@ export function ProspectForm({ open, onClose, initialData, onSuccess }: Prospect
           company_name: initialData.company_name,
           prospect_status_code: initialData.prospect_status_code,
           owner_user_id: initialData.owner_user_id,
+          industry_type: (initialData as unknown as Record<string, unknown>).industry_type as string | null ?? null,
+          website: (initialData as unknown as Record<string, unknown>).website as string | null ?? null,
           notes: initialData.notes,
           source: initialData.source,
           contacts: [],
@@ -60,22 +77,27 @@ export function ProspectForm({ open, onClose, initialData, onSuccess }: Prospect
       : DEFAULTS,
     onSubmit: async (data) => {
       if (isEdit) {
-        const { error } = await supabase
+        const result = await supabase
           .from('sales_prospects')
           .update({
             company_name: data.company_name,
             prospect_status_code: data.prospect_status_code,
+            industry_type: data.industry_type,
+            website: data.website,
             notes: data.notes,
             source: data.source,
           })
           .eq('id', initialData!.id)
-          .eq('version_etag', initialData!.version_etag);
-        if (error) throw error;
+          .eq('version_etag', initialData!.version_etag)
+          .select();
+        assertUpdateSucceeded(result);
       } else {
         const { error } = await supabase.from('sales_prospects').insert({
           prospect_code: prospectCode,
           company_name: data.company_name,
           prospect_status_code: data.prospect_status_code,
+          industry_type: data.industry_type,
+          website: data.website,
           notes: data.notes,
           source: data.source,
           tenant_id: (await supabase.auth.getUser()).data.user?.app_metadata?.tenant_id,
@@ -139,6 +161,20 @@ export function ProspectForm({ open, onClose, initialData, onSuccess }: Prospect
             value={values.source ?? ''}
             onChange={(e) => setValue('source', e.target.value || null)}
             options={SOURCE_OPTIONS}
+          />
+          <Select
+            label="Industry"
+            value={values.industry_type ?? ''}
+            onChange={(e) => setValue('industry_type', e.target.value || null)}
+            options={INDUSTRY_OPTIONS}
+          />
+          <Input
+            label="Website"
+            value={values.website ?? ''}
+            onChange={(e) => setValue('website', e.target.value || null)}
+            onBlur={() => onBlur('website')}
+            error={errors.website}
+            placeholder="https://example.com"
           />
           <Textarea
             label="Notes"

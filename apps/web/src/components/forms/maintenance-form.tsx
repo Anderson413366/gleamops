@@ -1,7 +1,7 @@
 'use client';
 
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { useForm } from '@/hooks/use-form';
+import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { vehicleMaintenanceSchema, type VehicleMaintenanceFormData } from '@gleamops/shared';
 import { SlideOver, Input, Textarea, Button } from '@gleamops/ui';
 import type { VehicleMaintenance } from '@gleamops/shared';
@@ -47,7 +47,7 @@ export function MaintenanceForm({ open, onClose, vehicleId, initialData, onSucce
       : { ...DEFAULTS, vehicle_id: vehicleId ?? '' },
     onSubmit: async (data) => {
       if (isEdit) {
-        const { error } = await supabase
+        const result = await supabase
           .from('vehicle_maintenance')
           .update({
             service_date: data.service_date,
@@ -60,8 +60,9 @@ export function MaintenanceForm({ open, onClose, vehicleId, initialData, onSucce
             notes: data.notes,
           })
           .eq('id', initialData!.id)
-          .eq('version_etag', initialData!.version_etag);
-        if (error) throw error;
+          .eq('version_etag', initialData!.version_etag)
+          .select();
+        assertUpdateSucceeded(result);
       } else {
         const { error } = await supabase.from('vehicle_maintenance').insert({
           ...data,

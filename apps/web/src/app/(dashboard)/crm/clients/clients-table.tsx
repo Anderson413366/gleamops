@@ -17,7 +17,7 @@ const STATUS_COLORS: Record<string, 'green' | 'gray' | 'orange' | 'red' | 'blue'
   INACTIVE: 'gray',
   PROSPECT: 'orange',
   ON_HOLD: 'yellow',
-  CANCELLED: 'red',
+  CANCELED: 'red',
 };
 
 interface ClientsTableProps {

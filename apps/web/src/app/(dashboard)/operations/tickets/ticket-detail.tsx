@@ -79,7 +79,7 @@ const STATUS_OPTIONS = [
   { value: 'IN_PROGRESS', label: 'In Progress' },
   { value: 'COMPLETED', label: 'Completed' },
   { value: 'VERIFIED', label: 'Verified' },
-  { value: 'CANCELLED', label: 'Cancelled' },
+  { value: 'CANCELED', label: 'Canceled' },
 ];
 
 const ROLE_OPTIONS = [
@@ -157,7 +157,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
           )
         `)
         .eq('ticket.scheduled_date', ticket.scheduled_date)
-        .neq('ticket.status', 'CANCELLED')
+        .neq('ticket.status', 'CANCELED')
         .is('archived_at', null),
       // Time entries
       supabase
@@ -257,7 +257,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
         staff_id: string;
         ticket: { id: string; ticket_code: string; start_time: string | null; end_time: string | null; status: string; site: { name: string } | null } | null;
       }[]) {
-        if (!row.ticket || row.ticket.id === ticket.id || row.ticket.status === 'CANCELLED') continue;
+        if (!row.ticket || row.ticket.id === ticket.id || row.ticket.status === 'CANCELED') continue;
         const existing = newBusyMap.get(row.staff_id) || { staffId: row.staff_id, tickets: [] };
         existing.tickets.push({
           ticketId: row.ticket.id,

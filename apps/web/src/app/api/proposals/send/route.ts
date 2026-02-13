@@ -4,6 +4,9 @@ import {
   createProblemDetails,
   PROPOSAL_001,
   PROPOSAL_002,
+  PROPOSAL_006,
+  PROPOSAL_007,
+  SYS_002,
 } from '@gleamops/shared';
 
 const CONTENT_TYPE_PROBLEM = 'application/problem+json';
@@ -73,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     if (!proposalId || !recipientEmail) {
       return problemResponse(
-        createProblemDetails('PROPOSAL_001', 'Bad request', 400, 'proposalId and recipientEmail are required', '/api/proposals/send'),
+        PROPOSAL_006('proposalId and recipientEmail are required', '/api/proposals/send'),
       );
     }
 
@@ -89,7 +92,7 @@ export async function POST(request: NextRequest) {
 
     if (propErr || !proposal) {
       return problemResponse(
-        createProblemDetails('PROPOSAL_001', 'Proposal not found', 404, 'Proposal does not exist or belongs to another tenant', '/api/proposals/send'),
+        PROPOSAL_007('/api/proposals/send'),
       );
     }
 
@@ -140,8 +143,59 @@ export async function POST(request: NextRequest) {
 
     if (sendErr || !sendRecord) {
       return problemResponse(
-        createProblemDetails('SYS_001', 'Queue failed', 500, sendErr?.message ?? 'Failed to queue send', '/api/proposals/send'),
+        SYS_002(sendErr?.message ?? 'Failed to queue send', '/api/proposals/send'),
       );
+    }
+
+    // ----- Wire follow-up sequence (if enabled) -----
+    const enableFollowups = body.enableFollowups ?? false;
+    if (enableFollowups) {
+      try {
+        // Fetch active follow-up templates for this tenant
+        const { data: templates } = await db
+          .from('sales_followup_templates')
+          .select('id, step_number, delay_days')
+          .eq('tenant_id', tenantId)
+          .eq('is_active', true)
+          .order('step_number', { ascending: true });
+
+        if (templates && templates.length > 0) {
+          // Create the follow-up sequence
+          const { data: sequence } = await db
+            .from('sales_followup_sequences')
+            .insert({
+              tenant_id: tenantId,
+              proposal_id: proposal.id,
+              status: 'ACTIVE',
+              total_steps: templates.length,
+            })
+            .select('id')
+            .single();
+
+          if (sequence) {
+            // Create individual scheduled sends
+            const now = new Date();
+            const sends = templates.map((tmpl) => {
+              const scheduledAt = new Date(now);
+              scheduledAt.setDate(scheduledAt.getDate() + tmpl.delay_days);
+              // Schedule for 9 AM business hours
+              scheduledAt.setHours(9, 0, 0, 0);
+              return {
+                tenant_id: tenantId,
+                sequence_id: sequence.id,
+                step_number: tmpl.step_number,
+                status: 'SCHEDULED',
+                scheduled_at: scheduledAt.toISOString(),
+              };
+            });
+
+            await db.from('sales_followup_sends').insert(sends);
+          }
+        }
+      } catch (followupErr) {
+        // Log but don't fail the send — follow-ups are best-effort
+        console.error('[proposal-send] Follow-up creation failed:', followupErr);
+      }
     }
 
     return NextResponse.json({
@@ -153,7 +207,7 @@ export async function POST(request: NextRequest) {
   } catch (err: any) {
     console.error('[proposal-send] Unexpected error:', err);
     return problemResponse(
-      createProblemDetails('SYS_001', 'Internal error', 500, 'Unexpected server error', '/api/proposals/send'),
+      SYS_002(err?.message ?? 'Unexpected server error', '/api/proposals/send'),
     );
   }
 }

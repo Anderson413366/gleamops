@@ -24,10 +24,10 @@ const PROPOSAL_TRANSITIONS: TransitionMap = {
 };
 
 const TICKET_TRANSITIONS: TransitionMap = {
-  SCHEDULED: ['IN_PROGRESS', 'CANCELLED'],
-  IN_PROGRESS: ['COMPLETED', 'CANCELLED'],
+  SCHEDULED: ['IN_PROGRESS', 'CANCELED'],
+  IN_PROGRESS: ['COMPLETED', 'CANCELED'],
   COMPLETED: ['VERIFIED'],
-  // VERIFIED and CANCELLED are terminal
+  // VERIFIED and CANCELED are terminal
 };
 
 const ENTITY_TRANSITIONS: Record<string, TransitionMap> = {

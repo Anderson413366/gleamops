@@ -53,7 +53,7 @@ const LOOKUP_CATEGORIES: Record<string, string[]> = {
   ],
   bid_status: ['DRAFT', 'IN_PROGRESS', 'READY_FOR_REVIEW', 'APPROVED', 'SENT', 'WON', 'LOST'],
   proposal_status: ['DRAFT', 'GENERATED', 'SENT', 'DELIVERED', 'OPENED', 'WON', 'LOST', 'EXPIRED'],
-  ticket_status: ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'VERIFIED', 'CANCELLED'],
+  ticket_status: ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'VERIFIED', 'CANCELED'],
   time_event_type: ['CHECK_IN', 'CHECK_OUT', 'BREAK_START', 'BREAK_END', 'MANUAL_ADJUSTMENT'],
   exception_type: [
     'OUT_OF_GEOFENCE',

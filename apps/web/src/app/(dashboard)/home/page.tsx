@@ -16,6 +16,12 @@ import {
   AlertTriangle,
   DollarSign,
   ShieldAlert,
+  ShieldCheck,
+  Award,
+  BookOpen,
+  Send,
+  Trophy,
+  Mail,
 } from 'lucide-react';
 import { StatCard, CollapsibleCard, Badge, Skeleton } from '@gleamops/ui';
 import {
@@ -73,6 +79,12 @@ interface Metrics {
   openTickets: number | null;
   activeStaff: number | null;
   pendingBids: number | null;
+  revenueThisMonth: number | null;
+  overdueInspections: number | null;
+  pipelineValue: number | null;
+  proposalsSent30d: number | null;
+  winRate: number | null;
+  followupsDue: number | null;
 }
 
 interface LowStockRow {
@@ -86,6 +98,15 @@ interface DataIssueRow {
   entity: string;
   code: string;
   issue: string;
+}
+
+interface ComplianceAlert {
+  id: string;
+  type: 'cert' | 'training' | 'document';
+  label: string;
+  name: string;
+  expiryDate: string;
+  daysUntil: number;
 }
 
 interface AuditRow {
@@ -183,6 +204,12 @@ export default function HomePage() {
     openTickets: null,
     activeStaff: null,
     pendingBids: null,
+    revenueThisMonth: null,
+    overdueInspections: null,
+    pipelineValue: null,
+    proposalsSent30d: null,
+    winRate: null,
+    followupsDue: null,
   });
   const [auditEvents, setAuditEvents] = useState<AuditRow[]>([]);
   const [upcomingTickets, setUpcomingTickets] = useState<TicketRow[]>([]);
@@ -190,6 +217,7 @@ export default function HomePage() {
   const [activeShifts, setActiveShifts] = useState<ActiveStaffRow[]>([]);
   const [lowStockItems, setLowStockItems] = useState<LowStockRow[]>([]);
   const [dataIssues, setDataIssues] = useState<DataIssueRow[]>([]);
+  const [complianceAlerts, setComplianceAlerts] = useState<ComplianceAlert[]>([]);
 
   const [metricsLoading, setMetricsLoading] = useState(true);
   const [sectionsLoading, setSectionsLoading] = useState(true);
@@ -198,9 +226,14 @@ export default function HomePage() {
   const fetchDashboard = useCallback(async () => {
     const supabase = getSupabaseBrowserClient();
 
+    const today = new Date().toISOString().split('T')[0];
+
     // --- Metrics (parallel count queries) ---
     setMetricsLoading(true);
-    const [clientsRes, sitesRes, jobsRes, ticketsRes, staffRes, bidsRes] = await Promise.all([
+    const [
+      clientsRes, sitesRes, jobsRes, ticketsRes, staffRes, bidsRes, revenueRes, inspRes,
+      pipelineRes, proposalsSentRes, winRateRes, followupsDueRes,
+    ] = await Promise.all([
       supabase
         .from('clients')
         .select('id', { count: 'exact', head: true })
@@ -226,7 +259,60 @@ export default function HomePage() {
         .from('sales_bids')
         .select('id', { count: 'exact', head: true })
         .in('status', ['DRAFT', 'IN_PROGRESS']),
+      // Revenue this month: sum billing_amount from active site_jobs
+      supabase
+        .from('site_jobs')
+        .select('billing_amount')
+        .eq('status', 'ACTIVE')
+        .is('archived_at', null),
+      // Overdue inspections
+      supabase
+        .from('sites')
+        .select('id', { count: 'exact', head: true })
+        .lt('next_inspection_date', today)
+        .not('next_inspection_date', 'is', null)
+        .is('archived_at', null),
+      // Pipeline value: sum estimated_monthly_value from active opportunities
+      supabase
+        .from('sales_opportunities')
+        .select('estimated_monthly_value')
+        .not('stage_code', 'in', '("WON","LOST")')
+        .is('archived_at', null),
+      // Proposals sent last 30 days
+      supabase
+        .from('sales_proposal_sends')
+        .select('id', { count: 'exact', head: true })
+        .gte('created_at', new Date(Date.now() - 30 * 86400000).toISOString()),
+      // Win rate: won / (won + lost) proposals
+      supabase
+        .from('sales_proposals')
+        .select('status')
+        .in('status', ['WON', 'LOST']),
+      // Follow-ups due: active follow-up sends scheduled up to now
+      supabase
+        .from('sales_followup_sends')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'SCHEDULED')
+        .lte('scheduled_at', new Date().toISOString()),
     ]);
+
+    // Compute revenue sum
+    const revenueSum = (revenueRes.data ?? []).reduce(
+      (sum, row) => sum + (Number((row as { billing_amount: number | null }).billing_amount) || 0),
+      0,
+    );
+
+    // Compute pipeline value sum
+    const pipelineSum = (pipelineRes.data ?? []).reduce(
+      (sum, row) => sum + (Number((row as { estimated_monthly_value: number | null }).estimated_monthly_value) || 0),
+      0,
+    );
+
+    // Compute win rate
+    const wonLost = (winRateRes.data ?? []) as { status: string }[];
+    const wonCount = wonLost.filter(r => r.status === 'WON').length;
+    const lostCount = wonLost.filter(r => r.status === 'LOST').length;
+    const winRateVal = wonCount + lostCount > 0 ? Math.round((wonCount / (wonCount + lostCount)) * 100) : 0;
 
     setMetrics({
       activeClients: clientsRes.count ?? 0,
@@ -235,14 +321,24 @@ export default function HomePage() {
       openTickets: ticketsRes.count ?? 0,
       activeStaff: staffRes.count ?? 0,
       pendingBids: bidsRes.count ?? 0,
+      revenueThisMonth: revenueSum,
+      overdueInspections: inspRes.count ?? 0,
+      pipelineValue: pipelineSum,
+      proposalsSent30d: proposalsSentRes.count ?? 0,
+      winRate: winRateVal,
+      followupsDue: followupsDueRes.count ?? 0,
     });
     setMetricsLoading(false);
 
     // --- Sections (parallel data queries) ---
     setSectionsLoading(true);
-    const today = new Date().toISOString().split('T')[0];
 
-    const [auditRes, ticketListRes, prospectRes, shiftsRes, lowStockRes, clientIssuesRes] = await Promise.all([
+    // Look ahead 30 days for compliance
+    const complianceLookahead = new Date();
+    complianceLookahead.setDate(complianceLookahead.getDate() + 30);
+    const complianceLookaheadStr = complianceLookahead.toISOString().split('T')[0];
+
+    const [auditRes, ticketListRes, prospectRes, shiftsRes, lowStockRes, clientIssuesRes, expiringCertsRes, expiringTrainingRes, expiringDocsRes] = await Promise.all([
       // Recent activity
       supabase
         .from('audit_events')
@@ -284,6 +380,35 @@ export default function HomePage() {
         .is('archived_at', null)
         .order('client_code')
         .limit(200),
+      // Expiring certifications (next 30 days or already expired)
+      supabase
+        .from('staff_certifications')
+        .select('id, certification_name, expiry_date, staff:staff_id(full_name)')
+        .is('archived_at', null)
+        .eq('status', 'ACTIVE')
+        .not('expiry_date', 'is', null)
+        .lte('expiry_date', complianceLookaheadStr)
+        .order('expiry_date')
+        .limit(10),
+      // Expiring training completions
+      supabase
+        .from('training_completions')
+        .select('id, expiry_date, staff:staff_id(full_name), course:course_id(name)')
+        .is('archived_at', null)
+        .not('expiry_date', 'is', null)
+        .lte('expiry_date', complianceLookaheadStr)
+        .order('expiry_date')
+        .limit(10),
+      // Safety docs needing review
+      supabase
+        .from('safety_documents')
+        .select('id, document_code, title, review_date, expiry_date')
+        .is('archived_at', null)
+        .eq('status', 'ACTIVE')
+        .not('expiry_date', 'is', null)
+        .lte('expiry_date', complianceLookaheadStr)
+        .order('expiry_date')
+        .limit(10),
     ]);
 
     if (auditRes.data) setAuditEvents(auditRes.data as AuditRow[]);
@@ -302,6 +427,35 @@ export default function HomePage() {
       }
     }
     setDataIssues(issues.slice(0, 10));
+
+    // Compute compliance alerts
+    const alerts: ComplianceAlert[] = [];
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+
+    if (expiringCertsRes.data) {
+      for (const cert of expiringCertsRes.data as unknown as { id: string; certification_name: string; expiry_date: string; staff?: { full_name: string } | null }[]) {
+        if (!cert.expiry_date) continue;
+        const days = Math.ceil((new Date(cert.expiry_date + 'T00:00:00').getTime() - todayDate.getTime()) / 86400000);
+        alerts.push({ id: cert.id, type: 'cert', label: 'Certification', name: `${cert.certification_name} — ${cert.staff?.full_name ?? 'Unknown'}`, expiryDate: cert.expiry_date, daysUntil: days });
+      }
+    }
+    if (expiringTrainingRes.data) {
+      for (const comp of expiringTrainingRes.data as unknown as { id: string; expiry_date: string; staff?: { full_name: string } | null; course?: { name: string } | null }[]) {
+        if (!comp.expiry_date) continue;
+        const days = Math.ceil((new Date(comp.expiry_date + 'T00:00:00').getTime() - todayDate.getTime()) / 86400000);
+        alerts.push({ id: comp.id, type: 'training', label: 'Training', name: `${comp.course?.name ?? 'Course'} — ${comp.staff?.full_name ?? 'Unknown'}`, expiryDate: comp.expiry_date, daysUntil: days });
+      }
+    }
+    if (expiringDocsRes.data) {
+      for (const doc of expiringDocsRes.data as unknown as { id: string; document_code: string; title: string; expiry_date: string | null }[]) {
+        if (!doc.expiry_date) continue;
+        const days = Math.ceil((new Date(doc.expiry_date + 'T00:00:00').getTime() - todayDate.getTime()) / 86400000);
+        alerts.push({ id: doc.id, type: 'document', label: 'Document', name: `${doc.title} (${doc.document_code})`, expiryDate: doc.expiry_date, daysUntil: days });
+      }
+    }
+    alerts.sort((a, b) => a.daysUntil - b.daysUntil);
+    setComplianceAlerts(alerts.slice(0, 10));
 
     setSectionsLoading(false);
   }, []);
@@ -337,9 +491,11 @@ export default function HomePage() {
       {/* Executive Dashboard — Stat Cards */}
       <div>
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Executive Overview</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-4">
           {metricsLoading ? (
             <>
+              <StatCardSkeleton />
+              <StatCardSkeleton />
               <StatCardSkeleton />
               <StatCardSkeleton />
               <StatCardSkeleton />
@@ -378,6 +534,54 @@ export default function HomePage() {
                 label="Pending Bids"
                 value={metrics.pendingBids ?? 0}
                 icon={<FileText className="h-5 w-5" />}
+              />
+              <StatCard
+                label="Revenue/mo"
+                value={`$${((metrics.revenueThisMonth ?? 0) / 1000).toFixed(1)}k`}
+                icon={<DollarSign className="h-5 w-5" />}
+              />
+              <StatCard
+                label="Overdue Inspections"
+                value={metrics.overdueInspections ?? 0}
+                icon={<ShieldAlert className="h-5 w-5" />}
+              />
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Sales Pipeline KPIs */}
+      <div>
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Sales Pipeline</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {metricsLoading ? (
+            <>
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+            </>
+          ) : (
+            <>
+              <StatCard
+                label="Pipeline Value"
+                value={`$${((metrics.pipelineValue ?? 0) / 1000).toFixed(1)}k`}
+                icon={<TrendingUp className="h-5 w-5" />}
+              />
+              <StatCard
+                label="Proposals Sent (30d)"
+                value={metrics.proposalsSent30d ?? 0}
+                icon={<Send className="h-5 w-5" />}
+              />
+              <StatCard
+                label="Win Rate"
+                value={`${metrics.winRate ?? 0}%`}
+                icon={<Trophy className="h-5 w-5" />}
+              />
+              <StatCard
+                label="Follow-ups Due"
+                value={metrics.followupsDue ?? 0}
+                icon={<Mail className="h-5 w-5" />}
               />
             </>
           )}
@@ -520,6 +724,44 @@ export default function HomePage() {
                   <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
                     Checked in {timeFormatter.format(new Date(entry.start_at))}
                   </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CollapsibleCard>
+      </div>
+
+      {/* Compliance Alerts */}
+      <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Compliance</h2>
+      <div className="grid grid-cols-1 gap-6">
+        <CollapsibleCard
+          id="dashboard-compliance"
+          title="Compliance Alerts"
+          icon={<ShieldCheck className="h-5 w-5" />}
+        >
+          {sectionsLoading ? (
+            <ListSkeleton rows={4} />
+          ) : complianceAlerts.length === 0 ? (
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-green-500" />
+              <p className="text-sm text-muted-foreground">All clear. No expiring certifications, training, or documents.</p>
+            </div>
+          ) : (
+            <ul className="space-y-2.5">
+              {complianceAlerts.map((alert) => (
+                <li
+                  key={`${alert.type}-${alert.id}`}
+                  className="flex items-center justify-between gap-3 text-sm"
+                >
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    {alert.type === 'cert' && <Award className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+                    {alert.type === 'training' && <BookOpen className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+                    {alert.type === 'document' && <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+                    <span className="font-medium text-foreground truncate">{alert.name}</span>
+                  </div>
+                  <Badge color={alert.daysUntil < 0 ? 'red' : alert.daysUntil <= 14 ? 'orange' : 'yellow'}>
+                    {alert.daysUntil < 0 ? `Overdue ${Math.abs(alert.daysUntil)}d` : alert.daysUntil === 0 ? 'Today' : `${alert.daysUntil}d left`}
+                  </Badge>
                 </li>
               ))}
             </ul>

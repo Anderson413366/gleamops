@@ -4,19 +4,16 @@
 import type { NavItem, StatusColor } from '../types/app';
 
 // ---------------------------------------------------------------------------
-// Navigation (12 modules)
+// Navigation (6 consolidated modules)
 // ---------------------------------------------------------------------------
 export const NAV_ITEMS: NavItem[] = [
   { id: 'home', label: 'Home', href: '/home', icon: 'Home' },
   { id: 'pipeline', label: 'Pipeline', href: '/pipeline', icon: 'TrendingUp' },
   { id: 'crm', label: 'CRM', href: '/crm', icon: 'Building2' },
-  { id: 'services', label: 'Services', href: '/services', icon: 'Layers' },
   { id: 'operations', label: 'Operations', href: '/operations', icon: 'Calendar' },
-  { id: 'people', label: 'People', href: '/people', icon: 'Users' },
-  { id: 'inventory', label: 'Inventory', href: '/inventory', icon: 'Package' },
-  { id: 'assets', label: 'Assets', href: '/assets', icon: 'Truck' },
-  { id: 'subcontractors', label: 'Subcontractors', href: '/subcontractors', icon: 'HardHat' },
-  { id: 'reports', label: 'Reports', href: '/reports', icon: 'BarChart3' },
+  { id: 'workforce', label: 'Workforce', href: '/workforce', icon: 'Users' },
+  { id: 'inventory', label: 'Inventory & Assets', href: '/inventory', icon: 'Package' },
+  { id: 'safety', label: 'Safety', href: '/safety', icon: 'ShieldCheck' },
   { id: 'admin', label: 'Admin', href: '/admin', icon: 'Wrench' },
 ];
 
@@ -58,7 +55,7 @@ export const TICKET_STATUS_COLORS: Record<string, StatusColor> = {
   IN_PROGRESS: 'yellow',
   COMPLETED: 'green',
   VERIFIED: 'green',
-  CANCELLED: 'gray',
+  CANCELED: 'gray',
 };
 
 export const OPPORTUNITY_STAGE_COLORS: Record<string, StatusColor> = {
@@ -105,6 +102,50 @@ export const TIME_ENTRY_STATUS_COLORS: Record<string, StatusColor> = {
 };
 
 // ---------------------------------------------------------------------------
+// Entity status colors (core entities)
+// ---------------------------------------------------------------------------
+export const CLIENT_STATUS_COLORS: Record<string, StatusColor> = {
+  DRAFT: 'gray',
+  PROSPECT: 'blue',
+  ACTIVE: 'green',
+  ON_HOLD: 'yellow',
+  INACTIVE: 'gray',
+  CANCELED: 'red',
+  LOST: 'orange',
+};
+
+export const SITE_STATUS_COLORS: Record<string, StatusColor> = {
+  DRAFT: 'gray',
+  ACTIVE: 'green',
+  ON_HOLD: 'yellow',
+  INACTIVE: 'gray',
+  CANCELED: 'red',
+};
+
+export const JOB_STATUS_COLORS: Record<string, StatusColor> = {
+  DRAFT: 'gray',
+  ACTIVE: 'green',
+  ON_HOLD: 'yellow',
+  CANCELED: 'red',
+  COMPLETED: 'blue',
+};
+
+export const STAFF_STATUS_COLORS: Record<string, StatusColor> = {
+  DRAFT: 'gray',
+  ACTIVE: 'green',
+  ON_LEAVE: 'yellow',
+  INACTIVE: 'gray',
+  TERMINATED: 'red',
+};
+
+export const LOG_STATUS_COLORS: Record<string, StatusColor> = {
+  OPEN: 'red',
+  IN_PROGRESS: 'yellow',
+  RESOLVED: 'green',
+  CLOSED: 'gray',
+};
+
+// ---------------------------------------------------------------------------
 // Lookup categories (seed data keys)
 // ---------------------------------------------------------------------------
 export const LOOKUP_CATEGORIES = [
@@ -120,8 +161,31 @@ export const LOOKUP_CATEGORIES = [
   'difficulty',
   'floor_type',
   'building_type',
+  'area_type',
+  'traffic',
+  'service_time',
+  'qc_frequency',
   'task_category',
   'task_unit',
+  'client_status',
+  'site_status',
+  'job_status',
+  'staff_status',
+  'equipment_condition',
+  'equipment_condition_bid',
+  'supply_status',
+  'vehicle_status',
+  'key_status',
+  'subcontractor_status',
+  'log_event_type',
+  'severity_level',
+  'log_status',
+  'pricing_method',
+  'bid_type',
+  'general_task_category',
+  'signature_type',
+  'email_event_type',
+  'price_elasticity',
 ] as const;
 
 export type LookupCategory = typeof LOOKUP_CATEGORIES[number];
@@ -129,8 +193,25 @@ export type LookupCategory = typeof LOOKUP_CATEGORIES[number];
 // ---------------------------------------------------------------------------
 // Frequency options
 // ---------------------------------------------------------------------------
-export const FREQUENCIES = ['DAILY', 'WEEKLY', 'BIWEEKLY', 'MONTHLY'] as const;
+export const FREQUENCIES = ['DAILY', '2X_WEEK', '3X_WEEK', 'WEEKLY', '5X_WEEK', 'BIWEEKLY', 'MONTHLY', 'AS_NEEDED'] as const;
 export type Frequency = typeof FREQUENCIES[number];
+
+/**
+ * How many times per week a frequency code translates to.
+ * Used by CleanFlow workload calculation to properly weight tasks
+ * that don't run every visit.
+ */
+export const FREQUENCY_VISITS_PER_WEEK: Record<string, number> = {
+  DAILY: 5,
+  '5X_WEEK': 5,
+  '4X_WEEK': 4,
+  '3X_WEEK': 3,
+  '2X_WEEK': 2,
+  WEEKLY: 1,
+  BIWEEKLY: 0.5,
+  MONTHLY: 0.23, // ~1x per 4.33 weeks
+  AS_NEEDED: 0,
+};
 
 // ---------------------------------------------------------------------------
 // Difficulty multipliers (CleanFlow)
@@ -194,11 +275,36 @@ export const SUPPLY_ORDER_STATUS_COLORS: Record<string, StatusColor> = {
   ORDERED: 'blue',
   SHIPPED: 'yellow',
   RECEIVED: 'green',
-  CANCELLED: 'red',
+  CANCELED: 'red',
 };
 
 export const INVENTORY_COUNT_STATUS_COLORS: Record<string, StatusColor> = {
   DRAFT: 'gray',
   IN_PROGRESS: 'yellow',
   COMPLETED: 'green',
+};
+
+export const CERTIFICATION_STATUS_COLORS: Record<string, StatusColor> = {
+  ACTIVE: 'green',
+  EXPIRED: 'red',
+  REVOKED: 'gray',
+  PENDING: 'yellow',
+};
+
+export const SAFETY_DOCUMENT_STATUS_COLORS: Record<string, StatusColor> = {
+  ACTIVE: 'green',
+  UNDER_REVIEW: 'yellow',
+  EXPIRED: 'red',
+  SUPERSEDED: 'gray',
+  DRAFT: 'gray',
+};
+
+export const GENERAL_TASK_CATEGORY_COLORS: Record<string, StatusColor> = {
+  QUALITY: 'blue',
+  CLOSING: 'gray',
+  SETUP: 'yellow',
+  TRAVEL: 'orange',
+  BREAK: 'green',
+  MANAGEMENT: 'purple',
+  OTHER: 'gray',
 };

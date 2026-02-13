@@ -74,6 +74,7 @@ export interface WorkloadResult {
   hours_per_visit: number;
   cleaners_needed: number;
   lead_needed: boolean;
+  warnings: string[];
   area_breakdowns: Array<{
     area_id: string;
     area_name: string;
@@ -81,6 +82,7 @@ export interface WorkloadResult {
     task_breakdowns: Array<{
       task_code: string;
       minutes: number;
+      frequency_factor: number;
       source: 'custom' | 'calculated';
     }>;
   }>;

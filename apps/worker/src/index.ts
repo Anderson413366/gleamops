@@ -3,13 +3,14 @@
  *
  * Currently runs:
  *   - Proposal send worker (poll QUEUED → SendGrid → SENT/FAILED)
+ *   - Follow-up sequence worker (poll SCHEDULED → SendGrid → SENT/FAILED/SKIPPED)
  *
  * Future:
  *   - PDF generation
- *   - Follow-up sequence scheduler
  *   - Ticket generation
  */
 import { startSendWorker, stopSendWorker } from './send-worker.js';
+import { startFollowupWorker, stopFollowupWorker } from './followup-worker.js';
 
 async function main() {
   console.log('=== GleamOps Worker starting ===');
@@ -18,6 +19,7 @@ async function main() {
   console.log('');
 
   await startSendWorker();
+  await startFollowupWorker();
 
   console.log('[main] all workers started — polling');
 }
@@ -28,6 +30,7 @@ async function main() {
 function shutdown(signal: string) {
   console.log(`\n[main] received ${signal}, shutting down gracefully...`);
   stopSendWorker();
+  stopFollowupWorker();
   // Allow in-flight sends to finish, then exit
   setTimeout(() => {
     console.log('[main] shutdown complete');

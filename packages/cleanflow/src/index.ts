@@ -14,4 +14,6 @@
 export { calculateWorkload } from './workload';
 export { calculatePricing } from './pricing';
 export { findProductionRate } from './production-rates';
+export { expressLoad } from './express-load';
 export type { BidVersionSnapshot, WorkloadResult, PricingResult } from './types';
+export type { ExpressLoadInput, ExpressLoadArea, FloorMixEntry } from './express-load';

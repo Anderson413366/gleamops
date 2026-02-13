@@ -39,3 +39,6 @@ export { ExportButton } from './components/export-button';
 export { StatCard } from './components/stat-card';
 export { AccessDenied } from './components/access-denied';
 export { Tooltip } from './components/tooltip';
+export { BulkActions } from './components/bulk-actions';
+export { ArchiveDialog } from './components/archive-dialog';
+export { CsvImport } from './components/csv-import';

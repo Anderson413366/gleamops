@@ -2,10 +2,37 @@
 
 import { useState, useCallback, useRef } from 'react';
 import type { ZodError } from 'zod';
+import { toast } from 'sonner';
 
 type AnyZodSchema = {
   safeParse: (data: unknown) => { success: true; data: unknown } | { success: false; error: ZodError };
 };
+
+/**
+ * Thrown when an optimistic-lock update finds 0 affected rows.
+ * This means another user modified the record between load and save.
+ */
+export class ConflictError extends Error {
+  constructor(message = 'This record was modified by another user. Please refresh and try again.') {
+    super(message);
+    this.name = 'ConflictError';
+  }
+}
+
+/**
+ * Checks that a Supabase `.update().select()` actually returned data.
+ * Supabase returns `{ data: null, error: null }` when WHERE doesn't match
+ * (e.g., version_etag mismatch), which looks like success but isn't.
+ */
+export function assertUpdateSucceeded(result: { data: unknown; error: unknown }) {
+  if (result.error) {
+    throw result.error;
+  }
+  const data = result.data;
+  if (data === null || (Array.isArray(data) && data.length === 0)) {
+    throw new ConflictError();
+  }
+}
 
 interface UseFormOptions<T> {
   schema: AnyZodSchema;
@@ -83,6 +110,13 @@ export function useForm<T extends Record<string, unknown>>({
         await onSubmit(result.data as T);
       } catch (err) {
         console.error('Form submit error:', err);
+        if (err instanceof ConflictError) {
+          toast.error(err.message, { duration: Infinity });
+        } else if (err instanceof Error) {
+          toast.error(err.message, { duration: Infinity });
+        } else {
+          toast.error('An unexpected error occurred.', { duration: Infinity });
+        }
       } finally {
         setLoading(false);
       }

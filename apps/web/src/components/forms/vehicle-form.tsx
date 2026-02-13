@@ -1,7 +1,7 @@
 'use client';
 
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { useForm } from '@/hooks/use-form';
+import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { vehicleSchema, type VehicleFormData } from '@gleamops/shared';
 import { SlideOver, Input, Select, Textarea, Button } from '@gleamops/ui';
 import type { Vehicle } from '@gleamops/shared';
@@ -54,7 +54,7 @@ export function VehicleForm({ open, onClose, initialData, onSuccess }: VehicleFo
       : DEFAULTS,
     onSubmit: async (data) => {
       if (isEdit) {
-        const { error } = await supabase
+        const result = await supabase
           .from('vehicles')
           .update({
             name: data.name,
@@ -68,8 +68,9 @@ export function VehicleForm({ open, onClose, initialData, onSuccess }: VehicleFo
             notes: data.notes,
           })
           .eq('id', initialData!.id)
-          .eq('version_etag', initialData!.version_etag);
-        if (error) throw error;
+          .eq('version_etag', initialData!.version_etag)
+          .select();
+        assertUpdateSucceeded(result);
       } else {
         const { error } = await supabase.from('vehicles').insert({
           ...data,

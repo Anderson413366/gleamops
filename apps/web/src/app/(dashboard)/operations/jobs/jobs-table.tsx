@@ -1,22 +1,23 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Briefcase } from 'lucide-react';
+import { Briefcase, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, ExportButton,
+  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, Button,
 } from '@gleamops/ui';
 import type { SiteJob } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 import { JobDetail } from './job-detail';
+import { JobForm } from '@/components/forms/job-form';
 
 const JOB_STATUS_COLORS: Record<string, 'green' | 'yellow' | 'gray' | 'red'> = {
   ACTIVE: 'green',
-  PAUSED: 'yellow',
-  CANCELLED: 'red',
+  ON_HOLD: 'yellow',
+  CANCELED: 'red',
   COMPLETED: 'green',
 };
 
@@ -36,7 +37,7 @@ interface JobsTableProps {
 }
 
 function formatCurrency(n: number | null) {
-  if (n == null) return '—';
+  if (n == null) return '\u2014';
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
 }
 
@@ -44,6 +45,8 @@ export default function JobsTable({ search }: JobsTableProps) {
   const [rows, setRows] = useState<JobWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<JobWithRelations | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editItem, setEditItem] = useState<SiteJob | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -68,6 +71,7 @@ export default function JobsTable({ search }: JobsTableProps) {
     return rows.filter(
       (r) =>
         r.job_code.toLowerCase().includes(q) ||
+        (r.job_name ?? '').toLowerCase().includes(q) ||
         r.site?.name?.toLowerCase().includes(q) ||
         r.site?.client?.name?.toLowerCase().includes(q) ||
         r.status.toLowerCase().includes(q)
@@ -80,26 +84,49 @@ export default function JobsTable({ search }: JobsTableProps) {
   const sortedRows = sorted as unknown as JobWithRelations[];
   const pag = usePagination(sortedRows, 25);
 
+  const handleEdit = (job: SiteJob) => {
+    setSelected(null);
+    setEditItem(job);
+    setFormOpen(true);
+  };
+
   if (loading) return <TableSkeleton rows={6} cols={6} />;
 
   if (filtered.length === 0) {
     return (
-      <EmptyState
-        icon={<Briefcase className="h-12 w-12" />}
-        title="No service plans"
-        description={search ? 'Try a different search term.' : 'Convert a won proposal to create service plans.'}
-      />
+      <>
+        <div className="flex justify-end mb-4">
+          <Button size="sm" onClick={() => { setEditItem(null); setFormOpen(true); }}>
+            <Plus className="h-4 w-4" /> New Job
+          </Button>
+        </div>
+        <EmptyState
+          icon={<Briefcase className="h-12 w-12" />}
+          title="No jobs"
+          description={search ? 'Try a different search term.' : 'Create your first job to get started.'}
+        />
+        <JobForm
+          open={formOpen}
+          onClose={() => { setFormOpen(false); setEditItem(null); }}
+          initialData={editItem}
+          onSuccess={fetchData}
+        />
+      </>
     );
   }
 
   return (
     <div>
-      <div className="flex justify-end mb-4">
+      <div className="flex justify-between mb-4">
+        <Button size="sm" onClick={() => { setEditItem(null); setFormOpen(true); }}>
+          <Plus className="h-4 w-4" /> New Job
+        </Button>
         <ExportButton
           data={filtered as unknown as Record<string, unknown>[]}
-          filename="service-plans"
+          filename="jobs"
           columns={[
             { key: 'job_code', label: 'Code' },
+            { key: 'job_name', label: 'Name' },
             { key: 'frequency', label: 'Frequency' },
             { key: 'billing_amount', label: 'Billing' },
             { key: 'status', label: 'Status' },
@@ -111,7 +138,7 @@ export default function JobsTable({ search }: JobsTableProps) {
         <TableHeader>
           <tr>
             <TableHead sortable sorted={sortKey === 'job_code' && sortDir} onSort={() => onSort('job_code')}>Code</TableHead>
-            <TableHead>Job Name</TableHead>
+            <TableHead>Name</TableHead>
             <TableHead>Site</TableHead>
             <TableHead>Client</TableHead>
             <TableHead>Type</TableHead>
@@ -125,16 +152,16 @@ export default function JobsTable({ search }: JobsTableProps) {
           {pag.page.map((row) => (
             <TableRow key={row.id} className="cursor-pointer" onClick={() => setSelected(row)}>
               <TableCell className="font-mono text-xs">{row.job_code}</TableCell>
-              <TableCell className="font-medium">{row.job_name ?? '—'}</TableCell>
-              <TableCell>{row.site?.name ?? '—'}</TableCell>
-              <TableCell className="text-muted-foreground">{row.site?.client?.name ?? '—'}</TableCell>
-              <TableCell className="text-muted-foreground">{row.job_type ?? '—'}</TableCell>
+              <TableCell className="font-medium">{row.job_name ?? '\u2014'}</TableCell>
+              <TableCell>{row.site?.name ?? '\u2014'}</TableCell>
+              <TableCell className="text-muted-foreground">{row.site?.client?.name ?? '\u2014'}</TableCell>
+              <TableCell className="text-muted-foreground">{row.job_type ?? '\u2014'}</TableCell>
               <TableCell className="text-muted-foreground">{row.frequency}</TableCell>
               <TableCell className="text-right tabular-nums font-medium">{formatCurrency(row.billing_amount)}</TableCell>
               <TableCell>
                 {row.priority_level ? (
                   <Badge color={PRIORITY_COLORS[row.priority_level] ?? 'gray'}>{row.priority_level}</Badge>
-                ) : '—'}
+                ) : '\u2014'}
               </TableCell>
               <TableCell>
                 <Badge color={JOB_STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
@@ -153,6 +180,14 @@ export default function JobsTable({ search }: JobsTableProps) {
         job={selected}
         open={!!selected}
         onClose={() => setSelected(null)}
+        onEdit={handleEdit}
+      />
+
+      <JobForm
+        open={formOpen}
+        onClose={() => { setFormOpen(false); setEditItem(null); }}
+        initialData={editItem}
+        onSuccess={fetchData}
       />
     </div>
   );

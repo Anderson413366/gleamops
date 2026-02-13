@@ -12,8 +12,8 @@ import { usePagination } from '@/hooks/use-pagination';
 
 const JOB_STATUS_COLORS: Record<string, 'green' | 'yellow' | 'gray' | 'red'> = {
   ACTIVE: 'green',
-  PAUSED: 'yellow',
-  CANCELLED: 'gray',
+  ON_HOLD: 'yellow',
+  CANCELED: 'gray',
   COMPLETED: 'green',
 };
 

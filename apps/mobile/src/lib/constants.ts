@@ -33,5 +33,5 @@ export const STATUS_COLORS: Record<string, string> = {
   IN_PROGRESS: '#F59E0B',
   COMPLETED: '#10B981',
   VERIFIED: '#059669',
-  CANCELLED: '#9CA3AF',
+  CANCELED: '#9CA3AF',
 };

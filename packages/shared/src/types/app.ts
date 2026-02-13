@@ -11,24 +11,16 @@ export type UserRole =
   | 'INSPECTOR'
   | 'SALES';
 
-// Navigation spaces
+// Navigation spaces (7-item nav with Pipeline)
 export type NavSpace =
   | 'home'
   | 'pipeline'
   | 'crm'
-  | 'services'
   | 'operations'
-  | 'people'
+  | 'workforce'
   | 'inventory'
-  | 'assets'
-  | 'subcontractors'
-  | 'reports'
-  | 'admin'
-  | 'settings'
-  // Legacy aliases (kept for backward compat)
-  | 'customers'
-  | 'schedule'
-  | 'team';
+  | 'safety'
+  | 'admin';
 
 export interface NavItem {
   id: NavSpace;

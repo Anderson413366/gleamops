@@ -1,23 +1,38 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { TrendingUp, FileText, FileCheck, Plus } from 'lucide-react';
-import { toast } from 'sonner';
-import { ChipTabs, SearchInput, Button, SlideOver, Input, Select, Textarea } from '@gleamops/ui';
-import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import type { SalesBid, SalesProposal, ProblemDetails } from '@gleamops/shared';
+import { useState, useCallback, useEffect } from 'react';
+import { Users, Target, FileText, Send, Plus, Zap, BarChart3 } from 'lucide-react';
+import { ChipTabs, SearchInput, Button, SlideOver, Badge } from '@gleamops/ui';
+import type {
+  SalesProspect,
+  SalesOpportunity,
+  SalesBid,
+  SalesProposal,
+} from '@gleamops/shared';
 
 import ProspectsTable from './prospects/prospects-table';
+import OpportunitiesTable from './opportunities/opportunities-table';
 import BidsTable from './bids/bids-table';
 import { BidDetail } from './bids/bid-detail';
 import { BidWizard } from './bids/bid-wizard';
+import { ExpressBid } from './bids/express-bid';
 import ProposalsTable from './proposals/proposals-table';
 import { ProposalDetail } from './proposals/proposal-detail';
 import { SendProposalForm } from './proposals/send-proposal-form';
 
+import PipelineAnalytics from './analytics/pipeline-analytics';
+import { ProspectForm } from '@/components/forms/prospect-form';
+import { OpportunityForm } from '@/components/forms/opportunity-form';
+
+// Extended types with joined relations
 interface BidWithClient extends SalesBid {
   client?: { name: string; client_code: string } | null;
   service?: { name: string } | null;
+}
+
+interface OpportunityWithRelations extends SalesOpportunity {
+  prospect?: { company_name: string; prospect_code: string } | null;
+  client?: { name: string; client_code: string } | null;
 }
 
 interface ProposalWithRelations extends SalesProposal {
@@ -34,96 +49,128 @@ interface ProposalWithRelations extends SalesProposal {
 }
 
 const TABS = [
-  { key: 'prospects', label: 'Prospects', icon: <TrendingUp className="h-4 w-4" /> },
+  { key: 'prospects', label: 'Prospects', icon: <Users className="h-4 w-4" /> },
+  { key: 'opportunities', label: 'Opportunities', icon: <Target className="h-4 w-4" /> },
   { key: 'bids', label: 'Bids', icon: <FileText className="h-4 w-4" /> },
-  { key: 'proposals', label: 'Proposals', icon: <FileCheck className="h-4 w-4" /> },
+  { key: 'proposals', label: 'Proposals', icon: <Send className="h-4 w-4" /> },
+  { key: 'analytics', label: 'Analytics', icon: <BarChart3 className="h-4 w-4" /> },
 ];
 
 export default function PipelinePageClient() {
   const [tab, setTab] = useState(TABS[0].key);
   const [search, setSearch] = useState('');
-  const [wizardOpen, setWizardOpen] = useState(false);
+
+  // Detail drawer state
   const [selectedBid, setSelectedBid] = useState<BidWithClient | null>(null);
   const [selectedProposal, setSelectedProposal] = useState<ProposalWithRelations | null>(null);
   const [sendProposal, setSendProposal] = useState<ProposalWithRelations | null>(null);
+
+  // Form state
+  const [prospectFormOpen, setProspectFormOpen] = useState(false);
+  const [editProspect, setEditProspect] = useState<SalesProspect | null>(null);
+  const [opportunityFormOpen, setOpportunityFormOpen] = useState(false);
+  const [editOpportunity, setEditOpportunity] = useState<OpportunityWithRelations | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [editBidId, setEditBidId] = useState<string | null>(null);
+  const [expressOpen, setExpressOpen] = useState(false);
+
+  // Refresh keys
   const [refreshKey, setRefreshKey] = useState(0);
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
-  // Prospect form state
-  const [prospectFormOpen, setProspectFormOpen] = useState(false);
-  const [prospectCode, setProspectCode] = useState('');
-  const [prospectCompany, setProspectCompany] = useState('');
-  const [prospectSource, setProspectSource] = useState('');
-  const [prospectStatus, setProspectStatus] = useState('NEW');
-  const [prospectContactName, setProspectContactName] = useState('');
-  const [prospectContactEmail, setProspectContactEmail] = useState('');
-  const [prospectContactPhone, setProspectContactPhone] = useState('');
-  const [prospectNotes, setProspectNotes] = useState('');
-  const [prospectSaving, setProspectSaving] = useState(false);
+  // Conversion state
+  const [converting, setConverting] = useState(false);
+  const [conversionResult, setConversionResult] = useState<{
+    success: boolean;
+    job_code?: string;
+    tickets_created?: number;
+    error?: string;
+    errorCode?: string;
+    idempotent?: boolean;
+  } | null>(null);
 
-  const addLabel = tab === 'prospects' ? 'New Prospect' : tab === 'bids' ? 'New Bid' : '';
+  // Pipeline overview stats
+  const [pipelineStats, setPipelineStats] = useState({
+    pipelineValue: '$0k',
+    activeBids: 0,
+    staleDeals: 0,
+    emailProblems: 0,
+  });
 
-  const resetProspectForm = () => {
-    setProspectCode('');
-    setProspectCompany('');
-    setProspectSource('');
-    setProspectStatus('NEW');
-    setProspectContactName('');
-    setProspectContactEmail('');
-    setProspectContactPhone('');
-    setProspectNotes('');
-  };
+  // Fetch pipeline stats on mount and when refreshKey changes
+  useEffect(() => {
+    const fetchStats = async () => {
+      const { getSupabaseBrowserClient } = await import('@/lib/supabase/client');
+      const supabase = getSupabaseBrowserClient();
+
+      const fourteenDaysAgo = new Date(Date.now() - 14 * 86400000).toISOString();
+
+      const [pipelineRes, bidsRes, staleRes, emailRes] = await Promise.all([
+        // Pipeline value
+        supabase
+          .from('sales_opportunities')
+          .select('estimated_monthly_value')
+          .not('stage_code', 'in', '("WON","LOST")')
+          .is('archived_at', null),
+        // Active bids
+        supabase
+          .from('sales_bids')
+          .select('id', { count: 'exact', head: true })
+          .in('status', ['DRAFT', 'IN_PROGRESS', 'READY_FOR_REVIEW']),
+        // Stale deals (opportunities not updated in 14 days)
+        supabase
+          .from('sales_opportunities')
+          .select('id', { count: 'exact', head: true })
+          .not('stage_code', 'in', '("WON","LOST")')
+          .lt('updated_at', fourteenDaysAgo)
+          .is('archived_at', null),
+        // Email problems (bounced/failed sends)
+        supabase
+          .from('sales_proposal_sends')
+          .select('id', { count: 'exact', head: true })
+          .in('status', ['BOUNCED', 'FAILED']),
+      ]);
+
+      const pipelineSum = (pipelineRes.data ?? []).reduce(
+        (sum, row) => sum + (Number((row as Record<string, unknown>).estimated_monthly_value) || 0),
+        0,
+      );
+
+      setPipelineStats({
+        pipelineValue: `$${(pipelineSum / 1000).toFixed(1)}k`,
+        activeBids: bidsRes.count ?? 0,
+        staleDeals: staleRes.count ?? 0,
+        emailProblems: emailRes.count ?? 0,
+      });
+    };
+
+    fetchStats();
+  }, [refreshKey]);
 
   const handleAdd = () => {
-    if (tab === 'bids') {
-      setWizardOpen(true);
-    } else if (tab === 'prospects') {
-      resetProspectForm();
-      // Auto-generate code
-      const supabase = getSupabaseBrowserClient();
-      supabase.rpc('next_code', { p_prefix: 'PRO' }).then(({ data }) => {
-        if (data) setProspectCode(data);
-      });
+    if (tab === 'prospects') {
+      setEditProspect(null);
       setProspectFormOpen(true);
+    } else if (tab === 'opportunities') {
+      setEditOpportunity(null);
+      setOpportunityFormOpen(true);
+    } else if (tab === 'bids') {
+      setWizardOpen(true);
     }
+    // Proposals are generated from bids, no direct "New Proposal" button
   };
 
-  const handleProspectSave = async () => {
-    if (!prospectCompany.trim()) {
-      toast.error('Company name is required');
-      return;
-    }
-    setProspectSaving(true);
-    try {
-      const supabase = getSupabaseBrowserClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      const tenantId = user?.app_metadata?.tenant_id;
-
-      const { error } = await supabase.from('sales_prospects').insert({
-        tenant_id: tenantId,
-        prospect_code: prospectCode,
-        company_name: prospectCompany.trim(),
-        source: prospectSource || null,
-        prospect_status_code: prospectStatus,
-        contact_name: prospectContactName.trim() || null,
-        contact_email: prospectContactEmail.trim() || null,
-        contact_phone: prospectContactPhone.trim() || null,
-        notes: prospectNotes.trim() || null,
-      });
-      if (error) throw error;
-
-      setProspectFormOpen(false);
-      resetProspectForm();
-      refresh();
-      toast.success('Prospect created');
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Failed to create prospect', { duration: Infinity });
-    } finally {
-      setProspectSaving(false);
-    }
-  };
+  const addLabel =
+    tab === 'prospects'
+      ? 'New Prospect'
+      : tab === 'opportunities'
+        ? 'New Opportunity'
+        : tab === 'bids'
+          ? 'New Bid'
+          : '';
 
   const handleGenerateProposal = useCallback(async (bidId: string, bidVersionId: string) => {
+    const { getSupabaseBrowserClient } = await import('@/lib/supabase/client');
     const supabase = getSupabaseBrowserClient();
 
     // Get next proposal code
@@ -169,6 +216,7 @@ export default function PipelinePageClient() {
   }, [refresh]);
 
   const handleMarkWon = useCallback(async (proposal: ProposalWithRelations) => {
+    const { getSupabaseBrowserClient } = await import('@/lib/supabase/client');
     const supabase = getSupabaseBrowserClient();
     await supabase
       .from('sales_proposals')
@@ -186,20 +234,10 @@ export default function PipelinePageClient() {
     refresh();
   }, [refresh]);
 
-  // Conversion state
-  const [converting, setConverting] = useState(false);
-  const [conversionResult, setConversionResult] = useState<{
-    success: boolean;
-    job_code?: string;
-    tickets_created?: number;
-    error?: string;
-    errorCode?: string;
-    idempotent?: boolean;
-  } | null>(null);
-
   const handleConvert = useCallback(async (proposal: ProposalWithRelations, siteId: string, pricingOptionId?: string) => {
     setConverting(true);
     setConversionResult(null);
+    const { getSupabaseBrowserClient } = await import('@/lib/supabase/client');
     const supabase = getSupabaseBrowserClient();
 
     const { data, error } = await supabase.rpc('convert_bid_to_job', {
@@ -212,8 +250,6 @@ export default function PipelinePageClient() {
     setConverting(false);
 
     if (error) {
-      // Parse Problem Details from Postgres RAISE EXCEPTION messages
-      // Format: "CONVERT_001: Proposal status is DRAFT, must be WON"
       const msg = error.message || 'Conversion failed';
       const codeMatch = msg.match(/^(CONVERT_\w+):\s*(.+)$/);
       setConversionResult({
@@ -252,28 +288,96 @@ export default function PipelinePageClient() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Pipeline</h1>
-          <p className="text-sm text-muted-foreground mt-1">Prospects, Bids, Proposals</p>
+          <p className="text-sm text-muted-foreground mt-1">Manage prospects, opportunities, bids, and proposals</p>
         </div>
-        {addLabel && (
-          <Button onClick={handleAdd}>
-            <Plus className="h-4 w-4" />
-            {addLabel}
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {tab === 'bids' && (
+            <Button variant="secondary" onClick={() => setExpressOpen(true)}>
+              <Zap className="h-4 w-4" />
+              Express Bid
+            </Button>
+          )}
+          {addLabel && (
+            <Button onClick={handleAdd}>
+              <Plus className="h-4 w-4" />
+              {addLabel}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Pipeline Overview Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+          <p className="text-xs text-muted-foreground">Pipeline Value</p>
+          <p className="text-xl font-bold text-foreground">{pipelineStats.pipelineValue}</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+          <p className="text-xs text-muted-foreground">Active Bids</p>
+          <p className="text-xl font-bold text-foreground">{pipelineStats.activeBids}</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+          <p className="text-xs text-muted-foreground">Stale Deals (14d)</p>
+          <p className="text-xl font-bold text-foreground">{pipelineStats.staleDeals}</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+          <p className="text-xs text-muted-foreground">Email Issues</p>
+          <p className="text-xl font-bold text-foreground">{pipelineStats.emailProblems}</p>
+        </div>
       </div>
 
       <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
       <SearchInput value={search} onChange={setSearch} placeholder={`Search ${tab}...`} />
 
-      {tab === 'prospects' && <ProspectsTable key={`p-${refreshKey}`} search={search} />}
-      {tab === 'bids' && <BidsTable key={`b-${refreshKey}`} search={search} onSelect={setSelectedBid} />}
-      {tab === 'proposals' && <ProposalsTable key={`pr-${refreshKey}`} search={search} onSelect={setSelectedProposal} />}
+      {tab === 'prospects' && (
+        <ProspectsTable
+          key={`prospects-${refreshKey}`}
+          search={search}
+          onSelect={(p) => {
+            setEditProspect(p);
+            setProspectFormOpen(true);
+          }}
+        />
+      )}
+      {tab === 'opportunities' && (
+        <OpportunitiesTable
+          key={`opportunities-${refreshKey}`}
+          search={search}
+          onSelect={(o) => {
+            setEditOpportunity(o);
+            setOpportunityFormOpen(true);
+          }}
+        />
+      )}
+      {tab === 'bids' && (
+        <BidsTable
+          key={`bids-${refreshKey}`}
+          search={search}
+          onSelect={setSelectedBid}
+        />
+      )}
+      {tab === 'proposals' && (
+        <ProposalsTable
+          key={`proposals-${refreshKey}`}
+          search={search}
+          onSelect={setSelectedProposal}
+        />
+      )}
+      {tab === 'analytics' && (
+        <PipelineAnalytics key={`analytics-${refreshKey}`} />
+      )}
 
+      {/* Detail Drawers */}
       <BidDetail
         bid={selectedBid}
         open={!!selectedBid}
         onClose={() => setSelectedBid(null)}
         onGenerateProposal={handleGenerateProposal}
+        onEdit={(bidId) => {
+          setSelectedBid(null);
+          setEditBidId(bidId);
+          setWizardOpen(true);
+        }}
       />
 
       <ProposalDetail
@@ -299,89 +403,37 @@ export default function PipelinePageClient() {
 
       <BidWizard
         open={wizardOpen}
-        onClose={() => setWizardOpen(false)}
+        onClose={() => { setWizardOpen(false); setEditBidId(null); }}
+        onSuccess={refresh}
+        editBidId={editBidId}
+      />
+
+      <ExpressBid
+        open={expressOpen}
+        onClose={() => setExpressOpen(false)}
         onSuccess={refresh}
       />
 
-      {/* Prospect Form */}
-      <SlideOver
+      {/* Forms */}
+      <ProspectForm
         open={prospectFormOpen}
-        onClose={() => { setProspectFormOpen(false); resetProspectForm(); }}
-        title="New Prospect"
-        subtitle="Add a new sales prospect"
-      >
-        <div className="space-y-4">
-          <Input
-            label="Prospect Code"
-            value={prospectCode}
-            disabled
-            hint="Auto-generated"
-          />
-          <Input
-            label="Company Name"
-            value={prospectCompany}
-            onChange={(e) => setProspectCompany(e.target.value)}
-            required
-            placeholder="e.g., Acme Corp"
-          />
-          <Select
-            label="Source"
-            value={prospectSource}
-            onChange={(e) => setProspectSource(e.target.value)}
-            placeholder="Select source..."
-            options={[
-              { value: 'REFERRAL', label: 'Referral' },
-              { value: 'WEBSITE', label: 'Website' },
-              { value: 'COLD_CALL', label: 'Cold Call' },
-              { value: 'TRADE_SHOW', label: 'Trade Show' },
-              { value: 'OTHER', label: 'Other' },
-            ]}
-          />
-          <Select
-            label="Status"
-            value={prospectStatus}
-            onChange={(e) => setProspectStatus(e.target.value)}
-            options={[
-              { value: 'NEW', label: 'New' },
-              { value: 'CONTACTED', label: 'Contacted' },
-              { value: 'QUALIFIED', label: 'Qualified' },
-            ]}
-          />
-          <Input
-            label="Contact Name"
-            value={prospectContactName}
-            onChange={(e) => setProspectContactName(e.target.value)}
-            placeholder="Primary contact"
-          />
-          <Input
-            label="Contact Email"
-            value={prospectContactEmail}
-            onChange={(e) => setProspectContactEmail(e.target.value)}
-            placeholder="email@company.com"
-            type="email"
-          />
-          <Input
-            label="Contact Phone"
-            value={prospectContactPhone}
-            onChange={(e) => setProspectContactPhone(e.target.value)}
-            placeholder="(555) 123-4567"
-          />
-          <Textarea
-            label="Notes"
-            value={prospectNotes}
-            onChange={(e) => setProspectNotes(e.target.value)}
-            placeholder="Additional details about this prospect..."
-          />
-          <div className="flex justify-end gap-3 pt-4 border-t border-border">
-            <Button variant="secondary" onClick={() => { setProspectFormOpen(false); resetProspectForm(); }}>
-              Cancel
-            </Button>
-            <Button onClick={handleProspectSave} loading={prospectSaving}>
-              Create Prospect
-            </Button>
-          </div>
-        </div>
-      </SlideOver>
+        onClose={() => {
+          setProspectFormOpen(false);
+          setEditProspect(null);
+        }}
+        initialData={editProspect}
+        onSuccess={refresh}
+      />
+
+      <OpportunityForm
+        open={opportunityFormOpen}
+        onClose={() => {
+          setOpportunityFormOpen(false);
+          setEditOpportunity(null);
+        }}
+        initialData={editOpportunity}
+        onSuccess={refresh}
+      />
     </div>
   );
 }

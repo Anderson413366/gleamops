@@ -14,6 +14,7 @@ import {
   Wrench,
   Layers,
   HardHat,
+  ShieldCheck,
   Settings,
   LogOut,
   Menu,
@@ -36,6 +37,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Wrench,
   Layers,
   HardHat,
+  ShieldCheck,
 };
 
 function getInitials(email: string): string {

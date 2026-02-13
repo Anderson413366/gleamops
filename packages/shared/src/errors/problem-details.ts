@@ -90,3 +90,11 @@ export const AUTH_003 = (instance: string) =>
 // System
 export const SYS_001 = (instance: string) =>
   createProblemDetails('SYS_001', 'Rate limit exceeded', 429, 'Too many requests. Try again later.', instance);
+export const SYS_002 = (detail: string, instance: string) =>
+  createProblemDetails('SYS_002', 'Internal error', 500, detail, instance);
+
+// Additional Proposal codes (disambiguated from PROPOSAL_001)
+export const PROPOSAL_006 = (detail: string, instance: string, errors?: Array<{ field: string; message: string }>) =>
+  createProblemDetails('PROPOSAL_006', 'Missing required fields', 400, detail, instance, errors);
+export const PROPOSAL_007 = (instance: string) =>
+  createProblemDetails('PROPOSAL_007', 'Proposal not found', 404, 'The requested proposal does not exist or belongs to another tenant', instance);

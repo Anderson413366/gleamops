@@ -19,7 +19,7 @@ interface Props {
 export default function PayrollTable({ search }: Props) {
   const [rows, setRows] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
-  const { role } = useAuth();
+  const { role, loading: authLoading } = useAuth();
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -35,8 +35,11 @@ export default function PayrollTable({ search }: Props) {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Wait for auth to load before checking role
+  if (authLoading) return <TableSkeleton rows={8} cols={5} />;
+
   // Only OWNER_ADMIN can see payroll
-  if (role && role !== 'OWNER_ADMIN') {
+  if (role !== 'OWNER_ADMIN') {
     return (
       <div className="rounded-xl border border-border bg-card p-12 text-center">
         <DollarSign className="h-12 w-12 mx-auto text-muted-foreground mb-4" />

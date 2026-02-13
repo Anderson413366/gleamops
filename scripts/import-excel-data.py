@@ -493,22 +493,63 @@ def import_data():
     batch_insert('clients', clients)
 
     # ── 2g. Staff ────────────────────────────────────────────────────────
+    # The Excel has duplicate rows per person: -A suffix (basic data) and
+    # -B suffix (complete data with pay, contact, updated status). We keep
+    # only the -B row (or whichever is more complete), strip the suffix,
+    # and store a clean STF-NNNN code.
     print('Importing staff...')
     stf_rows = read_sheet(wb, 'Staff')
-    staff_list = []
-    staff_supervisor_map = {}  # staff_code → supervisor_code (resolve after insert)
-    for r in stf_rows:
-        code = clean_str(r.get('Staff Code'))
+
+    def strip_staff_suffix(code):
+        """STF-1001-A → STF-1001, STF-1001-B → STF-1001"""
         if not code:
+            return code
+        return re.sub(r'-[AB]$', '', code)
+
+    # Group rows by base code, prefer -B rows (more complete data)
+    staff_by_base = {}  # base_code → (priority, row)
+    for r in stf_rows:
+        raw_code = clean_str(r.get('Staff Code'))
+        if not raw_code:
             continue
+        first = clean_str(r.get('First Name'))
+        last = clean_str(r.get('Last Name'))
+        # Skip junk rows (header echoes)
+        if first and first.lower() == 'first name':
+            continue
+
+        base_code = strip_staff_suffix(raw_code)
+        # -B suffix gets priority 2 (preferred), -A gets 1, no suffix gets 3
+        if raw_code.endswith('-B'):
+            priority = 2
+        elif raw_code.endswith('-A'):
+            priority = 1
+        else:
+            priority = 3
+
+        existing = staff_by_base.get(base_code)
+        if not existing or priority > existing[0]:
+            staff_by_base[base_code] = (priority, r, raw_code)
+
+    dupes_skipped = len(stf_rows) - len(staff_by_base)
+    if dupes_skipped > 0:
+        print(f'  Deduped: {dupes_skipped} duplicate staff rows removed (kept -B variants)')
+
+    staff_list = []
+    staff_supervisor_map = {}  # base_code → supervisor base_code
+    raw_to_base = {}  # raw_code → base_code (for FK resolution from other sheets)
+    for base_code, (priority, r, raw_code) in staff_by_base.items():
         first = clean_str(r.get('First Name'))
         last = clean_str(r.get('Last Name'))
         full_name = f'{first or ""} {last or ""}'.strip()
         if not full_name:
-            full_name = code  # fallback
+            full_name = base_code
 
         sid = gen_uuid()
-        staff_ids[code] = sid
+        staff_ids[base_code] = sid
+        # Also map the original raw code (with suffix) to the same UUID
+        staff_ids[raw_code] = sid
+        raw_to_base[raw_code] = base_code
 
         role = clean_role(clean_str(r.get('Staff Role')))
         status = map_status(r.get('Staff Status'), STAFF_STATUS)
@@ -526,12 +567,12 @@ def import_data():
 
         sup_code = clean_str(r.get('Supervisor Code'))
         if sup_code:
-            staff_supervisor_map[code] = sup_code
+            staff_supervisor_map[base_code] = strip_staff_suffix(sup_code)
 
         staff_list.append({
             'id': sid,
             'tenant_id': TENANT_ID,
-            'staff_code': code,
+            'staff_code': base_code,
             'full_name': full_name,
             'first_name': first,
             'last_name': last,
@@ -559,13 +600,13 @@ def import_data():
         })
     batch_insert('staff', staff_list)
 
-    # Patch supervisor_id references
+    # Patch supervisor_id references (using base codes)
     if staff_supervisor_map:
         print(f'  Patching {len(staff_supervisor_map)} supervisor references...')
         patched = 0
-        for staff_code, sup_code in staff_supervisor_map.items():
-            staff_id = staff_ids.get(staff_code)
-            sup_id = staff_ids.get(sup_code)
+        for base_code, sup_base_code in staff_supervisor_map.items():
+            staff_id = staff_ids.get(base_code)
+            sup_id = staff_ids.get(sup_base_code)
             if staff_id and sup_id:
                 url = f'{SUPABASE_URL}/rest/v1/staff?id=eq.{staff_id}'
                 data = json.dumps({'supervisor_id': sup_id}).encode()
@@ -772,9 +813,11 @@ def import_data():
     batch_insert('site_jobs', jobs)
 
     # ── 2k. Job Tasks ────────────────────────────────────────────────────
+    # Deduplicate by (job_id, task_id) — keep last occurrence from Excel
     print('Importing job tasks...')
     jt_rows = read_sheet(wb, 'Job Task')
-    job_tasks = []
+    jt_map = {}  # (job_id, task_id) → row dict
+    jt_skipped = 0
     for r in jt_rows:
         job_code = clean_str(r.get('Job Code'))
         task_code = clean_str(r.get('Task Code'))
@@ -785,7 +828,10 @@ def import_data():
         if not job_id or not task_id:
             continue
 
-        job_tasks.append({
+        key = (job_id, task_id)
+        if key in jt_map:
+            jt_skipped += 1
+        jt_map[key] = {
             'id': gen_uuid(),
             'tenant_id': TENANT_ID,
             'job_id': job_id,
@@ -797,7 +843,10 @@ def import_data():
             'is_required': clean_bool(r.get('Is Required')),
             'status': clean_str(r.get('Status')) or 'ACTIVE',
             'notes': clean_str(r.get('Notes')),
-        })
+        }
+    job_tasks = list(jt_map.values())
+    if jt_skipped:
+        print(f'  Deduped: {jt_skipped} duplicate job+task combos removed')
     batch_insert('job_tasks', job_tasks)
 
     # ── 2l. Supply Catalog ───────────────────────────────────────────────
@@ -1046,10 +1095,13 @@ def import_data():
                     pass
 
     for code in staff_ids.keys():
+        # Skip suffixed variants — only process base codes (STF-NNNN, not STF-NNNN-A/B)
+        if re.match(r'^STF-\d+-[AB]$', code):
+            continue
         parts = code.split('-')
         if len(parts) >= 2:
             try:
-                num = int(parts[1].rstrip('A'))
+                num = int(parts[1])
                 prefix_maxes['STF'] = max(prefix_maxes.get('STF', 0), num)
             except ValueError:
                 pass

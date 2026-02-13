@@ -10,8 +10,6 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       // Deprecated routes → consolidated modules
-      { source: '/pipeline', destination: '/crm', permanent: true },
-      { source: '/pipeline/:path*', destination: '/crm/:path*', permanent: true },
       { source: '/customers', destination: '/crm', permanent: true },
       { source: '/customers/:path*', destination: '/crm/:path*', permanent: true },
       { source: '/people', destination: '/workforce', permanent: true },

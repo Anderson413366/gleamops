@@ -492,13 +492,13 @@ export function TemplateBuilder({ open, onClose, templateId, onSaved }: Template
                                     value={item.label ?? ''}
                                     onChange={(e) => updateItem(globalIndex, { label: e.target.value })}
                                     placeholder="Item label..."
-                                    className="flex-1 text-sm border border-border rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-gleam-500"
+                                    className="flex-1 text-sm border border-border rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary"
                                   />
                                   <input
                                     value={item.section ?? ''}
                                     onChange={(e) => updateItem(globalIndex, { section: e.target.value || null })}
                                     placeholder="Section..."
-                                    className="w-32 text-xs border border-border rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-gleam-500 text-muted"
+                                    className="w-32 text-xs border border-border rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary text-muted"
                                   />
                                 </div>
 

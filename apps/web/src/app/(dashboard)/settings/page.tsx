@@ -73,7 +73,7 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-gleam-600" />
+              <Building2 className="h-5 w-5 text-primary" />
               Company Profile
             </CardTitle>
           </CardHeader>
@@ -110,7 +110,7 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-gleam-600" />
+              <Shield className="h-5 w-5 text-primary" />
               Account
             </CardTitle>
           </CardHeader>
@@ -130,7 +130,7 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5 text-gleam-600" />
+              <Bell className="h-5 w-5 text-primary" />
               Notifications
             </CardTitle>
           </CardHeader>

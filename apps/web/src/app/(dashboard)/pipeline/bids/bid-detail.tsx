@@ -210,8 +210,8 @@ export function BidDetail({ bid, open, onClose, onGenerateProposal }: BidDetailP
                     <span className="font-bold">{fmt(pricing.total_monthly_cost)}</span>
                   </div>
                   <div className="flex justify-between text-sm border-t border-border pt-2">
-                    <span className="font-medium text-gleam-600">Monthly Price</span>
-                    <span className="font-bold text-xl text-gleam-600">{fmt(pricing.recommended_price)}</span>
+                    <span className="font-medium text-primary">Monthly Price</span>
+                    <span className="font-bold text-xl text-primary">{fmt(pricing.recommended_price)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted">Margin</span>

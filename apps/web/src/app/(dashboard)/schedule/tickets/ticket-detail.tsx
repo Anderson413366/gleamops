@@ -579,7 +579,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
               onClick={() => setActiveTab(tab.key)}
               className={`flex items-center gap-1 px-2.5 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === tab.key
-                  ? 'border-gleam-500 text-gleam-600'
+                  ? 'border-primary text-primary'
                   : 'border-transparent text-muted hover:text-foreground hover:border-gray-300'
               }`}
             >
@@ -587,7 +587,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
               {tab.label}
               {tab.count && (
                 <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                  activeTab === tab.key ? 'bg-gleam-100 text-gleam-700' : 'bg-gray-100 text-gray-600'
+                  activeTab === tab.key ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-gray-600'
                 }`}>
                   {tab.count}
                 </span>
@@ -650,29 +650,29 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
 
             {/* Quick summary — all tabs at a glance */}
             <div className="grid grid-cols-3 gap-2">
-              <button onClick={() => setActiveTab('checklist')} className="p-2.5 rounded-lg border border-border hover:border-gleam-300 text-center transition-colors">
+              <button onClick={() => setActiveTab('checklist')} className="p-2.5 rounded-lg border border-border hover:border-primary/30 text-center transition-colors">
                 <p className="text-lg font-bold text-foreground">{progressPct}%</p>
                 <p className="text-[10px] text-muted">Checklist</p>
               </button>
-              <button onClick={() => setActiveTab('crew')} className="p-2.5 rounded-lg border border-border hover:border-gleam-300 text-center transition-colors">
+              <button onClick={() => setActiveTab('crew')} className="p-2.5 rounded-lg border border-border hover:border-primary/30 text-center transition-colors">
                 <p className="text-lg font-bold text-foreground">{assignments.length}</p>
                 <p className="text-[10px] text-muted">Crew</p>
               </button>
-              <button onClick={() => setActiveTab('time')} className="p-2.5 rounded-lg border border-border hover:border-gleam-300 text-center transition-colors">
+              <button onClick={() => setActiveTab('time')} className="p-2.5 rounded-lg border border-border hover:border-primary/30 text-center transition-colors">
                 <p className="text-lg font-bold text-foreground">{timeEntries.length}</p>
                 <p className="text-[10px] text-muted">Time Logs</p>
               </button>
-              <button onClick={() => setActiveTab('photos')} className="p-2.5 rounded-lg border border-border hover:border-gleam-300 text-center transition-colors">
+              <button onClick={() => setActiveTab('photos')} className="p-2.5 rounded-lg border border-border hover:border-primary/30 text-center transition-colors">
                 <p className="text-lg font-bold text-foreground">{allPhotos.length}</p>
                 <p className="text-[10px] text-muted">Photos</p>
               </button>
               <button onClick={() => setActiveTab('safety')} className={`p-2.5 rounded-lg border text-center transition-colors ${
-                safetyCount > 0 ? 'border-red-200 hover:border-red-400 bg-red-50/50' : 'border-border hover:border-gleam-300'
+                safetyCount > 0 ? 'border-red-200 hover:border-red-400 bg-red-50/50' : 'border-border hover:border-primary/30'
               }`}>
                 <p className={`text-lg font-bold ${safetyCount > 0 ? 'text-red-600' : 'text-foreground'}`}>{safetyCount}</p>
                 <p className="text-[10px] text-muted">Flags</p>
               </button>
-              <button onClick={() => setActiveTab('quality')} className="p-2.5 rounded-lg border border-border hover:border-gleam-300 text-center transition-colors">
+              <button onClick={() => setActiveTab('quality')} className="p-2.5 rounded-lg border border-border hover:border-primary/30 text-center transition-colors">
                 <p className="text-lg font-bold text-foreground">
                   {latestInspection?.score_pct != null ? `${Math.round(latestInspection.score_pct)}%` : '—'}
                 </p>
@@ -993,7 +993,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                           isBusyElsewhere ? 'border-yellow-300 bg-yellow-50/50' : 'border-border'
                         }`}>
                           <div className="flex items-center gap-3">
-                            <div className="h-8 w-8 rounded-full bg-gleam-100 flex items-center justify-center text-xs font-bold text-gleam-700">
+                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
                               {a.staff?.full_name?.split(' ').map((n) => n[0]).join('') ?? '?'}
                             </div>
                             <div>

@@ -61,7 +61,7 @@ const STATUS_BG: Record<string, string> = {
   SCHEDULED: 'bg-blue-50 border-blue-200 hover:bg-blue-100',
   IN_PROGRESS: 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100',
   COMPLETED: 'bg-green-50 border-green-200 hover:bg-green-100',
-  VERIFIED: 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100',
+  VERIFIED: 'bg-green-50 border-green-200 hover:bg-green-100',
   CANCELLED: 'bg-gray-50 border-gray-200 hover:bg-gray-100 opacity-60',
 };
 
@@ -69,7 +69,7 @@ const STATUS_DOT: Record<string, string> = {
   SCHEDULED: 'bg-blue-500',
   IN_PROGRESS: 'bg-yellow-500',
   COMPLETED: 'bg-green-500',
-  VERIFIED: 'bg-emerald-500',
+  VERIFIED: 'bg-green-500',
   CANCELLED: 'bg-gray-400',
 };
 

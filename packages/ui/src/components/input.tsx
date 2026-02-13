@@ -20,7 +20,7 @@ export function Input({ label, error, hint, className, id, ...props }: InputProp
       <input
         id={inputId}
         className={cn(
-          'block w-full rounded-lg border px-3.5 py-2.5 text-sm shadow-sm transition-all duration-200',
+          'block w-full rounded-xl border px-3.5 py-2.5 text-sm shadow-sm transition-all duration-200',
           'bg-card text-foreground placeholder:text-muted-foreground',
           'focus:outline-none focus:ring-2 focus:ring-offset-0',
           error

@@ -6,7 +6,7 @@ import { cn } from '../utils';
 // ---------------------------------------------------------------------------
 export function Table({ className, ...props }: React.HTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-border shadow-sm">
+    <div className="overflow-x-auto rounded-2xl border border-border shadow-sm">
       <table className={cn('min-w-full divide-y divide-border', className)} {...props} />
     </div>
   );

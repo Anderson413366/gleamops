@@ -27,7 +27,7 @@ export function AccessDenied({
         <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{message}</p>
         <a
           href={dashboardHref}
-          className="mt-6 inline-flex items-center gap-2 rounded-lg bg-gleam-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gleam-700 hover:shadow-md transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gleam-500 focus-visible:ring-offset-2"
+          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gleam-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gleam-700 hover:shadow-md transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gleam-500 focus-visible:ring-offset-2"
         >
           <Home className="h-4 w-4" />
           Go to Dashboard

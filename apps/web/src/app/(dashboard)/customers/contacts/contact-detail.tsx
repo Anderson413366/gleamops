@@ -58,7 +58,7 @@ export function ContactDetail({ contact, open, onClose, onEdit }: ContactDetailP
                 <Mail className="h-4 w-4 text-muted" />
                 <a
                   href={`mailto:${contact.email}`}
-                  className="text-sm text-gleam-600 hover:underline"
+                  className="text-sm text-primary hover:underline"
                 >
                   {contact.email}
                 </a>
@@ -69,7 +69,7 @@ export function ContactDetail({ contact, open, onClose, onEdit }: ContactDetailP
                 <Phone className="h-4 w-4 text-muted" />
                 <a
                   href={`tel:${contact.phone}`}
-                  className="text-sm text-gleam-600 hover:underline"
+                  className="text-sm text-primary hover:underline"
                 >
                   {contact.phone}
                 </a>

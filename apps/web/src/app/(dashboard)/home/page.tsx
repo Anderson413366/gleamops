@@ -434,7 +434,7 @@ export default function HomePage() {
                   className="flex items-center justify-between gap-3 text-sm"
                 >
                   <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <div className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+                    <div className="h-2 w-2 rounded-full bg-green-500 shrink-0" />
                     <span className="font-medium text-foreground truncate">
                       {entry.staff?.full_name ?? 'Unknown Staff'}
                     </span>

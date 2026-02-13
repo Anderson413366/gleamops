@@ -202,7 +202,7 @@ export function ContactForm({
               type="checkbox"
               checked={values.is_primary}
               onChange={(e) => setValue('is_primary', e.target.checked)}
-              className="rounded border-border text-gleam-600 focus:ring-gleam-500"
+              className="rounded border-border text-primary focus:ring-primary"
             />
             <span className="font-medium text-foreground">Primary contact</span>
           </label>

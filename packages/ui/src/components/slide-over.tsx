@@ -67,7 +67,7 @@ export function SlideOver({ open, onClose, title, subtitle, children, wide = fal
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            className="rounded-xl p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             aria-label="Close"
           >
             <X className="h-5 w-5" />

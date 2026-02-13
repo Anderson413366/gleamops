@@ -510,7 +510,7 @@ export function BidWizard({ open, onClose, onSuccess }: BidWizardProps) {
         {STEPS.map((_, i) => (
           <div
             key={i}
-            className={`h-1 flex-1 rounded-full ${i <= step ? 'bg-gleam-500' : 'bg-gray-200'}`}
+            className={`h-1 flex-1 rounded-full ${i <= step ? 'bg-primary' : 'bg-gray-200'}`}
           />
         ))}
       </div>
@@ -713,8 +713,8 @@ export function BidWizard({ open, onClose, onSuccess }: BidWizardProps) {
                     <span className="font-bold">{fmt(pricingResult.total_monthly_cost)}</span>
                   </div>
                   <div className="flex justify-between text-sm border-t border-border pt-2">
-                    <span className="font-medium text-gleam-600">Recommended Price</span>
-                    <span className="font-bold text-lg text-gleam-600">{fmt(pricingResult.recommended_price)}</span>
+                    <span className="font-medium text-primary">Recommended Price</span>
+                    <span className="font-bold text-lg text-primary">{fmt(pricingResult.recommended_price)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted">Effective Margin</span>

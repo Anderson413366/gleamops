@@ -24,7 +24,7 @@ export function EmptyState({ title, description, actionLabel, onAction, icon }: 
       {actionLabel && onAction && (
         <button
           onClick={onAction}
-          className="mt-5 inline-flex items-center rounded-lg bg-gleam-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gleam-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gleam-500 focus-visible:ring-offset-2 transition-all duration-200"
+          className="mt-5 inline-flex items-center rounded-xl bg-gleam-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gleam-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gleam-500 focus-visible:ring-offset-2 transition-all duration-200"
         >
           {actionLabel}
         </button>

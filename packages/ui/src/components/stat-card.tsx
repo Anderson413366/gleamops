@@ -13,7 +13,7 @@ export function StatCard({ label, value, icon, trend, trendUp, className }: Stat
   return (
     <div
       className={cn(
-        'rounded-xl border border-border bg-white p-5 shadow-sm transition-shadow duration-200 hover:shadow-md dark:bg-card',
+        'rounded-2xl border border-border bg-white p-5 shadow-sm transition-shadow duration-200 hover:shadow-md dark:bg-card',
         className
       )}
     >
@@ -26,7 +26,7 @@ export function StatCard({ label, value, icon, trend, trendUp, className }: Stat
               <span
                 className={cn(
                   'text-xs font-semibold',
-                  trendUp ? 'text-emerald-600' : 'text-red-600'
+                  trendUp ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                 )}
                 aria-label={trendUp ? 'Trending up' : 'Trending down'}
               >
@@ -35,7 +35,7 @@ export function StatCard({ label, value, icon, trend, trendUp, className }: Stat
               <span
                 className={cn(
                   'text-xs font-medium',
-                  trendUp ? 'text-emerald-600' : 'text-red-600'
+                  trendUp ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                 )}
               >
                 {trend}

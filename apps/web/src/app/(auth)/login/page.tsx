@@ -33,11 +33,11 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gleam-50 via-background to-emerald-50 dark:from-slate-900 dark:via-background dark:to-slate-900 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gleam-50 via-background to-blue-50 dark:from-black dark:via-background dark:to-black px-4">
       <div className="w-full max-w-sm animate-fade-in-up">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-gleam-600 shadow-lg shadow-gleam-600/25 mb-4">
+          <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-primary shadow-lg shadow-primary/25 mb-4">
             <Sparkles className="h-7 w-7 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-foreground">Welcome back</h1>
@@ -65,7 +65,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="block w-full rounded-lg border border-input bg-card px-3.5 py-2.5 text-sm text-foreground shadow-sm placeholder:text-muted-foreground/70 transition-all duration-200 focus:border-gleam-400 focus:outline-none focus:ring-2 focus:ring-gleam-500/25"
+                className="block w-full rounded-lg border border-input bg-card px-3.5 py-2.5 text-sm text-foreground shadow-sm placeholder:text-muted-foreground/70 transition-all duration-200 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25"
                 placeholder="you@company.com"
               />
             </div>
@@ -80,7 +80,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="block w-full rounded-lg border border-input bg-card px-3.5 py-2.5 text-sm text-foreground shadow-sm placeholder:text-muted-foreground/70 transition-all duration-200 focus:border-gleam-400 focus:outline-none focus:ring-2 focus:ring-gleam-500/25"
+                className="block w-full rounded-lg border border-input bg-card px-3.5 py-2.5 text-sm text-foreground shadow-sm placeholder:text-muted-foreground/70 transition-all duration-200 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25"
                 placeholder="Enter your password"
               />
             </div>
@@ -88,7 +88,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-gleam-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gleam-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gleam-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50 transition-all duration-200 active:scale-[0.98]"
+              className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50 transition-all duration-200 active:scale-[0.98]"
             >
               {loading ? (
                 <span className="inline-flex items-center gap-2">

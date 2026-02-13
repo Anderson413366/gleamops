@@ -287,7 +287,7 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
               hint="Safety Data Sheet link"
               error={formErrors.sds}
             />
-            <label className="flex items-center gap-2 text-xs cursor-pointer text-gleam-600 hover:text-gleam-700">
+            <label className="flex items-center gap-2 text-xs cursor-pointer text-primary hover:text-primary/80">
               <Upload className="h-3.5 w-3.5" />
               <span>{sdsUploading ? 'Uploading...' : 'Upload SDS PDF'}</span>
               <input
@@ -391,7 +391,7 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
                     href={row.sds_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-gleam-600 hover:text-gleam-700"
+                    className="inline-flex items-center gap-1 text-primary hover:text-primary/80"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <ExternalLink className="h-3.5 w-3.5" />

@@ -36,7 +36,7 @@ export function Select({
       <select
         id={selectId}
         className={cn(
-          'block w-full rounded-lg border px-3.5 py-2.5 text-sm shadow-sm transition-all duration-200 appearance-none',
+          'block w-full rounded-xl border px-3.5 py-2.5 text-sm shadow-sm transition-all duration-200 appearance-none',
           'bg-card text-foreground',
           'focus:outline-none focus:ring-2 focus:ring-offset-0',
           error

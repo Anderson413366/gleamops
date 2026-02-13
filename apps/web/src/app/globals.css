@@ -1,47 +1,47 @@
 @import "tailwindcss";
 
 @theme {
-  /* ── GleamOps Brand Colors (Emerald Green) ── */
-  --color-gleam-50: #ecfdf5;
-  --color-gleam-100: #d1fae5;
-  --color-gleam-200: #a7f3d0;
-  --color-gleam-300: #6ee7b7;
-  --color-gleam-400: #34d399;
-  --color-gleam-500: #10b981;
-  --color-gleam-600: #059669;
-  --color-gleam-700: #047857;
-  --color-gleam-800: #065f46;
-  --color-gleam-900: #064e3b;
-  --color-gleam-950: #022c22;
+  /* ── GleamOps Brand Colors (Apple Blue) ── */
+  --color-gleam-50: #E5F1FF;
+  --color-gleam-100: #CCE4FF;
+  --color-gleam-200: #99C8FF;
+  --color-gleam-300: #66ADFF;
+  --color-gleam-400: #3391FF;
+  --color-gleam-500: #007AFF;
+  --color-gleam-600: #007AFF;
+  --color-gleam-700: #004A99;
+  --color-gleam-800: #003166;
+  --color-gleam-900: #001933;
+  --color-gleam-950: #000D1A;
 
   /* ── Semantic Design Tokens (Light Mode Defaults) ── */
-  --color-background: #f9fafb;
-  --color-foreground: #111827;
-  --color-card: #ffffff;
-  --color-card-foreground: #111827;
-  --color-muted: #f3f4f6;
-  --color-muted-foreground: #6b7280;
-  --color-border: #e5e7eb;
-  --color-input: #e5e7eb;
-  --color-ring: #10b981;
-  --color-primary: #059669;
-  --color-primary-foreground: #ffffff;
-  --color-secondary: #f3f4f6;
-  --color-secondary-foreground: #374151;
-  --color-accent: #ecfdf5;
-  --color-accent-foreground: #065f46;
-  --color-destructive: #ef4444;
-  --color-destructive-foreground: #ffffff;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-info: #3b82f6;
-  --color-surface: #ffffff;
+  --color-background: #FFFFFF;
+  --color-foreground: #1D1D1F;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #1D1D1F;
+  --color-muted: #F5F5F7;
+  --color-muted-foreground: #86868B;
+  --color-border: #E5E5EA;
+  --color-input: #E5E5EA;
+  --color-ring: #007AFF;
+  --color-primary: #007AFF;
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: #F5F5F7;
+  --color-secondary-foreground: #1D1D1F;
+  --color-accent: #E5F1FF;
+  --color-accent-foreground: #003166;
+  --color-destructive: #FF3B30;
+  --color-destructive-foreground: #FFFFFF;
+  --color-success: #34C759;
+  --color-warning: #FF9500;
+  --color-info: #007AFF;
+  --color-surface: #FFFFFF;
 
   /* ── Sidebar Tokens ── */
-  --color-sidebar-bg: #111827;
-  --color-sidebar-text: #d1d5db;
-  --color-sidebar-active: #10b981;
-  --color-sidebar-hover: #1f2937;
+  --color-sidebar-bg: #F5F5F7;
+  --color-sidebar-text: #86868B;
+  --color-sidebar-active: #007AFF;
+  --color-sidebar-hover: #E8E8ED;
 
   /* ── Animations ── */
   --animate-slide-in-right: slide-in-right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -52,38 +52,38 @@
 }
 
 /* ═══════════════════════════════════════════════════════
-   DARK MODE — Warm Dark (Slate, not pure black)
+   DARK MODE — True Black (Apple style)
    Optimized for reduced eye strain and ADHD focus
    ═══════════════════════════════════════════════════════ */
 
 .dark {
-  --color-background: #0f172a;
-  --color-foreground: #f1f5f9;
-  --color-card: #1e293b;
-  --color-card-foreground: #f1f5f9;
-  --color-muted: #334155;
-  --color-muted-foreground: #94a3b8;
-  --color-border: #334155;
-  --color-input: #334155;
-  --color-ring: #34d399;
-  --color-primary: #34d399;
-  --color-primary-foreground: #022c22;
-  --color-secondary: #1e293b;
-  --color-secondary-foreground: #e2e8f0;
-  --color-accent: #064e3b;
-  --color-accent-foreground: #a7f3d0;
-  --color-destructive: #f87171;
-  --color-destructive-foreground: #1e293b;
-  --color-success: #34d399;
-  --color-warning: #fbbf24;
-  --color-info: #60a5fa;
-  --color-surface: #1e293b;
+  --color-background: #000000;
+  --color-foreground: #F5F5F7;
+  --color-card: #1C1C1E;
+  --color-card-foreground: #F5F5F7;
+  --color-muted: #2C2C2E;
+  --color-muted-foreground: #98989D;
+  --color-border: #38383A;
+  --color-input: #38383A;
+  --color-ring: #0A84FF;
+  --color-primary: #0A84FF;
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: #1C1C1E;
+  --color-secondary-foreground: #F5F5F7;
+  --color-accent: #001933;
+  --color-accent-foreground: #99C8FF;
+  --color-destructive: #FF453A;
+  --color-destructive-foreground: #FFFFFF;
+  --color-success: #30D158;
+  --color-warning: #FF9F0A;
+  --color-info: #0A84FF;
+  --color-surface: #1C1C1E;
 
   /* Sidebar in dark mode */
-  --color-sidebar-bg: #0f172a;
-  --color-sidebar-text: #94a3b8;
-  --color-sidebar-active: #34d399;
-  --color-sidebar-hover: #1e293b;
+  --color-sidebar-bg: #1C1C1E;
+  --color-sidebar-text: #98989D;
+  --color-sidebar-active: #0A84FF;
+  --color-sidebar-hover: #2C2C2E;
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -178,17 +178,17 @@
 }
 
 /* ═══════════════════════════════════════════════════════
-   SELECTION — Emerald tint for brand consistency
+   SELECTION — Blue tint for brand consistency
    ═══════════════════════════════════════════════════════ */
 
 ::selection {
-  background: #d1fae5;
-  color: #064e3b;
+  background: #CCE4FF;
+  color: #003166;
 }
 
 .dark ::selection {
-  background: #065f46;
-  color: #d1fae5;
+  background: #003166;
+  color: #CCE4FF;
 }
 
 /* ═══════════════════════════════════════════════════════

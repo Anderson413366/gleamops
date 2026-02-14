@@ -311,19 +311,19 @@ export default function PipelinePageClient() {
 
       {/* Pipeline Overview Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+        <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
           <p className="text-xs text-muted-foreground">Pipeline Value</p>
           <p className="text-xl font-bold text-foreground">{pipelineStats.pipelineValue}</p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+        <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
           <p className="text-xs text-muted-foreground">Active Bids</p>
           <p className="text-xl font-bold text-foreground">{pipelineStats.activeBids}</p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+        <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
           <p className="text-xs text-muted-foreground">Stale Deals (14d)</p>
           <p className="text-xl font-bold text-foreground">{pipelineStats.staleDeals}</p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+        <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
           <p className="text-xs text-muted-foreground">Email Issues</p>
           <p className="text-xl font-bold text-foreground">{pipelineStats.emailProblems}</p>
         </div>

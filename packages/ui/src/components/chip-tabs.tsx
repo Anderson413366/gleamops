@@ -17,15 +17,18 @@ interface ChipTabsProps {
 
 export function ChipTabs({ tabs, active, onChange }: ChipTabsProps) {
   return (
-    <div className="flex gap-2 overflow-x-auto pb-1">
+    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {tabs.map((tab) => (
         <button
           key={tab.key}
-          onClick={() => onChange(tab.key)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onChange(tab.key);
+          }}
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-all',
+            'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-all duration-200 ease-in-out',
             active === tab.key
-              ? 'bg-primary text-white shadow-sm'
+              ? 'bg-primary text-primary-foreground shadow-sm'
               : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
           )}
         >
@@ -36,8 +39,8 @@ export function ChipTabs({ tabs, active, onChange }: ChipTabsProps) {
               className={cn(
                 'ml-0.5 rounded-full px-1.5 py-0.5 text-xs font-semibold',
                 active === tab.key
-                  ? 'bg-white/20 text-white'
-                  : 'bg-muted text-muted-foreground'
+                  ? 'bg-primary-foreground/20 text-primary-foreground'
+                  : 'bg-background text-muted-foreground'
               )}
             >
               {tab.count}

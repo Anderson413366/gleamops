@@ -33,6 +33,44 @@ GleamOps is a **B2B SaaS ERP for commercial cleaning** that replaces spreadsheet
 
 ---
 
+## GleamOps UI Refresh (Backend Locked)
+
+### Non-negotiables
+- DO NOT change Supabase schema, migrations, RLS policies, edge functions, storage rules, or auth flows.
+- DO NOT rename tables/columns or modify database queries beyond UI needs (e.g. selecting extra fields for display is ok).
+- This is a UI/UX + design system migration only.
+
+### Goal
+Make GleamOps visually and behaviorally match the older "Anderson Cleaning App" UI/UX style, with improvements:
+- Old token system: semantic CSS variables (shadcn-like HSL tokens).
+- Old geometry: rounded-lg default, rounded-xl for overlays.
+- Old elevation: shadow-sm cards, shadow-xl/2xl overlays.
+- Old interactions: transition: all 0.2s ease; clear active states.
+- Keep GleamOps component architecture, routing, and backend.
+
+### Visual targets (Old App)
+- Primary: Blue-600 (#3b82f6) and hover Blue-700 (#2563eb)
+- Dark mode: dark blue-gray (NOT true black by default)
+- Status badges: 7 semantic colors (green/red/yellow/blue/orange/purple/gray) with border+bg and optional dot
+- Card anatomy: Card/Header/Title/Description/Content; optional hover shadow
+- CollapsibleCard: persisted collapse state in localStorage; keyboard accessible
+- ChipTabs: pill tabs w active blue fill + counts; overflow scroll
+
+### Implementation approach (high level)
+1) Token layer + aliasing to avoid breaking existing code
+2) Reskin packages/ui components to match old system
+3) Update layout shell (sidebar/header) for old feel
+4) Page-by-page cleanup to remove hard-coded styling in pages
+5) Add optional True Black mode toggle (keep off by default)
+
+### Definition of done
+- App builds and runs locally
+- Lint/typecheck pass
+- Visual parity for: Login, Dashboard, Pipeline/CRM list pages, SlideOver + forms
+- No backend changes
+
+---
+
 ## Quick Commands
 
 ```bash
@@ -61,12 +99,17 @@ gleamops_dev_pack/
 │   ├── web/                    # Next.js 15 (the product)
 │   │   └── src/app/
 │   │       ├── (auth)/login/   # Login page
-│   │       └── (dashboard)/    # 5 nav spaces
+│   │       └── (dashboard)/    # Nav spaces
+│   │           ├── home/       # Dashboard
 │   │           ├── pipeline/   # Prospects, Bids, Proposals, Follow-ups
-│   │           ├── customers/  # Clients, Sites, Contacts, Service Plans
-│   │           ├── schedule/   # Calendar, Dispatch, Tickets
-│   │           ├── team/       # Staff, Timekeeping, Inspections
-│   │           └── reports/    # Ops, Sales, Quality dashboards
+│   │           ├── crm/        # Clients, Sites, Contacts
+│   │           ├── operations/ # Calendar, Dispatch, Tickets
+│   │           ├── workforce/  # Staff, Timekeeping, Inspections
+│   │           ├── inventory/  # Supplies, Kits, Counts, Orders
+│   │           ├── assets/     # Equipment, Keys, Vehicles, Maintenance
+│   │           ├── vendors/    # Subcontractors, Supply Vendors
+│   │           ├── safety/     # Safety module
+│   │           └── admin/      # Settings, Lookups
 │   ├── worker/                 # Background jobs (PDFs, follow-ups)
 │   └── mobile/                 # Expo React Native (future)
 ├── packages/
@@ -122,14 +165,17 @@ RBAC = what you can do. Site scoping = where you can do it.
 
 ---
 
-## Navigation (5 spaces only)
-1. **Pipeline** — Prospects, Bids, Proposals, Follow-ups
-2. **Customers** — Clients, Sites, Contacts, Service Plans
-3. **Schedule** — Calendar, Dispatch, Tickets
-4. **Team** — Staff, Timekeeping, Inspections, Messaging
-5. **Reports** — Ops, Sales, Quality
-
-Settings lives behind avatar menu.
+## Navigation (10 spaces)
+1. **Home** — Dashboard
+2. **Pipeline** — Prospects, Bids, Proposals, Follow-ups
+3. **CRM** — Clients, Sites, Contacts
+4. **Operations** — Calendar, Dispatch, Tickets
+5. **Workforce** — Staff, Timekeeping, Inspections
+6. **Inventory** — Supplies, Kits, Site Assignments, Counts, Orders
+7. **Assets** — Equipment, Keys, Vehicles, Maintenance
+8. **Vendors** — Subcontractors, Supply Vendors
+9. **Safety** — Safety module
+10. **Admin** — Settings, Lookups
 
 ---
 
@@ -156,7 +202,7 @@ Settings lives behind avatar menu.
 |----|------|--------|
 | A | Foundation (repo, Supabase, CI, shell) | DONE |
 | B | Auth + RBAC + Tenant isolation | DONE |
-| C | Design system + App shell polish | Next |
+| C | Design system + App shell polish | In Progress (UI Refresh) |
 | D | CRM core (clients, sites, contacts) | |
 | E | Bidding MVP (wizard + CleanFlow) | |
 | F | Proposals send + tracking + follow-ups | |

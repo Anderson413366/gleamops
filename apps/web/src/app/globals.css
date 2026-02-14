@@ -1,47 +1,119 @@
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════════════
+   SOURCE OF TRUTH — Bare Semantic Tokens
+   Anderson Cleaning style: slate palette, Blue-600 primary.
+   Override these in .dark / .true-black; --color-* aliases
+   in @theme automatically follow.
+   ═══════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Core surfaces ── */
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --surface: #ffffff;
+
+  /* ── Muted / subtle ── */
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+
+  /* ── Primary (Blue-600) ── */
+  --primary: #3b82f6;
+  --primary-foreground: #f8fafc;
+
+  /* ── Secondary ── */
+  --secondary: #f1f5f9;
+  --secondary-foreground: #1e293b;
+
+  /* ── Accent ── */
+  --accent: #f1f5f9;
+  --accent-foreground: #1e293b;
+
+  /* ── Destructive / Danger ── */
+  --destructive: #ef4444;
+  --destructive-foreground: #f8fafc;
+
+  /* ── Borders & inputs ── */
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #3b82f6;
+
+  /* ── Status colors ── */
+  --success: #22c55e;
+  --success-foreground: #f8fafc;
+  --warning: #f59e0b;
+  --warning-foreground: #f8fafc;
+  --info: #3b82f6;
+  --danger: #ef4444;
+  --danger-foreground: #f8fafc;
+
+  /* ── Sidebar (dark sidebar in light mode — Anderson identity) ── */
+  --sidebar-bg: #0f172a;
+  --sidebar-text: #94a3b8;
+  --sidebar-active: #3b82f6;
+  --sidebar-hover: #1e293b;
+
+  /* ── Radius scale ── */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+}
+
+/* ═══════════════════════════════════════════════════════
+   TAILWIND v4 REGISTRATION — Compatibility Aliases
+   Maps bare tokens → --color-* so bg-background, text-foreground,
+   border-border, ring-ring, etc. keep working unchanged.
+   ═══════════════════════════════════════════════════════ */
+
 @theme {
-  /* ── GleamOps Brand Colors (Apple Blue) ── */
-  --color-gleam-50: #E5F1FF;
-  --color-gleam-100: #CCE4FF;
-  --color-gleam-200: #99C8FF;
-  --color-gleam-300: #66ADFF;
-  --color-gleam-400: #3391FF;
-  --color-gleam-500: #007AFF;
-  --color-gleam-600: #007AFF;
-  --color-gleam-700: #004A99;
-  --color-gleam-800: #003166;
-  --color-gleam-900: #001933;
-  --color-gleam-950: #000D1A;
+  /* ── Brand Scale (Anderson Blue-600 family) ── */
+  --color-brand-50:  #eff6ff;
+  --color-brand-100: #dbeafe;
+  --color-brand-200: #bfdbfe;
+  --color-brand-300: #93c5fd;
+  --color-brand-400: #60a5fa;
+  --color-brand-500: #3b82f6;
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4ed8;
+  --color-brand-800: #1e40af;
+  --color-brand-900: #1e3a8a;
+  --color-brand-950: #172554;
 
-  /* ── Semantic Design Tokens (Light Mode Defaults) ── */
-  --color-background: #FFFFFF;
-  --color-foreground: #1D1D1F;
-  --color-card: #FFFFFF;
-  --color-card-foreground: #1D1D1F;
-  --color-muted: #F5F5F7;
-  --color-muted-foreground: #86868B;
-  --color-border: #E5E5EA;
-  --color-input: #E5E5EA;
-  --color-ring: #007AFF;
-  --color-primary: #007AFF;
-  --color-primary-foreground: #FFFFFF;
-  --color-secondary: #F5F5F7;
-  --color-secondary-foreground: #1D1D1F;
-  --color-accent: #E5F1FF;
-  --color-accent-foreground: #003166;
-  --color-destructive: #FF3B30;
-  --color-destructive-foreground: #FFFFFF;
-  --color-success: #34C759;
-  --color-warning: #FF9500;
-  --color-info: #007AFF;
-  --color-surface: #FFFFFF;
+  /* ── Semantic Aliases (point to bare tokens) ── */
+  --color-background:             var(--background);
+  --color-foreground:             var(--foreground);
+  --color-card:                   var(--card);
+  --color-card-foreground:        var(--card-foreground);
+  --color-surface:                var(--surface);
+  --color-muted:                  var(--muted);
+  --color-muted-foreground:       var(--muted-foreground);
+  --color-primary:                var(--primary);
+  --color-primary-foreground:     var(--primary-foreground);
+  --color-secondary:              var(--secondary);
+  --color-secondary-foreground:   var(--secondary-foreground);
+  --color-accent:                 var(--accent);
+  --color-accent-foreground:      var(--accent-foreground);
+  --color-destructive:            var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border:                 var(--border);
+  --color-input:                  var(--input);
+  --color-ring:                   var(--ring);
+  --color-success:                var(--success);
+  --color-success-foreground:     var(--success-foreground);
+  --color-warning:                var(--warning);
+  --color-warning-foreground:     var(--warning-foreground);
+  --color-info:                   var(--info);
+  --color-danger:                 var(--danger);
+  --color-danger-foreground:      var(--danger-foreground);
 
-  /* ── Sidebar Tokens ── */
-  --color-sidebar-bg: #F5F5F7;
-  --color-sidebar-text: #86868B;
-  --color-sidebar-active: #007AFF;
-  --color-sidebar-hover: #E8E8ED;
+  /* ── Sidebar Aliases ── */
+  --color-sidebar-bg:     var(--sidebar-bg);
+  --color-sidebar-text:   var(--sidebar-text);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-hover:  var(--sidebar-hover);
 
   /* ── Animations ── */
   --animate-slide-in-right: slide-in-right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -52,38 +124,79 @@
 }
 
 /* ═══════════════════════════════════════════════════════
-   DARK MODE — True Black (Apple style)
-   Optimized for reduced eye strain and ADHD focus
+   DARK MODE — Blue-Gray (Default Dark)
+   Anderson style: #0f172a bg, not true black.
+   Only overrides bare tokens; --color-* aliases follow.
    ═══════════════════════════════════════════════════════ */
 
 .dark {
-  --color-background: #000000;
-  --color-foreground: #F5F5F7;
-  --color-card: #1C1C1E;
-  --color-card-foreground: #F5F5F7;
-  --color-muted: #2C2C2E;
-  --color-muted-foreground: #98989D;
-  --color-border: #38383A;
-  --color-input: #38383A;
-  --color-ring: #0A84FF;
-  --color-primary: #0A84FF;
-  --color-primary-foreground: #FFFFFF;
-  --color-secondary: #1C1C1E;
-  --color-secondary-foreground: #F5F5F7;
-  --color-accent: #001933;
-  --color-accent-foreground: #99C8FF;
-  --color-destructive: #FF453A;
-  --color-destructive-foreground: #FFFFFF;
-  --color-success: #30D158;
-  --color-warning: #FF9F0A;
-  --color-info: #0A84FF;
-  --color-surface: #1C1C1E;
+  --background: #0f172a;
+  --foreground: #e2e8f0;
+  --card: #1e293b;
+  --card-foreground: #e2e8f0;
+  --surface: #1e293b;
 
-  /* Sidebar in dark mode */
-  --color-sidebar-bg: #1C1C1E;
-  --color-sidebar-text: #98989D;
-  --color-sidebar-active: #0A84FF;
-  --color-sidebar-hover: #2C2C2E;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+
+  --primary: #3b82f6;
+  --primary-foreground: #f8fafc;
+
+  --secondary: #1e293b;
+  --secondary-foreground: #cbd5e1;
+
+  --accent: #1e293b;
+  --accent-foreground: #e2e8f0;
+
+  --destructive: #ef4444;
+  --destructive-foreground: #f8fafc;
+
+  --border: #334155;
+  --input: #334155;
+  --ring: #3b82f6;
+
+  --success: #22c55e;
+  --success-foreground: #f8fafc;
+  --warning: #f59e0b;
+  --warning-foreground: #f8fafc;
+  --info: #3b82f6;
+  --danger: #ef4444;
+  --danger-foreground: #f8fafc;
+
+  --sidebar-bg: #020617;
+  --sidebar-text: #94a3b8;
+  --sidebar-active: #3b82f6;
+  --sidebar-hover: #0f172a;
+}
+
+/* ═══════════════════════════════════════════════════════
+   TRUE BLACK MODE — OLED opt-in
+   Activated via data-theme="true-black" on <html> alongside .dark.
+   Usage: <html class="dark" data-theme="true-black">
+   ═══════════════════════════════════════════════════════ */
+
+.dark[data-theme="true-black"] {
+  --background: #000000;
+  --foreground: #f5f5f7;
+  --card: #0a0a0a;
+  --card-foreground: #f5f5f7;
+  --surface: #0a0a0a;
+
+  --muted: #171717;
+  --muted-foreground: #a1a1aa;
+
+  --secondary: #0a0a0a;
+  --secondary-foreground: #d4d4d8;
+
+  --accent: #0a0a0a;
+  --accent-foreground: #f5f5f7;
+
+  --border: #27272a;
+  --input: #27272a;
+
+  --sidebar-bg: #000000;
+  --sidebar-text: #a1a1aa;
+  --sidebar-hover: #171717;
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -178,17 +291,17 @@
 }
 
 /* ═══════════════════════════════════════════════════════
-   SELECTION — Blue tint for brand consistency
+   SELECTION — Brand blue tint
    ═══════════════════════════════════════════════════════ */
 
 ::selection {
-  background: #CCE4FF;
-  color: #003166;
+  background: #dbeafe;
+  color: #1e3a8a;
 }
 
 .dark ::selection {
-  background: #003166;
-  color: #CCE4FF;
+  background: #1e3a8a;
+  color: #dbeafe;
 }
 
 /* ═══════════════════════════════════════════════════════

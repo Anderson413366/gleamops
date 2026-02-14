@@ -187,16 +187,16 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 h-16 bg-card/80 backdrop-blur-md border-b border-border flex items-center justify-between px-6">
+      <header className="sticky top-0 z-30 h-16 bg-card/95 backdrop-blur-sm border-b border-border shadow-sm flex items-center justify-between px-6">
         {/* Left: breadcrumb / page title area (filled by each page) */}
         <div className="flex-1" />
 
         {/* Right: search + theme toggle + notifications + avatar */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {/* Search trigger */}
           <button
             onClick={() => setPaletteOpen(true)}
-            className="rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 inline-flex items-center gap-2"
+            className="rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out inline-flex items-center gap-2"
             aria-label="Search"
           >
             <Search className="h-4 w-4" />
@@ -210,7 +210,7 @@ export function Header() {
           {mounted && (
             <button
               onClick={toggleTheme}
-              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200"
+              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out"
               aria-label={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             >
               {resolvedTheme === 'dark' ? (
@@ -225,13 +225,13 @@ export function Header() {
           <div className="relative" ref={notifRef}>
             <button
               onClick={() => { setNotifOpen(!notifOpen); setProfileOpen(false); }}
-              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 relative"
+              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out relative"
               aria-label="Notifications"
             >
               <Bell className="h-5 w-5" />
             </button>
             {notifOpen && (
-              <div className="absolute right-0 top-full mt-2 w-80 bg-card rounded-xl shadow-lg border border-border z-50 animate-scale-in overflow-hidden">
+              <div className="absolute right-0 top-full mt-2 w-80 bg-card rounded-xl shadow-xl border border-border z-50 animate-scale-in overflow-hidden">
                 <div className="px-4 py-3 border-b border-border bg-muted/50">
                   <p className="text-sm font-semibold text-foreground">Notifications</p>
                 </div>
@@ -250,12 +250,12 @@ export function Header() {
           <div className="relative" ref={profileRef}>
             <button
               onClick={() => { setProfileOpen(!profileOpen); setNotifOpen(false); }}
-              className="h-9 w-9 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold hover:bg-primary/90 transition-all duration-200 cursor-pointer ring-2 ring-background shadow-sm"
+              className="h-9 w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold hover:bg-primary/90 transition-all duration-200 ease-in-out cursor-pointer ring-2 ring-background shadow-sm"
             >
               {user ? getInitials(user.email) : '?'}
             </button>
             {profileOpen && (
-              <div className="absolute right-0 top-full mt-2 w-60 bg-card rounded-xl shadow-lg border border-border z-50 animate-scale-in overflow-hidden">
+              <div className="absolute right-0 top-full mt-2 w-60 bg-card rounded-xl shadow-xl border border-border z-50 animate-scale-in overflow-hidden">
                 <div className="px-4 py-3 border-b border-border bg-muted/50">
                   <p className="text-sm font-semibold text-foreground truncate">{user?.email}</p>
                   {role && (
@@ -268,14 +268,14 @@ export function Header() {
                   <Link
                     href="/settings"
                     onClick={() => setProfileOpen(false)}
-                    className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground rounded-lg hover:bg-muted transition-colors"
+                    className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground rounded-lg hover:bg-muted transition-all duration-200 ease-in-out"
                   >
                     <Settings className="h-4 w-4 text-muted-foreground" />
                     Settings
                   </Link>
                   <button
                     onClick={() => { setProfileOpen(false); signOut(); }}
-                    className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground rounded-lg hover:bg-muted transition-colors w-full"
+                    className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground rounded-lg hover:bg-muted transition-all duration-200 ease-in-out w-full"
                   >
                     <LogOut className="h-4 w-4 text-muted-foreground" />
                     Sign out

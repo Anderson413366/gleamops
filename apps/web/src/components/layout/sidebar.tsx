@@ -60,7 +60,7 @@ export function Sidebar() {
       {/* Mobile hamburger */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="fixed top-4 left-4 z-50 md:hidden rounded-lg bg-card p-2 shadow-md border border-border"
+        className="fixed top-4 left-4 z-50 md:hidden rounded-lg bg-card p-2 shadow-md border border-border transition-all duration-200 ease-in-out"
         aria-label="Open navigation"
       >
         <Menu className="h-5 w-5 text-foreground" />
@@ -74,23 +74,23 @@ export function Sidebar() {
         />
       )}
 
-      {/* Sidebar — light bg with sidebar tokens + right border */}
+      {/* Sidebar — dark bg with sidebar tokens */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-sidebar-bg border-r border-border flex flex-col transition-transform duration-300 ease-out md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-sidebar-bg border-r border-white/10 flex flex-col transition-transform duration-300 ease-out md:translate-x-0 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Header / Logo */}
-        <div className="flex items-center justify-between h-16 px-5 border-b border-border">
+        <div className="flex items-center justify-between h-16 px-5 border-b border-white/10">
           <Link href="/home" className="flex items-center gap-2.5">
             <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-              <Sparkles className="h-4 w-4 text-white" />
+              <Sparkles className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="text-lg font-bold text-foreground tracking-tight">GleamOps</span>
+            <span className="text-lg font-bold text-white tracking-tight">GleamOps</span>
           </Link>
           <button
             onClick={() => setMobileOpen(false)}
-            className="md:hidden rounded-lg p-1.5 text-muted-foreground hover:bg-sidebar-hover transition-colors"
+            className="md:hidden rounded-lg p-1.5 text-sidebar-text hover:bg-sidebar-hover hover:text-white transition-all duration-200 ease-in-out"
             aria-label="Close navigation"
           >
             <X className="h-5 w-5" />
@@ -108,15 +108,15 @@ export function Sidebar() {
                 key={item.id}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 group ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ease-in-out group ${
                   isActive
-                    ? 'bg-primary/10 text-primary font-medium'
-                    : 'text-muted-foreground hover:bg-sidebar-hover hover:text-foreground'
+                    ? 'bg-primary text-primary-foreground font-medium shadow-sm'
+                    : 'text-sidebar-text hover:bg-sidebar-hover hover:text-white'
                 }`}
               >
                 <Icon
-                  className={`h-5 w-5 shrink-0 transition-colors ${
-                    isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
+                  className={`h-5 w-5 shrink-0 transition-colors duration-200 ${
+                    isActive ? 'text-primary-foreground' : 'text-sidebar-text group-hover:text-white'
                   }`}
                 />
                 {item.label}
@@ -126,16 +126,16 @@ export function Sidebar() {
         </nav>
 
         {/* Footer — profile + settings + sign out */}
-        <div className="border-t border-border p-3 space-y-1">
+        <div className="border-t border-white/10 p-3 space-y-1">
           {user && (
             <div className="flex items-center gap-3 px-3 py-2.5 mb-1">
-              <div className="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold shrink-0 ring-2 ring-primary/30">
+              <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold shrink-0 ring-2 ring-primary/30">
                 {getInitials(user.email)}
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">{user.email}</p>
+                <p className="text-sm font-medium text-white truncate">{user.email}</p>
                 {role && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-sidebar-text">
                     {role.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
                   </p>
                 )}
@@ -144,14 +144,14 @@ export function Sidebar() {
           )}
           <Link
             href="/settings"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-sidebar-hover hover:text-foreground transition-colors"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-text hover:bg-sidebar-hover hover:text-white transition-all duration-200 ease-in-out"
           >
             <Settings className="h-5 w-5 shrink-0" />
             Settings
           </Link>
           <button
             onClick={signOut}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-sidebar-hover transition-colors w-full"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-text hover:text-destructive hover:bg-sidebar-hover transition-all duration-200 ease-in-out w-full"
           >
             <LogOut className="h-5 w-5 shrink-0" />
             Sign out

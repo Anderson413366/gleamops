@@ -148,6 +148,25 @@ export const LOG_STATUS_COLORS: Record<string, StatusColor> = {
 };
 
 // ---------------------------------------------------------------------------
+// Badge color CSS classes — single source of truth for all badge/pill styling.
+// Each semantic color maps to Tailwind classes for bg, text, border, and dot.
+// ---------------------------------------------------------------------------
+export const BADGE_COLOR_CLASSES: Record<StatusColor, {
+  bg: string;
+  text: string;
+  border: string;
+  dot: string;
+}> = {
+  green:  { bg: 'bg-green-50 dark:bg-green-950',   text: 'text-green-700 dark:text-green-400',   border: 'border-green-200 dark:border-green-800',   dot: 'bg-green-500' },
+  red:    { bg: 'bg-red-50 dark:bg-red-950',       text: 'text-red-700 dark:text-red-400',       border: 'border-red-200 dark:border-red-800',       dot: 'bg-red-500' },
+  yellow: { bg: 'bg-amber-50 dark:bg-amber-950',   text: 'text-amber-700 dark:text-amber-400',   border: 'border-amber-200 dark:border-amber-800',   dot: 'bg-amber-500' },
+  blue:   { bg: 'bg-blue-50 dark:bg-blue-950',     text: 'text-blue-700 dark:text-blue-400',     border: 'border-blue-200 dark:border-blue-800',     dot: 'bg-blue-500' },
+  gray:   { bg: 'bg-gray-50 dark:bg-gray-800',     text: 'text-gray-700 dark:text-gray-400',     border: 'border-gray-200 dark:border-gray-700',     dot: 'bg-gray-500' },
+  orange: { bg: 'bg-orange-50 dark:bg-orange-950', text: 'text-orange-700 dark:text-orange-400', border: 'border-orange-200 dark:border-orange-800', dot: 'bg-orange-500' },
+  purple: { bg: 'bg-violet-50 dark:bg-violet-950', text: 'text-violet-700 dark:text-violet-400', border: 'border-violet-200 dark:border-violet-800', dot: 'bg-violet-500' },
+};
+
+// ---------------------------------------------------------------------------
 // Lookup categories (seed data keys)
 // ---------------------------------------------------------------------------
 export const LOOKUP_CATEGORIES = [

@@ -12,6 +12,7 @@ import {
   Select,
   Textarea,
   Badge,
+  StatusPill,
   Card, CardHeader, CardTitle, CardContent, CardFooter,
   CollapsibleCard,
   StatCard,
@@ -21,7 +22,8 @@ import {
   SlideOver,
   Skeleton, TableSkeleton, CardSkeleton,
 } from '@gleamops/ui';
-import type { BadgeColor } from '@gleamops/ui';
+import type { StatusColor } from '@gleamops/shared';
+import { CLIENT_STATUS_COLORS, JOB_STATUS_COLORS, BADGE_COLOR_CLASSES } from '@gleamops/shared';
 
 /* ── Token swatch data ── */
 const TOKEN_SWATCHES = [
@@ -57,8 +59,8 @@ const TYPE_OPTIONS = [
 ];
 
 /* ── Badge colors ── */
-const BADGE_COLORS: BadgeColor[] = ['green', 'red', 'yellow', 'blue', 'gray', 'orange', 'purple'];
-const BADGE_LABELS: Record<BadgeColor, string> = {
+const BADGE_COLORS: StatusColor[] = ['green', 'red', 'yellow', 'blue', 'gray', 'orange', 'purple'];
+const BADGE_LABELS: Record<StatusColor, string> = {
   green: 'Active', red: 'Canceled', yellow: 'Pending',
   blue: 'In Progress', gray: 'Draft', orange: 'High', purple: 'Special',
 };
@@ -84,9 +86,7 @@ const SAMPLE_DATA = [
   { code: 'CLI-1004', name: 'Delta Group', status: 'INACTIVE' as const, sites: 0, revenue: '$0' },
   { code: 'CLI-1005', name: 'Echo Partners', status: 'ACTIVE' as const, sites: 7, revenue: '$28,900' },
 ];
-const STATUS_BADGE_COLOR: Record<string, BadgeColor> = {
-  ACTIVE: 'green', ON_HOLD: 'yellow', INACTIVE: 'gray',
-};
+/* Table uses centralized CLIENT_STATUS_COLORS from @gleamops/shared */
 
 /* ── Button variants/sizes ── */
 const VARIANTS = ['primary', 'secondary', 'ghost', 'danger'] as const;
@@ -208,17 +208,54 @@ export default function PlaygroundPageClient() {
       </Section>
 
       {/* ── Badges ── */}
-      <Section title="Badges" subtitle="7 semantic colors, dot on/off">
-        <div className="space-y-3">
-          <div className="flex flex-wrap gap-2">
-            {BADGE_COLORS.map((c) => (
-              <Badge key={c} color={c} dot>{BADGE_LABELS[c]}</Badge>
-            ))}
+      <Section title="Badges" subtitle="7 semantic colors, dot on/off, centralized via BADGE_COLOR_CLASSES">
+        <div className="space-y-6">
+          {/* Row 1: All colors with dot */}
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">With dot</p>
+            <div className="flex flex-wrap gap-2">
+              {BADGE_COLORS.map((c) => (
+                <Badge key={c} color={c} dot>{BADGE_LABELS[c]}</Badge>
+              ))}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {BADGE_COLORS.map((c) => (
-              <Badge key={`${c}-nodot`} color={c} dot={false}>{BADGE_LABELS[c]}</Badge>
-            ))}
+
+          {/* Row 2: All colors without dot */}
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Without dot</p>
+            <div className="flex flex-wrap gap-2">
+              {BADGE_COLORS.map((c) => (
+                <Badge key={`${c}-nodot`} color={c} dot={false}>{BADGE_LABELS[c]}</Badge>
+              ))}
+            </div>
+          </div>
+
+          {/* Row 3: StatusPill — automatic label from centralized maps */}
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">StatusPill (centralized maps)</p>
+            <div className="flex flex-wrap gap-2">
+              <StatusPill status="ACTIVE" colorMap={CLIENT_STATUS_COLORS} />
+              <StatusPill status="ON_HOLD" colorMap={CLIENT_STATUS_COLORS} />
+              <StatusPill status="CANCELED" colorMap={CLIENT_STATUS_COLORS} />
+              <StatusPill status="DRAFT" colorMap={JOB_STATUS_COLORS} />
+              <StatusPill status="COMPLETED" colorMap={JOB_STATUS_COLORS} />
+            </div>
+          </div>
+
+          {/* Row 4: Color swatch reference */}
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Color reference (from BADGE_COLOR_CLASSES)</p>
+            <div className="flex flex-wrap gap-3">
+              {BADGE_COLORS.map((c) => {
+                const classes = BADGE_COLOR_CLASSES[c];
+                return (
+                  <div key={`swatch-${c}`} className="flex items-center gap-2">
+                    <span className={`inline-block h-4 w-4 rounded-full ${classes.dot}`} />
+                    <span className="text-xs font-mono text-muted-foreground">{c}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </Section>
@@ -302,7 +339,7 @@ export default function PlaygroundPageClient() {
                 <TableCell className="font-mono text-xs">{row.code}</TableCell>
                 <TableCell className="font-medium">{row.name}</TableCell>
                 <TableCell>
-                  <Badge color={STATUS_BADGE_COLOR[row.status]}>{row.status}</Badge>
+                  <Badge color={CLIENT_STATUS_COLORS[row.status]}>{row.status}</Badge>
                 </TableCell>
                 <TableCell>{row.sites}</TableCell>
                 <TableCell className="font-mono text-xs">{row.revenue}</TableCell>

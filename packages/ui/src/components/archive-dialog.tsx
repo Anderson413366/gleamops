@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface ArchiveDialogProps {
   open: boolean;
@@ -25,17 +25,27 @@ export function ArchiveDialog({
 }: ArchiveDialogProps) {
   const [reason, setReason] = useState('');
 
-  if (!open) return null;
+  const handleClose = () => {
+    setReason('');
+    onClose();
+  };
 
   const handleConfirm = () => {
     onConfirm(reason);
     setReason('');
   };
 
-  const handleClose = () => {
-    setReason('');
-    onClose();
-  };
+  // Close on Escape
+  useEffect(() => {
+    if (!open) return;
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose();
+    }
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [open, onClose]);
+
+  if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -65,7 +75,7 @@ export function ArchiveDialog({
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             rows={3}
-            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:ring-offset-2"
+            className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:ring-offset-2 focus:ring-offset-background"
             placeholder="Enter the reason for archiving..."
           />
         </div>

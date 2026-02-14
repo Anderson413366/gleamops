@@ -42,7 +42,7 @@ export function ConfirmDialog({
     <dialog
       ref={dialogRef}
       onClose={onClose}
-      className="fixed inset-0 z-50 m-auto rounded-xl border border-border bg-card shadow-xl backdrop:bg-black/40 dark:backdrop:bg-black/60 p-0 max-w-md w-full"
+      className="fixed inset-0 z-50 m-auto rounded-xl border border-border bg-card shadow-xl backdrop:bg-black/40 dark:backdrop:bg-black/60 backdrop:backdrop-blur-sm p-0 max-w-md w-full"
     >
       <div className="p-6">
         <div className="flex items-start gap-4">

@@ -23,7 +23,7 @@ export function BulkActions({ selectedCount, actions, onClear }: BulkActionsProp
   if (selectedCount === 0) return null;
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-lg border border-border bg-background/95 px-4 py-3 shadow-lg backdrop-blur">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl border border-border bg-card/95 px-4 py-3 shadow-xl backdrop-blur-sm">
       <span className="text-sm font-medium text-foreground">
         {selectedCount} selected
       </span>

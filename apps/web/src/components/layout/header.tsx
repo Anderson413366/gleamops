@@ -56,6 +56,19 @@ export function Header() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
+  // Close dropdowns on Escape
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setNotifOpen(false);
+        setProfileOpen(false);
+        setThemeOpen(false);
+      }
+    }
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, []);
+
   // Open palette with Cmd+K / Ctrl+K
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {

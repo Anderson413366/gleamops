@@ -137,7 +137,7 @@ export function CommandPalette({
       {/* Dialog */}
       <div className="fixed left-1/2 top-[18%] -translate-x-1/2 w-full max-w-lg px-4 animate-scale-in">
         <div
-          className="bg-card rounded-lg shadow-2xl border border-border overflow-hidden"
+          className="bg-card rounded-xl shadow-2xl border border-border overflow-hidden"
           onKeyDown={handleKeyDown}
         >
           {/* Search input */}
@@ -226,17 +226,17 @@ export function CommandPalette({
           </div>
 
           {/* Footer hint */}
-          <div className="border-t border-border px-4 py-2.5 flex items-center gap-4 text-[11px] text-muted-foreground bg-muted/50">
+          <div className="border-t border-border px-4 py-2.5 flex items-center gap-4 text-[11px] text-muted-foreground">
             <span className="inline-flex items-center gap-1">
-              <kbd className="rounded-md border border-border bg-card px-1 py-0.5 font-medium shadow-sm">↑↓</kbd>
+              <kbd className="rounded-md border border-border bg-muted px-1 py-0.5 font-medium">↑↓</kbd>
               Navigate
             </span>
             <span className="inline-flex items-center gap-1">
-              <kbd className="rounded-md border border-border bg-card px-1 py-0.5 font-medium shadow-sm">↵</kbd>
+              <kbd className="rounded-md border border-border bg-muted px-1 py-0.5 font-medium">↵</kbd>
               Select
             </span>
             <span className="inline-flex items-center gap-1">
-              <kbd className="rounded-md border border-border bg-card px-1 py-0.5 font-medium shadow-sm">esc</kbd>
+              <kbd className="rounded-md border border-border bg-muted px-1 py-0.5 font-medium">esc</kbd>
               Close
             </span>
           </div>

@@ -16,8 +16,8 @@ export function StatCard({ label, value, icon, trend, trendUp, className, href }
     <Wrapper
       {...(href ? { href } : {})}
       className={cn(
-        'rounded-xl border border-border bg-card p-5 shadow-sm block',
-        href && 'cursor-pointer transition-shadow hover:shadow-md hover:border-primary/40',
+        'rounded-lg border border-border bg-card p-5 shadow-sm block transition-all duration-200 ease-in-out',
+        href && 'cursor-pointer hover:shadow-md hover:border-primary/40',
         className
       )}
     >
@@ -30,7 +30,7 @@ export function StatCard({ label, value, icon, trend, trendUp, className, href }
               <span
                 className={cn(
                   'text-xs font-semibold',
-                  trendUp ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                  trendUp ? 'text-success' : 'text-destructive'
                 )}
                 aria-label={trendUp ? 'Trending up' : 'Trending down'}
               >
@@ -39,7 +39,7 @@ export function StatCard({ label, value, icon, trend, trendUp, className, href }
               <span
                 className={cn(
                   'text-xs font-medium',
-                  trendUp ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                  trendUp ? 'text-success' : 'text-destructive'
                 )}
               >
                 {trend}
@@ -48,7 +48,7 @@ export function StatCard({ label, value, icon, trend, trendUp, className, href }
           )}
         </div>
         {icon && (
-          <div className="ml-4 shrink-0 rounded-xl bg-primary/10 p-3 text-primary dark:bg-primary/10 dark:text-primary">
+          <div className="ml-4 shrink-0 rounded-lg bg-primary/10 p-3 text-primary">
             {icon}
           </div>
         )}

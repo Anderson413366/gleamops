@@ -14,7 +14,7 @@ export { Select } from './components/select';
 export type { SelectOption, SelectProps } from './components/select';
 export { Textarea } from './components/textarea';
 export type { TextareaProps } from './components/textarea';
-export { Card, CardHeader, CardTitle, CardContent, CardFooter } from './components/card';
+export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from './components/card';
 export { ConfirmDialog } from './components/confirm-dialog';
 export { SlideOver } from './components/slide-over';
 export {

@@ -14,7 +14,7 @@ export function Skeleton({ className, ...props }: SkeletonProps) {
 /** Table skeleton — shows N rows of loading state */
 export function TableSkeleton({ rows = 5, cols = 4 }: { rows?: number; cols?: number }) {
   return (
-    <div className="rounded-xl border border-border overflow-hidden">
+    <div className="rounded-lg border border-border overflow-hidden">
       {/* Header */}
       <div className="flex gap-4 bg-muted/50 px-4 py-3">
         {Array.from({ length: cols }).map((_, i) => (
@@ -38,7 +38,7 @@ export function TableSkeleton({ rows = 5, cols = 4 }: { rows?: number; cols?: nu
 /** Card skeleton */
 export function CardSkeleton() {
   return (
-    <div className="rounded-xl border border-border bg-card p-6 space-y-4 shadow-sm">
+    <div className="rounded-lg border border-border bg-card p-6 space-y-4 shadow-sm">
       <Skeleton className="h-5 w-1/3" />
       <Skeleton className="h-4 w-2/3" />
       <Skeleton className="h-4 w-1/2" />

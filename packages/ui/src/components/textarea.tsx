@@ -14,17 +14,17 @@ export function Textarea({ label, error, hint, className, id, ...props }: Textar
       {label && (
         <label htmlFor={textareaId} className="block text-sm font-medium text-foreground">
           {label}
-          {props.required && <span className="text-red-500 dark:text-red-400 ml-0.5">*</span>}
+          {props.required && <span className="text-destructive ml-0.5">*</span>}
         </label>
       )}
       <textarea
         id={textareaId}
         className={cn(
-          'block w-full rounded-xl border px-3.5 py-2.5 text-sm shadow-sm transition-all duration-200',
+          'block w-full rounded-lg border px-3.5 py-2.5 text-sm shadow-sm transition-all duration-200 ease-in-out',
           'bg-card text-foreground placeholder:text-muted-foreground',
-          'focus:outline-none focus:ring-2 focus:ring-offset-0',
+          'focus:outline-none focus:ring-2 focus:ring-ring/40 focus:ring-offset-2 focus:ring-offset-background',
           error
-            ? 'border-red-300 dark:border-red-700 focus:border-red-400 focus:ring-red-500/25'
+            ? 'border-destructive/50 focus:border-destructive focus:ring-destructive/25'
             : 'border-border focus:border-primary focus:ring-primary/25',
           'disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed',
           className
@@ -32,7 +32,7 @@ export function Textarea({ label, error, hint, className, id, ...props }: Textar
         rows={3}
         {...props}
       />
-      {error && <p className="text-xs font-medium text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p className="text-xs font-medium text-destructive">{error}</p>}
       {hint && !error && <p className="text-xs text-muted-foreground">{hint}</p>}
     </div>
   );

@@ -58,19 +58,19 @@ function formatTime(t: string | null): string {
 }
 
 const STATUS_BG: Record<string, string> = {
-  SCHEDULED: 'bg-blue-50 border-blue-200 hover:bg-blue-100',
-  IN_PROGRESS: 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100',
-  COMPLETED: 'bg-green-50 border-green-200 hover:bg-green-100',
-  VERIFIED: 'bg-green-50 border-green-200 hover:bg-green-100',
-  CANCELED: 'bg-gray-50 border-gray-200 hover:bg-gray-100 opacity-60',
+  SCHEDULED: 'bg-primary/10 border-primary/30 hover:bg-primary/15',
+  IN_PROGRESS: 'bg-warning/10 border-warning/30 hover:bg-warning/15',
+  COMPLETED: 'bg-success/10 border-success/30 hover:bg-success/15',
+  VERIFIED: 'bg-success/10 border-success/30 hover:bg-success/15',
+  CANCELED: 'bg-muted border-border hover:bg-muted opacity-60',
 };
 
 const STATUS_DOT: Record<string, string> = {
-  SCHEDULED: 'bg-blue-500',
-  IN_PROGRESS: 'bg-yellow-500',
-  COMPLETED: 'bg-green-500',
-  VERIFIED: 'bg-green-500',
-  CANCELED: 'bg-gray-400',
+  SCHEDULED: 'bg-primary',
+  IN_PROGRESS: 'bg-warning',
+  COMPLETED: 'bg-success',
+  VERIFIED: 'bg-success',
+  CANCELED: 'bg-muted-foreground',
 };
 
 export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
@@ -178,9 +178,9 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
         <h3 className="text-sm font-semibold text-foreground">{weekLabel}</h3>
         <div className="flex items-center gap-4 text-xs text-muted-foreground">
           <span>{totalTickets} tickets</span>
-          <span className="text-green-600">{completedCount} done</span>
+          <span className="text-success">{completedCount} done</span>
           {unassignedCount > 0 && (
-            <span className="text-red-500 font-medium">{unassignedCount} unassigned</span>
+            <span className="text-destructive font-medium">{unassignedCount} unassigned</span>
           )}
         </div>
       </div>
@@ -217,7 +217,7 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
                   rounded-lg border p-2 transition-colors min-h-[120px] flex flex-col
                   ${today ? 'border-gleam-400 bg-gleam-50/30 ring-1 ring-gleam-200' : 'border-border'}
                   ${isDropping ? 'border-gleam-500 bg-gleam-50 border-dashed border-2' : ''}
-                  ${isPast ? 'bg-gray-50/50' : ''}
+                  ${isPast ? 'bg-muted/50' : ''}
                 `}
                 onDragOver={(e) => handleDragOver(e, dateStr)}
                 onDragLeave={handleDragLeave}
@@ -253,17 +253,17 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
                         onClick={() => onSelectTicket?.(ticket)}
                         className={`
                           p-1.5 rounded border text-xs cursor-grab active:cursor-grabbing transition-all relative group
-                          ${STATUS_BG[ticket.status] ?? 'bg-gray-50 border-gray-200'}
+                          ${STATUS_BG[ticket.status] ?? 'bg-muted border-border'}
                           ${dragTicketId === ticket.id ? 'opacity-40 scale-95' : 'opacity-100'}
                           ${isUnassigned ? 'ring-1 ring-red-300' : ''}
                         `}
                       >
                         {/* Drag handle */}
-                        <GripVertical className="h-3 w-3 text-gray-300 absolute top-1 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <GripVertical className="h-3 w-3 text-muted-foreground absolute top-1 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
 
                         {/* Status dot + site name */}
                         <div className="flex items-center gap-1">
-                          <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[ticket.status] ?? 'bg-gray-400'}`} />
+                          <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[ticket.status] ?? 'bg-muted-foreground'}`} />
                           <p className="font-medium truncate">{ticket.site?.name ?? ticket.ticket_code}</p>
                         </div>
 
@@ -282,7 +282,7 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
                             <span className="truncate">{assignedNames.join(', ')}</span>
                           </div>
                         ) : (
-                          <p className="text-red-500 text-[10px] mt-0.5 font-medium">Unassigned</p>
+                          <p className="text-destructive text-[10px] mt-0.5 font-medium">Unassigned</p>
                         )}
                       </div>
                     );

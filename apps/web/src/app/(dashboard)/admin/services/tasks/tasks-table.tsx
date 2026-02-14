@@ -299,9 +299,9 @@ export default function TasksTable({ search, autoCreate, onAutoCreateHandled, on
       >
         <div className="space-y-6">
           {error && (
-            <div className="p-3 rounded-lg border border-red-200 bg-red-50 flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-red-600 shrink-0" />
-              <p className="text-sm text-red-700">{error}</p>
+            <div className="p-3 rounded-lg border border-destructive/30 bg-destructive/10 flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
+              <p className="text-sm text-destructive">{error}</p>
             </div>
           )}
 

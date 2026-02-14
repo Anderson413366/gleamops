@@ -186,7 +186,7 @@ export function InspectionDetail({ inspection, open, onClose, onUpdate }: Inspec
                   {scorePct}%
                 </span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-3">
+              <div className="w-full bg-muted rounded-full h-3">
                 <div
                   className={`h-3 rounded-full transition-all duration-300 ${
                     scorePct >= 80 ? 'bg-green-500' : scorePct >= 60 ? 'bg-yellow-500' : 'bg-red-500'
@@ -286,7 +286,7 @@ export function InspectionDetail({ inspection, open, onClose, onUpdate }: Inspec
                                       : i <= scoringScale * 0.4 ? 'bg-orange-500 text-white'
                                       : i <= scoringScale * 0.7 ? 'bg-yellow-500 text-white'
                                       : 'bg-green-500 text-white'
-                                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                    : 'bg-muted text-muted-foreground hover:bg-muted'
                                 }`}
                               >
                                 {i}
@@ -295,7 +295,7 @@ export function InspectionDetail({ inspection, open, onClose, onUpdate }: Inspec
                           </div>
                           {/* Photo indicator */}
                           {item.requires_photo && (
-                            <div className={`text-xs ${item.photo_taken ? 'text-green-500' : 'text-gray-300'}`}>
+                            <div className={`text-xs ${item.photo_taken ? 'text-success' : 'text-muted-foreground'}`}>
                               {item.photo_taken ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
                             </div>
                           )}
@@ -321,7 +321,7 @@ export function InspectionDetail({ inspection, open, onClose, onUpdate }: Inspec
             <CardHeader>
               <CardTitle>
                 <span className="inline-flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
                   Issues ({issues.length})
                 </span>
               </CardTitle>

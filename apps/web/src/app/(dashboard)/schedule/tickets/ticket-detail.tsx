@@ -580,14 +580,14 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
               className={`flex items-center gap-1 px-2.5 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === tab.key
                   ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300'
+                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
               }`}
             >
               {tab.icon}
               {tab.label}
               {tab.count && (
                 <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                  activeTab === tab.key ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-gray-600'
+                  activeTab === tab.key ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
                 }`}>
                   {tab.count}
                 </span>
@@ -667,9 +667,9 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                 <p className="text-[10px] text-muted-foreground">Photos</p>
               </button>
               <button onClick={() => setActiveTab('safety')} className={`p-2.5 rounded-lg border text-center transition-colors ${
-                safetyCount > 0 ? 'border-red-200 hover:border-red-400 bg-red-50/50' : 'border-border hover:border-primary/30'
+                safetyCount > 0 ? 'border-destructive/30 hover:border-destructive bg-destructive/10' : 'border-border hover:border-primary/30'
               }`}>
-                <p className={`text-lg font-bold ${safetyCount > 0 ? 'text-red-600' : 'text-foreground'}`}>{safetyCount}</p>
+                <p className={`text-lg font-bold ${safetyCount > 0 ? 'text-destructive' : 'text-foreground'}`}>{safetyCount}</p>
                 <p className="text-[10px] text-muted-foreground">Flags</p>
               </button>
               <button onClick={() => setActiveTab('quality')} className="p-2.5 rounded-lg border border-border hover:border-primary/30 text-center transition-colors">
@@ -695,10 +695,10 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
             ) : checklistItems.length > 0 ? (
               <>
                 <div className="flex items-center gap-3">
-                  <div className="flex-1 bg-gray-200 rounded-full h-2.5">
+                  <div className="flex-1 bg-muted rounded-full h-2.5">
                     <div
                       className={`h-2.5 rounded-full transition-all duration-300 ${
-                        progressPct === 100 ? 'bg-green-500' : 'bg-blue-500'
+                        progressPct === 100 ? 'bg-success' : 'bg-primary'
                       }`}
                       style={{ width: `${progressPct}%` }}
                     />
@@ -721,24 +721,24 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                       {sectionItems.map((item) => (
                         <div
                           key={item.id}
-                          className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer group"
+                          className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted transition-colors cursor-pointer group"
                           onClick={() => handleToggleItem(item)}
                         >
                           {item.is_checked ? (
-                            <CheckSquare className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
+                            <CheckSquare className="h-5 w-5 text-success mt-0.5 shrink-0" />
                           ) : (
-                            <Square className="h-5 w-5 text-gray-300 group-hover:text-gray-400 mt-0.5 shrink-0" />
+                            <Square className="h-5 w-5 text-muted-foreground group-hover:text-muted-foreground mt-0.5 shrink-0" />
                           )}
                           <div className="flex-1 min-w-0">
                             <p className={`text-sm ${item.is_checked ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
                               {item.label}
-                              {item.is_required && <span className="text-red-500 ml-1">*</span>}
+                              {item.is_required && <span className="text-destructive ml-1">*</span>}
                             </p>
                             {item.notes && <p className="text-xs text-muted-foreground mt-0.5">{item.notes}</p>}
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
                             {item.requires_photo && (
-                              <Camera className={`h-4 w-4 ${(item.photos?.length ?? 0) > 0 ? 'text-green-500' : 'text-gray-300'}`} />
+                              <Camera className={`h-4 w-4 ${(item.photos?.length ?? 0) > 0 ? 'text-success' : 'text-muted-foreground'}`} />
                             )}
                             {(item.photos?.length ?? 0) > 0 && (
                               <span className="text-xs text-muted-foreground flex items-center gap-0.5">
@@ -772,8 +772,8 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
               <div className="grid grid-cols-2 gap-3">
                 {allPhotos.map((photo) => (
                   <div key={photo.id} className="rounded-lg border border-border overflow-hidden">
-                    <div className="aspect-square bg-gray-100 flex items-center justify-center">
-                      <ImageIcon className="h-8 w-8 text-gray-300" />
+                    <div className="aspect-square bg-muted flex items-center justify-center">
+                      <ImageIcon className="h-8 w-8 text-muted-foreground" />
                     </div>
                     <div className="p-2">
                       <p className="text-xs font-medium truncate">{photo.original_filename}</p>
@@ -839,7 +839,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                         href={supply.sds_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-700 shrink-0 px-2.5 py-1.5 rounded-md bg-red-50 hover:bg-red-100 transition-colors"
+                        className="flex items-center gap-1 text-xs font-medium text-destructive hover:text-destructive shrink-0 px-2.5 py-1.5 rounded-lg bg-destructive/10 hover:bg-destructive/20 transition-colors"
                       >
                         <ExternalLink className="h-3 w-3" />
                         View SDS
@@ -858,16 +858,16 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Time Exceptions</p>
                 {timeExceptions.map((ex) => (
                   <div key={ex.id} className={`p-3 rounded-lg border ${
-                    ex.severity === 'CRITICAL' ? 'border-red-200 bg-red-50/50' :
-                    ex.severity === 'WARNING' ? 'border-yellow-200 bg-yellow-50/50' :
+                    ex.severity === 'CRITICAL' ? 'border-destructive/30 bg-destructive/10' :
+                    ex.severity === 'WARNING' ? 'border-warning/30 bg-warning/10' :
                     'border-border'
                   }`}>
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
                         <Shield className={`h-4 w-4 ${
-                          ex.severity === 'CRITICAL' ? 'text-red-500' :
-                          ex.severity === 'WARNING' ? 'text-yellow-500' :
-                          'text-gray-400'
+                          ex.severity === 'CRITICAL' ? 'text-destructive' :
+                          ex.severity === 'WARNING' ? 'text-warning' :
+                          'text-muted-foreground'
                         }`} />
                         <span className="text-sm font-medium">{ex.exception_type.replace(/_/g, ' ')}</span>
                       </div>
@@ -878,7 +878,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                     <p className="text-xs text-muted-foreground">{ex.staff?.full_name ?? '—'}</p>
                     {ex.description && <p className="text-xs text-muted-foreground mt-1">{ex.description}</p>}
                     {ex.resolved_at && (
-                      <p className="text-xs text-green-600 mt-1">Resolved: {new Date(ex.resolved_at).toLocaleDateString()}</p>
+                      <p className="text-xs text-success mt-1">Resolved: {new Date(ex.resolved_at).toLocaleDateString()}</p>
                     )}
                   </div>
                 ))}
@@ -891,8 +891,8 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Inspection Issues</p>
                 {inspectionIssues.map((issue) => (
                   <div key={issue.id} className={`p-3 rounded-lg border ${
-                    issue.severity === 'CRITICAL' ? 'border-red-200 bg-red-50/50' :
-                    issue.severity === 'MAJOR' ? 'border-orange-200 bg-orange-50/50' :
+                    issue.severity === 'CRITICAL' ? 'border-destructive/30 bg-destructive/10' :
+                    issue.severity === 'MAJOR' ? 'border-warning/30 bg-warning/10' :
                     'border-border'
                   }`}>
                     <div className="flex items-center justify-between mb-1">
@@ -903,9 +903,9 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                     </div>
                     <p className="text-xs text-muted-foreground font-mono">{issue.inspection?.inspection_code}</p>
                     {issue.resolved_at ? (
-                      <p className="text-xs text-green-600 mt-1">Resolved: {new Date(issue.resolved_at).toLocaleDateString()}</p>
+                      <p className="text-xs text-success mt-1">Resolved: {new Date(issue.resolved_at).toLocaleDateString()}</p>
                     ) : (
-                      <p className="text-xs text-red-500 mt-1">Unresolved</p>
+                      <p className="text-xs text-destructive mt-1">Unresolved</p>
                     )}
                   </div>
                 ))}
@@ -936,13 +936,13 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                 </div>
 
                 {showAssignForm && (
-                  <div className="p-3 rounded-lg border border-border bg-gray-50/50 space-y-3">
+                  <div className="p-3 rounded-lg border border-border bg-muted/50 space-y-3">
                     <label className="flex items-center gap-2 text-xs cursor-pointer">
                       <input
                         type="checkbox"
                         checked={showAvailableOnly}
                         onChange={(e) => setShowAvailableOnly(e.target.checked)}
-                        className="rounded border-gray-300"
+                        className="rounded border-border"
                       />
                       <Filter className="h-3 w-3 text-muted-foreground" />
                       <span className="text-muted-foreground">Show available only</span>
@@ -955,11 +955,11 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                       options={staffForDropdown}
                     />
                     {selectedStaffId && busyMap.has(selectedStaffId) && (
-                      <div className="flex items-start gap-2 p-2 rounded-lg bg-yellow-50 border border-yellow-200">
-                        <AlertTriangle className="h-4 w-4 text-yellow-600 shrink-0 mt-0.5" />
+                      <div className="flex items-start gap-2 p-2 rounded-lg bg-warning/10 border border-warning/30">
+                        <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
                         <div className="text-xs">
-                          <p className="font-semibold text-yellow-800">Double-booking warning</p>
-                          <p className="text-yellow-700">
+                          <p className="font-semibold text-warning">Double-booking warning</p>
+                          <p className="text-warning">
                             Already assigned to:{' '}
                             {busyMap.get(selectedStaffId)!.tickets.map((t, i) => (
                               <span key={t.ticketId}>
@@ -990,7 +990,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                       const isBusyElsewhere = !!busy && busy.tickets.length > 0;
                       return (
                         <div key={a.id} className={`flex items-center justify-between p-2 rounded-lg border ${
-                          isBusyElsewhere ? 'border-yellow-300 bg-yellow-50/50' : 'border-border'
+                          isBusyElsewhere ? 'border-warning/30 bg-warning/10' : 'border-border'
                         }`}>
                           <div className="flex items-center gap-3">
                             <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
@@ -1001,7 +1001,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                               <div className="flex items-center gap-1">
                                 <p className="text-xs text-muted-foreground">{a.staff?.staff_code}</p>
                                 {isBusyElsewhere && (
-                                  <span className="text-xs text-yellow-600 font-medium ml-1">
+                                  <span className="text-xs text-warning font-medium ml-1">
                                     +{busy.tickets.length} other ticket{busy.tickets.length > 1 ? 's' : ''}
                                   </span>
                                 )}
@@ -1012,7 +1012,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                             <Badge color={a.role === 'LEAD' ? 'purple' : 'blue'}>{a.role ?? 'CLEANER'}</Badge>
                             <button
                               onClick={() => handleRemoveAssignment(a.id)}
-                              className="p-1 rounded hover:bg-gray-100 text-muted-foreground hover:text-red-500 transition-colors"
+                              className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-destructive transition-colors"
                             >
                               <X className="h-3 w-3" />
                             </button>
@@ -1037,9 +1037,9 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
             ) : (
               <>
                 {assetGatingBlocked && ticket.status === 'SCHEDULED' && (
-                  <div className="flex items-start gap-2 p-3 rounded-lg bg-yellow-50 border border-yellow-200">
-                    <AlertTriangle className="h-4 w-4 text-yellow-600 shrink-0 mt-0.5" />
-                    <p className="text-xs text-yellow-800">
+                  <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/30">
+                    <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+                    <p className="text-xs text-warning">
                       All required assets must be checked out before starting work.
                     </p>
                   </div>
@@ -1057,7 +1057,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                           <div className="min-w-0">
                             <p className="text-sm font-medium">
                               {req.description}
-                              {req.is_required && <span className="text-red-500 ml-1">*</span>}
+                              {req.is_required && <span className="text-destructive ml-1">*</span>}
                             </p>
                             <p className="text-[10px] text-muted-foreground uppercase">{req.asset_type}</p>
                           </div>
@@ -1102,15 +1102,15 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                     <div className="space-y-1">
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-muted-foreground">Score</span>
-                        <span className={`font-bold ${insp.passed ? 'text-green-600' : 'text-red-600'}`}>
+                        <span className={`font-bold ${insp.passed ? 'text-success' : 'text-destructive'}`}>
                           {Math.round(insp.score_pct)}%
                           {insp.passed != null && (insp.passed ? ' — Pass' : ' — Fail')}
                         </span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-muted rounded-full h-2">
                         <div
                           className={`h-2 rounded-full transition-all duration-300 ${
-                            insp.passed ? 'bg-green-500' : 'bg-red-500'
+                            insp.passed ? 'bg-success' : 'bg-destructive'
                           }`}
                           style={{ width: `${Math.min(100, Math.round(insp.score_pct))}%` }}
                         />

@@ -381,7 +381,7 @@ export default function KitsTable({ search, autoCreate, onAutoCreateHandled }: K
                     <button
                       type="button"
                       onClick={() => handleRemoveItem(index)}
-                      className="p-1 rounded text-red-500 hover:bg-red-50 transition-colors"
+                      className="p-1 rounded text-destructive hover:bg-destructive/10 transition-colors"
                       aria-label="Remove item"
                     >
                       <Trash2 className="h-4 w-4" />

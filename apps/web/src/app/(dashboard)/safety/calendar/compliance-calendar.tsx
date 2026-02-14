@@ -268,19 +268,19 @@ export default function ComplianceCalendar() {
       {/* Summary bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="rounded-xl border border-border bg-card p-4 text-center">
-          <p className="text-2xl font-bold text-red-600">{overdue.length}</p>
+          <p className="text-2xl font-bold text-destructive">{overdue.length}</p>
           <p className="text-xs text-muted-foreground mt-1">Overdue</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4 text-center">
-          <p className="text-2xl font-bold text-orange-600">{within14.length}</p>
+          <p className="text-2xl font-bold text-warning">{within14.length}</p>
           <p className="text-xs text-muted-foreground mt-1">Within 14 days</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4 text-center">
-          <p className="text-2xl font-bold text-yellow-600">{within30.length}</p>
+          <p className="text-2xl font-bold text-warning">{within30.length}</p>
           <p className="text-xs text-muted-foreground mt-1">15–30 days</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4 text-center">
-          <p className="text-2xl font-bold text-green-600">{within90.length}</p>
+          <p className="text-2xl font-bold text-success">{within90.length}</p>
           <p className="text-xs text-muted-foreground mt-1">31–90 days</p>
         </div>
       </div>

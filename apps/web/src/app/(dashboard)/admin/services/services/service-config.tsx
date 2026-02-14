@@ -410,9 +410,9 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
       >
         <div className="space-y-6">
           {error && (
-            <div className="p-3 rounded-lg border border-red-200 bg-red-50 flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-red-600 shrink-0" />
-              <p className="text-sm text-red-700">{error}</p>
+            <div className="p-3 rounded-lg border border-destructive/30 bg-destructive/10 flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
+              <p className="text-sm text-destructive">{error}</p>
             </div>
           )}
 
@@ -481,7 +481,7 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
                     {linkedTasks.map((lt) => (
                       <div
                         key={lt.id}
-                        className="flex items-center gap-3 p-3 rounded-lg border border-border hover:border-gray-300 transition-colors"
+                        className="flex items-center gap-3 p-3 rounded-lg border border-border hover:border-border transition-colors"
                       >
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-foreground">{lt.task.name}</p>
@@ -498,7 +498,7 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
                         />
                         <button
                           onClick={() => handleRemoveTask(lt.id)}
-                          className="p-1.5 rounded hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors shrink-0"
+                          className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors shrink-0"
                           title="Remove task"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -520,7 +520,7 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
                           <button
                             key={task.id}
                             onClick={() => handleAddTask(task)}
-                            className="w-full flex items-center gap-3 px-3 py-2 text-left rounded-md hover:bg-gray-50 transition-colors"
+                            className="w-full flex items-center gap-3 px-3 py-2 text-left rounded-md hover:bg-muted transition-colors"
                           >
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-foreground">{task.name}</p>

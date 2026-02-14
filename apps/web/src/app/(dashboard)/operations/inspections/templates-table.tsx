@@ -160,9 +160,9 @@ export default function TemplatesTable({ search }: TemplatesTableProps) {
                       className="text-muted-foreground hover:text-foreground"
                     >
                       {row.is_active ? (
-                        <ToggleRight className="h-5 w-5 text-green-500" />
+                        <ToggleRight className="h-5 w-5 text-success" />
                       ) : (
-                        <ToggleLeft className="h-5 w-5 text-gray-400" />
+                        <ToggleLeft className="h-5 w-5 text-muted-foreground" />
                       )}
                     </button>
                   </TableCell>

@@ -36,12 +36,12 @@ export function Select({
       <select
         id={selectId}
         className={cn(
-          'block w-full rounded-lg border px-3.5 py-2.5 text-sm shadow-sm transition-all duration-200 ease-in-out appearance-none',
+          'block w-full rounded-lg border px-3.5 py-2.5 text-sm transition-all duration-200 ease-in-out appearance-none',
           'bg-card text-foreground',
-          'focus:outline-none focus:ring-2 focus:ring-ring/40 focus:ring-offset-2 focus:ring-offset-background',
+          'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background',
           error
-            ? 'border-destructive/50 focus:border-destructive focus:ring-destructive/25'
-            : 'border-border focus:border-primary focus:ring-primary/25',
+            ? 'border-destructive/50 focus:border-destructive focus:ring-destructive/40'
+            : 'border-border focus:border-primary focus:ring-ring/40',
           'disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed',
           className
         )}

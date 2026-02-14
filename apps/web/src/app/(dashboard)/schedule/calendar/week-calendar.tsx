@@ -58,19 +58,19 @@ function formatTime(t: string | null): string {
 }
 
 const STATUS_BG: Record<string, string> = {
-  SCHEDULED: 'bg-blue-50 border-blue-200 hover:bg-blue-100',
-  IN_PROGRESS: 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100',
-  COMPLETED: 'bg-green-50 border-green-200 hover:bg-green-100',
-  VERIFIED: 'bg-green-50 border-green-200 hover:bg-green-100',
-  CANCELED: 'bg-gray-50 border-gray-200 hover:bg-gray-100 opacity-60',
+  SCHEDULED: 'bg-primary/10 border-primary/30 hover:bg-primary/15',
+  IN_PROGRESS: 'bg-warning/10 border-warning/30 hover:bg-warning/15',
+  COMPLETED: 'bg-success/10 border-success/30 hover:bg-success/15',
+  VERIFIED: 'bg-success/10 border-success/30 hover:bg-success/15',
+  CANCELED: 'bg-muted border-border hover:bg-muted opacity-60',
 };
 
 const STATUS_DOT: Record<string, string> = {
-  SCHEDULED: 'bg-blue-500',
-  IN_PROGRESS: 'bg-yellow-500',
-  COMPLETED: 'bg-green-500',
-  VERIFIED: 'bg-green-500',
-  CANCELED: 'bg-gray-400',
+  SCHEDULED: 'bg-primary',
+  IN_PROGRESS: 'bg-warning',
+  COMPLETED: 'bg-success',
+  VERIFIED: 'bg-success',
+  CANCELED: 'bg-muted-foreground',
 };
 
 export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
@@ -253,9 +253,9 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
                         onClick={() => onSelectTicket?.(ticket)}
                         className={`
                           p-1.5 rounded border text-xs cursor-grab active:cursor-grabbing transition-all relative group
-                          ${STATUS_BG[ticket.status] ?? 'bg-gray-50 border-gray-200'}
+                          ${STATUS_BG[ticket.status] ?? 'bg-muted border-border'}
                           ${dragTicketId === ticket.id ? 'opacity-40 scale-95' : 'opacity-100'}
-                          ${isUnassigned ? 'ring-1 ring-red-300' : ''}
+                          ${isUnassigned ? 'ring-1 ring-destructive/30' : ''}
                         `}
                       >
                         {/* Drag handle */}
@@ -263,7 +263,7 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
 
                         {/* Status dot + site name */}
                         <div className="flex items-center gap-1">
-                          <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[ticket.status] ?? 'bg-gray-400'}`} />
+                          <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[ticket.status] ?? 'bg-muted-foreground'}`} />
                           <p className="font-medium truncate">{ticket.site?.name ?? ticket.ticket_code}</p>
                         </div>
 

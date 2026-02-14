@@ -101,8 +101,8 @@ export default function InventoryDashboard() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                <Package className="h-5 w-5 text-blue-600" />
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Package className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Catalog Items</p>
@@ -116,8 +116,8 @@ export default function InventoryDashboard() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
-                <Boxes className="h-5 w-5 text-green-600" />
+              <div className="p-2 rounded-lg bg-success/10">
+                <Boxes className="h-5 w-5 text-success" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Supply Kits</p>
@@ -130,8 +130,8 @@ export default function InventoryDashboard() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
-                <Truck className="h-5 w-5 text-purple-600" />
+              <div className="p-2 rounded-lg bg-accent/10">
+                <Truck className="h-5 w-5 text-accent" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Vehicles</p>
@@ -144,8 +144,8 @@ export default function InventoryDashboard() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
-                <AlertTriangle className="h-5 w-5 text-orange-600" />
+              <div className="p-2 rounded-lg bg-warning/10">
+                <AlertTriangle className="h-5 w-5 text-warning" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Categories</p>
@@ -173,9 +173,9 @@ export default function InventoryDashboard() {
                     <div key={cat} className="flex items-center justify-between">
                       <span className="text-sm font-medium truncate max-w-[200px]">{cat}</span>
                       <div className="flex items-center gap-2 flex-1 mx-4">
-                        <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div className="flex-1 bg-muted rounded-full h-2">
                           <div
-                            className="h-2 rounded-full bg-blue-500"
+                            className="h-2 rounded-full bg-primary"
                             style={{
                               width: `${stats.catalogItems > 0 ? (count / stats.catalogItems) * 100 : 0}%`,
                             }}

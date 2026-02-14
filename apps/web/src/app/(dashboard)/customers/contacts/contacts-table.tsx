@@ -122,7 +122,7 @@ export default function ContactsTable({ search, onSelect }: ContactsTableProps) 
               <TableCell>
                 <span className="font-medium">{row.name}</span>
                 {row.is_primary && (
-                  <Star className="inline ml-1.5 h-3.5 w-3.5 text-yellow-500 fill-yellow-500" />
+                  <Star className="inline ml-1.5 h-3.5 w-3.5 text-warning fill-warning" />
                 )}
               </TableCell>
               <TableCell>

@@ -138,8 +138,8 @@ export default function WorkforceDashboard() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                <Users className="h-5 w-5 text-blue-600" />
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Users className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Total Staff</p>
@@ -153,8 +153,8 @@ export default function WorkforceDashboard() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
-                <UserCheck className="h-5 w-5 text-green-600" />
+              <div className="p-2 rounded-lg bg-success/10">
+                <UserCheck className="h-5 w-5 text-success" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Clocked In Now</p>
@@ -167,8 +167,8 @@ export default function WorkforceDashboard() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
-                <Clock className="h-5 w-5 text-purple-600" />
+              <div className="p-2 rounded-lg bg-accent/10">
+                <Clock className="h-5 w-5 text-accent" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Hours This Week</p>
@@ -181,8 +181,8 @@ export default function WorkforceDashboard() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/30">
-                <AlertTriangle className="h-5 w-5 text-yellow-600" />
+              <div className="p-2 rounded-lg bg-warning/10">
+                <AlertTriangle className="h-5 w-5 text-warning" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Open Exceptions</p>
@@ -209,9 +209,9 @@ export default function WorkforceDashboard() {
                   <div key={status} className="flex items-center justify-between">
                     <Badge color={TIMESHEET_STATUS_COLORS[status] ?? 'gray'}>{status}</Badge>
                     <div className="flex items-center gap-2 flex-1 mx-4">
-                      <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                      <div className="flex-1 bg-muted rounded-full h-2">
                         <div
-                          className="h-2 rounded-full bg-blue-500"
+                          className="h-2 rounded-full bg-primary"
                           style={{
                             width: `${Object.values(timesheets).reduce((a, b) => a + b, 0) > 0
                               ? (count / Object.values(timesheets).reduce((a, b) => a + b, 0)) * 100

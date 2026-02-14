@@ -118,9 +118,9 @@ export default function SubcontractorsTable({ search, onSelect }: Props) {
               <TableCell className="text-muted-foreground">{formatDate(row.license_expiry ?? null)}</TableCell>
               <TableCell>
                 {row.w9_on_file ? (
-                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <CheckCircle className="h-4 w-4 text-success" />
                 ) : (
-                  <XCircle className="h-4 w-4 text-red-400" />
+                  <XCircle className="h-4 w-4 text-destructive/70" />
                 )}
               </TableCell>
               <TableCell>

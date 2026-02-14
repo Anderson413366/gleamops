@@ -255,7 +255,7 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
                           p-1.5 rounded border text-xs cursor-grab active:cursor-grabbing transition-all relative group
                           ${STATUS_BG[ticket.status] ?? 'bg-muted border-border'}
                           ${dragTicketId === ticket.id ? 'opacity-40 scale-95' : 'opacity-100'}
-                          ${isUnassigned ? 'ring-1 ring-red-300' : ''}
+                          ${isUnassigned ? 'ring-1 ring-destructive/30' : ''}
                         `}
                       >
                         {/* Drag handle */}

@@ -139,7 +139,7 @@ export default function ExceptionsTable({ search }: ExceptionsTableProps) {
               <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{row.description ?? '—'}</TableCell>
               <TableCell>
                 {row.resolved_at ? (
-                  <span className="inline-flex items-center gap-1 text-green-600 text-xs">
+                  <span className="inline-flex items-center gap-1 text-success text-xs">
                     <CheckCircle className="h-3 w-3" />
                     Resolved
                   </span>

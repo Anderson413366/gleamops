@@ -340,9 +340,9 @@ export function TemplateBuilder({ open, onClose, templateId, onSaved }: Template
         <div className="space-y-6">
           {/* Error banner */}
           {error && (
-            <div className="p-3 rounded-lg border border-red-200 bg-red-50 flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-red-600 shrink-0" />
-              <p className="text-sm text-red-700">{error}</p>
+            <div className="p-3 rounded-lg border border-destructive/30 bg-destructive/10 flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
+              <p className="text-sm text-destructive">{error}</p>
             </div>
           )}
 
@@ -415,7 +415,7 @@ export function TemplateBuilder({ open, onClose, templateId, onSaved }: Template
                     type="checkbox"
                     checked={isActive}
                     onChange={(e) => setIsActive(e.target.checked)}
-                    className="rounded border-gray-300"
+                    className="rounded border-border"
                   />
                   Active (available for new inspections)
                 </label>
@@ -465,21 +465,21 @@ export function TemplateBuilder({ open, onClose, templateId, onSaved }: Template
                           return (
                             <div
                               key={item.id || item._tempId}
-                              className="flex items-start gap-2 p-3 rounded-lg border border-border bg-white hover:border-gray-300 transition-colors"
+                              className="flex items-start gap-2 p-3 rounded-lg border border-border bg-card hover:border-border transition-colors"
                             >
                               {/* Reorder buttons */}
                               <div className="flex flex-col gap-0.5 shrink-0 pt-1">
                                 <button
                                   onClick={() => moveItem(activeIdx, 'up')}
                                   disabled={activeIdx === 0}
-                                  className="p-0.5 rounded hover:bg-gray-100 text-muted-foreground disabled:opacity-30"
+                                  className="p-0.5 rounded hover:bg-muted text-muted-foreground disabled:opacity-30"
                                 >
                                   <GripVertical className="h-3 w-3 rotate-180" />
                                 </button>
                                 <button
                                   onClick={() => moveItem(activeIdx, 'down')}
                                   disabled={activeIdx === activeItems.length - 1}
-                                  className="p-0.5 rounded hover:bg-gray-100 text-muted-foreground disabled:opacity-30"
+                                  className="p-0.5 rounded hover:bg-muted text-muted-foreground disabled:opacity-30"
                                 >
                                   <GripVertical className="h-3 w-3" />
                                 </button>
@@ -509,9 +509,9 @@ export function TemplateBuilder({ open, onClose, templateId, onSaved }: Template
                                       type="checkbox"
                                       checked={item.requires_photo ?? false}
                                       onChange={(e) => updateItem(globalIndex, { requires_photo: e.target.checked })}
-                                      className="rounded border-gray-300"
+                                      className="rounded border-border"
                                     />
-                                    <Camera className="h-3 w-3 text-blue-500" />
+                                    <Camera className="h-3 w-3 text-primary" />
                                     Photo
                                   </label>
                                   <div className="flex items-center gap-1">
@@ -531,7 +531,7 @@ export function TemplateBuilder({ open, onClose, templateId, onSaved }: Template
                               {/* Delete */}
                               <button
                                 onClick={() => removeItem(globalIndex)}
-                                className="p-1.5 rounded hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors shrink-0"
+                                className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors shrink-0"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </button>
@@ -556,7 +556,7 @@ export function TemplateBuilder({ open, onClose, templateId, onSaved }: Template
           </Card>
 
           {/* Save Actions */}
-          <div className="flex gap-3 pt-4 border-t border-border sticky bottom-0 bg-white pb-2">
+          <div className="flex gap-3 pt-4 border-t border-border sticky bottom-0 bg-card pb-2">
             <Button onClick={handleSave} disabled={saving}>
               <Save className="h-4 w-4" />
               {saving ? 'Saving...' : isEdit ? 'Save Changes' : 'Create Template'}

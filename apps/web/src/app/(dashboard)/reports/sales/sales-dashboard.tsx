@@ -125,8 +125,8 @@ export default function SalesDashboard() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-100">
-                <DollarSign className="h-5 w-5 text-green-600" />
+              <div className="p-2 rounded-lg bg-success/10">
+                <DollarSign className="h-5 w-5 text-success" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Pipeline Value</p>
@@ -140,8 +140,8 @@ export default function SalesDashboard() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-100">
-                <TrendingUp className="h-5 w-5 text-blue-600" />
+              <div className="p-2 rounded-lg bg-primary/10">
+                <TrendingUp className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Active Opportunities</p>
@@ -154,8 +154,8 @@ export default function SalesDashboard() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-purple-100">
-                <Send className="h-5 w-5 text-purple-600" />
+              <div className="p-2 rounded-lg bg-accent/10">
+                <Send className="h-5 w-5 text-accent" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Proposals Sent (30d)</p>
@@ -168,8 +168,8 @@ export default function SalesDashboard() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-orange-100">
-                <Target className="h-5 w-5 text-orange-600" />
+              <div className="p-2 rounded-lg bg-warning/10">
+                <Target className="h-5 w-5 text-warning" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Win Rate</p>

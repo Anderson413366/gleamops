@@ -116,8 +116,8 @@ export default function OpsDashboard() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-100">
-                <Calendar className="h-5 w-5 text-blue-600" />
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Calendar className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Tickets Today</p>
@@ -130,8 +130,8 @@ export default function OpsDashboard() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-100">
-                <CheckCircle className="h-5 w-5 text-green-600" />
+              <div className="p-2 rounded-lg bg-success/10">
+                <CheckCircle className="h-5 w-5 text-success" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Completed Today</p>
@@ -144,8 +144,8 @@ export default function OpsDashboard() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-yellow-100">
-                <AlertTriangle className="h-5 w-5 text-yellow-600" />
+              <div className="p-2 rounded-lg bg-warning/10">
+                <AlertTriangle className="h-5 w-5 text-warning" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Open Exceptions</p>
@@ -158,14 +158,14 @@ export default function OpsDashboard() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-purple-100">
-                <Clock className="h-5 w-5 text-purple-600" />
+              <div className="p-2 rounded-lg bg-accent/10">
+                <Clock className="h-5 w-5 text-accent" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Hours Logged Today</p>
                 <p className="text-2xl font-bold">{timeStats.totalHoursToday}</p>
                 {timeStats.openEntries > 0 && (
-                  <p className="text-xs text-green-600">{timeStats.openEntries} currently clocked in</p>
+                  <p className="text-xs text-success">{timeStats.openEntries} currently clocked in</p>
                 )}
               </div>
             </div>
@@ -188,9 +188,9 @@ export default function OpsDashboard() {
                   <div key={status} className="flex items-center justify-between">
                     <Badge color={TICKET_STATUS_COLORS[status] ?? 'gray'}>{status}</Badge>
                     <div className="flex items-center gap-2 flex-1 mx-4">
-                      <div className="flex-1 bg-gray-200 rounded-full h-2">
+                      <div className="flex-1 bg-muted rounded-full h-2">
                         <div
-                          className="h-2 rounded-full bg-blue-500"
+                          className="h-2 rounded-full bg-primary"
                           style={{ width: `${ticketStats.total > 0 ? (count / ticketStats.total) * 100 : 0}%` }}
                         />
                       </div>

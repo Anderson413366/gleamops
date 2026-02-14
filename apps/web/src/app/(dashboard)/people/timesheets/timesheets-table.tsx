@@ -152,7 +152,7 @@ export default function TimesheetsTable({ search }: TimesheetsTableProps) {
               <TableCell className="font-medium">{row.staff?.full_name ?? '—'}</TableCell>
               <TableCell className="font-semibold">{Number(row.total_hours).toFixed(1)}</TableCell>
               <TableCell>{Number(row.regular_hours).toFixed(1)}</TableCell>
-              <TableCell className={Number(row.overtime_hours) > 0 ? 'text-orange-600 font-medium' : ''}>
+              <TableCell className={Number(row.overtime_hours) > 0 ? 'text-warning font-medium' : ''}>
                 {Number(row.overtime_hours).toFixed(1)}
               </TableCell>
               <TableCell className="text-muted-foreground">{Number(row.break_hours).toFixed(1)}</TableCell>

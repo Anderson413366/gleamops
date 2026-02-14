@@ -6,11 +6,13 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, ExportButton,
+  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, ViewToggle,
 } from '@gleamops/ui';
 import type { Client } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { useViewPreference } from '@/hooks/use-view-preference';
+import { ClientsCardGrid } from './clients-card-grid';
 
 const STATUS_COLORS: Record<string, 'green' | 'gray' | 'orange' | 'red' | 'blue' | 'yellow'> = {
   ACTIVE: 'green',
@@ -33,6 +35,7 @@ function formatDate(d: string | null) {
 export default function ClientsTable({ search, onSelect }: ClientsTableProps) {
   const [rows, setRows] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
+  const { view, setView } = useViewPreference('clients');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -81,7 +84,8 @@ export default function ClientsTable({ search, onSelect }: ClientsTableProps) {
 
   return (
     <div>
-      <div className="flex justify-end mb-4">
+      <div className="flex items-center justify-end gap-3 mb-4">
+        <ViewToggle view={view} onChange={setView} />
         <ExportButton
           data={filtered as unknown as Record<string, unknown>[]}
           filename="clients"
@@ -98,6 +102,9 @@ export default function ClientsTable({ search, onSelect }: ClientsTableProps) {
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
       </div>
+      {view === 'card' ? (
+        <ClientsCardGrid rows={pag.page} onSelect={(item) => onSelect?.(item)} />
+      ) : (
       <Table>
         <TableHeader>
           <tr>
@@ -132,6 +139,7 @@ export default function ClientsTable({ search, onSelect }: ClientsTableProps) {
           ))}
         </TableBody>
       </Table>
+      )}
       <Pagination
         currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
         pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}

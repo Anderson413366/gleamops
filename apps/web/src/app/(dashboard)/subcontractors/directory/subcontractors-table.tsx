@@ -9,10 +9,12 @@ import { SUBCONTRACTOR_STATUS_COLORS } from '@gleamops/shared';
 import type { StatusColor } from '@gleamops/shared';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, ExportButton,
+  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, ViewToggle,
 } from '@gleamops/ui';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { useViewPreference } from '@/hooks/use-view-preference';
+import { SubcontractorsCardGrid } from './subcontractors-card-grid';
 
 interface Props {
   search: string;
@@ -32,6 +34,7 @@ function formatCurrency(n: number | null) {
 export default function SubcontractorsTable({ search, onSelect }: Props) {
   const [rows, setRows] = useState<Subcontractor[]>([]);
   const [loading, setLoading] = useState(true);
+  const { view, setView } = useViewPreference('subcontractors');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -75,7 +78,8 @@ export default function SubcontractorsTable({ search, onSelect }: Props) {
 
   return (
     <div>
-      <div className="flex justify-end mb-4">
+      <div className="flex items-center justify-end gap-3 mb-4">
+        <ViewToggle view={view} onChange={setView} />
         <ExportButton
           data={filtered as unknown as Record<string, unknown>[]}
           filename="subcontractors"
@@ -92,6 +96,9 @@ export default function SubcontractorsTable({ search, onSelect }: Props) {
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
       </div>
+      {view === 'card' ? (
+        <SubcontractorsCardGrid rows={pag.page} onSelect={(item) => onSelect?.(item)} />
+      ) : (
       <Table>
         <TableHeader>
           <tr>
@@ -132,6 +139,7 @@ export default function SubcontractorsTable({ search, onSelect }: Props) {
           ))}
         </TableBody>
       </Table>
+      )}
       <Pagination
         currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
         pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}

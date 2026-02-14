@@ -7,12 +7,14 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
   EmptyState, Badge, Pagination, TableSkeleton,
-  SlideOver, Input, Select, Textarea, Button, ExportButton,
+  SlideOver, Input, Select, Textarea, Button, ExportButton, ViewToggle,
 } from '@gleamops/ui';
 import { VEHICLE_STATUS_COLORS } from '@gleamops/shared';
 import type { Vehicle } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { useViewPreference } from '@/hooks/use-view-preference';
+import { VehiclesCardGrid } from './vehicles-card-grid';
 
 interface StaffOption {
   id: string;
@@ -62,6 +64,7 @@ export default function VehiclesTable({ search, formOpen, onFormClose, onRefresh
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const { view, setView } = useViewPreference('vehicles');
 
   const supabase = getSupabaseBrowserClient();
 
@@ -232,7 +235,8 @@ export default function VehiclesTable({ search, formOpen, onFormClose, onRefresh
 
   return (
     <div>
-      <div className="flex justify-end mb-4">
+      <div className="flex items-center justify-end gap-3 mb-4">
+        <ViewToggle view={view} onChange={setView} />
         <ExportButton
           data={filtered as unknown as Record<string, unknown>[]}
           filename="vehicles"
@@ -248,6 +252,9 @@ export default function VehiclesTable({ search, formOpen, onFormClose, onRefresh
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
       </div>
+      {view === 'card' ? (
+        <VehiclesCardGrid rows={pag.page} onSelect={handleEdit} />
+      ) : (
       <Table>
         <TableHeader>
           <tr>
@@ -280,6 +287,7 @@ export default function VehiclesTable({ search, formOpen, onFormClose, onRefresh
           ))}
         </TableBody>
       </Table>
+      )}
       <Pagination
         currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
         pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}

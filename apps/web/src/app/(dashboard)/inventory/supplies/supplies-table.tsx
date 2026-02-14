@@ -21,10 +21,13 @@ import {
   Textarea,
   Button,
   ExportButton,
+  ViewToggle,
 } from '@gleamops/ui';
 import type { SupplyCatalog } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { useViewPreference } from '@/hooks/use-view-preference';
+import { SuppliesCardGrid } from './supplies-card-grid';
 
 const UNIT_OPTIONS = [
   { value: 'EA', label: 'Each (EA)' },
@@ -43,6 +46,7 @@ interface SuppliesTableProps {
 export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled }: SuppliesTableProps) {
   const [rows, setRows] = useState<SupplyCatalog[]>([]);
   const [loading, setLoading] = useState(true);
+  const { view, setView } = useViewPreference('supplies');
 
   // SlideOver form state
   const [formOpen, setFormOpen] = useState(false);
@@ -338,7 +342,8 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
 
   return (
     <div>
-      <div className="flex justify-end mb-4">
+      <div className="flex items-center justify-end gap-3 mb-4">
+        <ViewToggle view={view} onChange={setView} />
         <ExportButton
           data={filtered as unknown as Record<string, unknown>[]}
           filename="supplies"
@@ -355,6 +360,9 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
       </div>
+      {view === 'card' ? (
+        <SuppliesCardGrid rows={pag.page} onSelect={handleEdit} />
+      ) : (
       <Table>
         <TableHeader>
           <tr>
@@ -409,6 +417,7 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
           ))}
         </TableBody>
       </Table>
+      )}
       <Pagination
         currentPage={pag.currentPage}
         totalPages={pag.totalPages}

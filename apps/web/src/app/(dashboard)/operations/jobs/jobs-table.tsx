@@ -6,13 +6,15 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, Button,
+  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, Button, ViewToggle,
 } from '@gleamops/ui';
 import type { SiteJob } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { useViewPreference } from '@/hooks/use-view-preference';
 import { JobDetail } from './job-detail';
 import { JobForm } from '@/components/forms/job-form';
+import { JobsCardGrid } from './jobs-card-grid';
 
 const JOB_STATUS_COLORS: Record<string, 'green' | 'yellow' | 'gray' | 'red'> = {
   ACTIVE: 'green',
@@ -47,6 +49,7 @@ export default function JobsTable({ search }: JobsTableProps) {
   const [selected, setSelected] = useState<JobWithRelations | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editItem, setEditItem] = useState<SiteJob | null>(null);
+  const { view, setView } = useViewPreference('jobs');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -121,19 +124,25 @@ export default function JobsTable({ search }: JobsTableProps) {
         <Button size="sm" onClick={() => { setEditItem(null); setFormOpen(true); }}>
           <Plus className="h-4 w-4" /> New Job
         </Button>
-        <ExportButton
-          data={filtered as unknown as Record<string, unknown>[]}
-          filename="jobs"
-          columns={[
-            { key: 'job_code', label: 'Code' },
-            { key: 'job_name', label: 'Name' },
-            { key: 'frequency', label: 'Frequency' },
-            { key: 'billing_amount', label: 'Billing' },
-            { key: 'status', label: 'Status' },
-          ]}
-          onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
-        />
+        <div className="flex items-center gap-3">
+          <ViewToggle view={view} onChange={setView} />
+          <ExportButton
+            data={filtered as unknown as Record<string, unknown>[]}
+            filename="jobs"
+            columns={[
+              { key: 'job_code', label: 'Code' },
+              { key: 'job_name', label: 'Name' },
+              { key: 'frequency', label: 'Frequency' },
+              { key: 'billing_amount', label: 'Billing' },
+              { key: 'status', label: 'Status' },
+            ]}
+            onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
+          />
+        </div>
       </div>
+      {view === 'card' ? (
+        <JobsCardGrid rows={pag.page} onSelect={(item) => setSelected(item)} />
+      ) : (
       <Table>
         <TableHeader>
           <tr>
@@ -170,6 +179,7 @@ export default function JobsTable({ search }: JobsTableProps) {
           ))}
         </TableBody>
       </Table>
+      )}
       <Pagination
         currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
         pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}

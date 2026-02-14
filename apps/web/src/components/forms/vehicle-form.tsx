@@ -22,6 +22,7 @@ const DEFAULTS: VehicleFormData = {
   vin: null,
   color: null,
   status: 'ACTIVE',
+  photo_url: null,
   notes: null,
 };
 
@@ -49,6 +50,7 @@ export function VehicleForm({ open, onClose, initialData, onSuccess }: VehicleFo
           vin: initialData.vin,
           color: initialData.color,
           status: initialData.status,
+          photo_url: initialData.photo_url ?? null,
           notes: initialData.notes,
         }
       : DEFAULTS,

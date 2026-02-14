@@ -9,10 +9,12 @@ import { EQUIPMENT_CONDITION_COLORS } from '@gleamops/shared';
 import type { StatusColor } from '@gleamops/shared';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, ExportButton,
+  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, ViewToggle,
 } from '@gleamops/ui';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { useViewPreference } from '@/hooks/use-view-preference';
+import { EquipmentCardGrid } from './equipment-card-grid';
 
 interface EquipmentRow extends Equipment {
   staff?: { full_name: string } | null;
@@ -37,6 +39,7 @@ function formatDate(d: string | null) {
 export default function EquipmentTable({ search, onSelect }: Props) {
   const [rows, setRows] = useState<EquipmentRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const { view, setView } = useViewPreference('equipment');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -85,7 +88,8 @@ export default function EquipmentTable({ search, onSelect }: Props) {
 
   return (
     <div>
-      <div className="flex justify-end mb-4">
+      <div className="flex items-center justify-end gap-3 mb-4">
+        <ViewToggle view={view} onChange={setView} />
         <ExportButton
           data={filtered as unknown as Record<string, unknown>[]}
           filename="equipment"
@@ -102,6 +106,9 @@ export default function EquipmentTable({ search, onSelect }: Props) {
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
       </div>
+      {view === 'card' ? (
+        <EquipmentCardGrid rows={pag.page} onSelect={(item) => onSelect?.(item)} />
+      ) : (
       <Table>
         <TableHeader>
           <tr>
@@ -140,6 +147,7 @@ export default function EquipmentTable({ search, onSelect }: Props) {
           ))}
         </TableBody>
       </Table>
+      )}
       <Pagination
         currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
         pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}

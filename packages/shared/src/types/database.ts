@@ -190,6 +190,7 @@ export interface Site extends StandardColumns {
   geofence_center_lat: number | null;
   geofence_center_lng: number | null;
   geofence_radius_meters: number | null;
+  photo_url: string | null;
   notes: string | null;
 }
 
@@ -823,6 +824,7 @@ export interface Vehicle extends StandardColumns {
   color: string | null;
   status: 'ACTIVE' | 'IN_SHOP' | 'RETIRED';
   assigned_to: string | null;
+  photo_url: string | null;
   notes: string | null;
 }
 

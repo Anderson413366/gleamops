@@ -6,11 +6,13 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, ExportButton,
+  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, ViewToggle,
 } from '@gleamops/ui';
 import type { Site } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { useViewPreference } from '@/hooks/use-view-preference';
+import { SitesCardGrid } from './sites-card-grid';
 
 const SITE_STATUS_COLORS: Record<string, 'green' | 'gray' | 'yellow' | 'red'> = {
   ACTIVE: 'green',
@@ -39,6 +41,7 @@ interface SitesTableProps {
 export default function SitesTable({ search, onSelect }: SitesTableProps) {
   const [rows, setRows] = useState<SiteWithClient[]>([]);
   const [loading, setLoading] = useState(true);
+  const { view, setView } = useViewPreference('sites');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -88,7 +91,8 @@ export default function SitesTable({ search, onSelect }: SitesTableProps) {
 
   return (
     <div>
-      <div className="flex justify-end mb-4">
+      <div className="flex items-center justify-end gap-3 mb-4">
+        <ViewToggle view={view} onChange={setView} />
         <ExportButton
           data={filtered as unknown as Record<string, unknown>[]}
           filename="sites"
@@ -103,6 +107,9 @@ export default function SitesTable({ search, onSelect }: SitesTableProps) {
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
       </div>
+      {view === 'card' ? (
+        <SitesCardGrid rows={pag.page} onSelect={(item) => onSelect?.(item)} />
+      ) : (
       <Table>
         <TableHeader>
           <tr>
@@ -145,6 +152,7 @@ export default function SitesTable({ search, onSelect }: SitesTableProps) {
           ))}
         </TableBody>
       </Table>
+      )}
       <Pagination
         currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
         pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}

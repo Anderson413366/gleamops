@@ -58,6 +58,7 @@ const DEFAULTS: SiteFormData = {
   geofence_center_lat: null,
   geofence_center_lng: null,
   geofence_radius_meters: 50,
+  photo_url: null,
   notes: null,
 };
 
@@ -115,6 +116,7 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
           geofence_center_lat: initialData.geofence_center_lat,
           geofence_center_lng: initialData.geofence_center_lng,
           geofence_radius_meters: initialData.geofence_radius_meters ?? 50,
+          photo_url: initialData.photo_url ?? null,
           notes: initialData.notes,
         }
       : { ...DEFAULTS, client_id: preselectedClientId ?? '' },

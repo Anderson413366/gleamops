@@ -6,12 +6,14 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, ExportButton,
+  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, ViewToggle,
 } from '@gleamops/ui';
 import type { Staff } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { useViewPreference } from '@/hooks/use-view-preference';
 import { StaffForm } from '@/components/forms/staff-form';
+import { StaffCardGrid } from './staff-card-grid';
 
 const STATUS_COLORS: Record<string, 'green' | 'gray' | 'yellow' | 'red'> = {
   ACTIVE: 'green',
@@ -46,6 +48,7 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
   const [formOpen, setFormOpen] = useState(false);
   const [editItem, setEditItem] = useState<Staff | null>(null);
 
+  const { view, setView } = useViewPreference('staff');
   const handleAdd = () => { setEditItem(null); setFormOpen(true); };
   const handleEdit = (item: Staff) => { setEditItem(item); setFormOpen(true); };
 
@@ -112,7 +115,8 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
 
   return (
     <div>
-      <div className="flex justify-end mb-4">
+      <div className="flex items-center justify-end gap-3 mb-4">
+        <ViewToggle view={view} onChange={setView} />
         <ExportButton
           data={filtered as unknown as Record<string, unknown>[]}
           filename="staff"
@@ -129,6 +133,9 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
       </div>
+      {view === 'card' ? (
+        <StaffCardGrid rows={pag.page} onSelect={handleEdit} />
+      ) : (
       <Table>
         <TableHeader>
           <tr>
@@ -165,6 +172,7 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
           ))}
         </TableBody>
       </Table>
+      )}
       <Pagination
         currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
         pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}

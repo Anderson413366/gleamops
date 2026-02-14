@@ -79,6 +79,7 @@ export const siteSchema = z.object({
   geofence_center_lat: z.number().min(-90).max(90).nullable().default(null),
   geofence_center_lng: z.number().min(-180).max(180).nullable().default(null),
   geofence_radius_meters: z.number().min(1).default(50),
+  photo_url: z.string().nullable().default(null),
   notes: z.string().nullable().default(null),
 });
 export type SiteFormData = z.infer<typeof siteSchema>;
@@ -241,6 +242,7 @@ export const vehicleSchema = z.object({
   vin: z.string().nullable().default(null),
   color: z.string().nullable().default(null),
   status: z.enum(['ACTIVE', 'IN_SHOP', 'RETIRED']).default('ACTIVE'),
+  photo_url: z.string().nullable().default(null),
   notes: z.string().nullable().default(null),
 });
 export type VehicleFormData = z.infer<typeof vehicleSchema>;

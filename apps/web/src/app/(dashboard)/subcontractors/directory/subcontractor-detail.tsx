@@ -26,6 +26,7 @@ export function SubcontractorDetail({ subcontractor, open, onClose, onEdit }: Pr
           </Badge>
           {onEdit && (
             <button
+              type="button"
               onClick={() => onEdit(subcontractor)}
               className="flex items-center gap-1.5 text-sm text-primary hover:underline"
             >

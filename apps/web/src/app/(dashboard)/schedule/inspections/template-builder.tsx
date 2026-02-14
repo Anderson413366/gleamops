@@ -470,6 +470,7 @@ export function TemplateBuilder({ open, onClose, templateId, onSaved }: Template
                               {/* Reorder buttons */}
                               <div className="flex flex-col gap-0.5 shrink-0 pt-1">
                                 <button
+                                  type="button"
                                   onClick={() => moveItem(activeIdx, 'up')}
                                   disabled={activeIdx === 0}
                                   className="p-0.5 rounded hover:bg-muted text-muted-foreground disabled:opacity-30"
@@ -477,6 +478,7 @@ export function TemplateBuilder({ open, onClose, templateId, onSaved }: Template
                                   <GripVertical className="h-3 w-3 rotate-180" />
                                 </button>
                                 <button
+                                  type="button"
                                   onClick={() => moveItem(activeIdx, 'down')}
                                   disabled={activeIdx === activeItems.length - 1}
                                   className="p-0.5 rounded hover:bg-muted text-muted-foreground disabled:opacity-30"
@@ -530,6 +532,7 @@ export function TemplateBuilder({ open, onClose, templateId, onSaved }: Template
 
                               {/* Delete */}
                               <button
+                                type="button"
                                 onClick={() => removeItem(globalIndex)}
                                 className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors shrink-0"
                               >
@@ -542,6 +545,7 @@ export function TemplateBuilder({ open, onClose, templateId, onSaved }: Template
 
                       {/* Add to section */}
                       <button
+                        type="button"
                         onClick={() => addItem(sectionName === 'General' ? undefined : sectionName)}
                         className="mt-2 text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
                       >

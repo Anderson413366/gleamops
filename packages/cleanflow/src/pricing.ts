@@ -1,9 +1,19 @@
 /**
  * Pricing calculation — cost → recommended price.
  * Implements COST_PLUS, TARGET_MARGIN, MARKET_RATE, HYBRID methods.
+ *
+ * Extended in P1 to support:
+ * - Weighted average wage from crew roster
+ * - Day porter add-on labor cost
+ * - Itemized consumables (overrides flat consumables_monthly)
+ * - Bid-type specialization adjustments
  */
-import type { BidVersionSnapshot, WorkloadResult, PricingResult } from './types';
+import type { BidVersionSnapshot, WorkloadResult, PricingResult, DayPorterResult, ConsumablesResult } from './types';
 import { WEEKS_PER_MONTH } from '@gleamops/shared';
+import { calculateWeightedWage } from './weighted-wage';
+import { calculateDayPorter } from './day-porter';
+import { calculateConsumables } from './consumables';
+import { calculateSpecialization } from './specialization';
 
 export function calculatePricing(
   snapshot: BidVersionSnapshot,
@@ -19,23 +29,49 @@ export function calculatePricing(
     burden.other_pct
   ) / 100;
 
+  // Determine effective cleaner rate: weighted wage if crew provided, else flat rate
+  let effectiveCleanerRate = labor_rates.cleaner_rate;
+  let weightedAvgWage: number | undefined;
+
+  if (snapshot.crew && snapshot.crew.length > 0) {
+    const wageResult = calculateWeightedWage(snapshot.crew);
+    effectiveCleanerRate = wageResult.weighted_avg_rate;
+    weightedAvgWage = wageResult.weighted_avg_rate;
+  }
+
   // Monthly labor cost
-  let laborCost = workload.monthly_hours * labor_rates.cleaner_rate;
+  let laborCost = workload.monthly_hours * effectiveCleanerRate;
 
   if (workload.lead_needed) {
     const supervisorMonthlyHours = snapshot.schedule.supervisor_hours_week * WEEKS_PER_MONTH;
     laborCost += supervisorMonthlyHours * labor_rates.supervisor_rate;
   }
 
+  // Day porter add-on
+  let dayPorterResult: DayPorterResult | undefined;
+  if (snapshot.day_porter?.enabled) {
+    dayPorterResult = calculateDayPorter(snapshot.day_porter);
+    laborCost += dayPorterResult.monthly_cost;
+  }
+
   const burdenedLabor = laborCost * burdenMultiplier;
 
-  // Supplies cost
+  // Supplies cost — use itemized consumables if provided
   const totalSqft = snapshot.areas.reduce(
     (sum, a) => sum + a.square_footage * a.quantity, 0
   );
+
+  let consumablesMonthly = supplies.consumables_monthly;
+  let consumablesDetail: ConsumablesResult | undefined;
+
+  if (snapshot.consumable_items && snapshot.consumable_items.length > 0) {
+    consumablesDetail = calculateConsumables(snapshot.consumable_items);
+    consumablesMonthly = consumablesDetail.total_monthly;
+  }
+
   const suppliesCost =
     totalSqft * supplies.allowance_per_sqft_monthly +
-    supplies.consumables_monthly;
+    consumablesMonthly;
 
   // Equipment depreciation
   const equipmentCost = equipment.reduce(
@@ -92,7 +128,7 @@ export function calculatePricing(
     effective_margin_pct: effectiveMarginPct,
     explanation: {
       labor_hours_monthly: workload.monthly_hours,
-      cleaner_rate: labor_rates.cleaner_rate,
+      cleaner_rate: effectiveCleanerRate,
       burden_multiplier: burdenMultiplier,
       burden_components: {
         employer_tax_pct: burden.employer_tax_pct,
@@ -102,12 +138,29 @@ export function calculatePricing(
       },
       supplies_breakdown: {
         allowance: totalSqft * supplies.allowance_per_sqft_monthly,
-        consumables: supplies.consumables_monthly,
+        consumables: consumablesMonthly,
       },
       equipment_total: equipmentCost,
       overhead_allocated: overhead.monthly_overhead_allocated,
       price_per_sqft: pricePerSqft,
       effective_hourly_revenue: effectiveHourlyRevenue,
+      weighted_avg_wage: weightedAvgWage,
+      day_porter: dayPorterResult,
+      consumables_detail: consumablesDetail,
+      specialization_adjustments: snapshot.specialization && snapshot.specialization.type !== 'JANITORIAL'
+        ? (() => {
+            const specResult = calculateSpecialization(
+              snapshot.specialization,
+              totalSqft
+            );
+            return {
+              bid_type: snapshot.specialization.type,
+              extra_minutes_per_visit: specResult.extra_minutes_per_visit,
+              workload_multiplier: specResult.workload_multiplier,
+              adjustments: specResult.adjustments,
+            };
+          })()
+        : undefined,
     },
   };
 }

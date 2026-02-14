@@ -25,6 +25,7 @@ import {
   computeJobFinancials,
   type JobFinancialResult,
 } from '@/lib/utils/job-financials';
+import { formatDate } from '@/lib/utils/date';
 
 interface JobWithRelations extends SiteJob {
   site?: {
@@ -76,23 +77,7 @@ function formatCurrency(n: number | null) {
   }).format(n);
 }
 
-function formatDate(d: string | null) {
-  if (!d) return '\u2014';
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d);
-  if (m) {
-    const dateOnly = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-    return dateOnly.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  }
-  return new Date(d).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
+// formatDate imported from @/lib/utils/date
 
 export default function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -301,13 +286,14 @@ export default function JobDetailPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={() => setFormOpen(true)}
             className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           >
             <Pencil className="h-3.5 w-3.5" />
             Edit
           </button>
-          <button className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950">
+          <button type="button" className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950">
             <Trash2 className="h-3.5 w-3.5" />
             Deactivate
           </button>

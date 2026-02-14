@@ -31,6 +31,7 @@ import {
 import type { StatusColor } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
+import { toSafeDate } from '@/lib/utils/date';
 
 // ---------------------------------------------------------------------------
 // Date/time formatters
@@ -439,21 +440,21 @@ export default function HomePage() {
     if (expiringCertsRes.data) {
       for (const cert of expiringCertsRes.data as unknown as { id: string; certification_name: string; expiry_date: string; staff?: { full_name: string } | null }[]) {
         if (!cert.expiry_date) continue;
-        const days = Math.ceil((new Date(cert.expiry_date + 'T00:00:00').getTime() - todayDate.getTime()) / 86400000);
+        const days = Math.ceil((toSafeDate(cert.expiry_date).getTime() - todayDate.getTime()) / 86400000);
         alerts.push({ id: cert.id, type: 'cert', label: 'Certification', name: `${cert.certification_name} — ${cert.staff?.full_name ?? 'Unknown'}`, expiryDate: cert.expiry_date, daysUntil: days });
       }
     }
     if (expiringTrainingRes.data) {
       for (const comp of expiringTrainingRes.data as unknown as { id: string; expiry_date: string; staff?: { full_name: string } | null; course?: { name: string } | null }[]) {
         if (!comp.expiry_date) continue;
-        const days = Math.ceil((new Date(comp.expiry_date + 'T00:00:00').getTime() - todayDate.getTime()) / 86400000);
+        const days = Math.ceil((toSafeDate(comp.expiry_date).getTime() - todayDate.getTime()) / 86400000);
         alerts.push({ id: comp.id, type: 'training', label: 'Training', name: `${comp.course?.name ?? 'Course'} — ${comp.staff?.full_name ?? 'Unknown'}`, expiryDate: comp.expiry_date, daysUntil: days });
       }
     }
     if (expiringDocsRes.data) {
       for (const doc of expiringDocsRes.data as unknown as { id: string; document_code: string; title: string; expiry_date: string | null }[]) {
         if (!doc.expiry_date) continue;
-        const days = Math.ceil((new Date(doc.expiry_date + 'T00:00:00').getTime() - todayDate.getTime()) / 86400000);
+        const days = Math.ceil((toSafeDate(doc.expiry_date).getTime() - todayDate.getTime()) / 86400000);
         alerts.push({ id: doc.id, type: 'document', label: 'Document', name: `${doc.title} (${doc.document_code})`, expiryDate: doc.expiry_date, daysUntil: days });
       }
     }
@@ -663,7 +664,7 @@ export default function HomePage() {
                       {ticket.ticket_code}
                     </span>
                     <span className="text-foreground">
-                      {dateFormatter.format(new Date(ticket.scheduled_date + 'T00:00:00'))}
+                      {dateFormatter.format(toSafeDate(ticket.scheduled_date))}
                     </span>
                   </div>
                   <Badge color={TICKET_STATUS_COLORS[ticket.status] as StatusColor ?? 'gray'}>

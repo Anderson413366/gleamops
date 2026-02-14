@@ -123,6 +123,7 @@ export default function SettingsPage() {
                 <p className="text-sm font-medium text-foreground mb-2">Theme</p>
                 <div className="flex gap-2">
                   <button
+                    type="button"
                     onClick={() => setTheme('light')}
                     className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-all duration-200 ease-in-out ${
                       resolvedTheme === 'light'
@@ -134,6 +135,7 @@ export default function SettingsPage() {
                     Light
                   </button>
                   <button
+                    type="button"
                     onClick={() => { setTheme('dark'); if (trueBlack) setTrueBlack(false); }}
                     className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-all duration-200 ease-in-out ${
                       resolvedTheme === 'dark' && !trueBlack
@@ -156,6 +158,7 @@ export default function SettingsPage() {
                   </p>
                 </div>
                 <button
+                  type="button"
                   role="switch"
                   aria-checked={trueBlack}
                   onClick={() => {

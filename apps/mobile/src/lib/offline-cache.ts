@@ -9,6 +9,9 @@
  *   @gleamops:tickets:week        — This week's ticket list
  *   @gleamops:ticket:{id}         — Individual ticket detail
  *   @gleamops:checklist:{id}      — Checklist items for a ticket
+ *   @gleamops:inspections:list    — Inspector's inspection list
+ *   @gleamops:inspection:{id}     — Individual inspection detail
+ *   @gleamops:inspection_items:{id} — Inspection items for an inspection
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -73,4 +76,31 @@ export async function cacheChecklistItems(ticketId: string, items: unknown[]): P
 
 export async function getCachedChecklistItems<T>(ticketId: string): Promise<T[] | null> {
   return getJSON<T[]>(`checklist:${ticketId}`);
+}
+
+// ---------------------------------------------------------------------------
+// Inspection caching
+// ---------------------------------------------------------------------------
+export async function cacheInspectionList(inspections: unknown[]): Promise<void> {
+  await setJSON('inspections:list', inspections);
+}
+
+export async function getCachedInspectionList<T>(): Promise<T[] | null> {
+  return getJSON<T[]>('inspections:list');
+}
+
+export async function cacheInspectionDetail(inspectionId: string, inspection: unknown): Promise<void> {
+  await setJSON(`inspection:${inspectionId}`, inspection);
+}
+
+export async function getCachedInspectionDetail<T>(inspectionId: string): Promise<T | null> {
+  return getJSON<T>(`inspection:${inspectionId}`);
+}
+
+export async function cacheInspectionItems(inspectionId: string, items: unknown[]): Promise<void> {
+  await setJSON(`inspection_items:${inspectionId}`, items);
+}
+
+export async function getCachedInspectionItems<T>(inspectionId: string): Promise<T[] | null> {
+  return getJSON<T[]>(`inspection_items:${inspectionId}`);
 }

@@ -156,6 +156,7 @@ export default function TemplatesTable({ search }: TemplatesTableProps) {
                   <TableCell className="text-sm font-medium">{row.pass_threshold}%</TableCell>
                   <TableCell>
                     <button
+                      type="button"
                       onClick={(e) => { e.stopPropagation(); handleToggleActive(row); }}
                       className="text-muted-foreground hover:text-foreground"
                     >

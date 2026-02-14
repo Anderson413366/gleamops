@@ -1,32 +1,14 @@
 import { useState, useMemo } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl,
+  View, Text, StyleSheet, FlatList, RefreshControl,
   ActivityIndicator, Switch,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMyDay, type TodayTicket } from '../../src/hooks/use-my-day';
 import { useSyncState, syncNow } from '../../src/hooks/use-sync';
-import { Colors, STATUS_COLORS } from '../../src/lib/constants';
-
-function formatSyncAge(iso: string | null): string {
-  if (!iso) return '';
-  const ms = Date.now() - new Date(iso).getTime();
-  if (ms < 60_000) return 'just now';
-  const mins = Math.floor(ms / 60_000);
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  return `${hrs}h ago`;
-}
-
-function formatTime(t: string | null): string {
-  if (!t) return '';
-  const parts = t.split(':');
-  const h = parseInt(parts[0], 10);
-  const m = parts[1];
-  const ampm = h >= 12 ? 'pm' : 'am';
-  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  return `${h12}:${m}${ampm}`;
-}
+import { Colors } from '../../src/lib/constants';
+import TicketCard from '../../src/components/TicketCard';
+import SyncStatusBar from '../../src/components/SyncStatusBar';
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -38,7 +20,7 @@ function getGreeting(): string {
 export default function MyDayScreen() {
   const router = useRouter();
   const { staffId, staffName, tickets, loading, refreshing, isOffline, refetch } = useMyDay();
-  const { pendingCount, lastSyncAt } = useSyncState();
+  const { pendingCount, lastSyncAt, isSyncing } = useSyncState();
   const [myOnly, setMyOnly] = useState(true);
 
   const displayTickets = useMemo(() => {
@@ -71,11 +53,8 @@ export default function MyDayScreen() {
       {isOffline && (
         <View style={styles.offlineBanner}>
           <Text style={styles.offlineBannerText}>
-            Offline — cached data{lastSyncAt ? ` · synced ${formatSyncAge(lastSyncAt)}` : ''}
+            Offline — cached data
           </Text>
-          {pendingCount > 0 && (
-            <Text style={styles.offlinePendingText}>{pendingCount} change{pendingCount > 1 ? 's' : ''} pending</Text>
-          )}
         </View>
       )}
 
@@ -110,6 +89,14 @@ export default function MyDayScreen() {
           <Text style={styles.statLabel}>Done</Text>
         </View>
       </View>
+
+      {/* Sync Status Bar */}
+      <SyncStatusBar
+        pendingCount={pendingCount}
+        lastSyncAt={lastSyncAt}
+        isSyncing={isSyncing}
+        onSyncPress={async () => { await syncNow(); refetch(); }}
+      />
 
       {/* Filter */}
       <View style={styles.filterBar}>
@@ -148,45 +135,22 @@ export default function MyDayScreen() {
           </View>
         }
         renderItem={({ item }: { item: TodayTicket }) => {
-          const isMyTicket = staffId && item.assignments?.some((a) => a.staff_id === staffId);
-          const myRole = item.assignments?.find((a) => a.staff_id === staffId)?.role;
+          const isMyTicket = !!staffId && !!item.assignments?.some((a) => a.staff_id === staffId);
+          const myRole = item.assignments?.find((a) => a.staff_id === staffId)?.role ?? null;
 
           return (
-            <TouchableOpacity
-              style={[styles.card, isMyTicket && styles.myCard]}
+            <TicketCard
+              ticketCode={item.ticket_code}
+              siteName={item.site?.name ?? 'No site'}
+              status={item.status}
+              scheduledDate={item.scheduled_date}
+              startTime={item.start_time}
+              endTime={item.end_time}
+              crewCount={item.assignments?.length}
+              isMine={isMyTicket}
+              myRole={myRole}
               onPress={() => router.push(`/ticket/${item.id}`)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.cardHeader}>
-                <View style={[styles.statusDot, { backgroundColor: STATUS_COLORS[item.status] ?? '#9CA3AF' }]} />
-                <Text style={styles.ticketCode}>{item.ticket_code}</Text>
-                <View style={[styles.statusBadge, { backgroundColor: (STATUS_COLORS[item.status] ?? '#9CA3AF') + '20' }]}>
-                  <Text style={[styles.statusText, { color: STATUS_COLORS[item.status] ?? '#9CA3AF' }]}>
-                    {item.status.replace('_', ' ')}
-                  </Text>
-                </View>
-              </View>
-              <Text style={styles.siteName}>{item.site?.name ?? 'No site'}</Text>
-              <View style={styles.cardFooter}>
-                {item.start_time ? (
-                  <Text style={styles.time}>
-                    {formatTime(item.start_time)}{item.end_time ? ` – ${formatTime(item.end_time)}` : ''}
-                  </Text>
-                ) : (
-                  <Text style={styles.time}>No time set</Text>
-                )}
-                {myRole && (
-                  <View style={[styles.roleBadge, myRole === 'LEAD' ? styles.leadBadge : styles.cleanerBadge]}>
-                    <Text style={styles.roleText}>{myRole}</Text>
-                  </View>
-                )}
-              </View>
-              {(item.assignments?.length ?? 0) > 0 && (
-                <Text style={styles.crewText}>
-                  {item.assignments!.length} crew member{item.assignments!.length > 1 ? 's' : ''}
-                </Text>
-              )}
-            </TouchableOpacity>
+            />
           );
         }}
       />
@@ -203,7 +167,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   offlineBannerText: { color: '#fff', fontSize: 12, fontWeight: '600' },
-  offlinePendingText: { color: 'rgba(255,255,255,0.8)', fontSize: 11, marginTop: 2 },
   header: {
     backgroundColor: Colors.light.primary,
     paddingTop: 16,
@@ -237,28 +200,6 @@ const styles = StyleSheet.create({
   filterToggle: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   filterToggleLabel: { fontSize: 12, color: Colors.light.textSecondary },
   list: { padding: 16, paddingBottom: 32 },
-  card: {
-    backgroundColor: Colors.light.background,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-    marginBottom: 12,
-  },
-  myCard: { borderLeftWidth: 4, borderLeftColor: Colors.light.primary },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  statusDot: { width: 8, height: 8, borderRadius: 4, marginRight: 8 },
-  ticketCode: { fontSize: 14, fontWeight: '600', color: Colors.light.text, flex: 1, fontFamily: 'monospace' },
-  statusBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
-  statusText: { fontSize: 11, fontWeight: '600', textTransform: 'capitalize' },
-  siteName: { fontSize: 16, fontWeight: '500', color: Colors.light.text, marginBottom: 8 },
-  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  time: { fontSize: 13, color: Colors.light.textSecondary },
-  roleBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
-  leadBadge: { backgroundColor: '#7C3AED20' },
-  cleanerBadge: { backgroundColor: '#3B82F620' },
-  roleText: { fontSize: 10, fontWeight: '700', color: Colors.light.text },
-  crewText: { fontSize: 12, color: Colors.light.textSecondary, marginTop: 4 },
   empty: { alignItems: 'center', padding: 32 },
   emptyTitle: { fontSize: 18, fontWeight: '600', color: Colors.light.text, marginBottom: 8 },
   emptyText: { fontSize: 14, color: Colors.light.textSecondary, textAlign: 'center' },

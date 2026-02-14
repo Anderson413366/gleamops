@@ -26,12 +26,17 @@ export default function SafetyPageClient() {
   const [search, setSearch] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
   const [autoCreate, setAutoCreate] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   const canAdd = ['certifications', 'courses', 'completions', 'documents'].includes(tab);
 
   const handleAdd = () => {
-    setAutoCreate(true);
+    if (tab === 'courses') {
+      setFormOpen(true);
+    } else {
+      setAutoCreate(true);
+    }
   };
 
   const addLabel: Record<string, string> = {
@@ -75,8 +80,9 @@ export default function SafetyPageClient() {
         <CoursesTable
           key={`courses-${refreshKey}`}
           search={search}
-          autoCreate={autoCreate}
-          onAutoCreateHandled={() => setAutoCreate(false)}
+          formOpen={formOpen}
+          onFormClose={() => setFormOpen(false)}
+          onRefresh={refresh}
         />
       )}
       {tab === 'completions' && (

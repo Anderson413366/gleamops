@@ -8,6 +8,7 @@ import {
   ExternalLink, Key,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { formatDate, formatDateLong } from '@/lib/utils/date';
 import {
   SlideOver,
   Badge,
@@ -575,6 +576,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
         <div className="flex gap-0.5 border-b border-border overflow-x-auto pb-0">
           {TABS.map((tab) => (
             <button
+              type="button"
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className={`flex items-center gap-1 px-2.5 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
@@ -606,7 +608,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                     <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
                     <div>
                       <p className="text-xs text-muted-foreground">Date</p>
-                      <p className="text-sm font-medium">{new Date(ticket.scheduled_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                      <p className="text-sm font-medium">{formatDateLong(ticket.scheduled_date)}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
@@ -650,29 +652,29 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
 
             {/* Quick summary — all tabs at a glance */}
             <div className="grid grid-cols-3 gap-2">
-              <button onClick={() => setActiveTab('checklist')} className="p-2.5 rounded-lg border border-border hover:border-primary/30 text-center transition-colors">
+              <button type="button" onClick={() => setActiveTab('checklist')} className="p-2.5 rounded-lg border border-border hover:border-primary/30 text-center transition-colors">
                 <p className="text-lg font-bold text-foreground">{progressPct}%</p>
                 <p className="text-[10px] text-muted-foreground">Checklist</p>
               </button>
-              <button onClick={() => setActiveTab('crew')} className="p-2.5 rounded-lg border border-border hover:border-primary/30 text-center transition-colors">
+              <button type="button" onClick={() => setActiveTab('crew')} className="p-2.5 rounded-lg border border-border hover:border-primary/30 text-center transition-colors">
                 <p className="text-lg font-bold text-foreground">{assignments.length}</p>
                 <p className="text-[10px] text-muted-foreground">Crew</p>
               </button>
-              <button onClick={() => setActiveTab('time')} className="p-2.5 rounded-lg border border-border hover:border-primary/30 text-center transition-colors">
+              <button type="button" onClick={() => setActiveTab('time')} className="p-2.5 rounded-lg border border-border hover:border-primary/30 text-center transition-colors">
                 <p className="text-lg font-bold text-foreground">{timeEntries.length}</p>
                 <p className="text-[10px] text-muted-foreground">Time Logs</p>
               </button>
-              <button onClick={() => setActiveTab('photos')} className="p-2.5 rounded-lg border border-border hover:border-primary/30 text-center transition-colors">
+              <button type="button" onClick={() => setActiveTab('photos')} className="p-2.5 rounded-lg border border-border hover:border-primary/30 text-center transition-colors">
                 <p className="text-lg font-bold text-foreground">{allPhotos.length}</p>
                 <p className="text-[10px] text-muted-foreground">Photos</p>
               </button>
-              <button onClick={() => setActiveTab('safety')} className={`p-2.5 rounded-lg border text-center transition-colors ${
+              <button type="button" onClick={() => setActiveTab('safety')} className={`p-2.5 rounded-lg border text-center transition-colors ${
                 safetyCount > 0 ? 'border-destructive/30 hover:border-destructive bg-destructive/10' : 'border-border hover:border-primary/30'
               }`}>
                 <p className={`text-lg font-bold ${safetyCount > 0 ? 'text-destructive' : 'text-foreground'}`}>{safetyCount}</p>
                 <p className="text-[10px] text-muted-foreground">Flags</p>
               </button>
-              <button onClick={() => setActiveTab('quality')} className="p-2.5 rounded-lg border border-border hover:border-primary/30 text-center transition-colors">
+              <button type="button" onClick={() => setActiveTab('quality')} className="p-2.5 rounded-lg border border-border hover:border-primary/30 text-center transition-colors">
                 <p className="text-lg font-bold text-foreground">
                   {latestInspection?.score_pct != null ? `${Math.round(latestInspection.score_pct)}%` : '—'}
                 </p>
@@ -681,8 +683,8 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
             </div>
 
             <div className="text-xs text-muted-foreground space-y-1 pt-4 border-t border-border">
-              <p>Created: {new Date(ticket.created_at).toLocaleDateString()}</p>
-              <p>Updated: {new Date(ticket.updated_at).toLocaleDateString()}</p>
+              <p>Created: {formatDate(ticket.created_at)}</p>
+              <p>Updated: {formatDate(ticket.updated_at)}</p>
             </div>
           </div>
         )}
@@ -878,7 +880,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                     <p className="text-xs text-muted-foreground">{ex.staff?.full_name ?? '—'}</p>
                     {ex.description && <p className="text-xs text-muted-foreground mt-1">{ex.description}</p>}
                     {ex.resolved_at && (
-                      <p className="text-xs text-success mt-1">Resolved: {new Date(ex.resolved_at).toLocaleDateString()}</p>
+                      <p className="text-xs text-success mt-1">Resolved: {formatDate(ex.resolved_at)}</p>
                     )}
                   </div>
                 ))}
@@ -903,7 +905,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                     </div>
                     <p className="text-xs text-muted-foreground font-mono">{issue.inspection?.inspection_code}</p>
                     {issue.resolved_at ? (
-                      <p className="text-xs text-success mt-1">Resolved: {new Date(issue.resolved_at).toLocaleDateString()}</p>
+                      <p className="text-xs text-success mt-1">Resolved: {formatDate(issue.resolved_at)}</p>
                     ) : (
                       <p className="text-xs text-destructive mt-1">Unresolved</p>
                     )}
@@ -1011,6 +1013,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                           <div className="flex items-center gap-2">
                             <Badge color={a.role === 'LEAD' ? 'purple' : 'blue'}>{a.role ?? 'CLEANER'}</Badge>
                             <button
+                              type="button"
                               onClick={() => handleRemoveAssignment(a.id)}
                               className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-destructive transition-colors"
                             >
@@ -1124,7 +1127,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>Inspector: {insp.inspector?.full_name ?? '—'}</span>
                     {insp.completed_at && (
-                      <span>{new Date(insp.completed_at).toLocaleDateString()}</span>
+                      <span>{formatDate(insp.completed_at)}</span>
                     )}
                   </div>
 

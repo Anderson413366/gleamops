@@ -56,6 +56,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="inspections"
+        options={{
+          title: 'Inspect',
+          headerTitle: 'Inspections',
+        }}
+      />
+      <Tabs.Screen
         name="clock"
         options={{
           title: 'Clock',

@@ -25,6 +25,8 @@ const TABS = [
 const ADD_LABELS: Record<string, string> = {
   supplies: 'New Supply',
   kits: 'New Kit',
+  counts: 'New Count',
+  orders: 'New Order',
 };
 
 export default function InventoryPageClient() {
@@ -38,12 +40,15 @@ export default function InventoryPageClient() {
   // autoCreate triggers
   const [autoCreateSupply, setAutoCreateSupply] = useState(false);
   const [autoCreateKit, setAutoCreateKit] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
 
   const handleAdd = () => {
     if (tab === 'supplies') {
       setAutoCreateSupply(true);
     } else if (tab === 'kits') {
       setAutoCreateKit(true);
+    } else {
+      setFormOpen(true);
     }
   };
 
@@ -87,10 +92,22 @@ export default function InventoryPageClient() {
         <SiteAssignmentsTable key={`sa-${refreshKey}`} search={search} />
       )}
       {tab === 'counts' && (
-        <CountsTable key={`counts-${refreshKey}`} search={search} />
+        <CountsTable
+          key={`counts-${refreshKey}`}
+          search={search}
+          formOpen={formOpen}
+          onFormClose={() => setFormOpen(false)}
+          onRefresh={refresh}
+        />
       )}
       {tab === 'orders' && (
-        <OrdersTable key={`orders-${refreshKey}`} search={search} />
+        <OrdersTable
+          key={`orders-${refreshKey}`}
+          search={search}
+          formOpen={formOpen}
+          onFormClose={() => setFormOpen(false)}
+          onRefresh={refresh}
+        />
       )}
     </div>
   );

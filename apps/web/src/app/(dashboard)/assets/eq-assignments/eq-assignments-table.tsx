@@ -10,6 +10,8 @@ import {
 } from '@gleamops/ui';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { toSafeDate } from '@/lib/utils/date';
+import { EquipmentAssignmentForm } from '@/components/forms/equipment-assignment-form';
 
 interface AssignmentRow extends EquipmentAssignment {
   equipment?: { name: string; equipment_code: string } | null;
@@ -19,11 +21,16 @@ interface AssignmentRow extends EquipmentAssignment {
 
 interface Props {
   search: string;
+  formOpen?: boolean;
+  onFormClose?: () => void;
+  onRefresh?: () => void;
 }
 
-export default function EqAssignmentsTable({ search }: Props) {
+export default function EqAssignmentsTable({ search, formOpen, onFormClose, onRefresh }: Props) {
   const [rows, setRows] = useState<AssignmentRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editItem, setEditItem] = useState<AssignmentRow | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -38,6 +45,29 @@ export default function EqAssignmentsTable({ search }: Props) {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  useEffect(() => {
+    if (formOpen) {
+      setEditItem(null);
+      setCreateOpen(true);
+    }
+  }, [formOpen]);
+
+  const handleRowClick = (row: AssignmentRow) => {
+    setEditItem(row);
+    setCreateOpen(true);
+  };
+
+  const handleFormClose = () => {
+    setCreateOpen(false);
+    setEditItem(null);
+    onFormClose?.();
+  };
+
+  const handleFormSuccess = () => {
+    fetchData();
+    onRefresh?.();
+  };
 
   const filtered = useMemo(() => {
     if (!search) return rows;
@@ -60,11 +90,19 @@ export default function EqAssignmentsTable({ search }: Props) {
 
   if (filtered.length === 0) {
     return (
-      <EmptyState
-        icon={<ArrowLeftRight className="h-12 w-12" />}
-        title="No assignments found"
-        description="Equipment checkout records will appear here."
-      />
+      <>
+        <EmptyState
+          icon={<ArrowLeftRight className="h-12 w-12" />}
+          title="No assignments found"
+          description="Equipment checkout records will appear here."
+        />
+        <EquipmentAssignmentForm
+          open={createOpen}
+          onClose={handleFormClose}
+          initialData={editItem}
+          onSuccess={handleFormSuccess}
+        />
+      </>
     );
   }
 
@@ -86,7 +124,7 @@ export default function EqAssignmentsTable({ search }: Props) {
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id}>
+            <TableRow key={row.id} onClick={() => handleRowClick(row)} className="cursor-pointer">
               <TableCell>
                 <div>
                   <span className="font-medium">{row.equipment?.name ?? '—'}</span>
@@ -97,7 +135,7 @@ export default function EqAssignmentsTable({ search }: Props) {
               </TableCell>
               <TableCell>{row.staff?.full_name ?? '—'}</TableCell>
               <TableCell>{row.site?.name ?? '—'}</TableCell>
-              <TableCell>{dateFmt.format(new Date(row.assigned_date + 'T00:00:00'))}</TableCell>
+              <TableCell>{dateFmt.format(toSafeDate(row.assigned_date))}</TableCell>
               <TableCell>
                 <Badge color={row.returned_date ? 'gray' : 'green'}>
                   {row.returned_date ? 'Returned' : 'Checked Out'}
@@ -116,6 +154,13 @@ export default function EqAssignmentsTable({ search }: Props) {
         hasPrev={pag.hasPrev}
         onNext={pag.nextPage}
         onPrev={pag.prevPage}
+      />
+
+      <EquipmentAssignmentForm
+        open={createOpen}
+        onClose={handleFormClose}
+        initialData={editItem}
+        onSuccess={handleFormSuccess}
       />
     </div>
   );

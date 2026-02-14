@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Bell,
+  Check,
   Search,
   Building2,
   MapPin,
@@ -15,12 +16,64 @@ import {
   LogOut,
   Sun,
   Moon,
+  AlertTriangle,
+  Clock,
+  X,
 } from 'lucide-react';
 import { CommandPalette, type CommandItem, DensityToggle } from '@gleamops/ui';
 import { useAuth } from '@/hooks/use-auth';
 import { useTheme } from '@/hooks/use-theme';
 import { useDensity } from '@/hooks/use-density';
+import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
+import { Breadcrumbs } from './breadcrumbs';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { formatRelative } from '@/lib/utils/date';
+
+// ---------------------------------------------------------------------------
+// Unified feed item — merges notifications + alerts
+// ---------------------------------------------------------------------------
+interface FeedItem {
+  id: string;
+  source: 'notification' | 'alert';
+  title: string;
+  body: string;
+  link: string | null;
+  read_at: string | null;
+  created_at: string;
+  // Alert-specific
+  alert_type?: string;
+  severity?: string;
+  entity_type?: string;
+  entity_id?: string;
+  dismissed_at?: string | null;
+}
+
+function getAlertIcon(alertType: string | undefined) {
+  switch (alertType) {
+    case 'TIME_EXCEPTION':
+      return <AlertTriangle className="h-3.5 w-3.5 text-warning" />;
+    case 'MISSING_CHECKOUT':
+      return <Clock className="h-3.5 w-3.5 text-destructive" />;
+    default:
+      return <Bell className="h-3.5 w-3.5 text-muted-foreground" />;
+  }
+}
+
+function getAlertLink(item: FeedItem): string | null {
+  if (item.source === 'notification') return item.link;
+  if (!item.entity_type) return null;
+
+  switch (item.entity_type) {
+    case 'time_exception':
+      return '/workforce?tab=exceptions';
+    case 'work_ticket':
+      return `/schedule?ticket=${item.entity_id}`;
+    case 'time_entry':
+      return '/workforce?tab=timekeeping';
+    default:
+      return null;
+  }
+}
 
 function getInitials(email: string): string {
   const name = email.split('@')[0];
@@ -36,16 +89,157 @@ export function Header() {
   const { user, role, signOut } = useAuth();
   const { resolvedTheme, trueBlack, setTheme, setTrueBlack, mounted } = useTheme();
   const { density, setDensity, mounted: densityMounted } = useDensity();
+  useKeyboardShortcuts();
   const router = useRouter();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [items, setItems] = useState<CommandItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
+  const [notifLoading, setNotifLoading] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
   const themeRef = useRef<HTMLDivElement>(null);
+
+  const unreadCount = feedItems.filter((n) => !n.read_at).length;
+
+  // Fetch notifications + alerts on mount + when dropdown opens
+  const fetchFeed = useCallback(async () => {
+    if (!user) return;
+    setNotifLoading(true);
+    const supabase = getSupabaseBrowserClient();
+
+    const [notifRes, alertRes] = await Promise.all([
+      supabase
+        .from('notifications')
+        .select('id, title, body, link, read_at, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(15),
+      supabase
+        .from('alerts')
+        .select('id, alert_type, severity, title, body, entity_type, entity_id, read_at, dismissed_at, created_at')
+        .eq('target_user_id', user.id)
+        .is('dismissed_at', null)
+        .order('created_at', { ascending: false })
+        .limit(15),
+    ]);
+
+    const items: FeedItem[] = [];
+
+    if (notifRes.data) {
+      for (const n of notifRes.data) {
+        items.push({
+          id: n.id,
+          source: 'notification',
+          title: n.title,
+          body: n.body,
+          link: n.link,
+          read_at: n.read_at,
+          created_at: n.created_at,
+        });
+      }
+    }
+
+    if (alertRes.data) {
+      for (const a of alertRes.data as {
+        id: string; alert_type: string; severity: string; title: string;
+        body: string | null; entity_type: string | null; entity_id: string | null;
+        read_at: string | null; dismissed_at: string | null; created_at: string;
+      }[]) {
+        items.push({
+          id: a.id,
+          source: 'alert',
+          title: a.title,
+          body: a.body ?? '',
+          link: null,
+          read_at: a.read_at,
+          created_at: a.created_at,
+          alert_type: a.alert_type,
+          severity: a.severity,
+          entity_type: a.entity_type ?? undefined,
+          entity_id: a.entity_id ?? undefined,
+          dismissed_at: a.dismissed_at,
+        });
+      }
+    }
+
+    // Sort merged feed by created_at DESC
+    items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    setFeedItems(items.slice(0, 20));
+    setNotifLoading(false);
+  }, [user]);
+
+  useEffect(() => { fetchFeed(); }, [fetchFeed]);
+
+  // Also refresh when dropdown opens
+  useEffect(() => {
+    if (notifOpen) fetchFeed();
+  }, [notifOpen, fetchFeed]);
+
+  const markAsRead = useCallback(async (item: FeedItem) => {
+    const supabase = getSupabaseBrowserClient();
+    const now = new Date().toISOString();
+
+    if (item.source === 'notification') {
+      await supabase
+        .from('notifications')
+        .update({ read_at: now })
+        .eq('id', item.id);
+    } else {
+      await supabase
+        .from('alerts')
+        .update({ read_at: now })
+        .eq('id', item.id);
+    }
+
+    setFeedItems((prev) =>
+      prev.map((n) => (n.id === item.id ? { ...n, read_at: now } : n))
+    );
+  }, []);
+
+  const dismissAlert = useCallback(async (e: React.MouseEvent, item: FeedItem) => {
+    e.stopPropagation();
+    if (item.source !== 'alert') return;
+
+    const supabase = getSupabaseBrowserClient();
+    await supabase
+      .from('alerts')
+      .update({ dismissed_at: new Date().toISOString() })
+      .eq('id', item.id);
+
+    setFeedItems((prev) => prev.filter((n) => n.id !== item.id));
+  }, []);
+
+  const markAllRead = useCallback(async () => {
+    if (!user) return;
+    const unread = feedItems.filter((n) => !n.read_at);
+    if (unread.length === 0) return;
+
+    const supabase = getSupabaseBrowserClient();
+    const now = new Date().toISOString();
+
+    // Mark all notifications read
+    await supabase
+      .from('notifications')
+      .update({ read_at: now })
+      .eq('user_id', user.id)
+      .is('read_at', null);
+
+    // Mark all alerts read
+    await supabase
+      .from('alerts')
+      .update({ read_at: now })
+      .eq('target_user_id', user.id)
+      .is('read_at', null);
+
+    setFeedItems((prev) =>
+      prev.map((n) => ({ ...n, read_at: n.read_at || now }))
+    );
+  }, [user, feedItems]);
 
   // Close dropdowns on click outside
   useEffect(() => {
@@ -205,14 +399,18 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 h-16 backdrop-blur-xl bg-background/80 border-b border-border flex items-center justify-between px-6">
-        {/* Left: breadcrumb / page title area (filled by each page) */}
-        <div className="flex-1" />
+      <header className="sticky top-0 z-30 backdrop-blur-xl bg-background/80 border-b border-border">
+        <div className="h-16 flex items-center justify-between px-6">
+        {/* Left: breadcrumbs */}
+        <div className="flex-1 min-w-0">
+          <Breadcrumbs />
+        </div>
 
         {/* Right: search + theme toggle + notifications + avatar */}
         <div className="flex items-center gap-2">
           {/* Search trigger */}
           <button
+            type="button"
             onClick={() => setPaletteOpen(true)}
             className="rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out inline-flex items-center gap-2"
             aria-label="Search"
@@ -233,6 +431,7 @@ export function Header() {
           {mounted && (
             <div className="relative" ref={themeRef}>
               <button
+                type="button"
                 onClick={() => { setThemeOpen(!themeOpen); setNotifOpen(false); setProfileOpen(false); }}
                 className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out"
                 aria-label="Theme"
@@ -247,6 +446,7 @@ export function Header() {
                 <div className="absolute right-0 top-full mt-2 w-44 bg-card rounded-xl shadow-xl border border-border z-50 animate-scale-in overflow-hidden">
                   <div className="p-1.5 space-y-0.5">
                     <button
+                      type="button"
                       onClick={() => { setTheme('light'); setThemeOpen(false); }}
                       className={`flex items-center gap-2.5 w-full px-3 py-2 text-sm rounded-lg transition-all duration-200 ease-in-out ${
                         resolvedTheme === 'light'
@@ -258,6 +458,7 @@ export function Header() {
                       Light
                     </button>
                     <button
+                      type="button"
                       onClick={() => { setTheme('dark'); setTrueBlack(false); setThemeOpen(false); }}
                       className={`flex items-center gap-2.5 w-full px-3 py-2 text-sm rounded-lg transition-all duration-200 ease-in-out ${
                         resolvedTheme === 'dark' && !trueBlack
@@ -269,6 +470,7 @@ export function Header() {
                       Dark
                     </button>
                     <button
+                      type="button"
                       onClick={() => { setTheme('dark'); setTrueBlack(true); setThemeOpen(false); }}
                       className={`flex items-center gap-2.5 w-full px-3 py-2 text-sm rounded-lg transition-all duration-200 ease-in-out ${
                         resolvedTheme === 'dark' && trueBlack
@@ -287,27 +489,105 @@ export function Header() {
             </div>
           )}
 
-          {/* Notifications dropdown */}
+          {/* Notifications & Alerts dropdown */}
           <div className="relative" ref={notifRef}>
             <button
-              onClick={() => { setNotifOpen(!notifOpen); setProfileOpen(false); }}
+              type="button"
+              onClick={() => { setNotifOpen(!notifOpen); setProfileOpen(false); setThemeOpen(false); }}
               className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out relative"
               aria-label="Notifications"
             >
               <Bell className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
             </button>
             {notifOpen && (
               <div className="absolute right-0 top-full mt-2 w-80 bg-card rounded-xl shadow-xl border border-border z-50 animate-scale-in overflow-hidden">
-                <div className="px-4 py-3 border-b border-border bg-muted/50">
-                  <p className="text-sm font-semibold text-foreground">Notifications</p>
+                <div className="px-4 py-3 border-b border-border bg-muted/50 flex items-center justify-between">
+                  <p className="text-sm font-semibold text-foreground">Notifications & Alerts</p>
+                  {unreadCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={markAllRead}
+                      className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
+                    >
+                      Mark all read
+                    </button>
+                  )}
                 </div>
-                <div className="p-8 text-center">
-                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-muted mb-3">
-                    <Bell className="h-5 w-5 text-muted-foreground" />
+                {notifLoading && feedItems.length === 0 ? (
+                  <div className="p-6 text-center">
+                    <p className="text-sm text-muted-foreground">Loading...</p>
                   </div>
-                  <p className="text-sm font-medium text-foreground">All caught up!</p>
-                  <p className="text-xs text-muted-foreground mt-1">No new notifications</p>
-                </div>
+                ) : feedItems.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-muted mb-3">
+                      <Bell className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm font-medium text-foreground">All caught up!</p>
+                    <p className="text-xs text-muted-foreground mt-1">No new notifications or alerts</p>
+                  </div>
+                ) : (
+                  <div className="max-h-80 overflow-y-auto divide-y divide-border">
+                    {feedItems.map((item) => {
+                      const link = getAlertLink(item);
+                      return (
+                        <button
+                          key={`${item.source}-${item.id}`}
+                          type="button"
+                          className={`w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors ${
+                            !item.read_at ? 'bg-primary/5' : ''
+                          }`}
+                          onClick={() => {
+                            if (!item.read_at) markAsRead(item);
+                            if (link) {
+                              router.push(link);
+                              setNotifOpen(false);
+                            }
+                          }}
+                        >
+                          <div className="flex items-start gap-2">
+                            {/* Icon: source-specific */}
+                            <div className="mt-1 shrink-0">
+                              {item.source === 'alert' ? (
+                                getAlertIcon(item.alert_type)
+                              ) : !item.read_at ? (
+                                <span className="mt-0.5 h-2 w-2 rounded-full bg-primary block" />
+                              ) : (
+                                <Check className="h-3 w-3 text-muted-foreground" />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className={`text-sm truncate ${!item.read_at ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>
+                                {item.title}
+                              </p>
+                              <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                                {item.body}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground mt-1">
+                                {formatRelative(item.created_at)}
+                              </p>
+                            </div>
+                            {/* Dismiss button for alerts */}
+                            {item.source === 'alert' && (
+                              <button
+                                type="button"
+                                onClick={(e) => dismissAlert(e, item)}
+                                className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                                aria-label="Dismiss"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -315,6 +595,7 @@ export function Header() {
           {/* Profile dropdown */}
           <div className="relative" ref={profileRef}>
             <button
+              type="button"
               onClick={() => { setProfileOpen(!profileOpen); setNotifOpen(false); }}
               className="h-9 w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold hover:bg-primary/90 transition-all duration-200 ease-in-out cursor-pointer ring-2 ring-background shadow-sm"
             >
@@ -340,6 +621,7 @@ export function Header() {
                     Settings
                   </Link>
                   <button
+                    type="button"
                     onClick={() => { setProfileOpen(false); signOut(); }}
                     className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground rounded-lg hover:bg-muted transition-all duration-200 ease-in-out w-full"
                   >
@@ -350,6 +632,7 @@ export function Header() {
               </div>
             )}
           </div>
+        </div>
         </div>
       </header>
 

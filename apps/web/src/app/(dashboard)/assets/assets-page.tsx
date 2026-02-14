@@ -19,8 +19,11 @@ const TABS = [
 ];
 
 const ADD_LABELS: Record<string, string> = {
+  equipment: 'New Equipment',
+  'eq-assignments': 'New Assignment',
   keys: 'New Key',
   vehicles: 'New Vehicle',
+  maintenance: 'New Maintenance Record',
 };
 
 export default function AssetsPageClient() {
@@ -55,10 +58,22 @@ export default function AssetsPageClient() {
       <SearchInput value={search} onChange={setSearch} placeholder={`Search ${tab}...`} />
 
       {tab === 'equipment' && (
-        <EquipmentTable key={`equipment-${refreshKey}`} search={search} />
+        <EquipmentTable
+          key={`equipment-${refreshKey}`}
+          search={search}
+          formOpen={formOpen}
+          onFormClose={() => setFormOpen(false)}
+          onRefresh={refresh}
+        />
       )}
       {tab === 'eq-assignments' && (
-        <EqAssignmentsTable key={`eq-assignments-${refreshKey}`} search={search} />
+        <EqAssignmentsTable
+          key={`eq-assignments-${refreshKey}`}
+          search={search}
+          formOpen={formOpen}
+          onFormClose={() => setFormOpen(false)}
+          onRefresh={refresh}
+        />
       )}
       {tab === 'keys' && (
         <KeysTable
@@ -79,7 +94,13 @@ export default function AssetsPageClient() {
         />
       )}
       {tab === 'maintenance' && (
-        <MaintenanceTable key={`maintenance-${refreshKey}`} search={search} />
+        <MaintenanceTable
+          key={`maintenance-${refreshKey}`}
+          search={search}
+          formOpen={formOpen}
+          onFormClose={() => setFormOpen(false)}
+          onRefresh={refresh}
+        />
       )}
     </div>
   );

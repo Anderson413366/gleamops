@@ -3,12 +3,13 @@ import { createClient } from '@supabase/supabase-js';
 import { renderToBuffer } from '@react-pdf/renderer';
 import {
   createProblemDetails,
-  AUTH_001,
   PROPOSAL_005,
   PROPOSAL_007,
   SYS_002,
 } from '@gleamops/shared';
+import type { ProposalLayoutConfig } from '@gleamops/shared';
 import { ProposalPDF } from '@/lib/pdf/proposal-template';
+import { extractAuth, isAuthError } from '@/lib/api/auth-guard';
 
 const CONTENT_TYPE_PROBLEM = 'application/problem+json';
 const API_PATH = '/api/proposals/[id]/generate-pdf';
@@ -59,60 +60,16 @@ export async function POST(
     const { id: proposalId } = await params;
 
     // ----- Auth -----
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return problemResponse(
-        createProblemDetails(
-          'AUTH_001',
-          'Unauthorized',
-          401,
-          'Missing authorization header',
-          API_PATH,
-        ),
-      );
-    }
-
-    const supabaseAuth = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
-
-    const {
-      data: { user },
-    } = await supabaseAuth.auth.getUser();
-
-    if (!user) {
-      return problemResponse(
-        createProblemDetails(
-          'AUTH_001',
-          'Unauthorized',
-          401,
-          'Invalid or expired token',
-          API_PATH,
-        ),
-      );
-    }
-
-    const tenantId = user.app_metadata?.tenant_id as string | undefined;
-    if (!tenantId) {
-      return problemResponse(
-        createProblemDetails(
-          'AUTH_003',
-          'Tenant scope mismatch',
-          403,
-          'No tenant in token claims',
-          API_PATH,
-        ),
-      );
-    }
+    const auth = await extractAuth(request, API_PATH);
+    if (isAuthError(auth)) return auth;
+    const { tenantId } = auth;
 
     const db = getServiceClient();
 
-    // ----- Fetch proposal -----
+    // ----- Fetch proposal (now includes layout_config) -----
     const { data: proposal, error: propErr } = await db
       .from('sales_proposals')
-      .select('id, proposal_code, status, tenant_id, bid_version_id, valid_until, notes, created_at')
+      .select('id, proposal_code, status, tenant_id, bid_version_id, valid_until, notes, created_at, layout_config')
       .eq('id', proposalId)
       .eq('tenant_id', tenantId)
       .single();
@@ -199,6 +156,68 @@ export async function POST(
       .eq('id', tenantId)
       .single();
 
+    // ----- V2: Fetch signatures with signed URLs -----
+    let signatureData: Array<{ signerName: string; signatureImageUrl?: string; signedAt: string }> | undefined;
+    const { data: sigRecords } = await db
+      .from('sales_proposal_signatures')
+      .select('signer_name, signature_file_id, signed_at')
+      .eq('proposal_id', proposal.id)
+      .eq('tenant_id', tenantId)
+      .order('signed_at', { ascending: true });
+
+    if (sigRecords && sigRecords.length > 0) {
+      signatureData = [];
+      for (const sig of sigRecords) {
+        let signatureImageUrl: string | undefined;
+        if (sig.signature_file_id) {
+          const { data: fileRec } = await db
+            .from('files')
+            .select('storage_path')
+            .eq('id', sig.signature_file_id)
+            .single();
+
+          if (fileRec?.storage_path) {
+            const { data: signedUrl } = await db.storage
+              .from('documents')
+              .createSignedUrl(fileRec.storage_path, 300); // 5 min expiry
+            if (signedUrl?.signedUrl) {
+              signatureImageUrl = signedUrl.signedUrl;
+            }
+          }
+        }
+        signatureData.push({
+          signerName: sig.signer_name,
+          signatureImageUrl,
+          signedAt: sig.signed_at ?? new Date().toISOString(),
+        });
+      }
+    }
+
+    // ----- V2: Fetch attachment filenames -----
+    let attachmentNames: string[] | undefined;
+    const { data: attRecords } = await db
+      .from('sales_proposal_attachments')
+      .select('file_id')
+      .eq('proposal_id', proposal.id)
+      .eq('tenant_id', tenantId)
+      .order('sort_order');
+
+    if (attRecords && attRecords.length > 0) {
+      const fileIds = attRecords.map((a: { file_id: string }) => a.file_id);
+      const { data: files } = await db
+        .from('files')
+        .select('id, original_filename')
+        .in('id', fileIds);
+
+      if (files) {
+        // Maintain sort order
+        const fileMap = new Map(files.map((f: { id: string; original_filename: string }) => [f.id, f.original_filename]));
+        attachmentNames = attRecords
+          .map((a: { file_id: string }) => fileMap.get(a.file_id))
+          .filter((n): n is string => !!n);
+      }
+    }
+
     // ----- Generate PDF -----
     const pdfProps = {
       proposalCode: proposal.proposal_code,
@@ -222,6 +241,10 @@ export async function POST(
       })),
       terms: undefined,
       companyName: tenant?.name ?? 'GleamOps',
+      // V2 additions
+      layoutConfig: (proposal.layout_config as ProposalLayoutConfig | null) ?? undefined,
+      signatures: signatureData,
+      attachmentNames,
     };
 
     let pdfBuffer: Buffer;

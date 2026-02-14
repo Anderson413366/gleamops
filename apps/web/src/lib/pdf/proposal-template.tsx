@@ -3,9 +3,11 @@ import {
   Page,
   Text,
   View,
+  Image,
   StyleSheet,
   Font,
 } from '@react-pdf/renderer';
+import type { ProposalLayoutConfig, ProposalLayoutSection } from '@gleamops/shared';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -27,6 +29,14 @@ export interface ProposalPDFProps {
   companyName?: string;
   companyPhone?: string;
   companyEmail?: string;
+  // V2 additions
+  layoutConfig?: ProposalLayoutConfig;
+  signatures?: Array<{
+    signerName: string;
+    signatureImageUrl?: string;
+    signedAt: string;
+  }>;
+  attachmentNames?: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -252,6 +262,29 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: GRAY,
   },
+  signatureImage: {
+    height: 50,
+    marginBottom: 4,
+    objectFit: 'contain' as const,
+  },
+  signatureNameText: {
+    fontSize: 9,
+    color: DARK,
+    marginTop: 2,
+  },
+  signatureDateText: {
+    fontSize: 8,
+    color: GRAY,
+    marginTop: 1,
+  },
+
+  // Attachments section
+  attachmentItem: {
+    fontSize: 9,
+    color: DARK,
+    marginBottom: 4,
+    paddingLeft: 8,
+  },
 
   // Footer
   footer: {
@@ -284,24 +317,228 @@ function formatCurrency(amount: number): string {
 }
 
 // ---------------------------------------------------------------------------
+// Section renderers
+// ---------------------------------------------------------------------------
+function HeaderSection({ companyName }: { companyName: string }) {
+  return (
+    <View style={styles.headerBar}>
+      <Text style={styles.headerCompanyName}>{companyName}</Text>
+      <Text style={styles.headerLabel}>Service Proposal</Text>
+    </View>
+  );
+}
+
+function CompanyInfoSection({ companyPhone, companyEmail }: { companyPhone?: string; companyEmail?: string }) {
+  if (!companyPhone && !companyEmail) return null;
+  return (
+    <View style={styles.companyInfo}>
+      {companyPhone && <Text style={styles.companyInfoItem}>{companyPhone}</Text>}
+      {companyEmail && <Text style={styles.companyInfoItem}>{companyEmail}</Text>}
+    </View>
+  );
+}
+
+function MetadataSection({ proposalCode, clientName, siteName, date, validUntil }: {
+  proposalCode: string; clientName: string; siteName?: string; date: string; validUntil?: string;
+}) {
+  return (
+    <View style={styles.metaSection}>
+      <View style={styles.metaBlock}>
+        <Text style={styles.metaLabel}>Proposal</Text>
+        <Text style={styles.metaValue}>{proposalCode}</Text>
+      </View>
+      <View style={styles.metaBlock}>
+        <Text style={styles.metaLabel}>Prepared For</Text>
+        <Text style={styles.metaValue}>{clientName}</Text>
+        {siteName && (
+          <Text style={{ fontSize: 9, color: GRAY, marginTop: 2 }}>{siteName}</Text>
+        )}
+      </View>
+      <View style={styles.metaBlock}>
+        <Text style={styles.metaLabel}>Date</Text>
+        <Text style={styles.metaValue}>{date}</Text>
+      </View>
+      {validUntil && (
+        <View style={styles.metaBlock}>
+          <Text style={styles.metaLabel}>Valid Until</Text>
+          <Text style={styles.metaValue}>{validUntil}</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+function ScopeSection({ description }: { description?: string }) {
+  if (!description) return null;
+  return (
+    <View>
+      <Text style={styles.sectionTitle}>Scope of Services</Text>
+      <Text style={styles.descriptionText}>{description}</Text>
+    </View>
+  );
+}
+
+function PricingSection({ pricingOptions }: { pricingOptions: ProposalPDFProps['pricingOptions'] }) {
+  const sortedOptions = [...pricingOptions].sort((a, b) => a.monthlyPrice - b.monthlyPrice);
+  return (
+    <View>
+      <Text style={styles.sectionTitle}>Pricing Options</Text>
+      <View style={styles.pricingContainer}>
+        <View style={styles.pricingHeaderRow}>
+          <Text style={[styles.pricingHeaderText, { flex: 2 }]}>Option</Text>
+          <Text style={[styles.pricingHeaderText, { flex: 3 }]}>Description</Text>
+          <Text style={[styles.pricingHeaderText, { flex: 1.5, textAlign: 'right' }]}>Monthly Price</Text>
+        </View>
+        {sortedOptions.map((option, index) => (
+          <View
+            key={index}
+            style={[
+              styles.pricingRow,
+              ...(option.isRecommended ? [styles.pricingRecommendedRow] : []),
+            ]}
+          >
+            <View style={styles.pricingLabelContainer}>
+              <Text style={styles.pricingLabel}>{option.label}</Text>
+              {option.isRecommended && <Text style={styles.recommendedBadge}>Recommended</Text>}
+            </View>
+            <Text style={styles.pricingDescription}>{option.description || '\u2014'}</Text>
+            <Text style={styles.pricingAmount}>{formatCurrency(option.monthlyPrice)}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function TermsSection({ terms }: { terms?: string }) {
+  if (!terms) return null;
+  return (
+    <View style={styles.termsSection}>
+      <Text style={styles.sectionTitle}>Terms & Conditions</Text>
+      <Text style={styles.termsText}>{terms}</Text>
+    </View>
+  );
+}
+
+function SignatureSection({ companyName, signatures }: {
+  companyName: string;
+  signatures?: ProposalPDFProps['signatures'];
+}) {
+  // If we have actual signatures, render them
+  if (signatures && signatures.length > 0) {
+    return (
+      <View style={styles.signatureSection}>
+        {signatures.map((sig, i) => (
+          <View key={i} style={styles.signatureBlock}>
+            <Text style={styles.signatureLabel}>Signed by</Text>
+            {sig.signatureImageUrl ? (
+              <Image src={sig.signatureImageUrl} style={styles.signatureImage} />
+            ) : (
+              <View style={styles.signatureLine} />
+            )}
+            <Text style={styles.signatureNameText}>{sig.signerName}</Text>
+            <Text style={styles.signatureDateText}>
+              {new Date(sig.signedAt).toLocaleDateString('en-US', {
+                year: 'numeric', month: 'long', day: 'numeric',
+              })}
+            </Text>
+          </View>
+        ))}
+        {/* Company signature block */}
+        <View style={styles.signatureBlock}>
+          <Text style={styles.signatureLabel}>{companyName}</Text>
+          <View style={styles.signatureLine} />
+          <Text style={styles.signatureHelper}>Authorized Representative / Date</Text>
+        </View>
+      </View>
+    );
+  }
+
+  // Default: empty signature lines
+  return (
+    <View style={styles.signatureSection}>
+      <View style={styles.signatureBlock}>
+        <Text style={styles.signatureLabel}>Client Signature</Text>
+        <View style={styles.signatureLine} />
+        <Text style={styles.signatureHelper}>Name / Title / Date</Text>
+      </View>
+      <View style={styles.signatureBlock}>
+        <Text style={styles.signatureLabel}>{companyName}</Text>
+        <View style={styles.signatureLine} />
+        <Text style={styles.signatureHelper}>Authorized Representative / Date</Text>
+      </View>
+    </View>
+  );
+}
+
+function AttachmentsSection({ attachmentNames }: { attachmentNames?: string[] }) {
+  if (!attachmentNames || attachmentNames.length === 0) return null;
+  return (
+    <View>
+      <Text style={styles.sectionTitle}>Supporting Documents</Text>
+      {attachmentNames.map((name, i) => (
+        <Text key={i} style={styles.attachmentItem}>
+          {i + 1}. {name}
+        </Text>
+      ))}
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
-export function ProposalPDF({
-  proposalCode,
-  clientName,
-  siteName,
-  date,
-  validUntil,
-  description,
-  pricingOptions,
-  terms,
-  companyName = 'GleamOps',
-  companyPhone,
-  companyEmail,
-}: ProposalPDFProps) {
-  const sortedOptions = [...pricingOptions].sort(
-    (a, b) => a.monthlyPrice - b.monthlyPrice,
-  );
+export function ProposalPDF(props: ProposalPDFProps) {
+  const {
+    proposalCode,
+    clientName,
+    siteName,
+    date,
+    validUntil,
+    description,
+    pricingOptions,
+    terms,
+    companyName = 'GleamOps',
+    companyPhone,
+    companyEmail,
+    layoutConfig,
+    signatures,
+    attachmentNames,
+  } = props;
+
+  // Build section renderers keyed by section ID
+  const sectionRenderers: Record<ProposalLayoutSection['id'], React.ReactNode> = {
+    header: <HeaderSection companyName={companyName} />,
+    companyInfo: <CompanyInfoSection companyPhone={companyPhone} companyEmail={companyEmail} />,
+    metadata: <MetadataSection proposalCode={proposalCode} clientName={clientName} siteName={siteName} date={date} validUntil={validUntil} />,
+    scope: <ScopeSection description={description} />,
+    pricing: <PricingSection pricingOptions={pricingOptions} />,
+    terms: <TermsSection terms={terms} />,
+    signatures: <SignatureSection companyName={companyName} signatures={signatures} />,
+    attachments: <AttachmentsSection attachmentNames={attachmentNames} />,
+  };
+
+  // Determine section order
+  let orderedSections: Array<{ id: ProposalLayoutSection['id']; pageBreakBefore: boolean }>;
+
+  if (layoutConfig) {
+    // V2: use layout config
+    orderedSections = [...layoutConfig.sections]
+      .filter((s) => s.enabled)
+      .sort((a, b) => a.order - b.order)
+      .map((s) => ({ id: s.id, pageBreakBefore: s.pageBreakBefore }));
+  } else {
+    // V1: hardcoded order (backward compatible)
+    orderedSections = [
+      { id: 'header', pageBreakBefore: false },
+      { id: 'companyInfo', pageBreakBefore: false },
+      { id: 'metadata', pageBreakBefore: false },
+      { id: 'scope', pageBreakBefore: false },
+      { id: 'pricing', pageBreakBefore: false },
+      { id: 'terms', pageBreakBefore: false },
+      { id: 'signatures', pageBreakBefore: false },
+    ];
+  }
 
   return (
     <Document
@@ -310,128 +547,11 @@ export function ProposalPDF({
       subject={`Service Proposal for ${clientName}`}
     >
       <Page size="LETTER" style={styles.page}>
-        {/* ---- Header Bar ---- */}
-        <View style={styles.headerBar}>
-          <Text style={styles.headerCompanyName}>{companyName}</Text>
-          <Text style={styles.headerLabel}>Service Proposal</Text>
-        </View>
-
-        {/* ---- Company Contact Info ---- */}
-        {(companyPhone || companyEmail) && (
-          <View style={styles.companyInfo}>
-            {companyPhone && (
-              <Text style={styles.companyInfoItem}>{companyPhone}</Text>
-            )}
-            {companyEmail && (
-              <Text style={styles.companyInfoItem}>{companyEmail}</Text>
-            )}
+        {orderedSections.map((section) => (
+          <View key={section.id} break={section.pageBreakBefore || undefined}>
+            {sectionRenderers[section.id]}
           </View>
-        )}
-
-        {/* ---- Proposal Metadata ---- */}
-        <View style={styles.metaSection}>
-          <View style={styles.metaBlock}>
-            <Text style={styles.metaLabel}>Proposal</Text>
-            <Text style={styles.metaValue}>{proposalCode}</Text>
-          </View>
-          <View style={styles.metaBlock}>
-            <Text style={styles.metaLabel}>Prepared For</Text>
-            <Text style={styles.metaValue}>{clientName}</Text>
-            {siteName && (
-              <Text style={{ fontSize: 9, color: GRAY, marginTop: 2 }}>
-                {siteName}
-              </Text>
-            )}
-          </View>
-          <View style={styles.metaBlock}>
-            <Text style={styles.metaLabel}>Date</Text>
-            <Text style={styles.metaValue}>{date}</Text>
-          </View>
-          {validUntil && (
-            <View style={styles.metaBlock}>
-              <Text style={styles.metaLabel}>Valid Until</Text>
-              <Text style={styles.metaValue}>{validUntil}</Text>
-            </View>
-          )}
-        </View>
-
-        {/* ---- Scope / Description ---- */}
-        {description && (
-          <View>
-            <Text style={styles.sectionTitle}>Scope of Services</Text>
-            <Text style={styles.descriptionText}>{description}</Text>
-          </View>
-        )}
-
-        {/* ---- Pricing Options Table ---- */}
-        <Text style={styles.sectionTitle}>Pricing Options</Text>
-        <View style={styles.pricingContainer}>
-          {/* Table header */}
-          <View style={styles.pricingHeaderRow}>
-            <Text style={[styles.pricingHeaderText, { flex: 2 }]}>Option</Text>
-            <Text style={[styles.pricingHeaderText, { flex: 3 }]}>
-              Description
-            </Text>
-            <Text
-              style={[
-                styles.pricingHeaderText,
-                { flex: 1.5, textAlign: 'right' },
-              ]}
-            >
-              Monthly Price
-            </Text>
-          </View>
-
-          {/* Table rows */}
-          {sortedOptions.map((option, index) => (
-            <View
-              key={index}
-              style={[
-                styles.pricingRow,
-                ...(option.isRecommended ? [styles.pricingRecommendedRow] : []),
-              ]}
-            >
-              <View style={styles.pricingLabelContainer}>
-                <Text style={styles.pricingLabel}>{option.label}</Text>
-                {option.isRecommended && (
-                  <Text style={styles.recommendedBadge}>Recommended</Text>
-                )}
-              </View>
-              <Text style={styles.pricingDescription}>
-                {option.description || '\u2014'}
-              </Text>
-              <Text style={styles.pricingAmount}>
-                {formatCurrency(option.monthlyPrice)}
-              </Text>
-            </View>
-          ))}
-        </View>
-
-        {/* ---- Terms ---- */}
-        {terms && (
-          <View style={styles.termsSection}>
-            <Text style={styles.sectionTitle}>Terms & Conditions</Text>
-            <Text style={styles.termsText}>{terms}</Text>
-          </View>
-        )}
-
-        {/* ---- Signature Lines ---- */}
-        <View style={styles.signatureSection}>
-          <View style={styles.signatureBlock}>
-            <Text style={styles.signatureLabel}>Client Signature</Text>
-            <View style={styles.signatureLine} />
-            <Text style={styles.signatureHelper}>
-              Name / Title / Date
-            </Text>
-          </View>
-          <View style={styles.signatureBlock}>
-            <Text style={styles.signatureLabel}>{companyName}</Text>
-            <View style={styles.signatureLine} />
-            <Text style={styles.signatureHelper}>
-              Authorized Representative / Date
-            </Text>
-          </View>
-        </View>
+        ))}
 
         {/* ---- Footer ---- */}
         <View style={styles.footer} fixed>
@@ -439,7 +559,7 @@ export function ProposalPDF({
             {companyName} | {proposalCode}
           </Text>
           <Text style={styles.footerText}>
-            Confidential | Page 1
+            Confidential
           </Text>
         </View>
       </Page>

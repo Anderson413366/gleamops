@@ -1,0 +1,796 @@
+/**
+ * i18n — Lightweight translation layer for GleamOps.
+ *
+ * Supports EN, ES, FR for ticket/checklist/inspection labels.
+ * All translations are compile-time constants — no async loading.
+ *
+ * Usage:
+ *   import { t, type Locale } from '@gleamops/shared';
+ *   t('inspection.status.COMPLETED', 'es') // → "Completada"
+ */
+
+export type Locale = 'en' | 'es' | 'fr';
+export const SUPPORTED_LOCALES: Locale[] = ['en', 'es', 'fr'];
+export const DEFAULT_LOCALE: Locale = 'en';
+
+export const LOCALE_LABELS: Record<Locale, string> = {
+  en: 'English',
+  es: 'Español',
+  fr: 'Français',
+};
+
+// ---------------------------------------------------------------------------
+// Translation dictionaries
+// ---------------------------------------------------------------------------
+type TranslationKey = string;
+type Translations = Record<TranslationKey, string>;
+
+const en: Translations = {
+  // -- Ticket statuses --
+  'ticket.status.SCHEDULED': 'Scheduled',
+  'ticket.status.IN_PROGRESS': 'In Progress',
+  'ticket.status.COMPLETED': 'Completed',
+  'ticket.status.VERIFIED': 'Verified',
+  'ticket.status.CANCELED': 'Canceled',
+
+  // -- Checklist --
+  'checklist.title': 'Checklist',
+  'checklist.progress': '{checked} of {total} completed',
+  'checklist.empty': 'No checklist items',
+  'checklist.required': 'Required',
+  'checklist.pendingSync': 'Pending sync',
+
+  // -- Inspection statuses --
+  'inspection.status.DRAFT': 'Draft',
+  'inspection.status.IN_PROGRESS': 'In Progress',
+  'inspection.status.COMPLETED': 'Completed',
+  'inspection.status.SUBMITTED': 'Submitted',
+
+  // -- Inspection labels --
+  'inspection.title': 'Inspection',
+  'inspection.list.title': 'Inspections',
+  'inspection.score': 'Score',
+  'inspection.pass': 'Pass',
+  'inspection.fail': 'Fail',
+  'inspection.passThreshold': 'Pass threshold: {threshold}%',
+  'inspection.totalScore': '{score}/{max} ({pct}%)',
+  'inspection.noItems': 'No inspection items',
+  'inspection.photoRequired': 'Photo required',
+  'inspection.photoTaken': 'Photo taken',
+  'inspection.notes': 'Notes',
+  'inspection.issues': 'Issues',
+  'inspection.newIssue': 'New Issue',
+  'inspection.startInspection': 'Start Inspection',
+  'inspection.completeInspection': 'Complete Inspection',
+  'inspection.submitInspection': 'Submit Inspection',
+
+  // -- Inspection issue severity --
+  'inspection.severity.MINOR': 'Minor',
+  'inspection.severity.MAJOR': 'Major',
+  'inspection.severity.CRITICAL': 'Critical',
+
+  // -- Common task labels --
+  'task.vacuum': 'Vacuum floors',
+  'task.mop': 'Mop hard floors',
+  'task.dust': 'Dust surfaces',
+  'task.trash': 'Empty trash bins',
+  'task.restrooms': 'Clean restrooms',
+  'task.windows': 'Clean windows',
+  'task.kitchen': 'Clean kitchen/breakroom',
+  'task.disinfect': 'Disinfect high-touch surfaces',
+  'task.carpetClean': 'Carpet cleaning',
+  'task.floorStrip': 'Floor strip and wax',
+  'task.pressureWash': 'Pressure washing',
+  'task.trashRemoval': 'Trash removal',
+
+  // -- Common UI --
+  'common.save': 'Save',
+  'common.cancel': 'Cancel',
+  'common.delete': 'Delete',
+  'common.edit': 'Edit',
+  'common.search': 'Search',
+  'common.filter': 'Filter',
+  'common.noResults': 'No results found',
+  'common.loading': 'Loading...',
+  'common.offline': 'Offline',
+  'common.pendingSync': '{count} pending sync',
+  'common.retry': 'Retry',
+  'common.create': 'Create',
+  'common.back': 'Back',
+  'common.next': 'Next',
+  'common.previous': 'Previous',
+  'common.close': 'Close',
+  'common.confirm': 'Confirm',
+  'common.yes': 'Yes',
+  'common.no': 'No',
+  'common.all': 'All',
+  'common.active': 'Active',
+  'common.inactive': 'Inactive',
+  'common.status': 'Status',
+  'common.actions': 'Actions',
+  'common.details': 'Details',
+  'common.export': 'Export CSV',
+  'common.import': 'Import',
+  'common.refresh': 'Refresh',
+
+  // -- Navigation / Modules --
+  'nav.home': 'Home',
+  'nav.pipeline': 'Pipeline',
+  'nav.crm': 'CRM',
+  'nav.operations': 'Operations',
+  'nav.workforce': 'Workforce',
+  'nav.inventory': 'Inventory',
+  'nav.assets': 'Assets',
+  'nav.vendors': 'Vendors',
+  'nav.safety': 'Safety',
+  'nav.admin': 'Admin',
+  'nav.reports': 'Reports',
+  'nav.schedule': 'Schedule',
+  'nav.services': 'Services',
+
+  // -- Pipeline --
+  'pipeline.title': 'Pipeline',
+  'pipeline.prospects': 'Prospects',
+  'pipeline.opportunities': 'Opportunities',
+  'pipeline.bids': 'Bids',
+  'pipeline.proposals': 'Proposals',
+  'pipeline.followups': 'Follow-ups',
+  'pipeline.status.NEW': 'New',
+  'pipeline.status.CONTACTED': 'Contacted',
+  'pipeline.status.QUALIFIED': 'Qualified',
+  'pipeline.status.PROPOSAL_SENT': 'Proposal Sent',
+  'pipeline.status.WON': 'Won',
+  'pipeline.status.LOST': 'Lost',
+  'pipeline.bidStatus.DRAFT': 'Draft',
+  'pipeline.bidStatus.IN_PROGRESS': 'In Progress',
+  'pipeline.bidStatus.READY_FOR_REVIEW': 'Ready for Review',
+  'pipeline.bidStatus.APPROVED': 'Approved',
+  'pipeline.bidStatus.SENT': 'Sent',
+  'pipeline.bidStatus.WON': 'Won',
+  'pipeline.bidStatus.LOST': 'Lost',
+  'pipeline.proposalStatus.DRAFT': 'Draft',
+  'pipeline.proposalStatus.GENERATED': 'Generated',
+  'pipeline.proposalStatus.SENT': 'Sent',
+  'pipeline.proposalStatus.DELIVERED': 'Delivered',
+  'pipeline.proposalStatus.OPENED': 'Opened',
+  'pipeline.proposalStatus.EXPIRED': 'Expired',
+
+  // -- CRM --
+  'crm.title': 'CRM',
+  'crm.clients': 'Clients',
+  'crm.sites': 'Sites',
+  'crm.contacts': 'Contacts',
+  'crm.clientStatus.ACTIVE': 'Active',
+  'crm.clientStatus.INACTIVE': 'Inactive',
+  'crm.clientStatus.PROSPECT': 'Prospect',
+  'crm.clientStatus.FORMER': 'Former',
+  'crm.siteStatus.ACTIVE': 'Active',
+  'crm.siteStatus.INACTIVE': 'Inactive',
+  'crm.siteStatus.PENDING': 'Pending',
+
+  // -- Operations --
+  'ops.title': 'Operations',
+  'ops.tickets': 'Tickets',
+  'ops.jobs': 'Jobs',
+  'ops.geofence': 'Geofence',
+  'ops.alerts': 'Alerts',
+  'ops.messages': 'Messages',
+  'ops.timekeeping': 'Timekeeping',
+  'ops.calendar': 'Calendar',
+  'ops.jobStatus.ACTIVE': 'Active',
+  'ops.jobStatus.COMPLETED': 'Completed',
+  'ops.jobStatus.PAUSED': 'Paused',
+  'ops.jobStatus.CANCELED': 'Canceled',
+
+  // -- Workforce --
+  'workforce.title': 'Workforce',
+  'workforce.staff': 'Staff',
+  'workforce.positions': 'Positions',
+  'workforce.payroll': 'Payroll',
+  'workforce.timesheets': 'Timesheets',
+  'workforce.staffStatus.ACTIVE': 'Active',
+  'workforce.staffStatus.INACTIVE': 'Inactive',
+  'workforce.staffStatus.ON_LEAVE': 'On Leave',
+  'workforce.staffStatus.TERMINATED': 'Terminated',
+  'workforce.timesheetStatus.DRAFT': 'Draft',
+  'workforce.timesheetStatus.SUBMITTED': 'Submitted',
+  'workforce.timesheetStatus.APPROVED': 'Approved',
+  'workforce.timesheetStatus.REJECTED': 'Rejected',
+
+  // -- Inventory --
+  'inventory.title': 'Inventory',
+  'inventory.supplies': 'Supplies',
+  'inventory.orders': 'Orders',
+  'inventory.counts': 'Counts',
+  'inventory.reorder': 'Reorder',
+  'inventory.orderStatus.PENDING': 'Pending',
+  'inventory.orderStatus.ORDERED': 'Ordered',
+  'inventory.orderStatus.RECEIVED': 'Received',
+  'inventory.orderStatus.CANCELED': 'Canceled',
+
+  // -- Assets --
+  'assets.title': 'Assets',
+  'assets.equipment': 'Equipment',
+  'assets.vehicles': 'Vehicles',
+  'assets.keys': 'Keys',
+  'assets.maintenance': 'Maintenance',
+  'assets.condition.EXCELLENT': 'Excellent',
+  'assets.condition.GOOD': 'Good',
+  'assets.condition.FAIR': 'Fair',
+  'assets.condition.POOR': 'Poor',
+
+  // -- Safety --
+  'safety.title': 'Safety',
+  'safety.incidents': 'Incidents',
+  'safety.training': 'Training',
+  'safety.certifications': 'Certifications',
+  'safety.compliance': 'Compliance',
+  'safety.calendar': 'Calendar',
+  'safety.severity.LOW': 'Low',
+  'safety.severity.MEDIUM': 'Medium',
+  'safety.severity.HIGH': 'High',
+  'safety.severity.CRITICAL': 'Critical',
+
+  // -- Admin --
+  'admin.title': 'Admin',
+  'admin.settings': 'Settings',
+  'admin.lookups': 'Lookups',
+  'admin.templates': 'Templates',
+  'admin.integrations': 'Integrations',
+  'admin.users': 'Users',
+  'admin.roles': 'Roles',
+  'admin.auditLog': 'Audit Log',
+
+  // -- Reports --
+  'reports.title': 'Reports',
+  'reports.overview': 'Overview',
+  'reports.financial': 'Financial',
+  'reports.operational': 'Operational',
+  'reports.workforce': 'Workforce',
+  'reports.kpi': 'KPI Dashboard',
+
+  // -- Messaging --
+  'messaging.title': 'Messages',
+  'messaging.threads': 'Threads',
+  'messaging.newThread': 'New Thread',
+  'messaging.reply': 'Reply',
+  'messaging.send': 'Send',
+  'messaging.noMessages': 'No messages yet',
+  'messaging.threadType.DIRECT': 'Direct',
+  'messaging.threadType.GROUP': 'Group',
+  'messaging.threadType.TICKET_CONTEXT': 'Ticket',
+
+  // -- Subcontractors --
+  'subs.title': 'Subcontractors',
+  'subs.vendors': 'Vendors',
+  'subs.jobs': 'Jobs',
+  'subs.status.ACTIVE': 'Active',
+  'subs.status.INACTIVE': 'Inactive',
+  'subs.status.PENDING': 'Pending',
+};
+
+const es: Translations = {
+  // -- Ticket statuses --
+  'ticket.status.SCHEDULED': 'Programado',
+  'ticket.status.IN_PROGRESS': 'En Progreso',
+  'ticket.status.COMPLETED': 'Completado',
+  'ticket.status.VERIFIED': 'Verificado',
+  'ticket.status.CANCELED': 'Cancelado',
+
+  // -- Checklist --
+  'checklist.title': 'Lista de verificación',
+  'checklist.progress': '{checked} de {total} completados',
+  'checklist.empty': 'Sin elementos de verificación',
+  'checklist.required': 'Requerido',
+  'checklist.pendingSync': 'Sincronización pendiente',
+
+  // -- Inspection statuses --
+  'inspection.status.DRAFT': 'Borrador',
+  'inspection.status.IN_PROGRESS': 'En Progreso',
+  'inspection.status.COMPLETED': 'Completada',
+  'inspection.status.SUBMITTED': 'Enviada',
+
+  // -- Inspection labels --
+  'inspection.title': 'Inspección',
+  'inspection.list.title': 'Inspecciones',
+  'inspection.score': 'Puntuación',
+  'inspection.pass': 'Aprobado',
+  'inspection.fail': 'Reprobado',
+  'inspection.passThreshold': 'Umbral de aprobación: {threshold}%',
+  'inspection.totalScore': '{score}/{max} ({pct}%)',
+  'inspection.noItems': 'Sin elementos de inspección',
+  'inspection.photoRequired': 'Foto requerida',
+  'inspection.photoTaken': 'Foto tomada',
+  'inspection.notes': 'Notas',
+  'inspection.issues': 'Problemas',
+  'inspection.newIssue': 'Nuevo Problema',
+  'inspection.startInspection': 'Iniciar Inspección',
+  'inspection.completeInspection': 'Completar Inspección',
+  'inspection.submitInspection': 'Enviar Inspección',
+
+  // -- Inspection issue severity --
+  'inspection.severity.MINOR': 'Menor',
+  'inspection.severity.MAJOR': 'Mayor',
+  'inspection.severity.CRITICAL': 'Crítico',
+
+  // -- Common task labels --
+  'task.vacuum': 'Aspirar pisos',
+  'task.mop': 'Trapear pisos duros',
+  'task.dust': 'Quitar el polvo de superficies',
+  'task.trash': 'Vaciar botes de basura',
+  'task.restrooms': 'Limpiar baños',
+  'task.windows': 'Limpiar ventanas',
+  'task.kitchen': 'Limpiar cocina/comedor',
+  'task.disinfect': 'Desinfectar superficies de alto contacto',
+  'task.carpetClean': 'Limpieza de alfombras',
+  'task.floorStrip': 'Decapado y encerado de pisos',
+  'task.pressureWash': 'Lavado a presión',
+  'task.trashRemoval': 'Retiro de basura',
+
+  // -- Common UI --
+  'common.save': 'Guardar',
+  'common.cancel': 'Cancelar',
+  'common.delete': 'Eliminar',
+  'common.edit': 'Editar',
+  'common.search': 'Buscar',
+  'common.filter': 'Filtrar',
+  'common.noResults': 'No se encontraron resultados',
+  'common.loading': 'Cargando...',
+  'common.offline': 'Sin conexión',
+  'common.pendingSync': '{count} sincronización pendiente',
+  'common.retry': 'Reintentar',
+  'common.create': 'Crear',
+  'common.back': 'Volver',
+  'common.next': 'Siguiente',
+  'common.previous': 'Anterior',
+  'common.close': 'Cerrar',
+  'common.confirm': 'Confirmar',
+  'common.yes': 'Sí',
+  'common.no': 'No',
+  'common.all': 'Todos',
+  'common.active': 'Activo',
+  'common.inactive': 'Inactivo',
+  'common.status': 'Estado',
+  'common.actions': 'Acciones',
+  'common.details': 'Detalles',
+  'common.export': 'Exportar CSV',
+  'common.import': 'Importar',
+  'common.refresh': 'Actualizar',
+
+  // -- Navigation / Modules --
+  'nav.home': 'Inicio',
+  'nav.pipeline': 'Pipeline',
+  'nav.crm': 'CRM',
+  'nav.operations': 'Operaciones',
+  'nav.workforce': 'Personal',
+  'nav.inventory': 'Inventario',
+  'nav.assets': 'Activos',
+  'nav.vendors': 'Proveedores',
+  'nav.safety': 'Seguridad',
+  'nav.admin': 'Administración',
+  'nav.reports': 'Reportes',
+  'nav.schedule': 'Horarios',
+  'nav.services': 'Servicios',
+
+  // -- Pipeline --
+  'pipeline.title': 'Pipeline',
+  'pipeline.prospects': 'Prospectos',
+  'pipeline.opportunities': 'Oportunidades',
+  'pipeline.bids': 'Cotizaciones',
+  'pipeline.proposals': 'Propuestas',
+  'pipeline.followups': 'Seguimientos',
+  'pipeline.status.NEW': 'Nuevo',
+  'pipeline.status.CONTACTED': 'Contactado',
+  'pipeline.status.QUALIFIED': 'Calificado',
+  'pipeline.status.PROPOSAL_SENT': 'Propuesta Enviada',
+  'pipeline.status.WON': 'Ganado',
+  'pipeline.status.LOST': 'Perdido',
+  'pipeline.bidStatus.DRAFT': 'Borrador',
+  'pipeline.bidStatus.IN_PROGRESS': 'En Progreso',
+  'pipeline.bidStatus.READY_FOR_REVIEW': 'Listo para Revisión',
+  'pipeline.bidStatus.APPROVED': 'Aprobado',
+  'pipeline.bidStatus.SENT': 'Enviado',
+  'pipeline.bidStatus.WON': 'Ganado',
+  'pipeline.bidStatus.LOST': 'Perdido',
+  'pipeline.proposalStatus.DRAFT': 'Borrador',
+  'pipeline.proposalStatus.GENERATED': 'Generado',
+  'pipeline.proposalStatus.SENT': 'Enviado',
+  'pipeline.proposalStatus.DELIVERED': 'Entregado',
+  'pipeline.proposalStatus.OPENED': 'Abierto',
+  'pipeline.proposalStatus.EXPIRED': 'Expirado',
+
+  // -- CRM --
+  'crm.title': 'CRM',
+  'crm.clients': 'Clientes',
+  'crm.sites': 'Sitios',
+  'crm.contacts': 'Contactos',
+  'crm.clientStatus.ACTIVE': 'Activo',
+  'crm.clientStatus.INACTIVE': 'Inactivo',
+  'crm.clientStatus.PROSPECT': 'Prospecto',
+  'crm.clientStatus.FORMER': 'Anterior',
+  'crm.siteStatus.ACTIVE': 'Activo',
+  'crm.siteStatus.INACTIVE': 'Inactivo',
+  'crm.siteStatus.PENDING': 'Pendiente',
+
+  // -- Operations --
+  'ops.title': 'Operaciones',
+  'ops.tickets': 'Tickets',
+  'ops.jobs': 'Trabajos',
+  'ops.geofence': 'Geocerca',
+  'ops.alerts': 'Alertas',
+  'ops.messages': 'Mensajes',
+  'ops.timekeeping': 'Control de Tiempo',
+  'ops.calendar': 'Calendario',
+  'ops.jobStatus.ACTIVE': 'Activo',
+  'ops.jobStatus.COMPLETED': 'Completado',
+  'ops.jobStatus.PAUSED': 'Pausado',
+  'ops.jobStatus.CANCELED': 'Cancelado',
+
+  // -- Workforce --
+  'workforce.title': 'Personal',
+  'workforce.staff': 'Empleados',
+  'workforce.positions': 'Posiciones',
+  'workforce.payroll': 'Nómina',
+  'workforce.timesheets': 'Hojas de Tiempo',
+  'workforce.staffStatus.ACTIVE': 'Activo',
+  'workforce.staffStatus.INACTIVE': 'Inactivo',
+  'workforce.staffStatus.ON_LEAVE': 'Con Permiso',
+  'workforce.staffStatus.TERMINATED': 'Cesado',
+  'workforce.timesheetStatus.DRAFT': 'Borrador',
+  'workforce.timesheetStatus.SUBMITTED': 'Enviado',
+  'workforce.timesheetStatus.APPROVED': 'Aprobado',
+  'workforce.timesheetStatus.REJECTED': 'Rechazado',
+
+  // -- Inventory --
+  'inventory.title': 'Inventario',
+  'inventory.supplies': 'Suministros',
+  'inventory.orders': 'Pedidos',
+  'inventory.counts': 'Conteos',
+  'inventory.reorder': 'Reordenar',
+  'inventory.orderStatus.PENDING': 'Pendiente',
+  'inventory.orderStatus.ORDERED': 'Pedido',
+  'inventory.orderStatus.RECEIVED': 'Recibido',
+  'inventory.orderStatus.CANCELED': 'Cancelado',
+
+  // -- Assets --
+  'assets.title': 'Activos',
+  'assets.equipment': 'Equipo',
+  'assets.vehicles': 'Vehículos',
+  'assets.keys': 'Llaves',
+  'assets.maintenance': 'Mantenimiento',
+  'assets.condition.EXCELLENT': 'Excelente',
+  'assets.condition.GOOD': 'Bueno',
+  'assets.condition.FAIR': 'Regular',
+  'assets.condition.POOR': 'Malo',
+
+  // -- Safety --
+  'safety.title': 'Seguridad',
+  'safety.incidents': 'Incidentes',
+  'safety.training': 'Capacitación',
+  'safety.certifications': 'Certificaciones',
+  'safety.compliance': 'Cumplimiento',
+  'safety.calendar': 'Calendario',
+  'safety.severity.LOW': 'Bajo',
+  'safety.severity.MEDIUM': 'Medio',
+  'safety.severity.HIGH': 'Alto',
+  'safety.severity.CRITICAL': 'Crítico',
+
+  // -- Admin --
+  'admin.title': 'Administración',
+  'admin.settings': 'Configuración',
+  'admin.lookups': 'Catálogos',
+  'admin.templates': 'Plantillas',
+  'admin.integrations': 'Integraciones',
+  'admin.users': 'Usuarios',
+  'admin.roles': 'Roles',
+  'admin.auditLog': 'Registro de Auditoría',
+
+  // -- Reports --
+  'reports.title': 'Reportes',
+  'reports.overview': 'Resumen',
+  'reports.financial': 'Financiero',
+  'reports.operational': 'Operativo',
+  'reports.workforce': 'Personal',
+  'reports.kpi': 'Panel de KPI',
+
+  // -- Messaging --
+  'messaging.title': 'Mensajes',
+  'messaging.threads': 'Hilos',
+  'messaging.newThread': 'Nuevo Hilo',
+  'messaging.reply': 'Responder',
+  'messaging.send': 'Enviar',
+  'messaging.noMessages': 'Sin mensajes aún',
+  'messaging.threadType.DIRECT': 'Directo',
+  'messaging.threadType.GROUP': 'Grupo',
+  'messaging.threadType.TICKET_CONTEXT': 'Ticket',
+
+  // -- Subcontractors --
+  'subs.title': 'Subcontratistas',
+  'subs.vendors': 'Proveedores',
+  'subs.jobs': 'Trabajos',
+  'subs.status.ACTIVE': 'Activo',
+  'subs.status.INACTIVE': 'Inactivo',
+  'subs.status.PENDING': 'Pendiente',
+};
+
+const fr: Translations = {
+  // -- Ticket statuses --
+  'ticket.status.SCHEDULED': 'Planifié',
+  'ticket.status.IN_PROGRESS': 'En cours',
+  'ticket.status.COMPLETED': 'Terminé',
+  'ticket.status.VERIFIED': 'Vérifié',
+  'ticket.status.CANCELED': 'Annulé',
+
+  // -- Checklist --
+  'checklist.title': 'Liste de vérification',
+  'checklist.progress': '{checked} sur {total} terminés',
+  'checklist.empty': 'Aucun élément de vérification',
+  'checklist.required': 'Requis',
+  'checklist.pendingSync': 'Synchronisation en attente',
+
+  // -- Inspection statuses --
+  'inspection.status.DRAFT': 'Brouillon',
+  'inspection.status.IN_PROGRESS': 'En cours',
+  'inspection.status.COMPLETED': 'Terminée',
+  'inspection.status.SUBMITTED': 'Soumise',
+
+  // -- Inspection labels --
+  'inspection.title': 'Inspection',
+  'inspection.list.title': 'Inspections',
+  'inspection.score': 'Score',
+  'inspection.pass': 'Réussi',
+  'inspection.fail': 'Échoué',
+  'inspection.passThreshold': 'Seuil de réussite : {threshold}%',
+  'inspection.totalScore': '{score}/{max} ({pct}%)',
+  'inspection.noItems': "Aucun élément d'inspection",
+  'inspection.photoRequired': 'Photo requise',
+  'inspection.photoTaken': 'Photo prise',
+  'inspection.notes': 'Notes',
+  'inspection.issues': 'Problèmes',
+  'inspection.newIssue': 'Nouveau problème',
+  'inspection.startInspection': "Commencer l'inspection",
+  'inspection.completeInspection': "Terminer l'inspection",
+  'inspection.submitInspection': "Soumettre l'inspection",
+
+  // -- Inspection issue severity --
+  'inspection.severity.MINOR': 'Mineur',
+  'inspection.severity.MAJOR': 'Majeur',
+  'inspection.severity.CRITICAL': 'Critique',
+
+  // -- Common task labels --
+  'task.vacuum': 'Passer l\'aspirateur',
+  'task.mop': 'Laver les sols durs',
+  'task.dust': 'Dépoussiérer les surfaces',
+  'task.trash': 'Vider les poubelles',
+  'task.restrooms': 'Nettoyer les toilettes',
+  'task.windows': 'Nettoyer les fenêtres',
+  'task.kitchen': 'Nettoyer la cuisine/salle de pause',
+  'task.disinfect': 'Désinfecter les surfaces fréquemment touchées',
+  'task.carpetClean': 'Nettoyage de tapis',
+  'task.floorStrip': 'Décapage et cirage des sols',
+  'task.pressureWash': 'Lavage à pression',
+  'task.trashRemoval': 'Enlèvement des déchets',
+
+  // -- Common UI --
+  'common.save': 'Enregistrer',
+  'common.cancel': 'Annuler',
+  'common.delete': 'Supprimer',
+  'common.edit': 'Modifier',
+  'common.search': 'Rechercher',
+  'common.filter': 'Filtrer',
+  'common.noResults': 'Aucun résultat trouvé',
+  'common.loading': 'Chargement...',
+  'common.offline': 'Hors ligne',
+  'common.pendingSync': '{count} synchronisation en attente',
+  'common.retry': 'Réessayer',
+  'common.create': 'Créer',
+  'common.back': 'Retour',
+  'common.next': 'Suivant',
+  'common.previous': 'Précédent',
+  'common.close': 'Fermer',
+  'common.confirm': 'Confirmer',
+  'common.yes': 'Oui',
+  'common.no': 'Non',
+  'common.all': 'Tous',
+  'common.active': 'Actif',
+  'common.inactive': 'Inactif',
+  'common.status': 'Statut',
+  'common.actions': 'Actions',
+  'common.details': 'Détails',
+  'common.export': 'Exporter CSV',
+  'common.import': 'Importer',
+  'common.refresh': 'Actualiser',
+
+  // -- Navigation / Modules --
+  'nav.home': 'Accueil',
+  'nav.pipeline': 'Pipeline',
+  'nav.crm': 'CRM',
+  'nav.operations': 'Opérations',
+  'nav.workforce': 'Personnel',
+  'nav.inventory': 'Inventaire',
+  'nav.assets': 'Actifs',
+  'nav.vendors': 'Fournisseurs',
+  'nav.safety': 'Sécurité',
+  'nav.admin': 'Administration',
+  'nav.reports': 'Rapports',
+  'nav.schedule': 'Horaires',
+  'nav.services': 'Services',
+
+  // -- Pipeline --
+  'pipeline.title': 'Pipeline',
+  'pipeline.prospects': 'Prospects',
+  'pipeline.opportunities': 'Opportunités',
+  'pipeline.bids': 'Devis',
+  'pipeline.proposals': 'Propositions',
+  'pipeline.followups': 'Relances',
+  'pipeline.status.NEW': 'Nouveau',
+  'pipeline.status.CONTACTED': 'Contacté',
+  'pipeline.status.QUALIFIED': 'Qualifié',
+  'pipeline.status.PROPOSAL_SENT': 'Proposition envoyée',
+  'pipeline.status.WON': 'Gagné',
+  'pipeline.status.LOST': 'Perdu',
+  'pipeline.bidStatus.DRAFT': 'Brouillon',
+  'pipeline.bidStatus.IN_PROGRESS': 'En cours',
+  'pipeline.bidStatus.READY_FOR_REVIEW': 'Prêt pour révision',
+  'pipeline.bidStatus.APPROVED': 'Approuvé',
+  'pipeline.bidStatus.SENT': 'Envoyé',
+  'pipeline.bidStatus.WON': 'Gagné',
+  'pipeline.bidStatus.LOST': 'Perdu',
+  'pipeline.proposalStatus.DRAFT': 'Brouillon',
+  'pipeline.proposalStatus.GENERATED': 'Généré',
+  'pipeline.proposalStatus.SENT': 'Envoyé',
+  'pipeline.proposalStatus.DELIVERED': 'Livré',
+  'pipeline.proposalStatus.OPENED': 'Ouvert',
+  'pipeline.proposalStatus.EXPIRED': 'Expiré',
+
+  // -- CRM --
+  'crm.title': 'CRM',
+  'crm.clients': 'Clients',
+  'crm.sites': 'Sites',
+  'crm.contacts': 'Contacts',
+  'crm.clientStatus.ACTIVE': 'Actif',
+  'crm.clientStatus.INACTIVE': 'Inactif',
+  'crm.clientStatus.PROSPECT': 'Prospect',
+  'crm.clientStatus.FORMER': 'Ancien',
+  'crm.siteStatus.ACTIVE': 'Actif',
+  'crm.siteStatus.INACTIVE': 'Inactif',
+  'crm.siteStatus.PENDING': 'En attente',
+
+  // -- Operations --
+  'ops.title': 'Opérations',
+  'ops.tickets': 'Tickets',
+  'ops.jobs': 'Travaux',
+  'ops.geofence': 'Géorepérage',
+  'ops.alerts': 'Alertes',
+  'ops.messages': 'Messages',
+  'ops.timekeeping': 'Gestion du temps',
+  'ops.calendar': 'Calendrier',
+  'ops.jobStatus.ACTIVE': 'Actif',
+  'ops.jobStatus.COMPLETED': 'Terminé',
+  'ops.jobStatus.PAUSED': 'Suspendu',
+  'ops.jobStatus.CANCELED': 'Annulé',
+
+  // -- Workforce --
+  'workforce.title': 'Personnel',
+  'workforce.staff': 'Employés',
+  'workforce.positions': 'Postes',
+  'workforce.payroll': 'Paie',
+  'workforce.timesheets': 'Feuilles de temps',
+  'workforce.staffStatus.ACTIVE': 'Actif',
+  'workforce.staffStatus.INACTIVE': 'Inactif',
+  'workforce.staffStatus.ON_LEAVE': 'En congé',
+  'workforce.staffStatus.TERMINATED': 'Licencié',
+  'workforce.timesheetStatus.DRAFT': 'Brouillon',
+  'workforce.timesheetStatus.SUBMITTED': 'Soumis',
+  'workforce.timesheetStatus.APPROVED': 'Approuvé',
+  'workforce.timesheetStatus.REJECTED': 'Rejeté',
+
+  // -- Inventory --
+  'inventory.title': 'Inventaire',
+  'inventory.supplies': 'Fournitures',
+  'inventory.orders': 'Commandes',
+  'inventory.counts': 'Comptages',
+  'inventory.reorder': 'Réapprovisionnement',
+  'inventory.orderStatus.PENDING': 'En attente',
+  'inventory.orderStatus.ORDERED': 'Commandé',
+  'inventory.orderStatus.RECEIVED': 'Reçu',
+  'inventory.orderStatus.CANCELED': 'Annulé',
+
+  // -- Assets --
+  'assets.title': 'Actifs',
+  'assets.equipment': 'Équipement',
+  'assets.vehicles': 'Véhicules',
+  'assets.keys': 'Clés',
+  'assets.maintenance': 'Maintenance',
+  'assets.condition.EXCELLENT': 'Excellent',
+  'assets.condition.GOOD': 'Bon',
+  'assets.condition.FAIR': 'Correct',
+  'assets.condition.POOR': 'Mauvais',
+
+  // -- Safety --
+  'safety.title': 'Sécurité',
+  'safety.incidents': 'Incidents',
+  'safety.training': 'Formation',
+  'safety.certifications': 'Certifications',
+  'safety.compliance': 'Conformité',
+  'safety.calendar': 'Calendrier',
+  'safety.severity.LOW': 'Faible',
+  'safety.severity.MEDIUM': 'Moyen',
+  'safety.severity.HIGH': 'Élevé',
+  'safety.severity.CRITICAL': 'Critique',
+
+  // -- Admin --
+  'admin.title': 'Administration',
+  'admin.settings': 'Paramètres',
+  'admin.lookups': 'Références',
+  'admin.templates': 'Modèles',
+  'admin.integrations': 'Intégrations',
+  'admin.users': 'Utilisateurs',
+  'admin.roles': 'Rôles',
+  'admin.auditLog': 'Journal d\'audit',
+
+  // -- Reports --
+  'reports.title': 'Rapports',
+  'reports.overview': 'Vue d\'ensemble',
+  'reports.financial': 'Financier',
+  'reports.operational': 'Opérationnel',
+  'reports.workforce': 'Personnel',
+  'reports.kpi': 'Tableau de bord KPI',
+
+  // -- Messaging --
+  'messaging.title': 'Messages',
+  'messaging.threads': 'Fils',
+  'messaging.newThread': 'Nouveau fil',
+  'messaging.reply': 'Répondre',
+  'messaging.send': 'Envoyer',
+  'messaging.noMessages': 'Aucun message',
+  'messaging.threadType.DIRECT': 'Direct',
+  'messaging.threadType.GROUP': 'Groupe',
+  'messaging.threadType.TICKET_CONTEXT': 'Ticket',
+
+  // -- Subcontractors --
+  'subs.title': 'Sous-traitants',
+  'subs.vendors': 'Fournisseurs',
+  'subs.jobs': 'Travaux',
+  'subs.status.ACTIVE': 'Actif',
+  'subs.status.INACTIVE': 'Inactif',
+  'subs.status.PENDING': 'En attente',
+};
+
+// ---------------------------------------------------------------------------
+// Merged dictionary lookup
+// ---------------------------------------------------------------------------
+const DICTIONARIES: Record<Locale, Translations> = { en, es, fr };
+
+/**
+ * Translate a key to the given locale.
+ *
+ * Supports interpolation: `t('checklist.progress', 'es', { checked: 3, total: 5 })`
+ * Falls back to English if key is missing in the target locale.
+ * Returns the raw key if missing from all locales.
+ */
+export function t(
+  key: string,
+  locale: Locale = DEFAULT_LOCALE,
+  vars?: Record<string, string | number>,
+): string {
+  let value = DICTIONARIES[locale]?.[key] ?? DICTIONARIES.en[key] ?? key;
+
+  if (vars) {
+    for (const [k, v] of Object.entries(vars)) {
+      value = value.replaceAll(`{${k}}`, String(v));
+    }
+  }
+
+  return value;
+}
+
+/**
+ * Get all keys in a namespace (e.g. 'task' returns all task.* keys).
+ * Useful for building dynamic label lists.
+ */
+export function getKeysInNamespace(namespace: string, locale: Locale = DEFAULT_LOCALE): string[] {
+  const prefix = namespace + '.';
+  const dict = DICTIONARIES[locale] ?? DICTIONARIES.en;
+  return Object.keys(dict).filter((k) => k.startsWith(prefix));
+}

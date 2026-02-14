@@ -8,12 +8,14 @@ import { supabase } from '../../src/lib/supabase';
 import { Colors, STATUS_COLORS } from '../../src/lib/constants';
 import {
   useTicketDetail,
-  type ChecklistItem,
+  type ChecklistItem as ChecklistItemType,
   type AssetRequirement,
   type AssetCheckout,
 } from '../../src/hooks/use-ticket-detail';
 import { enqueue, getPendingItemIds } from '../../src/lib/mutation-queue';
 import { useSyncState, syncNow } from '../../src/hooks/use-sync';
+import ChecklistItem from '../../src/components/ChecklistItem';
+import SyncStatusBar from '../../src/components/SyncStatusBar';
 
 function formatSyncAge(iso: string | null): string {
   if (!iso) return '';
@@ -58,7 +60,7 @@ export default function TicketDetailScreen() {
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [refreshing, setRefreshing] = useState(false);
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
-  const { pendingCount, lastSyncAt } = useSyncState();
+  const { pendingCount, lastSyncAt, isSyncing } = useSyncState();
 
   // Load pending IDs on mount and when pendingCount changes (sync completed)
   useEffect(() => {
@@ -85,7 +87,7 @@ export default function TicketDetailScreen() {
   // -----------------------------------------------------------------------
   // Checklist toggle (queue-first — never loses a write)
   // -----------------------------------------------------------------------
-  const handleToggleItem = async (item: ChecklistItem) => {
+  const handleToggleItem = async (item: ChecklistItemType) => {
     const newChecked = !item.is_checked;
     const checkedAt = newChecked ? new Date().toISOString() : null;
 
@@ -294,6 +296,16 @@ export default function TicketDetailScreen() {
           )}
         </View>
 
+        {/* Sync Status */}
+        {(pendingCount > 0 || isOffline) && (
+          <SyncStatusBar
+            pendingCount={pendingCount}
+            lastSyncAt={lastSyncAt}
+            isSyncing={isSyncing}
+            onSyncPress={onRefresh}
+          />
+        )}
+
         {/* Quick Actions */}
         <View style={styles.actions}>
           {ticket.status === 'SCHEDULED' && (
@@ -426,30 +438,16 @@ export default function TicketDetailScreen() {
                     ]}
                   />
                 </View>
-                {checklistItems.map((item) => {
-                  const isPending = pendingIds.has(item.id);
-                  return (
-                    <TouchableOpacity
-                      key={item.id}
-                      style={styles.checklistItem}
-                      onPress={() => handleToggleItem(item)}
-                      activeOpacity={0.7}
-                    >
-                      <View style={[styles.checkbox, item.is_checked && styles.checkboxChecked]}>
-                        {item.is_checked && <Text style={styles.checkmark}>✓</Text>}
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.checklistLabel, item.is_checked && styles.checklistLabelChecked]}>
-                          {item.label}
-                          {item.is_required && <Text style={{ color: Colors.light.error }}> *</Text>}
-                        </Text>
-                        {isPending && (
-                          <Text style={styles.pendingText}>Pending sync</Text>
-                        )}
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
+                {checklistItems.map((item) => (
+                  <ChecklistItem
+                    key={item.id}
+                    label={item.label}
+                    isCompleted={item.is_checked}
+                    isRequired={item.is_required}
+                    syncStatus={pendingIds.has(item.id) ? 'pending' : 'synced'}
+                    onToggle={() => handleToggleItem(item)}
+                  />
+                ))}
               </View>
             )}
           </>
@@ -630,17 +628,6 @@ const styles = StyleSheet.create({
   checklistCount: { fontSize: 14, fontWeight: '600', color: Colors.light.primary },
   progressBar: { height: 6, borderRadius: 3, backgroundColor: Colors.light.border, marginBottom: 12 },
   progressFill: { height: 6, borderRadius: 3 },
-  checklistItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: Colors.light.border },
-  checkbox: {
-    width: 24, height: 24, borderRadius: 6,
-    borderWidth: 2, borderColor: Colors.light.border,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  checkboxChecked: { backgroundColor: Colors.light.success, borderColor: Colors.light.success },
-  checkmark: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  checklistLabel: { flex: 1, fontSize: 15, color: Colors.light.text },
-  checklistLabelChecked: { textDecorationLine: 'line-through', color: Colors.light.textSecondary },
-  pendingText: { fontSize: 11, color: Colors.light.warning, marginTop: 2 },
 
   // Safety
   supplyRow: {

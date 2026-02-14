@@ -2,9 +2,9 @@
 
 import { useState, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Calendar, ClipboardList, Briefcase, ClipboardCheck, FileText } from 'lucide-react';
+import { Calendar, ClipboardList, Briefcase, ClipboardCheck, FileText, MapPin, AlertTriangle, MessageSquare } from 'lucide-react';
 import { ChipTabs, SearchInput } from '@gleamops/ui';
-import type { WorkTicket, Inspection } from '@gleamops/shared';
+import type { WorkTicket, Inspection, Geofence, MessageThread } from '@gleamops/shared';
 
 import TicketsTable from './tickets/tickets-table';
 import { TicketDetail } from './tickets/ticket-detail';
@@ -14,6 +14,16 @@ import InspectionsTable from './inspections/inspections-table';
 import { InspectionDetail } from './inspections/inspection-detail';
 import { CreateInspectionForm } from './inspections/create-inspection-form';
 import TemplatesTable from './inspections/templates-table';
+import GeofenceTable from './geofence/geofence-table';
+import AlertsTable from './geofence/alerts-table';
+import { GeofenceForm } from '@/components/forms/geofence-form';
+import MessagesList from './messages/messages-list';
+import { ThreadDetail } from './messages/thread-detail';
+import { MessageForm } from '@/components/forms/message-form';
+
+interface GeofenceWithSite extends Geofence {
+  site?: { name: string; site_code: string } | null;
+}
 
 interface TicketWithRelations extends WorkTicket {
   job?: { job_code: string; billing_amount?: number | null } | null;
@@ -39,6 +49,9 @@ const TABS = [
   { key: 'jobs', label: 'Service Plans', icon: <Briefcase className="h-4 w-4" /> },
   { key: 'inspections', label: 'Inspections', icon: <ClipboardCheck className="h-4 w-4" /> },
   { key: 'templates', label: 'Templates', icon: <FileText className="h-4 w-4" /> },
+  { key: 'geofences', label: 'Geofences', icon: <MapPin className="h-4 w-4" /> },
+  { key: 'alerts', label: 'Alerts', icon: <AlertTriangle className="h-4 w-4" /> },
+  { key: 'messages', label: 'Messages', icon: <MessageSquare className="h-4 w-4" /> },
 ];
 
 export default function OperationsPageClient() {
@@ -50,6 +63,10 @@ export default function OperationsPageClient() {
   const [selectedTicket, setSelectedTicket] = useState<TicketWithRelations | null>(null);
   const [selectedInspection, setSelectedInspection] = useState<InspectionWithRelations | null>(null);
   const [showCreateInspection, setShowCreateInspection] = useState(false);
+  const [showGeofenceForm, setShowGeofenceForm] = useState(false);
+  const [editGeofence, setEditGeofence] = useState<GeofenceWithSite | null>(null);
+  const [selectedThread, setSelectedThread] = useState<{ id: string; subject: string; thread_type: string } | null>(null);
+  const [showMessageForm, setShowMessageForm] = useState(false);
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   return (
@@ -57,7 +74,7 @@ export default function OperationsPageClient() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Operations</h1>
-          <p className="text-sm text-muted-foreground mt-1">Calendar, Work Tickets, Service Plans, Inspections, Templates</p>
+          <p className="text-sm text-muted-foreground mt-1">Calendar, Work Tickets, Service Plans, Inspections, Templates, Geofences, Messages</p>
         </div>
       </div>
 
@@ -89,6 +106,23 @@ export default function OperationsPageClient() {
         />
       )}
       {tab === 'templates' && <TemplatesTable key={`tmpl-${refreshKey}`} search={search} />}
+      {tab === 'geofences' && (
+        <GeofenceTable
+          key={`geo-${refreshKey}`}
+          search={search}
+          onAdd={() => { setEditGeofence(null); setShowGeofenceForm(true); }}
+          onSelect={(g) => { setEditGeofence(g); setShowGeofenceForm(true); }}
+        />
+      )}
+      {tab === 'alerts' && <AlertsTable key={`alerts-${refreshKey}`} search={search} />}
+      {tab === 'messages' && (
+        <MessagesList
+          key={`msg-${refreshKey}`}
+          search={search}
+          onSelectThread={(thread) => setSelectedThread({ id: thread.id, subject: thread.subject, thread_type: thread.thread_type })}
+          onNewThread={() => setShowMessageForm(true)}
+        />
+      )}
 
       <TicketDetail
         ticket={selectedTicket}
@@ -115,6 +149,32 @@ export default function OperationsPageClient() {
         onClose={() => setShowCreateInspection(false)}
         onCreated={() => {
           setShowCreateInspection(false);
+          refresh();
+        }}
+      />
+
+      <GeofenceForm
+        open={showGeofenceForm}
+        onClose={() => { setShowGeofenceForm(false); setEditGeofence(null); }}
+        initialData={editGeofence}
+        onSuccess={refresh}
+      />
+
+      {selectedThread && (
+        <ThreadDetail
+          threadId={selectedThread.id}
+          threadSubject={selectedThread.subject}
+          threadType={selectedThread.thread_type}
+          open={!!selectedThread}
+          onClose={() => setSelectedThread(null)}
+        />
+      )}
+
+      <MessageForm
+        open={showMessageForm}
+        onClose={() => setShowMessageForm(false)}
+        onSuccess={() => {
+          setShowMessageForm(false);
           refresh();
         }}
       />

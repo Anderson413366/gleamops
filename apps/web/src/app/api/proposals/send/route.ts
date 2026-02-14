@@ -4,12 +4,15 @@ import {
   createProblemDetails,
   PROPOSAL_001,
   PROPOSAL_002,
-  PROPOSAL_006,
   PROPOSAL_007,
   SYS_002,
+  proposalSendSchema,
 } from '@gleamops/shared';
+import { extractAuth, isAuthError } from '@/lib/api/auth-guard';
+import { validateBody } from '@/lib/api/validate-request';
 
 const CONTENT_TYPE_PROBLEM = 'application/problem+json';
+const INSTANCE = '/api/proposals/send';
 
 function problemResponse(pd: ReturnType<typeof createProblemDetails>) {
   return NextResponse.json(pd, {
@@ -39,46 +42,14 @@ function getServiceClient() {
 export async function POST(request: NextRequest) {
   try {
     // ----- Auth -----
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return problemResponse(
-        createProblemDetails('AUTH_001', 'Unauthorized', 401, 'Missing authorization header', '/api/proposals/send'),
-      );
-    }
-
-    const supabaseAuth = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
-
-    const { data: { user } } = await supabaseAuth.auth.getUser();
-    if (!user) {
-      return problemResponse(
-        createProblemDetails('AUTH_001', 'Unauthorized', 401, 'Invalid or expired token', '/api/proposals/send'),
-      );
-    }
-
-    const tenantId = user.app_metadata?.tenant_id as string | undefined;
-    if (!tenantId) {
-      return problemResponse(
-        createProblemDetails('AUTH_003', 'Tenant scope mismatch', 403, 'No tenant in token claims', '/api/proposals/send'),
-      );
-    }
+    const auth = await extractAuth(request, INSTANCE);
+    if (isAuthError(auth)) return auth;
+    const { tenantId } = auth;
 
     // ----- Body -----
-    const body = await request.json();
-    const { proposalId, recipientEmail, recipientName } = body as {
-      proposalId?: string;
-      recipientEmail?: string;
-      recipientName?: string;
-    };
-
-    if (!proposalId || !recipientEmail) {
-      return problemResponse(
-        PROPOSAL_006('proposalId and recipientEmail are required', '/api/proposals/send'),
-      );
-    }
+    const validation = await validateBody(request, proposalSendSchema, INSTANCE);
+    if (validation.error) return validation.error;
+    const { proposalId, recipientEmail, recipientName, enableFollowups } = validation.data;
 
     const db = getServiceClient();
 
@@ -92,12 +63,12 @@ export async function POST(request: NextRequest) {
 
     if (propErr || !proposal) {
       return problemResponse(
-        PROPOSAL_007('/api/proposals/send'),
+        PROPOSAL_007(INSTANCE),
       );
     }
 
     if (!['DRAFT', 'GENERATED', 'SENT', 'DELIVERED', 'OPENED'].includes(proposal.status)) {
-      const pd = PROPOSAL_001('/api/proposals/send');
+      const pd = PROPOSAL_001(INSTANCE);
       return problemResponse(pd);
     }
 
@@ -112,7 +83,7 @@ export async function POST(request: NextRequest) {
       .gte('created_at', oneHourAgo);
 
     if ((hourly ?? 0) >= 10) {
-      const pd = PROPOSAL_002('/api/proposals/send');
+      const pd = PROPOSAL_002(INSTANCE);
       return problemResponse({ ...pd, detail: 'Max 10 proposal sends per hour exceeded.' });
     }
 
@@ -124,7 +95,7 @@ export async function POST(request: NextRequest) {
       .gte('created_at', oneDayAgo);
 
     if ((daily ?? 0) >= 3) {
-      const pd = PROPOSAL_002('/api/proposals/send');
+      const pd = PROPOSAL_002(INSTANCE);
       return problemResponse({ ...pd, detail: `Max 3 sends per 24h to ${recipientEmail} exceeded.` });
     }
 
@@ -143,12 +114,11 @@ export async function POST(request: NextRequest) {
 
     if (sendErr || !sendRecord) {
       return problemResponse(
-        SYS_002(sendErr?.message ?? 'Failed to queue send', '/api/proposals/send'),
+        SYS_002(sendErr?.message ?? 'Failed to queue send', INSTANCE),
       );
     }
 
     // ----- Wire follow-up sequence (if enabled) -----
-    const enableFollowups = body.enableFollowups ?? false;
     if (enableFollowups) {
       try {
         // Fetch active follow-up templates for this tenant
@@ -207,7 +177,7 @@ export async function POST(request: NextRequest) {
   } catch (err: any) {
     console.error('[proposal-send] Unexpected error:', err);
     return problemResponse(
-      SYS_002(err?.message ?? 'Unexpected server error', '/api/proposals/send'),
+      SYS_002(err?.message ?? 'Unexpected server error', INSTANCE),
     );
   }
 }

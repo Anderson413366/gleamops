@@ -12,6 +12,7 @@ import { INSPECTION_STATUS_COLORS } from '@gleamops/shared';
 import type { Inspection } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { formatDate } from '@/lib/utils/date';
 
 interface InspectionWithRelations extends Inspection {
   site?: { name: string; site_code: string } | null;
@@ -131,7 +132,7 @@ export default function InspectionsTable({ search, onSelect, onCreateNew }: Insp
                   <TableCell>
                     <Badge color={INSPECTION_STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
                   </TableCell>
-                  <TableCell>{new Date(row.created_at).toLocaleDateString()}</TableCell>
+                  <TableCell>{formatDate(row.created_at)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

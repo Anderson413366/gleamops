@@ -6,6 +6,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Badge, Skeleton } from '@gleamops/ui';
 import { CERTIFICATION_STATUS_COLORS, SAFETY_DOCUMENT_STATUS_COLORS } from '@gleamops/shared';
 import type { StatusColor } from '@gleamops/shared';
+import { toSafeDate } from '@/lib/utils/date';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -30,7 +31,7 @@ const dateFormatter = new Intl.DateTimeFormat('en-US', {
 });
 
 function daysUntilDate(dateStr: string): number {
-  const target = new Date(dateStr + 'T00:00:00');
+  const target = toSafeDate(dateStr);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return Math.ceil((target.getTime() - today.getTime()) / 86400000);
@@ -224,7 +225,7 @@ export default function ComplianceCalendar() {
               </div>
               <div className="flex items-center gap-3 shrink-0">
                 <span className="text-xs text-muted-foreground">
-                  {dateFormatter.format(new Date(item.expiryDate + 'T00:00:00'))}
+                  {dateFormatter.format(toSafeDate(item.expiryDate))}
                 </span>
                 <Badge color={urgencyColor(item.daysUntil)}>
                   {urgencyLabel(item.daysUntil)}

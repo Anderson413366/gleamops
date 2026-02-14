@@ -83,9 +83,9 @@ export function Sidebar() {
         const supabase = getSupabaseBrowserClient();
         const [ticketsRes] = await Promise.all([
           supabase
-            .from('tickets')
+            .from('work_tickets')
             .select('id', { count: 'exact', head: true })
-            .in('status', ['OPEN', 'IN_PROGRESS']),
+            .in('status', ['SCHEDULED', 'IN_PROGRESS']),
         ]);
         setBadgeCounts({
           operations: ticketsRes.count || 0,
@@ -125,6 +125,7 @@ export function Sidebar() {
     <>
       {/* Mobile hamburger */}
       <button
+        type="button"
         onClick={() => setMobileOpen(true)}
         className="fixed top-4 left-4 z-50 md:hidden rounded-lg bg-card p-2 shadow-md border border-border transition-all duration-200 ease-in-out"
         aria-label="Open navigation"
@@ -155,6 +156,7 @@ export function Sidebar() {
             <span className="text-lg font-bold text-white tracking-tight">GleamOps</span>
           </Link>
           <button
+            type="button"
             onClick={() => setMobileOpen(false)}
             className="md:hidden rounded-lg p-1.5 text-sidebar-text hover:bg-sidebar-hover hover:text-white transition-all duration-200 ease-in-out"
             aria-label="Close navigation"
@@ -301,6 +303,7 @@ export function Sidebar() {
             Settings
           </Link>
           <button
+            type="button"
             onClick={signOut}
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-text hover:text-destructive hover:bg-sidebar-hover transition-all duration-200 ease-in-out w-full"
           >

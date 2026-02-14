@@ -12,14 +12,21 @@ import {
 } from '@gleamops/ui';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { toSafeDate } from '@/lib/utils/date';
+import { SupplyOrderForm } from '@/components/forms/supply-order-form';
 
 interface Props {
   search: string;
+  formOpen?: boolean;
+  onFormClose?: () => void;
+  onRefresh?: () => void;
 }
 
-export default function OrdersTable({ search }: Props) {
+export default function OrdersTable({ search, formOpen, onFormClose, onRefresh }: Props) {
   const [rows, setRows] = useState<SupplyOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editItem, setEditItem] = useState<SupplyOrder | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -34,6 +41,29 @@ export default function OrdersTable({ search }: Props) {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  useEffect(() => {
+    if (formOpen) {
+      setEditItem(null);
+      setCreateOpen(true);
+    }
+  }, [formOpen]);
+
+  const handleRowClick = (row: SupplyOrder) => {
+    setEditItem(row);
+    setCreateOpen(true);
+  };
+
+  const handleFormClose = () => {
+    setCreateOpen(false);
+    setEditItem(null);
+    onFormClose?.();
+  };
+
+  const handleFormSuccess = () => {
+    fetchData();
+    onRefresh?.();
+  };
 
   const filtered = useMemo(() => {
     if (!search) return rows;
@@ -54,11 +84,19 @@ export default function OrdersTable({ search }: Props) {
 
   if (filtered.length === 0) {
     return (
-      <EmptyState
-        icon={<ShoppingCart className="h-12 w-12" />}
-        title="No orders found"
-        description="Create a supply order to get started."
-      />
+      <>
+        <EmptyState
+          icon={<ShoppingCart className="h-12 w-12" />}
+          title="No orders found"
+          description="Create a supply order to get started."
+        />
+        <SupplyOrderForm
+          open={createOpen}
+          onClose={handleFormClose}
+          initialData={editItem}
+          onSuccess={handleFormSuccess}
+        />
+      </>
     );
   }
 
@@ -85,10 +123,10 @@ export default function OrdersTable({ search }: Props) {
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id}>
+            <TableRow key={row.id} onClick={() => handleRowClick(row)} className="cursor-pointer">
               <TableCell className="font-mono text-xs">{row.order_code}</TableCell>
               <TableCell className="font-medium">{row.supplier ?? '—'}</TableCell>
-              <TableCell>{dateFmt.format(new Date(row.order_date + 'T00:00:00'))}</TableCell>
+              <TableCell>{dateFmt.format(toSafeDate(row.order_date))}</TableCell>
               <TableCell className="font-mono text-xs">
                 {row.total_amount != null ? currFmt.format(row.total_amount) : '—'}
               </TableCell>
@@ -110,6 +148,13 @@ export default function OrdersTable({ search }: Props) {
         hasPrev={pag.hasPrev}
         onNext={pag.nextPage}
         onPrev={pag.prevPage}
+      />
+
+      <SupplyOrderForm
+        open={createOpen}
+        onClose={handleFormClose}
+        initialData={editItem}
+        onSuccess={handleFormSuccess}
       />
     </div>
   );

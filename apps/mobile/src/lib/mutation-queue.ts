@@ -51,7 +51,33 @@ interface PhotoMetadataMutation {
   uploadedBy: string;
 }
 
-type MutationPayload = ChecklistToggle | TimeEventMutation | PhotoMetadataMutation;
+interface InspectionScoreMutation {
+  type: 'inspection_score';
+  inspectionItemId: string;
+  score: number;
+  notes: string | null;
+  photoTaken: boolean;
+}
+
+interface InspectionStatusMutation {
+  type: 'inspection_status';
+  tenantId: string;
+  inspectionId: string;
+  status: 'IN_PROGRESS' | 'COMPLETED' | 'SUBMITTED';
+  completedAt: string | null;
+  totalScore: number | null;
+  maxScore: number | null;
+  scorePct: number | null;
+  passed: boolean | null;
+  clientVersion: number;
+}
+
+type MutationPayload =
+  | ChecklistToggle
+  | TimeEventMutation
+  | PhotoMetadataMutation
+  | InspectionScoreMutation
+  | InspectionStatusMutation;
 
 export type PendingMutation = MutationPayload & {
   id: string;
@@ -92,11 +118,19 @@ async function setQueue(queue: PendingMutation[]): Promise<void> {
 export async function enqueue(mutation: MutationPayload): Promise<void> {
   const queue = await getQueue();
 
-  // Deduplicate: checklist toggles replace existing mutation for same item
+  // Deduplicate: checklist toggles and inspection scores use last-write-wins
   let filtered = queue;
   if (mutation.type === 'checklist_toggle') {
     filtered = queue.filter(
       (m) => !(m.type === 'checklist_toggle' && m.itemId === mutation.itemId),
+    );
+  } else if (mutation.type === 'inspection_score') {
+    filtered = queue.filter(
+      (m) => !(m.type === 'inspection_score' && m.inspectionItemId === mutation.inspectionItemId),
+    );
+  } else if (mutation.type === 'inspection_status') {
+    filtered = queue.filter(
+      (m) => !(m.type === 'inspection_status' && m.inspectionId === mutation.inspectionId),
     );
   }
 
@@ -126,6 +160,18 @@ export async function getPendingItemIds(): Promise<Set<string>> {
     queue
       .filter((m): m is PendingMutation & ChecklistToggle => m.type === 'checklist_toggle')
       .map((m) => m.itemId),
+  );
+}
+
+/**
+ * Get pending inspection item IDs (for "pending sync" indicator on scored items).
+ */
+export async function getPendingInspectionItemIds(): Promise<Set<string>> {
+  const queue = await getQueue();
+  return new Set(
+    queue
+      .filter((m): m is PendingMutation & InspectionScoreMutation => m.type === 'inspection_score')
+      .map((m) => m.inspectionItemId),
   );
 }
 
@@ -216,6 +262,41 @@ async function flushPhoto(m: PendingMutation & PhotoMetadataMutation): Promise<b
   return !error;
 }
 
+async function flushInspectionScore(m: PendingMutation & InspectionScoreMutation): Promise<boolean> {
+  // UPDATE is naturally idempotent — same values written on retry
+  const { error } = await supabase
+    .from('inspection_items')
+    .update({
+      score: m.score,
+      notes: m.notes,
+      photo_taken: m.photoTaken,
+    })
+    .eq('id', m.inspectionItemId);
+  return !error;
+}
+
+async function flushInspectionStatus(m: PendingMutation & InspectionStatusMutation): Promise<boolean> {
+  // Optimistic locking: only update if client_version matches
+  const update: Record<string, unknown> = { status: m.status };
+  if (m.completedAt) update.completed_at = m.completedAt;
+  if (m.totalScore !== null) update.total_score = m.totalScore;
+  if (m.maxScore !== null) update.max_score = m.maxScore;
+  if (m.scorePct !== null) update.score_pct = m.scorePct;
+  if (m.passed !== null) update.passed = m.passed;
+  // Bump client_version for next offline sync round
+  update.client_version = m.clientVersion + 1;
+
+  const { error, count } = await supabase
+    .from('inspections')
+    .update(update)
+    .eq('id', m.inspectionId)
+    .eq('client_version', m.clientVersion);
+
+  // If count === 0, someone else updated — still consider it "synced" to avoid stuck queue
+  if (error) return false;
+  return true;
+}
+
 // ---------------------------------------------------------------------------
 // Flush: replay all pending mutations to Supabase
 // ---------------------------------------------------------------------------
@@ -249,6 +330,10 @@ export async function flushQueue(): Promise<number> {
         ok = await flushTimeEvent(mutation as PendingMutation & TimeEventMutation);
       } else if (mutation.type === 'photo_metadata') {
         ok = await flushPhoto(mutation as PendingMutation & PhotoMetadataMutation);
+      } else if (mutation.type === 'inspection_score') {
+        ok = await flushInspectionScore(mutation as PendingMutation & InspectionScoreMutation);
+      } else if (mutation.type === 'inspection_status') {
+        ok = await flushInspectionStatus(mutation as PendingMutation & InspectionStatusMutation);
       }
     } catch {
       ok = false;

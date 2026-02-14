@@ -20,7 +20,14 @@ type Permission =
   | 'service_dna:write'
   | 'bid:calculate'
   | 'proposal:send'
-  | 'bid:convert';
+  | 'bid:convert'
+  | 'inspections:read'
+  | 'inspections:write'
+  | 'messaging:read'
+  | 'messaging:write'
+  | 'timekeeping:read'
+  | 'timekeeping:write'
+  | 'timekeeping:approve';
 
 const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   OWNER_ADMIN: [
@@ -32,6 +39,9 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'settings:read', 'settings:write',
     'service_dna:write',
     'bid:calculate', 'proposal:send', 'bid:convert',
+    'inspections:read', 'inspections:write',
+    'messaging:read', 'messaging:write',
+    'timekeeping:read', 'timekeeping:write', 'timekeeping:approve',
   ],
   MANAGER: [
     'pipeline:read', 'pipeline:write',
@@ -42,6 +52,9 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'settings:read',
     'service_dna:write',
     'bid:calculate', 'proposal:send', 'bid:convert',
+    'inspections:read', 'inspections:write',
+    'messaging:read', 'messaging:write',
+    'timekeeping:read', 'timekeeping:write', 'timekeeping:approve',
   ],
   SUPERVISOR: [
     'pipeline:read',
@@ -49,16 +62,25 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'schedule:read', 'schedule:write',
     'team:read',
     'reports:read',
+    'inspections:read', 'inspections:write',
+    'messaging:read', 'messaging:write',
+    'timekeeping:read', 'timekeeping:approve',
   ],
   CLEANER: [
     'schedule:read',
     'team:read',
+    'inspections:read',
+    'messaging:read',
+    'timekeeping:read', 'timekeeping:write',
   ],
   INSPECTOR: [
     'customers:read',
     'schedule:read',
     'team:read',
     'reports:read',
+    'inspections:read', 'inspections:write',
+    'messaging:read',
+    'timekeeping:read',
   ],
   SALES: [
     'pipeline:read', 'pipeline:write',

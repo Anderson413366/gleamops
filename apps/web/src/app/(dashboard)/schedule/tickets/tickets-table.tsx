@@ -12,6 +12,7 @@ import { TICKET_STATUS_COLORS } from '@gleamops/shared';
 import type { WorkTicket } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { formatDate } from '@/lib/utils/date';
 
 interface TicketWithRelations extends WorkTicket {
   job?: { job_code: string } | null;
@@ -108,7 +109,7 @@ export default function TicketsTable({ search, onSelect }: TicketsTableProps) {
               <TableCell className="font-mono text-xs text-muted-foreground">{row.job?.job_code ?? '—'}</TableCell>
               <TableCell className="font-medium">{row.site?.name ?? '—'}</TableCell>
               <TableCell className="text-muted-foreground">{row.site?.client?.name ?? '—'}</TableCell>
-              <TableCell>{new Date(row.scheduled_date).toLocaleDateString()}</TableCell>
+              <TableCell>{formatDate(row.scheduled_date)}</TableCell>
               <TableCell>
                 <Badge color={TICKET_STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
               </TableCell>

@@ -497,6 +497,7 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
                           className="w-36"
                         />
                         <button
+                          type="button"
                           onClick={() => handleRemoveTask(lt.id)}
                           className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors shrink-0"
                           title="Remove task"
@@ -518,6 +519,7 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
                       <div className="max-h-60 overflow-y-auto space-y-1">
                         {availableTasks.map((task) => (
                           <button
+                            type="button"
                             key={task.id}
                             onClick={() => handleAddTask(task)}
                             className="w-full flex items-center gap-3 px-3 py-2 text-left rounded-md hover:bg-muted transition-colors"

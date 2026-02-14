@@ -12,6 +12,8 @@ import {
 } from '@gleamops/ui';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { toSafeDate } from '@/lib/utils/date';
+import { InventoryCountForm } from '@/components/forms/inventory-count-form';
 
 interface CountRow extends InventoryCount {
   site?: { name: string; site_code: string } | null;
@@ -20,11 +22,16 @@ interface CountRow extends InventoryCount {
 
 interface Props {
   search: string;
+  formOpen?: boolean;
+  onFormClose?: () => void;
+  onRefresh?: () => void;
 }
 
-export default function CountsTable({ search }: Props) {
+export default function CountsTable({ search, formOpen, onFormClose, onRefresh }: Props) {
   const [rows, setRows] = useState<CountRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editItem, setEditItem] = useState<CountRow | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -39,6 +46,29 @@ export default function CountsTable({ search }: Props) {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  useEffect(() => {
+    if (formOpen) {
+      setEditItem(null);
+      setCreateOpen(true);
+    }
+  }, [formOpen]);
+
+  const handleRowClick = (row: CountRow) => {
+    setEditItem(row);
+    setCreateOpen(true);
+  };
+
+  const handleFormClose = () => {
+    setCreateOpen(false);
+    setEditItem(null);
+    onFormClose?.();
+  };
+
+  const handleFormSuccess = () => {
+    fetchData();
+    onRefresh?.();
+  };
 
   const filtered = useMemo(() => {
     if (!search) return rows;
@@ -61,11 +91,19 @@ export default function CountsTable({ search }: Props) {
 
   if (filtered.length === 0) {
     return (
-      <EmptyState
-        icon={<ClipboardList className="h-12 w-12" />}
-        title="No inventory counts found"
-        description="Create an inventory count to get started."
-      />
+      <>
+        <EmptyState
+          icon={<ClipboardList className="h-12 w-12" />}
+          title="No inventory counts found"
+          description="Create an inventory count to get started."
+        />
+        <InventoryCountForm
+          open={createOpen}
+          onClose={handleFormClose}
+          initialData={editItem}
+          onSuccess={handleFormSuccess}
+        />
+      </>
     );
   }
 
@@ -89,10 +127,10 @@ export default function CountsTable({ search }: Props) {
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id}>
+            <TableRow key={row.id} onClick={() => handleRowClick(row)} className="cursor-pointer">
               <TableCell className="font-mono text-xs">{row.count_code}</TableCell>
               <TableCell>{row.site?.name ?? '—'}</TableCell>
-              <TableCell>{dateFmt.format(new Date(row.count_date + 'T00:00:00'))}</TableCell>
+              <TableCell>{dateFmt.format(toSafeDate(row.count_date))}</TableCell>
               <TableCell>{row.counter?.full_name ?? '—'}</TableCell>
               <TableCell>
                 <Badge color={(INVENTORY_COUNT_STATUS_COLORS[row.status] as StatusColor) ?? 'gray'}>
@@ -112,6 +150,13 @@ export default function CountsTable({ search }: Props) {
         hasPrev={pag.hasPrev}
         onNext={pag.nextPage}
         onPrev={pag.prevPage}
+      />
+
+      <InventoryCountForm
+        open={createOpen}
+        onClose={handleFormClose}
+        initialData={editItem}
+        onSuccess={handleFormSuccess}
       />
     </div>
   );

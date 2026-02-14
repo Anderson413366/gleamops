@@ -98,3 +98,37 @@ export const PROPOSAL_006 = (detail: string, instance: string, errors?: Array<{ 
   createProblemDetails('PROPOSAL_006', 'Missing required fields', 400, detail, instance, errors);
 export const PROPOSAL_007 = (instance: string) =>
   createProblemDetails('PROPOSAL_007', 'Proposal not found', 404, 'The requested proposal does not exist or belongs to another tenant', instance);
+
+// Timekeeping / PIN
+export const TIME_001 = (instance: string) =>
+  createProblemDetails('TIME_001', 'Invalid PIN', 401, 'The PIN provided does not match any active PIN for this site', instance);
+export const TIME_002 = (instance: string) =>
+  createProblemDetails('TIME_002', 'Site PIN not found', 404, 'No PIN codes are configured for this site', instance);
+export const TIME_003 = (instance: string) =>
+  createProblemDetails('TIME_003', 'PIN expired', 410, 'The PIN for this site has expired', instance);
+
+// Messaging
+export const MSG_001 = (instance: string) =>
+  createProblemDetails('MSG_001', 'Thread not found', 404, 'The requested message thread does not exist', instance);
+export const MSG_002 = (instance: string) =>
+  createProblemDetails('MSG_002', 'Not a thread member', 403, 'You are not a member of this message thread', instance);
+
+// Subcontractor
+export const SUB_001 = (instance: string) =>
+  createProblemDetails('SUB_001', 'Subcontractor job not found', 404, 'The requested subcontractor job assignment does not exist', instance);
+
+// Geofence
+export const GEOFENCE_001 = (instance: string) =>
+  createProblemDetails('GEOFENCE_001', 'Geofence not found', 404, 'The requested geofence does not exist', instance);
+export const GEOFENCE_002 = (detail: string, instance: string) =>
+  createProblemDetails('GEOFENCE_002', 'Geofence evaluation failed', 500, detail, instance);
+
+// Schedule
+export const SCHEDULE_001 = (detail: string, instance: string, errors?: Array<{ field: string; message: string }>) =>
+  createProblemDetails('SCHEDULE_001', 'Invalid schedule rule', 400, detail, instance, errors);
+export const SCHEDULE_002 = (instance: string) =>
+  createProblemDetails('SCHEDULE_002', 'Conflicting schedule', 409, 'This schedule rule conflicts with an existing rule', instance);
+
+// Validation (generic)
+export const VALIDATION_001 = (detail: string, instance: string, errors?: Array<{ field: string; message: string }>) =>
+  createProblemDetails('VALIDATION_001', 'Validation failed', 400, detail, instance, errors);

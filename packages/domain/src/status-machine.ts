@@ -30,10 +30,26 @@ const TICKET_TRANSITIONS: TransitionMap = {
   // VERIFIED and CANCELED are terminal
 };
 
+const INSPECTION_TRANSITIONS: TransitionMap = {
+  DRAFT: ['IN_PROGRESS'],
+  IN_PROGRESS: ['COMPLETED'],
+  COMPLETED: ['SUBMITTED'],
+  // SUBMITTED is terminal
+};
+
+const TIMESHEET_TRANSITIONS: TransitionMap = {
+  DRAFT: ['SUBMITTED'],
+  SUBMITTED: ['APPROVED', 'REJECTED'],
+  APPROVED: [],     // terminal for sync
+  REJECTED: ['DRAFT'],  // can re-submit
+};
+
 const ENTITY_TRANSITIONS: Record<string, TransitionMap> = {
   bid: BID_TRANSITIONS,
   proposal: PROPOSAL_TRANSITIONS,
   ticket: TICKET_TRANSITIONS,
+  inspection: INSPECTION_TRANSITIONS,
+  timesheet: TIMESHEET_TRANSITIONS,
 };
 
 export function canTransitionStatus(

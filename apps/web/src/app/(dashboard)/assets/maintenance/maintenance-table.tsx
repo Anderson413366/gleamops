@@ -10,6 +10,8 @@ import {
 } from '@gleamops/ui';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { toSafeDate } from '@/lib/utils/date';
+import { MaintenanceForm } from '@/components/forms/maintenance-form';
 
 interface MaintenanceRow extends VehicleMaintenance {
   vehicle?: { name: string; vehicle_code: string } | null;
@@ -17,11 +19,16 @@ interface MaintenanceRow extends VehicleMaintenance {
 
 interface Props {
   search: string;
+  formOpen?: boolean;
+  onFormClose?: () => void;
+  onRefresh?: () => void;
 }
 
-export default function MaintenanceTable({ search }: Props) {
+export default function MaintenanceTable({ search, formOpen, onFormClose, onRefresh }: Props) {
   const [rows, setRows] = useState<MaintenanceRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editItem, setEditItem] = useState<MaintenanceRow | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -36,6 +43,29 @@ export default function MaintenanceTable({ search }: Props) {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  useEffect(() => {
+    if (formOpen) {
+      setEditItem(null);
+      setCreateOpen(true);
+    }
+  }, [formOpen]);
+
+  const handleRowClick = (row: MaintenanceRow) => {
+    setEditItem(row);
+    setCreateOpen(true);
+  };
+
+  const handleFormClose = () => {
+    setCreateOpen(false);
+    setEditItem(null);
+    onFormClose?.();
+  };
+
+  const handleFormSuccess = () => {
+    fetchData();
+    onRefresh?.();
+  };
 
   const filtered = useMemo(() => {
     if (!search) return rows;
@@ -58,11 +88,19 @@ export default function MaintenanceTable({ search }: Props) {
 
   if (filtered.length === 0) {
     return (
-      <EmptyState
-        icon={<Settings2 className="h-12 w-12" />}
-        title="No maintenance records"
-        description="Vehicle service history will appear here."
-      />
+      <>
+        <EmptyState
+          icon={<Settings2 className="h-12 w-12" />}
+          title="No maintenance records"
+          description="Vehicle service history will appear here."
+        />
+        <MaintenanceForm
+          open={createOpen}
+          onClose={handleFormClose}
+          initialData={editItem}
+          onSuccess={handleFormSuccess}
+        />
+      </>
     );
   }
 
@@ -88,7 +126,7 @@ export default function MaintenanceTable({ search }: Props) {
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id}>
+            <TableRow key={row.id} onClick={() => handleRowClick(row)} className="cursor-pointer">
               <TableCell>
                 <div>
                   <span className="font-medium">{row.vehicle?.name ?? '—'}</span>
@@ -97,7 +135,7 @@ export default function MaintenanceTable({ search }: Props) {
                   )}
                 </div>
               </TableCell>
-              <TableCell>{dateFmt.format(new Date(row.service_date + 'T00:00:00'))}</TableCell>
+              <TableCell>{dateFmt.format(toSafeDate(row.service_date))}</TableCell>
               <TableCell>{row.service_type}</TableCell>
               <TableCell>{row.performed_by ?? '—'}</TableCell>
               <TableCell className="font-mono text-xs">
@@ -105,7 +143,7 @@ export default function MaintenanceTable({ search }: Props) {
               </TableCell>
               <TableCell>
                 {row.next_service_date
-                  ? dateFmt.format(new Date(row.next_service_date + 'T00:00:00'))
+                  ? dateFmt.format(toSafeDate(row.next_service_date))
                   : <span className="text-muted-foreground">—</span>}
               </TableCell>
             </TableRow>
@@ -121,6 +159,13 @@ export default function MaintenanceTable({ search }: Props) {
         hasPrev={pag.hasPrev}
         onNext={pag.nextPage}
         onPrev={pag.prevPage}
+      />
+
+      <MaintenanceForm
+        open={createOpen}
+        onClose={handleFormClose}
+        initialData={editItem}
+        onSuccess={handleFormSuccess}
       />
     </div>
   );

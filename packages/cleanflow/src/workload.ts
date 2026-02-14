@@ -9,6 +9,7 @@
  */
 import type { BidVersionSnapshot, WorkloadResult } from './types';
 import { findProductionRate } from './production-rates';
+import { calculateSpecialization } from './specialization';
 import { DIFFICULTY_MULTIPLIERS, WEEKS_PER_MONTH, FREQUENCY_VISITS_PER_WEEK } from '@gleamops/shared';
 
 /** Min/max minutes per visit per area */
@@ -106,6 +107,26 @@ export function calculateWorkload(snapshot: BidVersionSnapshot): WorkloadResult 
 
     totalMinutesPerVisit += clampedMinutesPerVisit;
     totalWeeklyMinutes += areaWeeklyMinutes;
+  }
+
+  // Apply bid-type specialization adjustments (extra minutes per visit)
+  let specExtraMinutes = 0;
+  if (snapshot.specialization && snapshot.specialization.type !== 'JANITORIAL') {
+    const totalSqft = snapshot.areas.reduce((s, a) => s + a.square_footage * a.quantity, 0);
+    const specResult = calculateSpecialization(snapshot.specialization, totalSqft);
+    specExtraMinutes = specResult.extra_minutes_per_visit;
+    totalMinutesPerVisit += specExtraMinutes;
+    // Add spec minutes to weekly (using schedule days_per_week as frequency)
+    totalWeeklyMinutes += specExtraMinutes * snapshot.schedule.days_per_week;
+
+    if (specResult.workload_multiplier !== 1.0) {
+      totalMinutesPerVisit *= specResult.workload_multiplier;
+      totalWeeklyMinutes *= specResult.workload_multiplier;
+    }
+
+    if (specExtraMinutes > 0) {
+      warnings.push(`${snapshot.specialization.type} specialization adds ${specExtraMinutes.toFixed(0)} min/visit`);
+    }
   }
 
   const monthlyMinutes = totalWeeklyMinutes * WEEKS_PER_MONTH;

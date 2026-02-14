@@ -11,9 +11,33 @@
  * - "Why this price?" explanation payload
  */
 
+export { calculateBid } from './engine';
+export type { BidCalculationResult } from './engine';
 export { calculateWorkload } from './workload';
 export { calculatePricing } from './pricing';
 export { findProductionRate } from './production-rates';
 export { expressLoad } from './express-load';
+export { calculateSpecialization } from './specialization';
+export { calculateWeightedWage } from './weighted-wage';
+export { calculateDayPorter } from './day-porter';
+export { calculateConsumables, DEFAULT_CONSUMABLE_ITEMS } from './consumables';
 export type { BidVersionSnapshot, WorkloadResult, PricingResult } from './types';
+export type {
+  BidTypeCode,
+  BidSpecialization,
+  DisinfectingInputs,
+  MaidInputs,
+  CarpetInputs,
+  WindowInputs,
+  TileInputs,
+  MoveInOutInputs,
+  PostConstructionInputs,
+  CrewMember,
+  WeightedWageResult,
+  DayPorterConfig,
+  DayPorterResult,
+  ConsumableItem,
+  ConsumablesResult,
+} from './types';
+export type { SpecializationAdjustment } from './specialization';
 export type { ExpressLoadInput, ExpressLoadArea, FloorMixEntry } from './express-load';

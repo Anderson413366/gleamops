@@ -15,6 +15,7 @@ import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 import { useViewPreference } from '@/hooks/use-view-preference';
 import { EquipmentCardGrid } from './equipment-card-grid';
+import { EquipmentForm } from '@/components/forms/equipment-form';
 
 interface EquipmentRow extends Equipment {
   staff?: { full_name: string } | null;
@@ -24,6 +25,9 @@ interface EquipmentRow extends Equipment {
 interface Props {
   search: string;
   onSelect?: (eq: EquipmentRow) => void;
+  formOpen?: boolean;
+  onFormClose?: () => void;
+  onRefresh?: () => void;
 }
 
 function formatCurrency(n: number | null) {
@@ -36,9 +40,11 @@ function formatDate(d: string | null) {
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export default function EquipmentTable({ search, onSelect }: Props) {
+export default function EquipmentTable({ search, onSelect, formOpen, onFormClose, onRefresh }: Props) {
   const [rows, setRows] = useState<EquipmentRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editItem, setEditItem] = useState<EquipmentRow | null>(null);
   const { view, setView } = useViewPreference('equipment');
 
   const fetchData = useCallback(async () => {
@@ -54,6 +60,33 @@ export default function EquipmentTable({ search, onSelect }: Props) {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  useEffect(() => {
+    if (formOpen) {
+      setEditItem(null);
+      setCreateOpen(true);
+    }
+  }, [formOpen]);
+
+  const handleRowClick = (row: EquipmentRow) => {
+    if (onSelect) {
+      onSelect(row);
+    } else {
+      setEditItem(row);
+      setCreateOpen(true);
+    }
+  };
+
+  const handleFormClose = () => {
+    setCreateOpen(false);
+    setEditItem(null);
+    onFormClose?.();
+  };
+
+  const handleFormSuccess = () => {
+    fetchData();
+    onRefresh?.();
+  };
 
   const filtered = useMemo(() => {
     if (!search) return rows;
@@ -78,11 +111,19 @@ export default function EquipmentTable({ search, onSelect }: Props) {
 
   if (filtered.length === 0) {
     return (
-      <EmptyState
-        icon={<Wrench className="h-12 w-12" />}
-        title="No equipment found"
-        description={search ? 'Try a different search term.' : 'Add equipment to get started.'}
-      />
+      <>
+        <EmptyState
+          icon={<Wrench className="h-12 w-12" />}
+          title="No equipment found"
+          description={search ? 'Try a different search term.' : 'Add equipment to get started.'}
+        />
+        <EquipmentForm
+          open={createOpen}
+          onClose={handleFormClose}
+          initialData={editItem}
+          onSuccess={handleFormSuccess}
+        />
+      </>
     );
   }
 
@@ -107,7 +148,7 @@ export default function EquipmentTable({ search, onSelect }: Props) {
         />
       </div>
       {view === 'card' ? (
-        <EquipmentCardGrid rows={pag.page} onSelect={(item) => onSelect?.(item)} />
+        <EquipmentCardGrid rows={pag.page} onSelect={(item) => handleRowClick(item)} />
       ) : (
       <Table>
         <TableHeader>
@@ -127,8 +168,8 @@ export default function EquipmentTable({ search, onSelect }: Props) {
           {pag.page.map((row) => (
             <TableRow
               key={row.id}
-              onClick={() => onSelect?.(row)}
-              className={onSelect ? 'cursor-pointer' : undefined}
+              onClick={() => handleRowClick(row)}
+              className="cursor-pointer"
             >
               <TableCell className="font-mono text-xs">{row.equipment_code}</TableCell>
               <TableCell className="font-medium">{row.name}</TableCell>
@@ -152,6 +193,13 @@ export default function EquipmentTable({ search, onSelect }: Props) {
         currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
         pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
         onNext={pag.nextPage} onPrev={pag.prevPage}
+      />
+
+      <EquipmentForm
+        open={createOpen}
+        onClose={handleFormClose}
+        initialData={editItem}
+        onSuccess={handleFormSuccess}
       />
     </div>
   );

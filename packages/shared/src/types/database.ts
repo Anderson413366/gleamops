@@ -386,6 +386,19 @@ export interface SalesBidPricingResult extends StandardColumns {
 // ---------------------------------------------------------------------------
 // Module C: Proposals + Email + Follow-ups
 // ---------------------------------------------------------------------------
+export interface ProposalLayoutSection {
+  id: 'header' | 'companyInfo' | 'metadata' | 'scope' | 'pricing' | 'terms' | 'signatures' | 'attachments';
+  enabled: boolean;
+  order: number;
+  pageBreakBefore: boolean;
+}
+
+export interface ProposalLayoutConfig {
+  sections: ProposalLayoutSection[];
+  signaturePlacement: 'cover' | 'agreement' | 'disclaimer';
+  attachmentMode: 'append' | 'list_only';
+}
+
 export interface SalesProposal extends StandardColumns {
   proposal_code: string;
   bid_version_id: string;
@@ -395,6 +408,7 @@ export interface SalesProposal extends StandardColumns {
   page_count: number | null;
   valid_until: string | null;
   notes: string | null;
+  layout_config: ProposalLayoutConfig | null;
 }
 
 export interface SalesProposalPricingOption extends StandardColumns {
@@ -1361,4 +1375,97 @@ export interface UserAccessGrant extends StandardColumns {
   granted_by: string | null;
   granted_at: string;
   expires_at: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Module G: Subcontractor Jobs
+// ---------------------------------------------------------------------------
+export interface SubcontractorJob extends StandardColumns {
+  subcontractor_id: string;
+  site_job_id: string;
+  site_id: string;
+  status: 'ACTIVE' | 'COMPLETED' | 'CANCELED' | 'SUSPENDED';
+  start_date: string | null;
+  end_date: string | null;
+  billing_rate: number | null;
+  billing_type: 'HOURLY' | 'PER_SERVICE' | 'FLAT_MONTHLY' | 'PER_SQFT' | null;
+  scope_description: string | null;
+  contract_ref: string | null;
+  performance_score: number | null;
+  last_service_date: string | null;
+  notes: string | null;
+}
+
+export interface SubcontractorJobAssignment {
+  id: string;
+  tenant_id: string;
+  subcontractor_id: string;
+  subcontractor_code: string;
+  subcontractor_name: string;
+  site_job_id: string;
+  job_code: string;
+  job_name: string | null;
+  site_id: string;
+  site_code: string;
+  site_name: string;
+  client_id: string;
+  client_code: string;
+  client_name: string;
+  status: string;
+  start_date: string | null;
+  end_date: string | null;
+  billing_rate: number | null;
+  billing_type: string | null;
+  scope_description: string | null;
+  performance_score: number | null;
+  last_service_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ---------------------------------------------------------------------------
+// Module E: Site PIN Codes
+// ---------------------------------------------------------------------------
+export interface SitePinCode extends StandardColumns {
+  site_id: string;
+  pin_hash: string;
+  label: string | null;
+  is_active: boolean;
+  expires_at: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Module E: Messaging
+// ---------------------------------------------------------------------------
+export interface MessageThread {
+  id: string;
+  tenant_id: string;
+  subject: string;
+  thread_type: 'DIRECT' | 'GROUP' | 'TICKET_CONTEXT';
+  ticket_id: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  archived_at: string | null;
+}
+
+export interface MessageThreadMember {
+  id: string;
+  tenant_id: string;
+  thread_id: string;
+  user_id: string;
+  role: 'MEMBER' | 'ADMIN';
+  last_read_at: string | null;
+  joined_at: string;
+}
+
+export interface Message {
+  id: string;
+  tenant_id: string;
+  thread_id: string;
+  sender_id: string;
+  body: string;
+  created_at: string;
+  edited_at: string | null;
+  archived_at: string | null;
 }

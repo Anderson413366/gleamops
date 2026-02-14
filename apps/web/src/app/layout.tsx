@@ -11,6 +11,9 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'GleamOps',
   description: 'Commercial cleaning operations platform',
+  icons: {
+    icon: 'data:,',
+  },
 };
 
 export default function RootLayout({

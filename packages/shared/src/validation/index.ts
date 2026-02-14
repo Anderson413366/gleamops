@@ -611,3 +611,64 @@ export const loginSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 export type LoginFormData = z.infer<typeof loginSchema>;
+
+// ---------------------------------------------------------------------------
+// API Request Schemas
+// ---------------------------------------------------------------------------
+export const proposalSendSchema = z.object({
+  proposalId: z.string().uuid('Proposal ID is required'),
+  recipientEmail: z.string().email('Valid recipient email required'),
+  recipientName: z.string().min(1, 'Recipient name is required'),
+  subject: z.string().min(1, 'Subject is required'),
+  body: z.string().nullable().default(null),
+  enableFollowups: z.boolean().default(false),
+  followupTemplateId: z.string().uuid().nullable().default(null),
+});
+export type ProposalSendData = z.infer<typeof proposalSendSchema>;
+
+export const pinCheckinSchema = z.object({
+  siteId: z.string().uuid('Site ID is required'),
+  pin: z.string().regex(/^\d{4,6}$/, 'PIN must be 4-6 digits'),
+  staffCode: z.string().min(1, 'Staff code is required'),
+  eventType: z.enum(['CHECK_IN', 'CHECK_OUT', 'BREAK_START', 'BREAK_END']),
+  lat: z.number().min(-90).max(90).optional(),
+  lng: z.number().min(-180).max(180).optional(),
+  accuracyMeters: z.number().positive().optional(),
+});
+export type PinCheckinData = z.infer<typeof pinCheckinSchema>;
+
+export const signatureSchema = z.object({
+  signerName: z.string().min(1, 'Signer name is required'),
+  signerEmail: z.string().email('Valid signer email required'),
+  signatureTypeCode: z.string().min(1, 'Signature type is required'),
+  signatureFileId: z.string().uuid().nullable().default(null),
+  signatureFontName: z.string().nullable().default(null),
+});
+export type SignatureData = z.infer<typeof signatureSchema>;
+
+export const messageThreadSchema = z.object({
+  subject: z.string().min(1, 'Subject is required').max(200),
+  thread_type: z.enum(['DIRECT', 'GROUP', 'TICKET_CONTEXT']),
+  member_ids: z.array(z.string().uuid()).min(1, 'At least one member is required'),
+  ticket_id: z.string().uuid().nullable().default(null),
+  initial_message: z.string().min(1, 'Initial message is required'),
+});
+export type MessageThreadFormData = z.infer<typeof messageThreadSchema>;
+
+export const sitePinCodeSchema = z.object({
+  site_id: z.string().uuid('Site is required'),
+  pin: z.string().regex(/^\d{4,6}$/, 'PIN must be 4-6 digits'),
+  label: z.string().min(1, 'Label is required').max(100),
+  is_active: z.boolean().default(true),
+  expires_at: z.string().nullable().default(null),
+});
+export type SitePinCodeFormData = z.infer<typeof sitePinCodeSchema>;
+
+export const geofenceSchema = z.object({
+  site_id: z.string().uuid('Site is required'),
+  center_lat: z.number().min(-90).max(90),
+  center_lng: z.number().min(-180).max(180),
+  radius_meters: z.number().positive('Radius must be positive').max(5000, 'Radius cannot exceed 5000m'),
+  is_active: z.boolean().default(true),
+});
+export type GeofenceFormData = z.infer<typeof geofenceSchema>;

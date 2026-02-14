@@ -1,30 +1,31 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Briefcase } from 'lucide-react';
+import { Briefcase, Plus } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton,
+  EmptyState, Badge, Pagination, TableSkeleton, Button,
 } from '@gleamops/ui';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import type { SubcontractorJobAssignment } from '@gleamops/shared';
+import { SubcontractorJobDetail } from './subcontractor-job-detail';
+import { SubcontractorJobForm } from './subcontractor-job-form';
 
-const JOB_STATUS_COLORS: Record<string, 'green' | 'yellow' | 'gray' | 'red'> = {
+const STATUS_COLORS: Record<string, 'green' | 'yellow' | 'gray' | 'red'> = {
   ACTIVE: 'green',
-  ON_HOLD: 'yellow',
-  CANCELED: 'gray',
   COMPLETED: 'green',
+  SUSPENDED: 'yellow',
+  CANCELED: 'gray',
 };
 
-interface SubJobRow {
-  id: string;
-  job_code: string;
-  frequency: string;
-  billing_amount: number | null;
-  status: string;
-  site?: { name: string; site_code: string; client?: { name: string } | null } | null;
-}
+const BILLING_LABELS: Record<string, string> = {
+  HOURLY: 'Hourly',
+  PER_SERVICE: 'Per Service',
+  FLAT_MONTHLY: 'Flat Monthly',
+  PER_SQFT: 'Per Sq Ft',
+};
 
 interface Props {
   search: string;
@@ -32,28 +33,24 @@ interface Props {
 
 function formatCurrency(n: number | null) {
   if (n == null) return '—';
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(n);
 }
 
 export default function SubcontractorJobsTable({ search }: Props) {
-  const [rows, setRows] = useState<SubJobRow[]>([]);
+  const [rows, setRows] = useState<SubcontractorJobAssignment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<SubcontractorJobAssignment | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editItem, setEditItem] = useState<SubcontractorJobAssignment | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
-    // Jobs that are assigned to subcontractors — source_bid_id tracks this through won bids
-    // For now, show all jobs that have a non-null source_bid_id as "subcontracted"
     const { data, error } = await supabase
-      .from('site_jobs')
-      .select(`
-        id, job_code, frequency, billing_amount, status,
-        site:site_id(name, site_code, client:client_id(name))
-      `)
-      .not('source_bid_id', 'is', null)
-      .is('archived_at', null)
-      .order('job_code');
-    if (!error && data) setRows(data as unknown as SubJobRow[]);
+      .from('v_subcontractor_job_assignments')
+      .select('*')
+      .order('subcontractor_name');
+    if (!error && data) setRows(data as unknown as SubcontractorJobAssignment[]);
     setLoading(false);
   }, []);
 
@@ -63,53 +60,84 @@ export default function SubcontractorJobsTable({ search }: Props) {
     if (!search) return rows;
     const q = search.toLowerCase();
     return rows.filter((r) =>
+      r.subcontractor_name.toLowerCase().includes(q) ||
       r.job_code.toLowerCase().includes(q) ||
-      (r.site?.name ?? '').toLowerCase().includes(q) ||
-      (r.site?.client?.name ?? '').toLowerCase().includes(q)
+      r.site_name.toLowerCase().includes(q) ||
+      r.client_name.toLowerCase().includes(q) ||
+      (r.subcontractor_code ?? '').toLowerCase().includes(q)
     );
   }, [rows, search]);
 
   const { sorted, sortKey, sortDir, onSort } = useTableSort(
-    filtered as unknown as Record<string, unknown>[], 'job_code', 'asc'
+    filtered as unknown as Record<string, unknown>[], 'subcontractor_name', 'asc'
   );
-  const sortedRows = sorted as unknown as SubJobRow[];
+  const sortedRows = sorted as unknown as SubcontractorJobAssignment[];
   const pag = usePagination(sortedRows, 25);
 
-  if (loading) return <TableSkeleton rows={6} cols={5} />;
+  if (loading) return <TableSkeleton rows={6} cols={7} />;
 
   if (filtered.length === 0) {
     return (
-      <EmptyState
-        icon={<Briefcase className="h-12 w-12" />}
-        title="No subcontractor jobs"
-        description="Jobs linked to subcontractors will appear here."
-      />
+      <div className="space-y-4">
+        <div className="flex justify-end">
+          <Button onClick={() => { setEditItem(null); setFormOpen(true); }}>
+            <Plus className="h-4 w-4" />
+            Assign Job
+          </Button>
+        </div>
+        <EmptyState
+          icon={<Briefcase className="h-12 w-12" />}
+          title="No subcontractor jobs"
+          description="Assign jobs to subcontractors to see them here."
+        />
+        <SubcontractorJobForm
+          open={formOpen}
+          onClose={() => { setFormOpen(false); setEditItem(null); }}
+          initialData={editItem}
+          onSuccess={fetchData}
+        />
+      </div>
     );
   }
 
   return (
     <div>
+      <div className="flex justify-end mb-4">
+        <Button onClick={() => { setEditItem(null); setFormOpen(true); }}>
+          <Plus className="h-4 w-4" />
+          Assign Job
+        </Button>
+      </div>
+
       <Table>
         <TableHeader>
           <tr>
-            <TableHead sortable sorted={sortKey === 'job_code' && sortDir} onSort={() => onSort('job_code')}>Code</TableHead>
+            <TableHead sortable sorted={sortKey === 'subcontractor_name' && sortDir} onSort={() => onSort('subcontractor_name')}>Subcontractor</TableHead>
+            <TableHead sortable sorted={sortKey === 'job_code' && sortDir} onSort={() => onSort('job_code')}>Job</TableHead>
             <TableHead>Site</TableHead>
             <TableHead>Client</TableHead>
-            <TableHead>Frequency</TableHead>
-            <TableHead sortable sorted={sortKey === 'billing_amount' && sortDir} onSort={() => onSort('billing_amount')}>Billing</TableHead>
+            <TableHead sortable sorted={sortKey === 'billing_rate' && sortDir} onSort={() => onSort('billing_rate')}>Billing</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead sortable sorted={sortKey === 'start_date' && sortDir} onSort={() => onSort('start_date')}>Start</TableHead>
             <TableHead>Status</TableHead>
           </tr>
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id}>
+            <TableRow
+              key={row.id}
+              className="cursor-pointer"
+              onClick={() => setSelected(row)}
+            >
+              <TableCell className="font-medium">{row.subcontractor_name}</TableCell>
               <TableCell className="font-mono text-xs">{row.job_code}</TableCell>
-              <TableCell className="font-medium">{row.site?.name ?? '—'}</TableCell>
-              <TableCell className="text-muted-foreground">{row.site?.client?.name ?? '—'}</TableCell>
-              <TableCell className="text-muted-foreground">{row.frequency}</TableCell>
-              <TableCell className="text-right tabular-nums font-medium">{formatCurrency(row.billing_amount)}</TableCell>
+              <TableCell className="text-muted-foreground">{row.site_name}</TableCell>
+              <TableCell className="text-muted-foreground">{row.client_name}</TableCell>
+              <TableCell className="text-right tabular-nums font-medium">{formatCurrency(row.billing_rate)}</TableCell>
+              <TableCell className="text-xs text-muted-foreground">{BILLING_LABELS[row.billing_type ?? ''] ?? row.billing_type ?? '—'}</TableCell>
+              <TableCell className="text-xs text-muted-foreground">{row.start_date ?? '—'}</TableCell>
               <TableCell>
-                <Badge color={JOB_STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
+                <Badge color={STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
               </TableCell>
             </TableRow>
           ))}
@@ -119,6 +147,25 @@ export default function SubcontractorJobsTable({ search }: Props) {
         currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
         pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
         onNext={pag.nextPage} onPrev={pag.prevPage} onGoTo={pag.goToPage}
+      />
+
+      <SubcontractorJobDetail
+        assignment={selected}
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        onEdit={(item) => {
+          setSelected(null);
+          setEditItem(item);
+          setFormOpen(true);
+        }}
+        onRefresh={fetchData}
+      />
+
+      <SubcontractorJobForm
+        open={formOpen}
+        onClose={() => { setFormOpen(false); setEditItem(null); }}
+        initialData={editItem}
+        onSuccess={fetchData}
       />
     </div>
   );

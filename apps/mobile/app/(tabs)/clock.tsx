@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, SafeAreaView,
+  TextInput, ScrollView,
 } from 'react-native';
 import * as Location from 'expo-location';
 import { supabase } from '../../src/lib/supabase';
@@ -17,6 +18,18 @@ interface OpenTimeEntry {
 interface StaffRecord {
   id: string;
   full_name: string;
+  pin: string | null;
+}
+
+interface SiteOption {
+  id: string;
+  name: string;
+  site_code: string;
+}
+
+interface LastEvent {
+  event_type: string;
+  recorded_at: string;
 }
 
 export default function ClockScreen() {
@@ -27,6 +40,14 @@ export default function ClockScreen() {
   const [acting, setActing] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [locationStatus, setLocationStatus] = useState<string | null>(null);
+
+  // PIN + site selection
+  const [pin, setPin] = useState('');
+  const [pinVerified, setPinVerified] = useState(false);
+  const [sites, setSites] = useState<SiteOption[]>([]);
+  const [selectedSite, setSelectedSite] = useState<SiteOption | null>(null);
+  const [showSitePicker, setShowSitePicker] = useState(false);
+  const [lastEvent, setLastEvent] = useState<LastEvent | null>(null);
 
   // Update clock every second
   useEffect(() => {
@@ -44,14 +65,14 @@ export default function ClockScreen() {
     })();
   }, []);
 
-  // Get staff record + check for open entry
+  // Get staff record + check for open entry + load sites
   const fetchState = useCallback(async () => {
     if (!user) return;
     setLoading(true);
 
     const { data: staffData } = await supabase
       .from('staff')
-      .select('id, full_name')
+      .select('id, full_name, pin')
       .eq('user_id', user.id)
       .maybeSingle();
 
@@ -61,6 +82,11 @@ export default function ClockScreen() {
       return;
     }
     setStaff(staffData as StaffRecord);
+
+    // If no PIN set, auto-verify
+    if (!staffData.pin) {
+      setPinVerified(true);
+    }
 
     // Find open time entry
     const { data: entry } = await supabase
@@ -73,10 +99,43 @@ export default function ClockScreen() {
       .maybeSingle();
 
     setOpenEntry(entry as OpenTimeEntry | null);
+
+    // Load last event
+    const { data: lastEvt } = await supabase
+      .from('time_events')
+      .select('event_type, recorded_at')
+      .eq('staff_id', staffData.id)
+      .order('recorded_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    setLastEvent(lastEvt as LastEvent | null);
+
+    // Load sites
+    const { data: siteData } = await supabase
+      .from('sites')
+      .select('id, name, site_code')
+      .order('name');
+
+    if (siteData) {
+      setSites(siteData as SiteOption[]);
+    }
+
     setLoading(false);
   }, [user]);
 
   useEffect(() => { fetchState(); }, [fetchState]);
+
+  // PIN verification
+  const handlePinSubmit = () => {
+    if (!staff) return;
+    if (staff.pin && pin !== staff.pin) {
+      Alert.alert('Invalid PIN', 'The PIN you entered is incorrect.');
+      setPin('');
+      return;
+    }
+    setPinVerified(true);
+  };
 
   // Capture GPS location
   const getLocation = async (): Promise<{ lat: number; lng: number; accuracy: number } | null> => {
@@ -117,7 +176,8 @@ export default function ClockScreen() {
       lat: location?.lat ?? null,
       lng: location?.lng ?? null,
       accuracy_meters: location?.accuracy ?? null,
-      pin_used: false,
+      pin_used: !!staff.pin,
+      site_id: selectedSite?.id ?? null,
     }).select().single();
 
     if (eventErr) {
@@ -164,7 +224,8 @@ export default function ClockScreen() {
       lat: location?.lat ?? null,
       lng: location?.lng ?? null,
       accuracy_meters: location?.accuracy ?? null,
-      pin_used: false,
+      pin_used: !!staff.pin,
+      site_id: selectedSite?.id ?? null,
     }).select().single();
 
     // Calculate duration in minutes
@@ -186,6 +247,7 @@ export default function ClockScreen() {
     setLocationStatus(location ? `GPS: ${location.accuracy.toFixed(0)}m accuracy` : 'No GPS');
     setOpenEntry(null);
     setActing(false);
+    await fetchState();
   };
 
   const isClockedIn = !!openEntry;
@@ -213,9 +275,39 @@ export default function ClockScreen() {
     );
   }
 
+  // PIN entry gate (only if staff has a PIN set)
+  if (staff.pin && !pinVerified) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.content}>
+          <Text style={styles.greeting}>Hello, {staff.full_name.split(' ')[0]}</Text>
+          <Text style={styles.pinTitle}>Enter your PIN</Text>
+          <TextInput
+            style={styles.pinInput}
+            placeholder="4-6 digit PIN"
+            placeholderTextColor={Colors.light.textSecondary}
+            value={pin}
+            onChangeText={(text) => setPin(text.replace(/[^0-9]/g, ''))}
+            keyboardType="number-pad"
+            maxLength={6}
+            secureTextEntry
+            autoFocus
+          />
+          <TouchableOpacity
+            style={[styles.pinButton, pin.length < 4 && styles.pinButtonDisabled]}
+            onPress={handlePinSubmit}
+            disabled={pin.length < 4}
+          >
+            <Text style={styles.pinButtonText}>Verify PIN</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.content}>
         {/* Greeting */}
         <Text style={styles.greeting}>Hello, {staff.full_name.split(' ')[0]}</Text>
 
@@ -226,6 +318,44 @@ export default function ClockScreen() {
         <Text style={styles.currentDate}>
           {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
         </Text>
+
+        {/* Site Selection */}
+        {!isClockedIn && (
+          <View style={styles.siteSection}>
+            <Text style={styles.siteLabel}>Select Site (optional)</Text>
+            <TouchableOpacity
+              style={styles.sitePicker}
+              onPress={() => setShowSitePicker(!showSitePicker)}
+              activeOpacity={0.7}
+            >
+              <Text style={selectedSite ? styles.sitePickerText : styles.sitePickerPlaceholder}>
+                {selectedSite ? selectedSite.name : 'Tap to select a site'}
+              </Text>
+            </TouchableOpacity>
+            {showSitePicker && (
+              <View style={styles.siteDropdown}>
+                <TouchableOpacity
+                  style={styles.siteOption}
+                  onPress={() => { setSelectedSite(null); setShowSitePicker(false); }}
+                >
+                  <Text style={styles.siteOptionText}>None</Text>
+                </TouchableOpacity>
+                {sites.map((site) => (
+                  <TouchableOpacity
+                    key={site.id}
+                    style={[styles.siteOption, selectedSite?.id === site.id && styles.siteOptionSelected]}
+                    onPress={() => { setSelectedSite(site); setShowSitePicker(false); }}
+                  >
+                    <Text style={[styles.siteOptionText, selectedSite?.id === site.id && styles.siteOptionTextSelected]}>
+                      {site.name}
+                    </Text>
+                    <Text style={styles.siteOptionCode}>{site.site_code}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
 
         {/* Timer */}
         {isClockedIn && (
@@ -267,7 +397,29 @@ export default function ClockScreen() {
         {locationStatus && (
           <Text style={styles.gpsStatus}>{locationStatus}</Text>
         )}
-      </View>
+
+        {/* Last Event Status */}
+        {lastEvent && (
+          <View style={styles.lastEventCard}>
+            <Text style={styles.lastEventTitle}>Last Clock Event</Text>
+            <View style={styles.lastEventRow}>
+              <View style={[
+                styles.lastEventDot,
+                { backgroundColor: lastEvent.event_type === 'CHECK_IN' ? Colors.light.success : Colors.light.error },
+              ]} />
+              <Text style={styles.lastEventType}>
+                {lastEvent.event_type === 'CHECK_IN' ? 'Clocked In' : 'Clocked Out'}
+              </Text>
+            </View>
+            <Text style={styles.lastEventTime}>
+              {new Date(lastEvent.recorded_at).toLocaleString('en-US', {
+                weekday: 'short', month: 'short', day: 'numeric',
+                hour: 'numeric', minute: '2-digit',
+              })}
+            </Text>
+          </View>
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -275,14 +427,80 @@ export default function ClockScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.light.background },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  content: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
+  content: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
   greeting: { fontSize: 18, fontWeight: '500', color: Colors.light.textSecondary, marginBottom: 8 },
   currentTime: { fontSize: 48, fontWeight: '700', color: Colors.light.text },
-  currentDate: { fontSize: 16, color: Colors.light.textSecondary, marginTop: 4, marginBottom: 48 },
-  timerContainer: { alignItems: 'center', marginBottom: 48 },
+  currentDate: { fontSize: 16, color: Colors.light.textSecondary, marginTop: 4, marginBottom: 32 },
+
+  // PIN entry
+  pinTitle: { fontSize: 20, fontWeight: '600', color: Colors.light.text, marginTop: 24, marginBottom: 16 },
+  pinInput: {
+    width: 200,
+    borderWidth: 2,
+    borderColor: Colors.light.border,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 24,
+    textAlign: 'center',
+    color: Colors.light.text,
+    backgroundColor: Colors.light.surface,
+    letterSpacing: 8,
+    fontWeight: '700',
+  },
+  pinButton: {
+    backgroundColor: Colors.light.primary,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 48,
+    marginTop: 20,
+  },
+  pinButtonDisabled: { opacity: 0.4 },
+  pinButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+
+  // Site selection
+  siteSection: { width: '100%', marginBottom: 24 },
+  siteLabel: { fontSize: 13, fontWeight: '600', color: Colors.light.textSecondary, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
+  sitePicker: {
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: Colors.light.surface,
+  },
+  sitePickerText: { fontSize: 15, color: Colors.light.text },
+  sitePickerPlaceholder: { fontSize: 15, color: Colors.light.textSecondary },
+  siteDropdown: {
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    borderRadius: 10,
+    backgroundColor: Colors.light.background,
+    maxHeight: 200,
+    overflow: 'hidden',
+  },
+  siteOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.light.border,
+  },
+  siteOptionSelected: { backgroundColor: Colors.light.primary + '10' },
+  siteOptionText: { fontSize: 14, color: Colors.light.text },
+  siteOptionTextSelected: { color: Colors.light.primary, fontWeight: '600' },
+  siteOptionCode: { fontSize: 12, color: Colors.light.textSecondary, fontFamily: 'monospace' },
+
+  // Timer
+  timerContainer: { alignItems: 'center', marginBottom: 32 },
   timerLabel: { fontSize: 14, color: Colors.light.textSecondary, marginBottom: 8 },
   timer: { fontSize: 56, fontWeight: '700', color: Colors.light.primary, fontVariant: ['tabular-nums'] },
   clockedInSince: { fontSize: 13, color: Colors.light.textSecondary, marginTop: 8 },
+
+  // Clock button
   clockButton: {
     width: 200,
     height: 200,
@@ -299,7 +517,25 @@ const styles = StyleSheet.create({
   clockOutButton: { backgroundColor: Colors.light.error },
   clockButtonText: { color: '#fff', fontSize: 24, fontWeight: '700' },
   clockButtonHint: { color: 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 4 },
+
+  // GPS + last event
   gpsStatus: { fontSize: 12, color: Colors.light.textSecondary, marginTop: 16 },
+  lastEventCard: {
+    marginTop: 24,
+    width: '100%',
+    backgroundColor: Colors.light.surface,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    alignItems: 'center',
+  },
+  lastEventTitle: { fontSize: 11, fontWeight: '600', color: Colors.light.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
+  lastEventRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+  lastEventDot: { width: 8, height: 8, borderRadius: 4 },
+  lastEventType: { fontSize: 15, fontWeight: '600', color: Colors.light.text },
+  lastEventTime: { fontSize: 13, color: Colors.light.textSecondary },
+
   emptyTitle: { fontSize: 18, fontWeight: '600', color: Colors.light.text, marginBottom: 8 },
   emptyText: { fontSize: 14, color: Colors.light.textSecondary, textAlign: 'center' },
 });

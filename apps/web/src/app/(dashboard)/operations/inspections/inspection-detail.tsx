@@ -6,6 +6,7 @@ import {
   CheckCircle2, XCircle, Star,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { formatDate, formatDateLong } from '@/lib/utils/date';
 import {
   SlideOver, Badge, Button, Card, CardContent, CardHeader, CardTitle, Skeleton, Select,
 } from '@gleamops/ui';
@@ -286,9 +287,7 @@ export function InspectionDetail({ inspection, open, onClose, onUpdate }: Inspec
                 <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
                 <div>
                   <p className="text-xs text-muted-foreground">Date</p>
-                  <p className="text-sm font-medium">{new Date(inspection.created_at).toLocaleDateString('en-US', {
-                    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
-                  })}</p>
+                  <p className="text-sm font-medium">{formatDateLong(inspection.created_at)}</p>
                 </div>
               </div>
               {inspection.ticket && (
@@ -339,6 +338,7 @@ export function InspectionDetail({ inspection, open, onClose, onUpdate }: Inspec
                           <div className="flex items-center gap-1 shrink-0">
                             {Array.from({ length: scoringScale + 1 }, (_, i) => (
                               <button
+                                type="button"
                                 key={i}
                                 onClick={() => handleScoreItem(item.id, i)}
                                 disabled={scoring}
@@ -425,10 +425,10 @@ export function InspectionDetail({ inspection, open, onClose, onUpdate }: Inspec
 
         {/* Metadata */}
         <div className="text-xs text-muted-foreground space-y-1 pt-4 border-t border-border">
-          <p>Created: {new Date(inspection.created_at).toLocaleDateString()}</p>
-          <p>Updated: {new Date(inspection.updated_at).toLocaleDateString()}</p>
-          {inspection.started_at && <p>Started: {new Date(inspection.started_at).toLocaleDateString()}</p>}
-          {inspection.completed_at && <p>Completed: {new Date(inspection.completed_at).toLocaleDateString()}</p>}
+          <p>Created: {formatDate(inspection.created_at)}</p>
+          <p>Updated: {formatDate(inspection.updated_at)}</p>
+          {inspection.started_at && <p>Started: {formatDate(inspection.started_at)}</p>}
+          {inspection.completed_at && <p>Completed: {formatDate(inspection.completed_at)}</p>}
         </div>
       </div>
     </SlideOver>

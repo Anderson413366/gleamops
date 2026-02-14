@@ -332,7 +332,7 @@ export function Header() {
                 </div>
                 <div className="p-1.5">
                   <Link
-                    href="/settings"
+                    href="/settings?view=profile"
                     onClick={() => setProfileOpen(false)}
                     className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground rounded-lg hover:bg-muted transition-all duration-200 ease-in-out"
                   >

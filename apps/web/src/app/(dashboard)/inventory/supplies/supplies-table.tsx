@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Package, ExternalLink, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -44,17 +45,17 @@ interface SuppliesTableProps {
 }
 
 export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled }: SuppliesTableProps) {
+  const router = useRouter();
   const [rows, setRows] = useState<SupplyCatalog[]>([]);
   const [loading, setLoading] = useState(true);
   const { view, setView } = useViewPreference('supplies');
 
-  // SlideOver form state
+  // SlideOver form state (create only)
   const [formOpen, setFormOpen] = useState(false);
-  const [editItem, setEditItem] = useState<SupplyCatalog | null>(null);
   const [formLoading, setFormLoading] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
-  // Form field values
+  // Form field values (create only)
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
@@ -63,8 +64,6 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
   const [sdsUrl, setSdsUrl] = useState('');
   const [sdsUploading, setSdsUploading] = useState(false);
   const [notes, setNotes] = useState('');
-
-  const isEdit = !!editItem;
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -120,7 +119,6 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
     setSdsUrl('');
     setNotes('');
     setFormErrors({});
-    setEditItem(null);
   }, []);
 
   const handleAdd = useCallback(() => {
@@ -134,18 +132,9 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
     });
   }, [resetForm]);
 
-  const handleEdit = useCallback((row: SupplyCatalog) => {
-    setEditItem(row);
-    setCode(row.code);
-    setName(row.name);
-    setCategory(row.category ?? '');
-    setUnit(row.unit);
-    setUnitCost(row.unit_cost != null ? String(row.unit_cost) : '');
-    setSdsUrl(row.sds_url ?? '');
-    setNotes(row.notes ?? '');
-    setFormErrors({});
-    setFormOpen(true);
-  }, []);
+  const handleRowClick = useCallback((row: SupplyCatalog) => {
+    router.push(`/inventory/supplies/${row.code}`);
+  }, [router]);
 
   const handleClose = useCallback(() => {
     setFormOpen(false);
@@ -172,37 +161,21 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
 
       const costValue = unitCost.trim() ? parseFloat(unitCost.trim()) : null;
 
-      if (isEdit) {
-        const { error } = await supabase
-          .from('supply_catalog')
-          .update({
-            name: name.trim(),
-            category: category.trim() || null,
-            unit,
-            unit_cost: costValue,
-            sds_url: sdsUrl.trim() || null,
-            notes: notes.trim() || null,
-          })
-          .eq('id', editItem!.id)
-          .eq('version_etag', editItem!.version_etag);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from('supply_catalog').insert({
-          code: code.trim(),
-          name: name.trim(),
-          category: category.trim() || null,
-          unit,
-          unit_cost: costValue,
-          sds_url: sdsUrl.trim() || null,
-          notes: notes.trim() || null,
-          tenant_id: tenantId,
-        });
-        if (error) throw error;
-      }
+      const { error } = await supabase.from('supply_catalog').insert({
+        code: code.trim(),
+        name: name.trim(),
+        category: category.trim() || null,
+        unit,
+        unit_cost: costValue,
+        sds_url: sdsUrl.trim() || null,
+        notes: notes.trim() || null,
+        tenant_id: tenantId,
+      });
+      if (error) throw error;
 
       handleClose();
       fetchData();
-      toast.success(isEdit ? 'Supply updated' : 'Supply created');
+      toast.success('Supply created');
     } catch (err: any) {
       toast.error(err?.message ?? 'Failed to save supply', { duration: Infinity });
     } finally {
@@ -316,7 +289,7 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
             Cancel
           </Button>
           <Button type="submit" loading={formLoading}>
-            {isEdit ? 'Save Changes' : 'Create Supply'}
+            Create Supply
           </Button>
         </div>
       </form>
@@ -333,7 +306,7 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
           title="No supplies found"
           description={search ? 'Try a different search term.' : 'Add your first supply to get started.'}
         />
-        <SlideOver open={formOpen} onClose={handleClose} title={isEdit ? 'Edit Supply' : 'New Supply'} subtitle={isEdit ? editItem?.code : undefined}>
+        <SlideOver open={formOpen} onClose={handleClose} title="New Supply">
           {renderForm()}
         </SlideOver>
       </>
@@ -361,7 +334,7 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
         />
       </div>
       {view === 'card' ? (
-        <SuppliesCardGrid rows={pag.page} onSelect={handleEdit} />
+        <SuppliesCardGrid rows={pag.page} onSelect={handleRowClick} />
       ) : (
       <Table>
         <TableHeader>
@@ -381,7 +354,7 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
           {pag.page.map((row) => (
             <TableRow
               key={row.id}
-              onClick={() => handleEdit(row)}
+              onClick={() => handleRowClick(row)}
             >
               <TableCell className="font-mono text-xs">{row.code}</TableCell>
               <TableCell className="font-medium">{row.name}</TableCell>
@@ -429,7 +402,7 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
         onPrev={pag.prevPage}
       />
 
-      <SlideOver open={formOpen} onClose={handleClose} title={isEdit ? 'Edit Supply' : 'New Supply'} subtitle={isEdit ? editItem?.code : undefined}>
+      <SlideOver open={formOpen} onClose={handleClose} title="New Supply">
         {renderForm()}
       </SlideOver>
     </div>

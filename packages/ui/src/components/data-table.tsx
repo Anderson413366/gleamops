@@ -21,13 +21,27 @@ export function TableBody({ className, ...props }: React.HTMLAttributes<HTMLTabl
 }
 
 export function TableRow({ className, onClick, ...props }: React.HTMLAttributes<HTMLTableRowElement>) {
+  const handleClick: React.MouseEventHandler<HTMLTableRowElement> = (event) => {
+    if (!onClick) return;
+    const target = event.target as HTMLElement | null;
+    if (
+      target?.closest(
+        'button,a,input,select,textarea,label,[role="button"],[data-prevent-row-click="true"]'
+      )
+    ) {
+      return;
+    }
+    onClick(event);
+  };
+
   return (
     <tr
       className={cn(
-        'bg-card transition-colors cursor-pointer hover:bg-muted/50',
+        'bg-card transition-colors hover:bg-muted/50',
+        onClick && 'cursor-pointer',
         className
       )}
-      onClick={onClick}
+      onClick={handleClick}
       {...props}
     />
   );

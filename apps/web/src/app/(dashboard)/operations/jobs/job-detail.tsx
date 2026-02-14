@@ -92,6 +92,11 @@ function formatCurrency(n: number | null) {
 
 function formatDate(d: string | null) {
   if (!d) return '\u2014';
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d);
+  if (m) {
+    const dateOnly = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    return dateOnly.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
@@ -387,7 +392,7 @@ export function JobDetail({ job, open, onClose, onEdit }: JobDetailProps) {
                           <Badge color={LOG_STATUS_COLORS[log.status] ?? 'gray'}>{log.status}</Badge>
                         </div>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">{log.log_date}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{formatDate(log.log_date)}</p>
                     </li>
                   ))}
                 </ul>

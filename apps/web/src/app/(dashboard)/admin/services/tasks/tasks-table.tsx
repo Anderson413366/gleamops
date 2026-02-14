@@ -1,36 +1,22 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { ClipboardList, Save, AlertCircle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ClipboardList } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, SlideOver,
-  Input, Select, Button, ExportButton,
+  EmptyState, Badge, Pagination, TableSkeleton, ExportButton,
 } from '@gleamops/ui';
 import type { Task } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { TaskForm } from '@/components/forms/task-form';
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-const CATEGORY_OPTIONS = [
-  { value: 'RESTROOM', label: 'Restroom' },
-  { value: 'FLOOR_CARE', label: 'Floor Care' },
-  { value: 'GENERAL', label: 'General' },
-  { value: 'SPECIALTY', label: 'Specialty' },
-  { value: 'EXTERIOR', label: 'Exterior' },
-];
-
-const UNIT_OPTIONS = [
-  { value: 'SQFT_1000', label: 'per 1,000 sqft' },
-  { value: 'EACH', label: 'Each' },
-  { value: 'LINEAR_FT', label: 'Linear Ft' },
-  { value: 'HOUR', label: 'Hour' },
-];
-
 const CATEGORY_COLORS: Record<string, 'green' | 'blue' | 'yellow' | 'purple' | 'orange' | 'gray'> = {
   RESTROOM: 'blue',
   FLOOR_CARE: 'green',
@@ -38,6 +24,13 @@ const CATEGORY_COLORS: Record<string, 'green' | 'blue' | 'yellow' | 'purple' | '
   SPECIALTY: 'purple',
   EXTERIOR: 'orange',
 };
+
+const UNIT_OPTIONS = [
+  { value: 'SQFT_1000', label: 'per 1,000 sqft' },
+  { value: 'EACH', label: 'Each' },
+  { value: 'LINEAR_FT', label: 'Linear Ft' },
+  { value: 'HOUR', label: 'Hour' },
+];
 
 // ---------------------------------------------------------------------------
 // Props
@@ -53,21 +46,12 @@ interface TasksTableProps {
 // Component
 // ---------------------------------------------------------------------------
 export default function TasksTable({ search, autoCreate, onAutoCreateHandled, onRefresh }: TasksTableProps) {
+  const router = useRouter();
   const [rows, setRows] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // SlideOver state
+  // Create form state (SlideOver for NEW only)
   const [formOpen, setFormOpen] = useState(false);
-  const [editTask, setEditTask] = useState<Task | null>(null);
-
-  // Form fields
-  const [taskCode, setTaskCode] = useState('');
-  const [name, setName] = useState('');
-  const [category, setCategory] = useState('');
-  const [unitCode, setUnitCode] = useState('SQFT_1000');
-  const [productionRate, setProductionRate] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   // ---------------------------------------------------------------------------
   // Fetch
@@ -91,7 +75,7 @@ export default function TasksTable({ search, autoCreate, onAutoCreateHandled, on
   // ---------------------------------------------------------------------------
   useEffect(() => {
     if (autoCreate && !loading) {
-      handleAdd();
+      setFormOpen(true);
       onAutoCreateHandled?.();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -116,106 +100,6 @@ export default function TasksTable({ search, autoCreate, onAutoCreateHandled, on
   );
   const sortedRows = sorted as unknown as Task[];
   const pag = usePagination(sortedRows, 25);
-
-  // ---------------------------------------------------------------------------
-  // Form helpers
-  // ---------------------------------------------------------------------------
-  const resetForm = () => {
-    setTaskCode('');
-    setName('');
-    setCategory('');
-    setUnitCode('SQFT_1000');
-    setProductionRate('');
-    setError(null);
-  };
-
-  const handleAdd = async () => {
-    resetForm();
-    setEditTask(null);
-
-    // Auto-generate code
-    const supabase = getSupabaseBrowserClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    const tenantId = user?.app_metadata?.tenant_id;
-    const { data: codeData } = await supabase.rpc('next_code', { p_tenant_id: tenantId, p_prefix: 'TSK' });
-    setTaskCode(codeData || `TSK-${Date.now()}`);
-
-    setFormOpen(true);
-  };
-
-  const handleEdit = (task: Task) => {
-    setEditTask(task);
-    setTaskCode(task.task_code);
-    setName(task.name);
-    setCategory(task.category ?? '');
-    setUnitCode(task.unit_code ?? 'SQFT_1000');
-    setProductionRate(task.production_rate_sqft_per_hour != null ? String(task.production_rate_sqft_per_hour) : '');
-    setError(null);
-    setFormOpen(true);
-  };
-
-  const handleClose = () => {
-    setFormOpen(false);
-    setEditTask(null);
-    resetForm();
-  };
-
-  // ---------------------------------------------------------------------------
-  // Save
-  // ---------------------------------------------------------------------------
-  const handleSave = async () => {
-    if (!name.trim()) {
-      setError('Task name is required.');
-      return;
-    }
-
-    setSaving(true);
-    setError(null);
-    const supabase = getSupabaseBrowserClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    const tenantId = user?.app_metadata?.tenant_id;
-    if (!tenantId) { setSaving(false); setError('Authentication error'); return; }
-
-    const payload = {
-      name: name.trim(),
-      category: category || null,
-      unit_code: unitCode,
-      production_rate_sqft_per_hour: productionRate ? Number(productionRate) : null,
-    };
-
-    if (editTask) {
-      // Update
-      const { error: updateErr } = await supabase
-        .from('tasks')
-        .update(payload)
-        .eq('id', editTask.id);
-      if (updateErr) {
-        setError(updateErr.message);
-        setSaving(false);
-        return;
-      }
-    } else {
-      // Insert
-      const { error: insertErr } = await supabase
-        .from('tasks')
-        .insert({
-          ...payload,
-          tenant_id: tenantId,
-          task_code: taskCode,
-        });
-      if (insertErr) {
-        setError(insertErr.message);
-        setSaving(false);
-        return;
-      }
-    }
-
-    setSaving(false);
-    handleClose();
-    fetchData();
-    onRefresh?.();
-    toast.success(editTask ? 'Task updated' : 'Task created');
-  };
 
   // ---------------------------------------------------------------------------
   // Render
@@ -260,7 +144,7 @@ export default function TasksTable({ search, autoCreate, onAutoCreateHandled, on
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id} onClick={() => handleEdit(row)}>
+            <TableRow key={row.id} onClick={() => router.push(`/admin/services/tasks/${row.task_code}`)}>
               <TableCell className="font-mono text-xs">{row.task_code}</TableCell>
               <TableCell className="font-medium">{row.name}</TableCell>
               <TableCell>
@@ -290,68 +174,16 @@ export default function TasksTable({ search, autoCreate, onAutoCreateHandled, on
         onNext={pag.nextPage} onPrev={pag.prevPage}
       />
 
-      {/* Task Form SlideOver */}
-      <SlideOver
+      {/* Task Create Form */}
+      <TaskForm
         open={formOpen}
-        onClose={handleClose}
-        title={editTask ? 'Edit Task' : 'New Task'}
-        subtitle="Define an atomic cleaning activity"
-      >
-        <div className="space-y-6">
-          {error && (
-            <div className="p-3 rounded-lg border border-destructive/30 bg-destructive/10 flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
-              <p className="text-sm text-destructive">{error}</p>
-            </div>
-          )}
-
-          <Input
-            label="Task Code"
-            value={taskCode}
-            disabled
-            hint="Auto-generated"
-          />
-          <Input
-            label="Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g., Vacuum Carpeted Areas"
-            required
-          />
-          <Select
-            label="Category"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            placeholder="Select category..."
-            options={CATEGORY_OPTIONS}
-          />
-          <Select
-            label="Unit"
-            value={unitCode}
-            onChange={(e) => setUnitCode(e.target.value)}
-            options={UNIT_OPTIONS}
-          />
-          <Input
-            label="Production Rate (sqft/hr)"
-            type="number"
-            value={productionRate}
-            onChange={(e) => setProductionRate(e.target.value)}
-            placeholder="e.g., 5000"
-            min={0}
-            hint="How many square feet per hour for this task"
-          />
-
-          <div className="flex gap-3 pt-4 border-t border-border">
-            <Button onClick={handleSave} loading={saving}>
-              <Save className="h-4 w-4" />
-              {editTask ? 'Save Changes' : 'Create Task'}
-            </Button>
-            <Button variant="secondary" onClick={handleClose} disabled={saving}>
-              Cancel
-            </Button>
-          </div>
-        </div>
-      </SlideOver>
+        onClose={() => setFormOpen(false)}
+        initialData={null}
+        onSuccess={() => {
+          fetchData();
+          onRefresh?.();
+        }}
+      />
     </div>
   );
 }

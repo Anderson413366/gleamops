@@ -9,7 +9,6 @@ import type { Contact } from '@gleamops/shared';
 import ClientsTable from './clients/clients-table';
 import SitesTable from './sites/sites-table';
 import ContactsTable from './contacts/contacts-table';
-import { ContactDetail } from './contacts/contact-detail';
 import { ClientForm } from '@/components/forms/client-form';
 import { SiteForm } from '@/components/forms/site-form';
 import { ContactForm } from '@/components/forms/contact-form';
@@ -25,9 +24,6 @@ export default function CRMPageClient() {
   const initialTab = searchParams.get('tab');
   const [tab, setTab] = useState(TABS.some(t => t.key === initialTab) ? initialTab! : TABS[0].key);
   const [search, setSearch] = useState('');
-
-  // Detail drawer state (contacts still use drawer)
-  const [selectedContact, setSelectedContact] = useState<(Contact & { client?: { name: string; client_code: string } | null; site?: { name: string; site_code: string } | null }) | null>(null);
 
   // Form state
   const [clientFormOpen, setClientFormOpen] = useState(false);
@@ -84,21 +80,12 @@ export default function CRMPageClient() {
         <ContactsTable
           key={`contacts-${refreshKey}`}
           search={search}
-          onSelect={(c) => setSelectedContact(c)}
+          onSelect={(c) => {
+            setEditContact(c);
+            setContactFormOpen(true);
+          }}
         />
       )}
-
-      {/* Detail Drawer (contacts only) */}
-      <ContactDetail
-        contact={selectedContact}
-        open={!!selectedContact}
-        onClose={() => setSelectedContact(null)}
-        onEdit={(c) => {
-          setSelectedContact(null);
-          setEditContact(c);
-          setContactFormOpen(true);
-        }}
-      />
 
       {/* Forms */}
       <ClientForm

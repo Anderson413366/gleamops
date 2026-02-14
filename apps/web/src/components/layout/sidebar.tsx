@@ -294,7 +294,7 @@ export function Sidebar() {
             </div>
           )}
           <Link
-            href="/settings"
+            href="/settings?view=profile"
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-text hover:bg-sidebar-hover hover:text-white transition-all duration-200 ease-in-out"
           >
             <Settings className="h-[18px] w-[18px] shrink-0" />

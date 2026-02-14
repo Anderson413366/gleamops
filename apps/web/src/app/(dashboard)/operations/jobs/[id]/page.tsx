@@ -12,7 +12,10 @@ import {
   DollarSign,
   ClipboardList,
   AlertTriangle,
+  UserPlus,
+  X,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Badge, Skeleton } from '@gleamops/ui';
 import type { SiteJob } from '@gleamops/shared';
@@ -29,6 +32,26 @@ interface JobWithRelations extends SiteJob {
     name: string;
     client?: { name: string; client_code: string } | null;
   } | null;
+}
+
+interface JobStaffAssignmentRow {
+  id: string;
+  role: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  staff?: {
+    id: string;
+    staff_code: string;
+    full_name: string;
+    staff_status: string | null;
+  } | null;
+}
+
+interface StaffOption {
+  id: string;
+  staff_code: string;
+  full_name: string;
+  staff_status: string | null;
 }
 
 const FREQUENCY_COLORS: Record<string, 'green' | 'blue' | 'yellow' | 'gray' | 'purple'> = {
@@ -55,6 +78,15 @@ function formatCurrency(n: number | null) {
 
 function formatDate(d: string | null) {
   if (!d) return '\u2014';
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d);
+  if (m) {
+    const dateOnly = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    return dateOnly.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  }
   return new Date(d).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -72,6 +104,29 @@ export default function JobDetailPage() {
   // Related data
   const [taskCount, setTaskCount] = useState(0);
   const [financials, setFinancials] = useState<JobFinancialResult | null>(null);
+  const [assignments, setAssignments] = useState<JobStaffAssignmentRow[]>([]);
+  const [staffOptions, setStaffOptions] = useState<StaffOption[]>([]);
+  const [assignStaffId, setAssignStaffId] = useState('');
+  const [assignRole, setAssignRole] = useState('');
+  const [assigning, setAssigning] = useState(false);
+  const [removingAssignmentId, setRemovingAssignmentId] = useState<string | null>(null);
+
+  const fetchAssignments = async (jobId: string) => {
+    const supabase = getSupabaseBrowserClient();
+    const { data } = await supabase
+      .from('job_staff_assignments')
+      .select(`
+        id,
+        role,
+        start_date,
+        end_date,
+        staff:staff_id(id, staff_code, full_name, staff_status)
+      `)
+      .eq('job_id', jobId)
+      .is('archived_at', null)
+      .order('start_date', { ascending: false });
+    setAssignments((data as unknown as JobStaffAssignmentRow[]) ?? []);
+  };
 
   const fetchJob = async () => {
     setLoading(true);
@@ -97,6 +152,30 @@ export default function JobDetailPage() {
         .is('archived_at', null);
       setTaskCount(count ?? 0);
 
+      // Fetch assignments + available staff in parallel.
+      const [assignmentRes, staffRes] = await Promise.all([
+        supabase
+          .from('job_staff_assignments')
+          .select(`
+            id,
+            role,
+            start_date,
+            end_date,
+            staff:staff_id(id, staff_code, full_name, staff_status)
+          `)
+          .eq('job_id', j.id)
+          .is('archived_at', null)
+          .order('start_date', { ascending: false }),
+        supabase
+          .from('staff')
+          .select('id, staff_code, full_name, staff_status')
+          .is('archived_at', null)
+          .in('staff_status', ['ACTIVE', 'ON_LEAVE'])
+          .order('full_name'),
+      ]);
+      setAssignments((assignmentRes.data as unknown as JobStaffAssignmentRow[]) ?? []);
+      setStaffOptions((staffRes.data as unknown as StaffOption[]) ?? []);
+
       // Compute financials
       if (j.billing_amount) {
         setFinancials(
@@ -107,6 +186,47 @@ export default function JobDetailPage() {
       }
     }
     setLoading(false);
+  };
+
+  const handleAssignStaff = async () => {
+    if (!job || !assignStaffId) return;
+    setAssigning(true);
+    const supabase = getSupabaseBrowserClient();
+
+    const { error } = await supabase.from('job_staff_assignments').insert({
+      tenant_id: job.tenant_id,
+      job_id: job.id,
+      staff_id: assignStaffId,
+      role: assignRole || null,
+      start_date: new Date().toISOString().slice(0, 10),
+    });
+
+    if (error) {
+      toast.error(error.message.includes('uq_job_staff_assignment') ? 'Staff member is already assigned to this job.' : error.message);
+    } else {
+      toast.success('Staff assigned');
+      setAssignStaffId('');
+      setAssignRole('');
+      await fetchAssignments(job.id);
+    }
+    setAssigning(false);
+  };
+
+  const handleRemoveAssignment = async (assignmentId: string) => {
+    if (!job) return;
+    setRemovingAssignmentId(assignmentId);
+    const supabase = getSupabaseBrowserClient();
+    const { error } = await supabase
+      .from('job_staff_assignments')
+      .delete()
+      .eq('id', assignmentId);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success('Assignment removed');
+      await fetchAssignments(job.id);
+    }
+    setRemovingAssignmentId(null);
   };
 
   useEffect(() => {
@@ -211,10 +331,8 @@ export default function JobDetailPage() {
           <p className="text-xs text-muted-foreground">Tasks Count</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <p className="text-2xl font-bold text-foreground">
-            {formatDate(job.last_service_date)}
-          </p>
-          <p className="text-xs text-muted-foreground">Last Inspection</p>
+          <p className="text-2xl font-bold text-foreground">{assignments.length}</p>
+          <p className="text-xs text-muted-foreground">Assigned Staff</p>
         </div>
       </div>
 
@@ -464,6 +582,91 @@ export default function JobDetailPage() {
                 </p>
               )}
           </dl>
+        </div>
+
+        {/* Staff Assignments */}
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm lg:col-span-2">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-foreground">
+              <span className="inline-flex items-center gap-2">
+                <UserPlus className="h-4 w-4 text-muted-foreground" />
+                Staff Assignments
+              </span>
+            </h3>
+            <span className="text-xs text-muted-foreground">
+              {assignments.length}
+              {job.staff_needed != null ? ` / ${job.staff_needed}` : ''} assigned
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_180px_auto] mb-4">
+            <select
+              value={assignStaffId}
+              onChange={(e) => setAssignStaffId(e.target.value)}
+              className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
+            >
+              <option value="">Select staff member...</option>
+              {staffOptions.map((staff) => (
+                <option key={staff.id} value={staff.id}>
+                  {staff.full_name} ({staff.staff_code})
+                </option>
+              ))}
+            </select>
+            <select
+              value={assignRole}
+              onChange={(e) => setAssignRole(e.target.value)}
+              className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
+            >
+              <option value="">Role (optional)</option>
+              <option value="LEAD">Lead</option>
+              <option value="CLEANER">Cleaner</option>
+              <option value="INSPECTOR">Inspector</option>
+              <option value="SUPERVISOR">Supervisor</option>
+            </select>
+            <button
+              type="button"
+              onClick={handleAssignStaff}
+              disabled={assigning || !assignStaffId}
+              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-border px-3 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <UserPlus className="h-3.5 w-3.5" />
+              Assign
+            </button>
+          </div>
+
+          {assignments.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No staff assigned yet.</p>
+          ) : (
+            <ul className="divide-y divide-border">
+              {assignments.map((assignment) => (
+                <li key={assignment.id} className="py-3 flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium">
+                      {assignment.staff?.full_name ?? 'Unknown staff'}
+                      {assignment.staff?.staff_code ? (
+                        <span className="ml-1 text-xs text-muted-foreground font-mono">
+                          ({assignment.staff.staff_code})
+                        </span>
+                      ) : null}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {assignment.role ?? 'Assigned'} • Start {formatDate(assignment.start_date)}
+                      {assignment.end_date ? ` • End ${formatDate(assignment.end_date)}` : ''}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveAssignment(assignment.id)}
+                    disabled={removingAssignmentId === assignment.id}
+                    className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
+                  >
+                    <X className="h-3 w-3" />
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
 

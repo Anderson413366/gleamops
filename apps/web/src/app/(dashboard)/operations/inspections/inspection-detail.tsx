@@ -81,6 +81,63 @@ export function InspectionDetail({ inspection, open, onClose, onUpdate }: Inspec
 
   useEffect(() => { fetchDetails(); }, [fetchDetails]);
 
+  const syncJobQualityScore = useCallback(async () => {
+    if (!inspection) return;
+    const supabase = getSupabaseBrowserClient();
+
+    // Prefer direct ticket -> job mapping.
+    let jobId: string | null = null;
+    if (inspection.ticket_id) {
+      const { data: ticket } = await supabase
+        .from('work_tickets')
+        .select('job_id')
+        .eq('id', inspection.ticket_id)
+        .is('archived_at', null)
+        .maybeSingle();
+      jobId = ticket?.job_id ?? null;
+    }
+
+    // Fallback: if site has exactly one active job, use it.
+    if (!jobId && inspection.site_id) {
+      const { data: siteJobs } = await supabase
+        .from('site_jobs')
+        .select('id')
+        .eq('site_id', inspection.site_id)
+        .eq('status', 'ACTIVE')
+        .is('archived_at', null)
+        .limit(2);
+      if ((siteJobs?.length ?? 0) === 1) {
+        jobId = siteJobs?.[0]?.id ?? null;
+      }
+    }
+
+    if (!jobId) return;
+
+    const { data: ticketRows } = await supabase
+      .from('work_tickets')
+      .select('id')
+      .eq('job_id', jobId)
+      .is('archived_at', null);
+    const ticketIds = (ticketRows ?? []).map((row) => row.id);
+    if (ticketIds.length === 0) return;
+
+    const { data: inspections } = await supabase
+      .from('inspections')
+      .select('score_pct')
+      .in('ticket_id', ticketIds)
+      .in('status', ['COMPLETED', 'SUBMITTED'])
+      .not('score_pct', 'is', null)
+      .is('archived_at', null);
+
+    const values = (inspections ?? [])
+      .map((row) => Number(row.score_pct))
+      .filter((n) => Number.isFinite(n));
+    if (values.length === 0) return;
+
+    const average = Math.round((values.reduce((sum, n) => sum + n, 0) / values.length) * 100) / 100;
+    await supabase.from('site_jobs').update({ quality_score: average }).eq('id', jobId);
+  }, [inspection]);
+
   const handleScoreItem = async (itemId: string, score: number) => {
     setScoring(true);
     const supabase = getSupabaseBrowserClient();
@@ -111,6 +168,8 @@ export function InspectionDetail({ inspection, open, onClose, onUpdate }: Inspec
           passed,
         })
         .eq('id', inspection.id);
+
+      await syncJobQualityScore();
     }
 
     setScoring(false);
@@ -127,6 +186,9 @@ export function InspectionDetail({ inspection, open, onClose, onUpdate }: Inspec
       updates.completed_at = new Date().toISOString();
     }
     await supabase.from('inspections').update(updates).eq('id', inspection.id);
+    if (newStatus === 'COMPLETED' || newStatus === 'SUBMITTED') {
+      await syncJobQualityScore();
+    }
     onUpdate?.();
   };
 

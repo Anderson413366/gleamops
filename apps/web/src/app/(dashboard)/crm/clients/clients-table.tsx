@@ -129,7 +129,11 @@ export default function ClientsTable({ search }: ClientsTableProps) {
           <button
             key={status}
             type="button"
-            onClick={() => setStatusFilter(status)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setStatusFilter(status);
+            }}
             className={cn(
               'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors',
               statusFilter === status

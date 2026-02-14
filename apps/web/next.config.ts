@@ -10,19 +10,17 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       // Deprecated routes → consolidated modules
-      { source: '/customers', destination: '/crm', permanent: true },
-      { source: '/customers/:path*', destination: '/crm/:path*', permanent: true },
-      { source: '/people', destination: '/workforce', permanent: true },
-      { source: '/people/:path*', destination: '/workforce/:path*', permanent: true },
-      { source: '/team', destination: '/workforce', permanent: true },
-      { source: '/team/:path*', destination: '/workforce/:path*', permanent: true },
-      { source: '/subcontractors', destination: '/vendors', permanent: true },
-      { source: '/schedule', destination: '/operations', permanent: true },
-      { source: '/schedule/:path*', destination: '/operations/:path*', permanent: true },
-      { source: '/services', destination: '/admin', permanent: true },
-      { source: '/services/:path*', destination: '/admin/:path*', permanent: true },
-      { source: '/reports', destination: '/home', permanent: true },
-      { source: '/settings', destination: '/admin', permanent: true },
+      { source: '/customers', destination: '/crm', permanent: false },
+      { source: '/customers/:path*', destination: '/crm/:path*', permanent: false },
+      { source: '/people', destination: '/workforce', permanent: false },
+      { source: '/people/:path*', destination: '/workforce/:path*', permanent: false },
+      { source: '/team', destination: '/workforce', permanent: false },
+      { source: '/team/:path*', destination: '/workforce/:path*', permanent: false },
+      { source: '/subcontractors', destination: '/vendors', permanent: false },
+      { source: '/schedule', destination: '/operations', permanent: false },
+      { source: '/schedule/:path*', destination: '/operations/:path*', permanent: false },
+      { source: '/services', destination: '/admin', permanent: false },
+      { source: '/services/:path*', destination: '/admin/:path*', permanent: false },
     ];
   },
 };

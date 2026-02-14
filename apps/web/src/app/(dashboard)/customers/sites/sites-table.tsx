@@ -12,6 +12,7 @@ import {
   TableRow,
   TableCell,
   EmptyState,
+  Badge,
   Pagination,
   TableSkeleton,
   ExportButton,
@@ -30,9 +31,19 @@ interface SitesTableProps {
   onSelect?: (site: SiteWithClient) => void;
 }
 
+const STATUS_OPTIONS = ['all', 'ACTIVE', 'INACTIVE', 'ON_HOLD', 'CANCELED'] as const;
+
+const SITE_STATUS_COLORS: Record<string, 'green' | 'gray' | 'yellow' | 'red'> = {
+  ACTIVE: 'green',
+  INACTIVE: 'gray',
+  ON_HOLD: 'yellow',
+  CANCELED: 'red',
+};
+
 export default function SitesTable({ search, onSelect }: SitesTableProps) {
   const [rows, setRows] = useState<SiteWithClient[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -51,9 +62,13 @@ export default function SitesTable({ search, onSelect }: SitesTableProps) {
   }, [fetchData]);
 
   const filtered = useMemo(() => {
-    if (!search) return rows;
+    let result = rows;
+    if (statusFilter !== 'all') {
+      result = result.filter((r) => (r.status ?? '').toUpperCase() === statusFilter);
+    }
+    if (!search) return result;
     const q = search.toLowerCase();
-    return rows.filter(
+    return result.filter(
       (r) =>
         r.name.toLowerCase().includes(q) ||
         r.site_code.toLowerCase().includes(q) ||
@@ -61,7 +76,16 @@ export default function SitesTable({ search, onSelect }: SitesTableProps) {
         r.address?.street?.toLowerCase().includes(q) ||
         r.address?.city?.toLowerCase().includes(q)
     );
-  }, [rows, search]);
+  }, [rows, search, statusFilter]);
+
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: rows.length };
+    for (const row of rows) {
+      const status = (row.status ?? '').toUpperCase();
+      counts[status] = (counts[status] || 0) + 1;
+    }
+    return counts;
+  }, [rows]);
 
   const { sorted, sortKey, sortDir, onSort } = useTableSort(
     filtered as unknown as Record<string, unknown>[],
@@ -97,6 +121,29 @@ export default function SitesTable({ search, onSelect }: SitesTableProps) {
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
       </div>
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        {STATUS_OPTIONS.map((status) => (
+          <button
+            key={status}
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setStatusFilter(status);
+            }}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              statusFilter === status
+                ? 'bg-blue-600 text-white'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            }`}
+          >
+            {status === 'all' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase().replace(/_/g, ' ')}
+            <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${statusFilter === status ? 'bg-white/20' : 'bg-background'}`}>
+              {statusCounts[status] || 0}
+            </span>
+          </button>
+        ))}
+      </div>
       <Table>
         <TableHeader>
           <tr>
@@ -107,6 +154,7 @@ export default function SitesTable({ search, onSelect }: SitesTableProps) {
               Name
             </TableHead>
             <TableHead>Client</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead>Address</TableHead>
             <TableHead>Sq Ft</TableHead>
           </tr>
@@ -117,6 +165,13 @@ export default function SitesTable({ search, onSelect }: SitesTableProps) {
               <TableCell className="font-mono text-xs">{row.site_code}</TableCell>
               <TableCell className="font-medium">{row.name}</TableCell>
               <TableCell className="text-muted-foreground">{row.client?.name ?? '—'}</TableCell>
+              <TableCell>
+                {row.status ? (
+                  <Badge color={SITE_STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
+                ) : (
+                  '—'
+                )}
+              </TableCell>
               <TableCell className="text-muted-foreground">
                 {row.address
                   ? [row.address.street, row.address.city, row.address.state]

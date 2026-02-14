@@ -23,6 +23,7 @@ export function ChipTabs({ tabs, active, onChange }: ChipTabsProps) {
           key={tab.key}
           type="button"
           onClick={(e) => {
+            e.preventDefault();
             e.stopPropagation();
             onChange(tab.key);
           }}

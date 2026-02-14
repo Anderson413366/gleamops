@@ -29,6 +29,8 @@ const ROLE_COLORS: Record<string, 'purple' | 'blue' | 'green' | 'orange' | 'yell
   CLEANER: 'gray',
 };
 
+const STATUS_OPTIONS = ['all', 'ACTIVE', 'INACTIVE', 'ON_LEAVE', 'TERMINATED'] as const;
+
 interface StaffTableProps {
   search: string;
   autoCreate?: boolean;
@@ -45,6 +47,7 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editItem, setEditItem] = useState<Staff | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const handleAdd = () => { setEditItem(null); setFormOpen(true); };
   const handleEdit = (item: Staff) => { setEditItem(item); setFormOpen(true); };
@@ -71,9 +74,13 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
   }, [autoCreate, loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = useMemo(() => {
-    if (!search) return rows;
+    let result = rows;
+    if (statusFilter !== 'all') {
+      result = result.filter((r) => (r.staff_status ?? 'ACTIVE') === statusFilter);
+    }
+    if (!search) return result;
     const q = search.toLowerCase();
-    return rows.filter(
+    return result.filter(
       (r) =>
         r.full_name.toLowerCase().includes(q) ||
         r.staff_code.toLowerCase().includes(q) ||
@@ -82,7 +89,16 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
         (r.staff_status?.toLowerCase().includes(q) ?? false) ||
         (r.employment_type?.toLowerCase().includes(q) ?? false)
     );
-  }, [rows, search]);
+  }, [rows, search, statusFilter]);
+
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: rows.length };
+    for (const row of rows) {
+      const status = row.staff_status ?? 'ACTIVE';
+      counts[status] = (counts[status] || 0) + 1;
+    }
+    return counts;
+  }, [rows]);
 
   const { sorted, sortKey, sortDir, onSort } = useTableSort(
     filtered as unknown as Record<string, unknown>[], 'full_name', 'asc'
@@ -128,6 +144,29 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
           ]}
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
+      </div>
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        {STATUS_OPTIONS.map((status) => (
+          <button
+            key={status}
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setStatusFilter(status);
+            }}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              statusFilter === status
+                ? 'bg-blue-600 text-white'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            }`}
+          >
+            {status === 'all' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase().replace(/_/g, ' ')}
+            <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${statusFilter === status ? 'bg-white/20' : 'bg-background'}`}>
+              {statusCounts[status] || 0}
+            </span>
+          </button>
+        ))}
       </div>
       <Table>
         <TableHeader>

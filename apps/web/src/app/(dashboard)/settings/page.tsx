@@ -1,14 +1,16 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Save, Building2, Bell, Shield } from 'lucide-react';
+import { Save, Building2, Bell, Shield, Sun, Moon, Palette } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardHeader, CardTitle, CardContent, Input, Button } from '@gleamops/ui';
 import { useAuth } from '@/hooks/use-auth';
+import { useTheme } from '@/hooks/use-theme';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 export default function SettingsPage() {
   const { user, role, tenantId } = useAuth();
+  const { resolvedTheme, trueBlack, setTheme, setTrueBlack, mounted } = useTheme();
   const [companyName, setCompanyName] = useState('');
   const [companyPhone, setCompanyPhone] = useState('');
   const [companyEmail, setCompanyEmail] = useState('');
@@ -105,6 +107,76 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Appearance */}
+        {mounted && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Palette className="h-5 w-5 text-primary" />
+                Appearance
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              {/* Theme selector */}
+              <div>
+                <p className="text-sm font-medium text-foreground mb-2">Theme</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setTheme('light')}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-all duration-200 ease-in-out ${
+                      resolvedTheme === 'light'
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    <Sun className="h-4 w-4" />
+                    Light
+                  </button>
+                  <button
+                    onClick={() => { setTheme('dark'); if (trueBlack) setTrueBlack(false); }}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-all duration-200 ease-in-out ${
+                      resolvedTheme === 'dark' && !trueBlack
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    <Moon className="h-4 w-4" />
+                    Dark
+                  </button>
+                </div>
+              </div>
+
+              {/* True Black toggle */}
+              <div className="flex items-center justify-between gap-4 pt-2 border-t border-border">
+                <div>
+                  <p className="text-sm font-medium text-foreground">True Black Mode</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Uses pure black backgrounds for OLED screens. Only applies in dark mode.
+                  </p>
+                </div>
+                <button
+                  role="switch"
+                  aria-checked={trueBlack}
+                  onClick={() => {
+                    const next = !trueBlack;
+                    setTrueBlack(next);
+                    if (next && resolvedTheme === 'light') setTheme('dark');
+                  }}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+                    trueBlack ? 'bg-primary' : 'bg-muted'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 ease-in-out ${
+                      trueBlack ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Account Info */}
         <Card>

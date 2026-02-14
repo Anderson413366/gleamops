@@ -33,21 +33,24 @@ function getInitials(email: string): string {
 
 export function Header() {
   const { user, role, signOut } = useAuth();
-  const { resolvedTheme, toggleTheme, mounted } = useTheme();
+  const { resolvedTheme, trueBlack, setTheme, setTrueBlack, mounted } = useTheme();
   const router = useRouter();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [items, setItems] = useState<CommandItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [themeOpen, setThemeOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
+  const themeRef = useRef<HTMLDivElement>(null);
 
   // Close dropdowns on click outside
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
       if (profileRef.current && !profileRef.current.contains(e.target as Node)) setProfileOpen(false);
+      if (themeRef.current && !themeRef.current.contains(e.target as Node)) setThemeOpen(false);
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
@@ -206,19 +209,62 @@ export function Header() {
             </kbd>
           </button>
 
-          {/* Dark mode toggle */}
+          {/* Theme picker */}
           {mounted && (
-            <button
-              onClick={toggleTheme}
-              className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out"
-              aria-label={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            >
-              {resolvedTheme === 'dark' ? (
-                <Sun className="h-5 w-5" />
-              ) : (
-                <Moon className="h-5 w-5" />
+            <div className="relative" ref={themeRef}>
+              <button
+                onClick={() => { setThemeOpen(!themeOpen); setNotifOpen(false); setProfileOpen(false); }}
+                className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out"
+                aria-label="Theme"
+              >
+                {resolvedTheme === 'dark' ? (
+                  <Sun className="h-5 w-5" />
+                ) : (
+                  <Moon className="h-5 w-5" />
+                )}
+              </button>
+              {themeOpen && (
+                <div className="absolute right-0 top-full mt-2 w-44 bg-card rounded-xl shadow-xl border border-border z-50 animate-scale-in overflow-hidden">
+                  <div className="p-1.5 space-y-0.5">
+                    <button
+                      onClick={() => { setTheme('light'); setThemeOpen(false); }}
+                      className={`flex items-center gap-2.5 w-full px-3 py-2 text-sm rounded-lg transition-all duration-200 ease-in-out ${
+                        resolvedTheme === 'light'
+                          ? 'bg-primary/10 text-primary font-medium'
+                          : 'text-foreground hover:bg-muted'
+                      }`}
+                    >
+                      <Sun className="h-4 w-4" />
+                      Light
+                    </button>
+                    <button
+                      onClick={() => { setTheme('dark'); setTrueBlack(false); setThemeOpen(false); }}
+                      className={`flex items-center gap-2.5 w-full px-3 py-2 text-sm rounded-lg transition-all duration-200 ease-in-out ${
+                        resolvedTheme === 'dark' && !trueBlack
+                          ? 'bg-primary/10 text-primary font-medium'
+                          : 'text-foreground hover:bg-muted'
+                      }`}
+                    >
+                      <Moon className="h-4 w-4" />
+                      Dark
+                    </button>
+                    <button
+                      onClick={() => { setTheme('dark'); setTrueBlack(true); setThemeOpen(false); }}
+                      className={`flex items-center gap-2.5 w-full px-3 py-2 text-sm rounded-lg transition-all duration-200 ease-in-out ${
+                        resolvedTheme === 'dark' && trueBlack
+                          ? 'bg-primary/10 text-primary font-medium'
+                          : 'text-foreground hover:bg-muted'
+                      }`}
+                    >
+                      <span className="h-4 w-4 flex items-center justify-center">
+                        <span className="h-3 w-3 rounded-full bg-current" />
+                      </span>
+                      True Black
+                    </button>
+                  </div>
+                </div>
               )}
-            </button>
+            </div>
           )}
 
           {/* Notifications dropdown */}

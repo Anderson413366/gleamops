@@ -203,12 +203,12 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 h-16 bg-card/95 backdrop-blur-sm border-b border-border shadow-sm flex items-center justify-between px-6">
+      <header className="sticky top-0 z-30 h-16 bg-card border-b border-border shadow-sm flex items-center justify-between px-6">
         {/* Left: breadcrumb / page title area (filled by each page) */}
         <div className="flex-1" />
 
         {/* Right: search + theme toggle + notifications + avatar */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           {/* Search trigger */}
           <button
             onClick={() => setPaletteOpen(true)}

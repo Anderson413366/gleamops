@@ -183,7 +183,7 @@ export function Sidebar() {
         </div>
 
         {/* Nav items */}
-        <nav className="flex-1 py-3 px-3 space-y-0.5 overflow-y-auto">
+        <nav className="flex-1 py-3 px-3 space-y-1 overflow-y-auto">
           {NAV_ITEMS.map((item) => {
             const Icon = ICON_MAP[item.icon] ?? Building2;
             const isActive = pathname.startsWith(item.href);
@@ -196,23 +196,24 @@ export function Sidebar() {
                 onClick={() => setMobileOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ease-in-out group ${
                   isActive
-                    ? 'bg-primary/10 text-primary'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'text-sidebar-text hover:bg-sidebar-hover hover:text-white'
                 }`}
               >
                 <Icon
                   className={`h-[18px] w-[18px] shrink-0 transition-colors duration-200 ${
-                    isActive ? 'text-primary' : 'text-sidebar-text group-hover:text-white'
+                    isActive ? 'text-primary-foreground' : 'text-sidebar-text group-hover:text-white'
                   }`}
                 />
                 {item.label}
                 {badgeCount > 0 && (
-                  <span className="ml-auto inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-destructive/20 px-1.5 text-[10px] font-semibold text-destructive">
+                  <span className={`ml-auto inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-semibold ${
+                    isActive
+                      ? 'bg-primary-foreground/20 text-primary-foreground'
+                      : 'bg-destructive/20 text-destructive'
+                  }`}>
                     {badgeCount}
                   </span>
-                )}
-                {isActive && badgeCount === 0 && (
-                  <div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />
                 )}
               </Link>
             );
@@ -293,14 +294,14 @@ export function Sidebar() {
             href="/settings"
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-text hover:bg-sidebar-hover hover:text-white transition-all duration-200 ease-in-out"
           >
-            <Settings className="h-5 w-5 shrink-0" />
+            <Settings className="h-[18px] w-[18px] shrink-0" />
             Settings
           </Link>
           <button
             onClick={signOut}
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-text hover:text-destructive hover:bg-sidebar-hover transition-all duration-200 ease-in-out w-full"
           >
-            <LogOut className="h-5 w-5 shrink-0" />
+            <LogOut className="h-[18px] w-[18px] shrink-0" />
             Sign out
           </button>
         </div>

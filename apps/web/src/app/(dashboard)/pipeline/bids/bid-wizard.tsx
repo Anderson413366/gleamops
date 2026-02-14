@@ -812,7 +812,7 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
         {STEPS.map((_, i) => (
           <div
             key={i}
-            className={`h-1 flex-1 rounded-full ${i <= step ? 'bg-primary' : 'bg-gray-200'}`}
+            className={`h-1 flex-1 rounded-full ${i <= step ? 'bg-primary' : 'bg-muted'}`}
           />
         ))}
       </div>
@@ -853,7 +853,7 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>{area.name}</CardTitle>
-                  <button onClick={() => removeArea(area.tempId)} className="text-muted-foreground hover:text-red-600">
+                  <button onClick={() => removeArea(area.tempId)} className="text-muted-foreground hover:text-destructive">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
@@ -1016,8 +1016,8 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
           )}
           {liveWorkload && liveWorkload.warnings.length > 0 && (
             <div className="mt-2 flex items-start gap-1.5">
-              <AlertTriangle className="h-3 w-3 text-yellow-500 mt-0.5 shrink-0" />
-              <p className="text-[10px] text-yellow-700">{liveWorkload.warnings.join('; ')}</p>
+              <AlertTriangle className="h-3 w-3 text-warning mt-0.5 shrink-0" />
+              <p className="text-[10px] text-warning">{liveWorkload.warnings.join('; ')}</p>
             </div>
           )}
         </div>
@@ -1051,10 +1051,10 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
 
               {/* Guardrail Warnings */}
               {workloadResult.warnings.length > 0 && (
-                <div className="p-3 rounded-lg bg-yellow-50 border border-yellow-200">
+                <div className="p-3 rounded-lg bg-warning/10 border border-warning/20">
                   <div className="flex items-start gap-2">
-                    <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 shrink-0" />
-                    <div className="text-sm text-yellow-800 space-y-1">
+                    <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+                    <div className="text-sm text-warning space-y-1">
                       {workloadResult.warnings.map((w, i) => <p key={i}>{w}</p>)}
                     </div>
                   </div>

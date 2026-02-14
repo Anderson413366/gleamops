@@ -161,8 +161,8 @@ export function SendProposalForm({ proposal, open, onClose, onSuccess }: SendPro
         {error && (
           <div className={`flex items-start gap-2 p-3 rounded-lg border ${
             rateLimited
-              ? 'bg-yellow-50 border-yellow-200 text-yellow-800'
-              : 'bg-red-50 border-red-200 text-red-700'
+              ? 'bg-warning/10 border-warning/20 text-warning'
+              : 'bg-destructive/10 border-destructive/20 text-destructive'
           }`}>
             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
             <p className="text-sm">{error}</p>

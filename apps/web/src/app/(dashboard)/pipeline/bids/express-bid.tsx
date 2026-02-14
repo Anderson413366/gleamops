@@ -377,7 +377,7 @@ export function ExpressBid({ open, onClose, onSuccess }: ExpressBidProps) {
         {STEPS.map((_, i) => (
           <div
             key={i}
-            className={`h-1 flex-1 rounded-full ${i <= step ? 'bg-primary' : 'bg-gray-200'}`}
+            className={`h-1 flex-1 rounded-full ${i <= step ? 'bg-primary' : 'bg-muted'}`}
           />
         ))}
       </div>
@@ -438,9 +438,9 @@ export function ExpressBid({ open, onClose, onSuccess }: ExpressBidProps) {
       {step === 1 && (
         <div className="space-y-4">
           {calcError && (
-            <div className="p-3 rounded-lg bg-red-50 border border-red-200 flex items-start gap-2">
-              <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
-              <p className="text-sm text-red-700">{calcError}</p>
+            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+              <p className="text-sm text-destructive">{calcError}</p>
             </div>
           )}
 
@@ -466,10 +466,10 @@ export function ExpressBid({ open, onClose, onSuccess }: ExpressBidProps) {
 
           {/* Warnings */}
           {workloadResult && workloadResult.warnings.length > 0 && (
-            <div className="p-3 rounded-lg bg-yellow-50 border border-yellow-200">
+            <div className="p-3 rounded-lg bg-warning/10 border border-warning/20">
               <div className="flex items-start gap-2">
-                <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 shrink-0" />
-                <div className="text-sm text-yellow-800 space-y-1">
+                <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+                <div className="text-sm text-warning space-y-1">
                   {workloadResult.warnings.map((w, i) => <p key={i}>{w}</p>)}
                 </div>
               </div>
@@ -534,9 +534,9 @@ export function ExpressBid({ open, onClose, onSuccess }: ExpressBidProps) {
       {/* Step 2: Confirm */}
       {step === 2 && (
         <div className="space-y-4">
-          <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 border border-green-200">
-            <Check className="h-4 w-4 text-green-600" />
-            <p className="text-sm text-green-800 font-medium">Ready to create your express bid</p>
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-success/10 border border-success/20">
+            <Check className="h-4 w-4 text-success" />
+            <p className="text-sm text-success font-medium">Ready to create your express bid</p>
           </div>
 
           {workloadResult && pricingResult && (

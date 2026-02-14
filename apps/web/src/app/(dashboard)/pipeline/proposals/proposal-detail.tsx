@@ -160,36 +160,36 @@ export function ProposalDetail({
         {conversionResult && (
           <div className={`p-4 rounded-lg border ${
             conversionResult.success
-              ? 'bg-green-50 border-green-200'
-              : 'bg-red-50 border-red-200'
+              ? 'bg-success/10 border-success/20'
+              : 'bg-destructive/10 border-destructive/20'
           }`}>
             <div className="flex items-center gap-3">
               {conversionResult.success ? (
-                <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
+                <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
               ) : (
-                <XCircle className="h-5 w-5 text-red-600 shrink-0" />
+                <XCircle className="h-5 w-5 text-destructive shrink-0" />
               )}
               <div>
                 {conversionResult.success ? (
                   <>
-                    <p className="text-sm font-semibold text-green-800">
+                    <p className="text-sm font-semibold text-success">
                       {conversionResult.idempotent ? 'Already Converted' : 'Conversion Successful'}
                     </p>
-                    <p className="text-xs text-green-700">
+                    <p className="text-xs text-success">
                       Service Plan <span className="font-mono font-bold">{conversionResult.job_code}</span> created with {conversionResult.tickets_created} tickets
                     </p>
                   </>
                 ) : (
                   <>
-                    <p className="text-sm font-semibold text-red-800">
+                    <p className="text-sm font-semibold text-destructive">
                       Conversion Failed
                       {conversionResult.errorCode && (
-                        <span className="ml-2 font-mono text-xs bg-red-100 px-1.5 py-0.5 rounded">
+                        <span className="ml-2 font-mono text-xs bg-destructive/10 px-1.5 py-0.5 rounded">
                           {conversionResult.errorCode}
                         </span>
                       )}
                     </p>
-                    <p className="text-xs text-red-700">{conversionResult.error}</p>
+                    <p className="text-xs text-destructive">{conversionResult.error}</p>
                   </>
                 )}
               </div>
@@ -228,7 +228,7 @@ export function ProposalDetail({
             <CardHeader>
               <CardTitle>
                 <span className="inline-flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-yellow-500" />
+                  <Zap className="h-4 w-4 text-warning" />
                   Convert to Service Plan
                 </span>
               </CardTitle>
@@ -437,7 +437,7 @@ export function ProposalDetail({
                           </label>
                           <button
                             onClick={() => setEditableOptions(editableOptions.filter((_, j) => j !== i))}
-                            className="text-muted-foreground hover:text-red-600"
+                            className="text-muted-foreground hover:text-destructive"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
@@ -569,9 +569,9 @@ export function ProposalDetail({
                       <div key={send.id} className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-2">
                           {send.status === 'OPENED' ? (
-                            <Eye className="h-4 w-4 text-yellow-500" />
+                            <Eye className="h-4 w-4 text-warning" />
                           ) : send.status === 'BOUNCED' || send.status === 'FAILED' ? (
-                            <AlertCircle className="h-4 w-4 text-red-500" />
+                            <AlertCircle className="h-4 w-4 text-destructive" />
                           ) : (
                             <Mail className="h-4 w-4 text-muted-foreground" />
                           )}

@@ -15,21 +15,7 @@ import {
   Skeleton,
 } from '@gleamops/ui';
 import type { Client, Site, Contact } from '@gleamops/shared';
-
-const STATUS_COLORS: Record<string, 'green' | 'gray' | 'orange' | 'yellow' | 'red'> = {
-  ACTIVE: 'green',
-  INACTIVE: 'gray',
-  PROSPECT: 'orange',
-  ON_HOLD: 'yellow',
-  CANCELED: 'red',
-};
-
-const JOB_STATUS_COLORS: Record<string, 'green' | 'yellow' | 'gray' | 'red'> = {
-  ACTIVE: 'green',
-  ON_HOLD: 'yellow',
-  CANCELED: 'gray',
-  COMPLETED: 'green',
-};
+import { CLIENT_STATUS_COLORS, JOB_STATUS_COLORS } from '@gleamops/shared';
 
 interface SiteJobRow {
   id: string;
@@ -131,7 +117,7 @@ export function ClientDetail({ client, open, onClose, onEdit }: ClientDetailProp
       <div className="space-y-4">
         {/* Status + Actions */}
         <div className="flex items-center justify-between">
-          <Badge color={STATUS_COLORS[client.status] ?? 'gray'}>{client.status}</Badge>
+          <Badge color={CLIENT_STATUS_COLORS[client.status] ?? 'gray'}>{client.status}</Badge>
           <Button variant="secondary" size="sm" onClick={() => onEdit(client)}>
             <Pencil className="h-3.5 w-3.5" />
             Edit
@@ -287,7 +273,7 @@ export function ClientDetail({ client, open, onClose, onEdit }: ClientDetailProp
                           <p className="text-sm font-medium text-foreground">{site.name}</p>
                           <p className="text-xs text-muted-foreground">{site.site_code}</p>
                         </div>
-                        <Badge color={STATUS_COLORS[site.status ?? ''] ?? 'gray'}>{site.status ?? 'N/A'}</Badge>
+                        <Badge color={CLIENT_STATUS_COLORS[site.status ?? ''] ?? 'gray'}>{site.status ?? 'N/A'}</Badge>
                       </div>
                       {site.address && (
                         <p className="text-xs text-muted-foreground mt-1">

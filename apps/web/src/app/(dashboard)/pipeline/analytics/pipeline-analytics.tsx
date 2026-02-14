@@ -207,7 +207,7 @@ export default function PipelineAnalytics() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2 mb-1">
-              <Trophy className="h-4 w-4 text-yellow-500" />
+              <Trophy className="h-4 w-4 text-warning" />
               <p className="text-xs text-muted-foreground">Win Rate (90d)</p>
             </div>
             <p className="text-2xl font-bold">
@@ -219,7 +219,7 @@ export default function PipelineAnalytics() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2 mb-1">
-              <DollarSign className="h-4 w-4 text-green-500" />
+              <DollarSign className="h-4 w-4 text-success" />
               <p className="text-xs text-muted-foreground">Pipeline Value</p>
             </div>
             <p className="text-2xl font-bold">{fmt(pipelineRevenue)}<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
@@ -229,7 +229,7 @@ export default function PipelineAnalytics() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2 mb-1">
-              <DollarSign className="h-4 w-4 text-blue-500" />
+              <DollarSign className="h-4 w-4 text-primary" />
               <p className="text-xs text-muted-foreground">Won Revenue</p>
             </div>
             <p className="text-2xl font-bold">{fmt(wonRevenue)}<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
@@ -239,7 +239,7 @@ export default function PipelineAnalytics() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2 mb-1">
-              <DollarSign className="h-4 w-4 text-purple-500" />
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
               <p className="text-xs text-muted-foreground">Avg Deal Size</p>
             </div>
             <p className="text-2xl font-bold">{avgDealSize > 0 ? fmt(avgDealSize) : 'N/A'}<span className="text-sm font-normal text-muted-foreground">/mo</span></p>

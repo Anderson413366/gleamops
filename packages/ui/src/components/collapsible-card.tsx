@@ -8,24 +8,29 @@ import { Card } from './card';
 interface CollapsibleCardProps {
   id: string;
   title: React.ReactNode;
+  description?: string;
   icon?: React.ReactNode;
   headerRight?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
   defaultOpen?: boolean;
+  defaultCollapsed?: boolean;
 }
 
 export function CollapsibleCard({
   id,
   title,
+  description,
   icon,
   headerRight,
   children,
   className,
   defaultOpen = true,
+  defaultCollapsed,
 }: CollapsibleCardProps) {
   const storageKey = `collapse-${id}`;
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const initialOpen = defaultCollapsed != null ? !defaultCollapsed : defaultOpen;
+  const [isOpen, setIsOpen] = useState(initialOpen);
   const [mounted, setMounted] = useState(false);
 
   // Restore persisted state from localStorage on mount
@@ -60,7 +65,7 @@ export function CollapsibleCard({
 
   return (
     <Card className={className}>
-      {/* Header */}
+      {/* Header — keyboard accessible toggle */}
       <div
         role="button"
         tabIndex={0}
@@ -74,9 +79,16 @@ export function CollapsibleCard({
           {icon && (
             <span className="shrink-0 text-muted-foreground">{icon}</span>
           )}
-          <span className="text-base font-semibold text-foreground truncate">
-            {title}
-          </span>
+          <div className="min-w-0">
+            <span className="text-sm font-semibold text-foreground truncate block">
+              {title}
+            </span>
+            {description && (
+              <span className="text-xs text-muted-foreground truncate block">
+                {description}
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
@@ -90,32 +102,26 @@ export function CollapsibleCard({
           )}
           <ChevronDown
             className={cn(
-              'h-5 w-5 text-muted-foreground transition-transform duration-200',
-              isOpen && 'rotate-180'
+              'h-4 w-4 text-muted-foreground transition-transform duration-200',
+              mounted && isOpen && 'rotate-0',
+              mounted && !isOpen && '-rotate-90'
             )}
             aria-hidden="true"
           />
         </div>
       </div>
 
-      {/* Content */}
-      <div
-        id={`collapsible-content-${id}`}
-        role="region"
-        aria-labelledby={`collapsible-content-${id}`}
-        className={cn(
-          'overflow-hidden transition-all duration-200 ease-in-out',
-          mounted
-            ? isOpen
-              ? 'max-h-[2000px] opacity-100'
-              : 'max-h-0 opacity-0'
-            : isOpen
-              ? 'max-h-[2000px] opacity-100'
-              : 'max-h-0 opacity-0'
-        )}
-      >
-        <div className="border-t border-border px-6 py-5">{children}</div>
-      </div>
+      {/* Content — simple show/hide, no janky max-h transitions */}
+      {isOpen && (
+        <div
+          id={`collapsible-content-${id}`}
+          role="region"
+          aria-labelledby={`collapsible-content-${id}`}
+          className="border-t border-border px-6 py-5"
+        >
+          {children}
+        </div>
+      )}
     </Card>
   );
 }

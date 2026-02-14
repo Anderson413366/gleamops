@@ -144,13 +144,13 @@ interface ActiveStaffRow {
 // ---------------------------------------------------------------------------
 function StatCardSkeleton() {
   return (
-    <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+    <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
       <div className="flex items-start justify-between">
         <div className="flex-1 space-y-2">
           <Skeleton className="h-4 w-24" />
           <Skeleton className="h-8 w-16" />
         </div>
-        <Skeleton className="h-12 w-12 rounded-xl" />
+        <Skeleton className="h-12 w-12 rounded-lg" />
       </div>
     </div>
   );
@@ -731,7 +731,7 @@ export default function HomePage() {
                   className="flex items-center justify-between gap-3 text-sm"
                 >
                   <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <div className="h-2 w-2 rounded-full bg-green-500 shrink-0" />
+                    <div className="h-2 w-2 rounded-full bg-success shrink-0" />
                     <span className="font-medium text-foreground truncate">
                       {entry.staff?.full_name ?? 'Unknown Staff'}
                     </span>
@@ -758,7 +758,7 @@ export default function HomePage() {
             <ListSkeleton rows={4} />
           ) : complianceAlerts.length === 0 ? (
             <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-green-500" />
+              <div className="h-2 w-2 rounded-full bg-success" />
               <p className="text-sm text-muted-foreground">All clear. No expiring certifications, training, or documents.</p>
             </div>
           ) : (
@@ -832,7 +832,7 @@ export default function HomePage() {
             <ListSkeleton rows={4} />
           ) : dataIssues.length === 0 ? (
             <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-green-500" />
+              <div className="h-2 w-2 rounded-full bg-success" />
               <p className="text-sm text-muted-foreground">All records look good. No issues detected.</p>
             </div>
           ) : (
@@ -843,7 +843,7 @@ export default function HomePage() {
                   className="flex items-center justify-between gap-3 text-sm"
                 >
                   <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <AlertTriangle className="h-3.5 w-3.5 text-yellow-500 shrink-0" />
+                    <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />
                     <span className="font-mono text-xs text-muted-foreground shrink-0">{issue.code}</span>
                     <span className="text-foreground truncate">{issue.issue}</span>
                   </div>

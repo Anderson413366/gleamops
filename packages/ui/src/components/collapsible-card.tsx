@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '../utils';
+import { Card } from './card';
 
 interface CollapsibleCardProps {
   id: string;
@@ -58,12 +59,7 @@ export function CollapsibleCard({
   };
 
   return (
-    <div
-      className={cn(
-        'rounded-lg border border-border bg-card shadow-sm transition-all duration-200 ease-in-out',
-        className
-      )}
-    >
+    <Card className={className}>
       {/* Header */}
       <div
         role="button"
@@ -72,7 +68,7 @@ export function CollapsibleCard({
         onKeyDown={handleKeyDown}
         aria-expanded={isOpen}
         aria-controls={`collapsible-content-${id}`}
-        className="flex items-center justify-between px-6 py-4 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring rounded-lg"
+        className="flex items-center justify-between px-6 py-4 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring rounded-lg transition-colors duration-200 ease-in-out"
       >
         <div className="flex items-center gap-3 min-w-0">
           {icon && (
@@ -108,7 +104,7 @@ export function CollapsibleCard({
         role="region"
         aria-labelledby={`collapsible-content-${id}`}
         className={cn(
-          'overflow-hidden transition-all duration-200',
+          'overflow-hidden transition-all duration-200 ease-in-out',
           mounted
             ? isOpen
               ? 'max-h-[2000px] opacity-100'
@@ -120,6 +116,6 @@ export function CollapsibleCard({
       >
         <div className="border-t border-border px-6 py-5">{children}</div>
       </div>
-    </div>
+    </Card>
   );
 }

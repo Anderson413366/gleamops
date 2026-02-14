@@ -38,10 +38,10 @@ export function ChipTabs({ tabs, active, onChange }: ChipTabsProps) {
           {tab.count != null && (
             <span
               className={cn(
-                'ml-0.5 rounded-full px-1.5 py-0.5 text-xs font-semibold',
+                'ml-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
                 active === tab.key
-                  ? 'bg-primary-foreground/20 text-primary-foreground'
-                  : 'bg-background text-muted-foreground'
+                  ? 'bg-background text-muted-foreground'
+                  : 'bg-muted text-muted-foreground'
               )}
             >
               {tab.count}

@@ -24,8 +24,7 @@ export function TableRow({ className, onClick, ...props }: React.HTMLAttributes<
   return (
     <tr
       className={cn(
-        'transition-colors duration-150',
-        onClick && 'cursor-pointer hover:bg-muted/50',
+        'bg-card transition-colors cursor-pointer hover:bg-muted/50',
         className
       )}
       onClick={onClick}

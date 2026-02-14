@@ -24,25 +24,21 @@ export function ClientsCardGrid({ rows, onSelect }: ClientsCardGridProps) {
         <div
           key={item.id}
           onClick={() => onSelect(item)}
-          className="rounded-lg border border-border bg-card p-4 shadow-sm hover:shadow-md cursor-pointer transition-shadow"
+          className="rounded-xl border border-border bg-card shadow-sm cursor-pointer transition-all duration-150 hover:border-blue-200 hover:shadow-md dark:hover:border-blue-800 flex flex-col items-center p-6 text-center"
         >
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted flex-shrink-0">
-              <Building2 className="h-5 w-5 text-muted-foreground" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="font-medium text-foreground truncate">{item.name}</p>
-              <p className="text-xs text-muted-foreground font-mono">{item.client_code}</p>
-            </div>
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-blue-100 text-2xl font-bold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+            <Building2 className="h-8 w-8" />
           </div>
-          <div className="mt-3 flex flex-wrap gap-1.5">
+          <p className="mt-3 text-sm font-semibold text-foreground leading-tight">{item.name}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{item.client_code}</p>
+          <div className="mt-3 flex flex-wrap justify-center gap-1.5">
             <Badge color={STATUS_COLORS[item.status] ?? 'gray'}>{item.status}</Badge>
             {item.client_type && (
               <Badge color="blue">{item.client_type}</Badge>
             )}
           </div>
           {item.industry && (
-            <p className="mt-2 text-xs text-muted-foreground truncate">{item.industry}</p>
+            <p className="mt-2 text-xs text-muted-foreground truncate max-w-full">{item.industry}</p>
           )}
         </div>
       ))}

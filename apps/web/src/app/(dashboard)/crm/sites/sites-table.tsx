@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, ViewToggle,
+  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, ViewToggle, cn,
 } from '@gleamops/ui';
 import type { Site } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
@@ -21,13 +22,16 @@ const SITE_STATUS_COLORS: Record<string, 'green' | 'gray' | 'yellow' | 'red'> = 
   CANCELED: 'red',
 };
 
-const PRIORITY_COLORS: Record<string, 'red' | 'orange' | 'yellow' | 'blue' | 'gray'> = {
+const PRIORITY_COLORS: Record<string, 'red' | 'blue' | 'yellow' | 'gray'> = {
   CRITICAL: 'red',
-  HIGH: 'orange',
+  HIGH: 'blue',
   MEDIUM: 'yellow',
-  LOW: 'blue',
+  LOW: 'gray',
   NORMAL: 'gray',
+  STANDARD: 'gray',
 };
+
+const STATUS_OPTIONS = ['all', 'ACTIVE', 'INACTIVE', 'ON_HOLD', 'CANCELED'] as const;
 
 interface SiteWithClient extends Site {
   client?: { name: string; client_code: string } | null;
@@ -35,12 +39,13 @@ interface SiteWithClient extends Site {
 
 interface SitesTableProps {
   search: string;
-  onSelect?: (site: SiteWithClient) => void;
 }
 
-export default function SitesTable({ search, onSelect }: SitesTableProps) {
+export default function SitesTable({ search }: SitesTableProps) {
+  const router = useRouter();
   const [rows, setRows] = useState<SiteWithClient[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const { view, setView } = useViewPreference('sites');
 
   const fetchData = useCallback(async () => {
@@ -57,25 +62,45 @@ export default function SitesTable({ search, onSelect }: SitesTableProps) {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: rows.length };
+    for (const r of rows) {
+      if (r.status) {
+        counts[r.status] = (counts[r.status] || 0) + 1;
+      }
+    }
+    return counts;
+  }, [rows]);
+
   const filtered = useMemo(() => {
-    if (!search) return rows;
-    const q = search.toLowerCase();
-    return rows.filter(
-      (r) =>
-        r.name.toLowerCase().includes(q) ||
-        r.site_code.toLowerCase().includes(q) ||
-        r.client?.name?.toLowerCase().includes(q) ||
-        r.address?.street?.toLowerCase().includes(q) ||
-        r.address?.city?.toLowerCase().includes(q) ||
-        r.status?.toLowerCase().includes(q)
-    );
-  }, [rows, search]);
+    let result = rows;
+    if (statusFilter !== 'all') {
+      result = result.filter((r) => r.status === statusFilter);
+    }
+    if (search) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (r) =>
+          r.name.toLowerCase().includes(q) ||
+          r.site_code.toLowerCase().includes(q) ||
+          r.client?.name?.toLowerCase().includes(q) ||
+          r.address?.street?.toLowerCase().includes(q) ||
+          r.address?.city?.toLowerCase().includes(q) ||
+          r.status?.toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [rows, search, statusFilter]);
 
   const { sorted, sortKey, sortDir, onSort } = useTableSort(
     filtered as unknown as Record<string, unknown>[], 'name', 'asc'
   );
   const sortedRows = sorted as unknown as SiteWithClient[];
   const pag = usePagination(sortedRows, 25);
+
+  const handleRowClick = (row: SiteWithClient) => {
+    router.push(`/crm/sites/${row.site_code}`);
+  };
 
   if (loading) return <TableSkeleton rows={8} cols={8} />;
 
@@ -107,8 +132,31 @@ export default function SitesTable({ search, onSelect }: SitesTableProps) {
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
       </div>
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        {STATUS_OPTIONS.map((status) => (
+          <button
+            key={status}
+            type="button"
+            onClick={() => setStatusFilter(status)}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors',
+              statusFilter === status
+                ? 'bg-blue-600 text-white'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            )}
+          >
+            {status === 'all' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase().replace(/_/g, ' ')}
+            <span className={cn(
+              'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+              statusFilter === status ? 'bg-white/20' : 'bg-background'
+            )}>
+              {statusCounts[status] || 0}
+            </span>
+          </button>
+        ))}
+      </div>
       {view === 'card' ? (
-        <SitesCardGrid rows={pag.page} onSelect={(item) => onSelect?.(item)} />
+        <SitesCardGrid rows={pag.page} onSelect={handleRowClick} />
       ) : (
       <Table>
         <TableHeader>
@@ -125,28 +173,28 @@ export default function SitesTable({ search, onSelect }: SitesTableProps) {
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id} onClick={() => onSelect?.(row)} className="cursor-pointer">
+            <TableRow key={row.id} onClick={() => handleRowClick(row)} className="cursor-pointer">
               <TableCell className="font-mono text-xs">{row.site_code}</TableCell>
               <TableCell className="font-medium">{row.name}</TableCell>
-              <TableCell className="text-muted-foreground">{row.client?.name ?? '—'}</TableCell>
+              <TableCell className="text-muted-foreground">{row.client?.name ?? '---'}</TableCell>
               <TableCell>
                 {row.status ? (
                   <Badge color={SITE_STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
-                ) : '—'}
+                ) : '---'}
               </TableCell>
               <TableCell className="text-muted-foreground">
                 {row.address
                   ? [row.address.city, row.address.state].filter(Boolean).join(', ')
-                  : '—'}
+                  : '---'}
               </TableCell>
               <TableCell className="text-right tabular-nums">
-                {row.square_footage ? row.square_footage.toLocaleString() : '—'}
+                {row.square_footage ? row.square_footage.toLocaleString() : '---'}
               </TableCell>
-              <TableCell className="text-center">{row.number_of_floors ?? '—'}</TableCell>
+              <TableCell className="text-center">{row.number_of_floors ?? '---'}</TableCell>
               <TableCell>
                 {row.priority_level ? (
                   <Badge color={PRIORITY_COLORS[row.priority_level] ?? 'gray'}>{row.priority_level}</Badge>
-                ) : '—'}
+                ) : '---'}
               </TableCell>
             </TableRow>
           ))}

@@ -19,11 +19,12 @@ const JOB_STATUS_COLORS: Record<string, 'green' | 'yellow' | 'gray' | 'red'> = {
   COMPLETED: 'green',
 };
 
-const PRIORITY_COLORS: Record<string, 'red' | 'orange' | 'yellow' | 'gray'> = {
+const PRIORITY_COLORS: Record<string, 'red' | 'blue' | 'yellow' | 'gray'> = {
   CRITICAL: 'red',
-  HIGH: 'orange',
+  HIGH: 'blue',
   MEDIUM: 'yellow',
   LOW: 'gray',
+  STANDARD: 'gray',
 };
 
 interface JobWithRelations extends SiteJob {

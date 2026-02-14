@@ -1,18 +1,18 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Briefcase, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, Button, ViewToggle,
+  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, Button, ViewToggle, cn,
 } from '@gleamops/ui';
 import type { SiteJob } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 import { useViewPreference } from '@/hooks/use-view-preference';
-import { JobDetail } from './job-detail';
 import { JobForm } from '@/components/forms/job-form';
 import { JobsCardGrid } from './jobs-card-grid';
 
@@ -23,12 +23,15 @@ const JOB_STATUS_COLORS: Record<string, 'green' | 'yellow' | 'gray' | 'red'> = {
   COMPLETED: 'green',
 };
 
-const PRIORITY_COLORS: Record<string, 'red' | 'orange' | 'yellow' | 'gray'> = {
+const PRIORITY_COLORS: Record<string, 'red' | 'blue' | 'yellow' | 'gray'> = {
   CRITICAL: 'red',
-  HIGH: 'orange',
+  HIGH: 'blue',
   MEDIUM: 'yellow',
   LOW: 'gray',
+  STANDARD: 'gray',
 };
+
+const STATUS_OPTIONS = ['all', 'ACTIVE', 'ON_HOLD', 'COMPLETED', 'CANCELED'] as const;
 
 interface JobWithRelations extends SiteJob {
   site?: { site_code: string; name: string; client?: { name: string } | null } | null;
@@ -44,11 +47,12 @@ function formatCurrency(n: number | null) {
 }
 
 export default function JobsTable({ search }: JobsTableProps) {
+  const router = useRouter();
   const [rows, setRows] = useState<JobWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<JobWithRelations | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editItem, setEditItem] = useState<SiteJob | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const { view, setView } = useViewPreference('jobs');
 
   const fetchData = useCallback(async () => {
@@ -68,18 +72,32 @@ export default function JobsTable({ search }: JobsTableProps) {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: rows.length };
+    for (const r of rows) {
+      counts[r.status] = (counts[r.status] || 0) + 1;
+    }
+    return counts;
+  }, [rows]);
+
   const filtered = useMemo(() => {
-    if (!search) return rows;
-    const q = search.toLowerCase();
-    return rows.filter(
-      (r) =>
-        r.job_code.toLowerCase().includes(q) ||
-        (r.job_name ?? '').toLowerCase().includes(q) ||
-        r.site?.name?.toLowerCase().includes(q) ||
-        r.site?.client?.name?.toLowerCase().includes(q) ||
-        r.status.toLowerCase().includes(q)
-    );
-  }, [rows, search]);
+    let result = rows;
+    if (statusFilter !== 'all') {
+      result = result.filter((r) => r.status === statusFilter);
+    }
+    if (search) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (r) =>
+          r.job_code.toLowerCase().includes(q) ||
+          (r.job_name ?? '').toLowerCase().includes(q) ||
+          r.site?.name?.toLowerCase().includes(q) ||
+          r.site?.client?.name?.toLowerCase().includes(q) ||
+          r.status.toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [rows, search, statusFilter]);
 
   const { sorted, sortKey, sortDir, onSort } = useTableSort(
     filtered as unknown as Record<string, unknown>[], 'job_code', 'asc'
@@ -87,10 +105,8 @@ export default function JobsTable({ search }: JobsTableProps) {
   const sortedRows = sorted as unknown as JobWithRelations[];
   const pag = usePagination(sortedRows, 25);
 
-  const handleEdit = (job: SiteJob) => {
-    setSelected(null);
-    setEditItem(job);
-    setFormOpen(true);
+  const handleRowClick = (row: JobWithRelations) => {
+    router.push(`/operations/jobs/${row.job_code}`);
   };
 
   if (loading) return <TableSkeleton rows={6} cols={6} />;
@@ -140,8 +156,31 @@ export default function JobsTable({ search }: JobsTableProps) {
           />
         </div>
       </div>
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        {STATUS_OPTIONS.map((status) => (
+          <button
+            key={status}
+            type="button"
+            onClick={() => setStatusFilter(status)}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors',
+              statusFilter === status
+                ? 'bg-blue-600 text-white'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            )}
+          >
+            {status === 'all' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase().replace(/_/g, ' ')}
+            <span className={cn(
+              'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+              statusFilter === status ? 'bg-white/20' : 'bg-background'
+            )}>
+              {statusCounts[status] || 0}
+            </span>
+          </button>
+        ))}
+      </div>
       {view === 'card' ? (
-        <JobsCardGrid rows={pag.page} onSelect={(item) => setSelected(item)} />
+        <JobsCardGrid rows={pag.page} onSelect={handleRowClick} />
       ) : (
       <Table>
         <TableHeader>
@@ -159,7 +198,7 @@ export default function JobsTable({ search }: JobsTableProps) {
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id} className="cursor-pointer" onClick={() => setSelected(row)}>
+            <TableRow key={row.id} className="cursor-pointer" onClick={() => handleRowClick(row)}>
               <TableCell className="font-mono text-xs">{row.job_code}</TableCell>
               <TableCell className="font-medium">{row.job_name ?? '\u2014'}</TableCell>
               <TableCell>{row.site?.name ?? '\u2014'}</TableCell>
@@ -184,13 +223,6 @@ export default function JobsTable({ search }: JobsTableProps) {
         currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
         pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
         onNext={pag.nextPage} onPrev={pag.prevPage}
-      />
-
-      <JobDetail
-        job={selected}
-        open={!!selected}
-        onClose={() => setSelected(null)}
-        onEdit={handleEdit}
       />
 
       <JobForm

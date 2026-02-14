@@ -21,26 +21,22 @@ export function VehiclesCardGrid({ rows, onSelect }: VehiclesCardGridProps) {
         <div
           key={item.id}
           onClick={() => onSelect(item)}
-          className="rounded-lg border border-border bg-card p-4 shadow-sm hover:shadow-md cursor-pointer transition-shadow"
+          className="rounded-xl border border-border bg-card shadow-sm cursor-pointer transition-all duration-150 hover:border-blue-200 hover:shadow-md dark:hover:border-blue-800 flex flex-col items-center p-6 text-center"
         >
-          <div className="flex items-start gap-3">
-            {item.photo_url ? (
-              <img
-                src={item.photo_url}
-                alt={item.name ?? item.vehicle_code}
-                className="h-10 w-10 rounded-lg object-cover flex-shrink-0"
-              />
-            ) : (
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted flex-shrink-0">
-                <Car className="h-5 w-5 text-muted-foreground" />
-              </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <p className="font-medium text-foreground truncate">{item.name ?? item.vehicle_code}</p>
-              <p className="text-xs text-muted-foreground font-mono">{item.vehicle_code}</p>
+          {item.photo_url ? (
+            <img
+              src={item.photo_url}
+              alt={item.name ?? item.vehicle_code}
+              className="h-20 w-20 rounded-full object-cover"
+            />
+          ) : (
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-blue-100 text-2xl font-bold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+              <Car className="h-8 w-8" />
             </div>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-1.5">
+          )}
+          <p className="mt-3 text-sm font-semibold text-foreground leading-tight">{item.name ?? item.vehicle_code}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{item.vehicle_code}</p>
+          <div className="mt-3 flex flex-wrap justify-center gap-1.5">
             <Badge color={VEHICLE_STATUS_COLORS[item.status] ?? 'gray'}>{item.status}</Badge>
           </div>
           <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">

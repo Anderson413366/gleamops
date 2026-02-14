@@ -91,8 +91,8 @@ export function FormWizard({
                     className={cn(
                       'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-all duration-200',
                       isCompleted && 'bg-success text-success-foreground',
-                      isCurrent && 'bg-primary text-white ring-2 ring-primary ring-offset-2 ring-offset-background',
-                      isFuture && 'bg-muted text-muted-foreground'
+                      isCurrent && 'bg-blue-600 text-white ring-4 ring-blue-600/20',
+                      isFuture && 'bg-muted text-muted-foreground cursor-default'
                     )}
                   >
                     {isCompleted ? (

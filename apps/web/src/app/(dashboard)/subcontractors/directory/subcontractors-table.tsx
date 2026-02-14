@@ -9,12 +9,14 @@ import { SUBCONTRACTOR_STATUS_COLORS } from '@gleamops/shared';
 import type { StatusColor } from '@gleamops/shared';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, ViewToggle,
+  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, ViewToggle, cn,
 } from '@gleamops/ui';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 import { useViewPreference } from '@/hooks/use-view-preference';
 import { SubcontractorsCardGrid } from './subcontractors-card-grid';
+
+const STATUS_OPTIONS = ['all', 'ACTIVE', 'INACTIVE', 'PENDING'] as const;
 
 interface Props {
   search: string;
@@ -22,18 +24,19 @@ interface Props {
 }
 
 function formatDate(d: string | null) {
-  if (!d) return '—';
+  if (!d) return '---';
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function formatCurrency(n: number | null) {
-  if (n == null) return '—';
+  if (n == null) return '---';
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(n);
 }
 
 export default function SubcontractorsTable({ search, onSelect }: Props) {
   const [rows, setRows] = useState<Subcontractor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const { view, setView } = useViewPreference('subcontractors');
 
   const fetchData = useCallback(async () => {
@@ -50,16 +53,30 @@ export default function SubcontractorsTable({ search, onSelect }: Props) {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: rows.length };
+    for (const r of rows) {
+      counts[r.status] = (counts[r.status] || 0) + 1;
+    }
+    return counts;
+  }, [rows]);
+
   const filtered = useMemo(() => {
-    if (!search) return rows;
-    const q = search.toLowerCase();
-    return rows.filter((r) =>
-      r.company_name.toLowerCase().includes(q) ||
-      r.subcontractor_code.toLowerCase().includes(q) ||
-      (r.contact_name ?? '').toLowerCase().includes(q) ||
-      (r.services_provided ?? '').toLowerCase().includes(q)
-    );
-  }, [rows, search]);
+    let result = rows;
+    if (statusFilter !== 'all') {
+      result = result.filter((r) => r.status === statusFilter);
+    }
+    if (search) {
+      const q = search.toLowerCase();
+      result = result.filter((r) =>
+        r.company_name.toLowerCase().includes(q) ||
+        r.subcontractor_code.toLowerCase().includes(q) ||
+        (r.contact_name ?? '').toLowerCase().includes(q) ||
+        (r.services_provided ?? '').toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [rows, search, statusFilter]);
 
   const { sorted, sortKey, sortDir, onSort } = useTableSort(filtered as unknown as Record<string, unknown>[], 'company_name', 'asc');
   const sortedRows = sorted as unknown as Subcontractor[];
@@ -96,6 +113,29 @@ export default function SubcontractorsTable({ search, onSelect }: Props) {
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
       </div>
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        {STATUS_OPTIONS.map((status) => (
+          <button
+            key={status}
+            type="button"
+            onClick={() => setStatusFilter(status)}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors',
+              statusFilter === status
+                ? 'bg-blue-600 text-white'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            )}
+          >
+            {status === 'all' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase()}
+            <span className={cn(
+              'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+              statusFilter === status ? 'bg-white/20' : 'bg-background'
+            )}>
+              {statusCounts[status] || 0}
+            </span>
+          </button>
+        ))}
+      </div>
       {view === 'card' ? (
         <SubcontractorsCardGrid rows={pag.page} onSelect={(item) => onSelect?.(item)} />
       ) : (
@@ -118,9 +158,9 @@ export default function SubcontractorsTable({ search, onSelect }: Props) {
             <TableRow key={row.id} onClick={() => onSelect?.(row)} className="cursor-pointer">
               <TableCell className="font-mono text-xs">{row.subcontractor_code}</TableCell>
               <TableCell className="font-medium">{row.company_name}</TableCell>
-              <TableCell>{row.contact_name ?? '—'}</TableCell>
-              <TableCell>{row.business_phone ?? row.phone ?? '—'}</TableCell>
-              <TableCell className="max-w-[200px] truncate text-muted-foreground">{row.services_provided ?? '—'}</TableCell>
+              <TableCell>{row.contact_name ?? '---'}</TableCell>
+              <TableCell>{row.business_phone ?? row.phone ?? '---'}</TableCell>
+              <TableCell className="max-w-[200px] truncate text-muted-foreground">{row.services_provided ?? '---'}</TableCell>
               <TableCell className="text-right tabular-nums">{formatCurrency(row.hourly_rate ?? null)}/hr</TableCell>
               <TableCell className="text-muted-foreground">{formatDate(row.license_expiry ?? null)}</TableCell>
               <TableCell>

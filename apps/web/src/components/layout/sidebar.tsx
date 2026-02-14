@@ -196,20 +196,23 @@ export function Sidebar() {
                 onClick={() => setMobileOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ease-in-out group ${
                   isActive
-                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    ? 'bg-blue-600/10 text-blue-400'
                     : 'text-sidebar-text hover:bg-sidebar-hover hover:text-white'
                 }`}
               >
                 <Icon
                   className={`h-[18px] w-[18px] shrink-0 transition-colors duration-200 ${
-                    isActive ? 'text-primary-foreground' : 'text-sidebar-text group-hover:text-white'
+                    isActive ? 'text-blue-400' : 'text-sidebar-text group-hover:text-white'
                   }`}
                 />
                 {item.label}
+                {isActive && badgeCount === 0 && (
+                  <span className="ml-auto h-1.5 w-1.5 rounded-full bg-blue-400" />
+                )}
                 {badgeCount > 0 && (
                   <span className={`ml-auto inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-semibold ${
                     isActive
-                      ? 'bg-primary-foreground/20 text-primary-foreground'
+                      ? 'bg-blue-400/20 text-blue-400'
                       : 'bg-destructive/20 text-destructive'
                   }`}>
                     {badgeCount}

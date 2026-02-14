@@ -205,7 +205,7 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 h-16 bg-card border-b border-border shadow-sm flex items-center justify-between px-6">
+      <header className="sticky top-0 z-30 h-16 backdrop-blur-xl bg-background/80 border-b border-border flex items-center justify-between px-6">
         {/* Left: breadcrumb / page title area (filled by each page) */}
         <div className="flex-1" />
 

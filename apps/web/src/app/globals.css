@@ -49,6 +49,13 @@
   --danger: #ef4444;
   --danger-foreground: #f8fafc;
 
+  /* ── Progress bars ── */
+  --progress-bg: #e2e8f0;
+  --progress-fill: #3b82f6;
+
+  /* ── Required-field indicator ── */
+  --required: #ef4444;
+
   /* ── Sidebar (dark sidebar in light mode — Anderson identity) ── */
   --sidebar-bg: #0f172a;
   --sidebar-text: #94a3b8;
@@ -109,6 +116,11 @@
   --color-danger:                 var(--danger);
   --color-danger-foreground:      var(--danger-foreground);
 
+  /* ── Progress & Required ── */
+  --color-progress-bg:    var(--progress-bg);
+  --color-progress-fill:  var(--progress-fill);
+  --color-required:       var(--required);
+
   /* ── Sidebar Aliases ── */
   --color-sidebar-bg:     var(--sidebar-bg);
   --color-sidebar-text:   var(--sidebar-text);
@@ -163,6 +175,10 @@
   --danger: #ef4444;
   --danger-foreground: #f8fafc;
 
+  --progress-bg: #334155;
+  --progress-fill: #3b82f6;
+  --required: #ef4444;
+
   --sidebar-bg: #020617;
   --sidebar-text: #94a3b8;
   --sidebar-active: #3b82f6;
@@ -193,6 +209,10 @@
 
   --border: #27272a;
   --input: #27272a;
+
+  --progress-bg: #27272a;
+  --progress-fill: #3b82f6;
+  --required: #ef4444;
 
   --sidebar-bg: #000000;
   --sidebar-text: #a1a1aa;

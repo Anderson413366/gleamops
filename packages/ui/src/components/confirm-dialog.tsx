@@ -47,8 +47,8 @@ export function ConfirmDialog({
       <div className="p-6">
         <div className="flex items-start gap-4">
           {variant === 'danger' && (
-            <div className="shrink-0 rounded-full bg-red-50 dark:bg-red-950 p-2">
-              <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
+            <div className="shrink-0 rounded-full bg-destructive/10 p-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
             </div>
           )}
           <div>

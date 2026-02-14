@@ -55,7 +55,7 @@ export function SlideOver({ open, onClose, title, subtitle, children, wide = fal
       <div
         ref={panelRef}
         className={cn(
-          'fixed inset-y-0 right-0 bg-card shadow-2xl flex flex-col animate-slide-in-right',
+          'fixed inset-y-0 right-0 bg-card rounded-l-xl shadow-2xl flex flex-col animate-slide-in-right',
           wide ? 'w-full max-w-2xl' : 'w-full max-w-lg'
         )}
       >

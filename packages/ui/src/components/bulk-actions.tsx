@@ -33,9 +33,9 @@ export function BulkActions({ selectedCount, actions, onClear }: BulkActionsProp
           key={action.label}
           onClick={action.onClick}
           disabled={action.loading}
-          className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-200 ease-in-out ${
             action.variant === 'destructive'
-              ? 'bg-red-600 text-white hover:bg-red-700 disabled:opacity-50'
+              ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50'
               : 'bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50'
           }`}
         >
@@ -44,7 +44,7 @@ export function BulkActions({ selectedCount, actions, onClear }: BulkActionsProp
       ))}
       <button
         onClick={onClear}
-        className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
+        className="rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted transition-all duration-200 ease-in-out"
       >
         Clear
       </button>

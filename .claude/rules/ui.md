@@ -2,6 +2,14 @@
 - Prefer semantic classes/tokens: bg-background, text-foreground, bg-card, border-border, ring-ring, etc.
 - Avoid raw Tailwind colors in pages (bg-slate-*, text-gray-*, etc.) unless inside design system components.
 - Default radius:
-  - Inputs/buttons/cards: rounded-lg
-  - Drawers/modals: rounded-xl
+  - Inputs/buttons/cards/stat-cards/tooltips: rounded-lg
+  - Overlays (SlideOver, ConfirmDialog, ArchiveDialog, CommandPalette): rounded-xl
+  - Avatars, status dots, progress bars, badge dots: rounded-full
+  - Login card: rounded-2xl (hero exception)
 - Default transitions: transition-all duration-200 ease-in-out
+- Default shadows:
+  - Cards: shadow-sm baseline (add hover:shadow-md via className for interactive cards)
+  - Primary/secondary buttons: shadow-sm, hover:shadow-md
+  - Ghost buttons: no shadow
+  - Overlays: shadow-xl (dialogs) or shadow-2xl (SlideOver, CommandPalette)
+  - Tooltip: shadow-md

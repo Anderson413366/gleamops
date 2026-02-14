@@ -40,18 +40,18 @@ export function ArchiveDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50" onClick={handleClose} />
+      <div className="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm" onClick={handleClose} />
 
       {/* Dialog */}
-      <div className="relative z-10 w-full max-w-md rounded-lg border border-border bg-background p-6 shadow-xl">
+      <div className="relative z-10 w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl">
         <h2 className="text-lg font-semibold text-foreground">Archive {entityName}</h2>
         <p className="mt-2 text-sm text-muted-foreground">
           This will soft-delete this {entityName.toLowerCase()} and remove it from active views. It can be restored later.
         </p>
 
         {cascadeWarning && (
-          <div className="mt-3 rounded-md bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-3">
-            <p className="text-sm text-yellow-800 dark:text-yellow-200">
+          <div className="mt-3 rounded-lg bg-warning/10 border border-warning/30 p-3">
+            <p className="text-sm text-warning">
               {cascadeWarning}
             </p>
           </div>
@@ -65,7 +65,7 @@ export function ArchiveDialog({
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             rows={3}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:ring-offset-2"
             placeholder="Enter the reason for archiving..."
           />
         </div>
@@ -74,7 +74,7 @@ export function ArchiveDialog({
           <button
             type="button"
             onClick={handleClose}
-            className="rounded-md px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
+            className="rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted transition-all duration-200 ease-in-out"
           >
             Cancel
           </button>
@@ -82,7 +82,7 @@ export function ArchiveDialog({
             type="button"
             onClick={handleConfirm}
             disabled={loading}
-            className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
+            className="rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50 transition-all duration-200 ease-in-out"
           >
             {loading ? 'Archiving...' : 'Archive'}
           </button>

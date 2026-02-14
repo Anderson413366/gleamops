@@ -53,7 +53,7 @@ export function Pagination({
         <button
           onClick={onPrev}
           disabled={!hasPrev}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-muted disabled:opacity-40 disabled:pointer-events-none"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200 ease-in-out hover:bg-muted disabled:opacity-40 disabled:pointer-events-none"
           aria-label="Previous page"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -69,7 +69,7 @@ export function Pagination({
                   key={p}
                   onClick={() => onGoTo(p)}
                   className={cn(
-                    'inline-flex h-8 w-8 items-center justify-center rounded-md text-sm transition-colors',
+                    'inline-flex h-8 w-8 items-center justify-center rounded-lg text-sm transition-all duration-200 ease-in-out',
                     p === currentPage
                       ? 'bg-primary text-primary-foreground font-medium'
                       : 'hover:bg-muted'
@@ -88,7 +88,7 @@ export function Pagination({
         <button
           onClick={onNext}
           disabled={!hasNext}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-muted disabled:opacity-40 disabled:pointer-events-none"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200 ease-in-out hover:bg-muted disabled:opacity-40 disabled:pointer-events-none"
           aria-label="Next page"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

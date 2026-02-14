@@ -137,7 +137,7 @@ export function CommandPalette({
       {/* Dialog */}
       <div className="fixed left-1/2 top-[18%] -translate-x-1/2 w-full max-w-lg px-4 animate-scale-in">
         <div
-          className="bg-card rounded-2xl shadow-2xl border border-border overflow-hidden"
+          className="bg-card rounded-lg shadow-2xl border border-border overflow-hidden"
           onKeyDown={handleKeyDown}
         >
           {/* Search input */}
@@ -198,7 +198,7 @@ export function CommandPalette({
                         }}
                         onMouseEnter={() => setActiveIndex(idx)}
                         className={cn(
-                          'w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-all duration-150',
+                          'w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-all duration-200 ease-in-out',
                           isActive
                             ? 'bg-primary/10 dark:bg-primary/10 text-foreground'
                             : 'text-foreground hover:bg-muted'

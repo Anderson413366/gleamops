@@ -89,11 +89,11 @@ export default function PipelineAnalytics() {
 
       // Build funnel
       const funnelData: FunnelStage[] = [
-        { label: 'Prospects', count: prospectsRes.count ?? 0, color: 'bg-blue-500' },
-        { label: 'Opportunities', count: (opportunitiesRes.data ?? []).length, color: 'bg-indigo-500' },
-        { label: 'Bids', count: bidsRes.count ?? 0, color: 'bg-purple-500' },
-        { label: 'Proposals', count: proposalsRes.count ?? 0, color: 'bg-pink-500' },
-        { label: 'Won', count: wonProposalsRes.count ?? 0, color: 'bg-green-500' },
+        { label: 'Prospects', count: prospectsRes.count ?? 0, color: 'bg-info' },
+        { label: 'Opportunities', count: (opportunitiesRes.data ?? []).length, color: 'bg-primary' },
+        { label: 'Bids', count: bidsRes.count ?? 0, color: 'bg-primary/70' },
+        { label: 'Proposals', count: proposalsRes.count ?? 0, color: 'bg-primary/50' },
+        { label: 'Won', count: wonProposalsRes.count ?? 0, color: 'bg-success' },
       ];
       setFunnel(funnelData);
 
@@ -187,7 +187,7 @@ export default function PipelineAnalytics() {
                       className={`h-8 rounded-md ${stage.color} flex items-center px-3`}
                       style={{ width: `${widthPct}%`, minWidth: '60px' }}
                     >
-                      <span className="text-xs font-bold text-white">{stage.count}</span>
+                      <span className="text-xs font-bold text-primary-foreground">{stage.count}</span>
                     </div>
                   </div>
                   <div className="w-16 text-right shrink-0">

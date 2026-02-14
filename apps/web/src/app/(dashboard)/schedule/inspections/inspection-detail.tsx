@@ -181,7 +181,7 @@ export function InspectionDetail({ inspection, open, onClose, onUpdate }: Inspec
                   <span className="text-sm font-medium">Quality Score</span>
                 </div>
                 <span className={`text-2xl font-bold ${
-                  scorePct >= 80 ? 'text-green-600' : scorePct >= 60 ? 'text-yellow-600' : 'text-red-600'
+                  scorePct >= 80 ? 'text-success' : scorePct >= 60 ? 'text-warning' : 'text-destructive'
                 }`}>
                   {scorePct}%
                 </span>
@@ -189,7 +189,7 @@ export function InspectionDetail({ inspection, open, onClose, onUpdate }: Inspec
               <div className="w-full bg-muted rounded-full h-3">
                 <div
                   className={`h-3 rounded-full transition-all duration-300 ${
-                    scorePct >= 80 ? 'bg-green-500' : scorePct >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                    scorePct >= 80 ? 'bg-success' : scorePct >= 60 ? 'bg-warning' : 'bg-destructive'
                   }`}
                   style={{ width: `${scorePct}%` }}
                 />
@@ -282,10 +282,10 @@ export function InspectionDetail({ inspection, open, onClose, onUpdate }: Inspec
                                 disabled={scoring}
                                 className={`w-7 h-7 rounded-md text-xs font-bold transition-colors ${
                                   item.score === i
-                                    ? i === 0 ? 'bg-red-500 text-white'
-                                      : i <= scoringScale * 0.4 ? 'bg-orange-500 text-white'
-                                      : i <= scoringScale * 0.7 ? 'bg-yellow-500 text-white'
-                                      : 'bg-green-500 text-white'
+                                    ? i === 0 ? 'bg-destructive text-destructive-foreground'
+                                      : i <= scoringScale * 0.4 ? 'bg-warning text-warning-foreground'
+                                      : i <= scoringScale * 0.7 ? 'bg-warning text-warning-foreground'
+                                      : 'bg-success text-success-foreground'
                                     : 'bg-muted text-muted-foreground hover:bg-muted'
                                 }`}
                               >

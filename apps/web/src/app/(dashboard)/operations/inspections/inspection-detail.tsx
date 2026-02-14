@@ -282,10 +282,10 @@ export function InspectionDetail({ inspection, open, onClose, onUpdate }: Inspec
                                 disabled={scoring}
                                 className={`w-7 h-7 rounded-md text-xs font-bold transition-colors ${
                                   item.score === i
-                                    ? i === 0 ? 'bg-destructive text-white'
-                                      : i <= scoringScale * 0.4 ? 'bg-warning text-white'
-                                      : i <= scoringScale * 0.7 ? 'bg-warning text-white'
-                                      : 'bg-success text-white'
+                                    ? i === 0 ? 'bg-destructive text-destructive-foreground'
+                                      : i <= scoringScale * 0.4 ? 'bg-warning text-warning-foreground'
+                                      : i <= scoringScale * 0.7 ? 'bg-warning text-warning-foreground'
+                                      : 'bg-success text-success-foreground'
                                     : 'bg-muted text-muted-foreground hover:bg-muted'
                                 }`}
                               >

@@ -43,3 +43,4 @@ export { BulkActions } from './components/bulk-actions';
 export { ArchiveDialog } from './components/archive-dialog';
 export { CsvImport } from './components/csv-import';
 export { ViewToggle } from './components/view-toggle';
+export { DensityToggle } from './components/density-toggle';

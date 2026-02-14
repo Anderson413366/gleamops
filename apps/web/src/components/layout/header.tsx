@@ -16,9 +16,10 @@ import {
   Sun,
   Moon,
 } from 'lucide-react';
-import { CommandPalette, type CommandItem } from '@gleamops/ui';
+import { CommandPalette, type CommandItem, DensityToggle } from '@gleamops/ui';
 import { useAuth } from '@/hooks/use-auth';
 import { useTheme } from '@/hooks/use-theme';
+import { useDensity } from '@/hooks/use-density';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 function getInitials(email: string): string {
@@ -34,6 +35,7 @@ function getInitials(email: string): string {
 export function Header() {
   const { user, role, signOut } = useAuth();
   const { resolvedTheme, trueBlack, setTheme, setTrueBlack, mounted } = useTheme();
+  const { density, setDensity, mounted: densityMounted } = useDensity();
   const router = useRouter();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [items, setItems] = useState<CommandItem[]>([]);
@@ -221,6 +223,11 @@ export function Header() {
               ⌘K
             </kbd>
           </button>
+
+          {/* Density toggle */}
+          {densityMounted && (
+            <DensityToggle density={density} onChange={setDensity} />
+          )}
 
           {/* Theme picker */}
           {mounted && (

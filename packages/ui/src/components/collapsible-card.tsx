@@ -67,6 +67,7 @@ export function CollapsibleCard({
     <Card className={className}>
       {/* Header — keyboard accessible toggle */}
       <div
+        data-card="header"
         role="button"
         tabIndex={0}
         onClick={toggle}
@@ -114,6 +115,7 @@ export function CollapsibleCard({
       {/* Content — simple show/hide, no janky max-h transitions */}
       {isOpen && (
         <div
+          data-card="content"
           id={`collapsible-content-${id}`}
           role="region"
           aria-labelledby={`collapsible-content-${id}`}

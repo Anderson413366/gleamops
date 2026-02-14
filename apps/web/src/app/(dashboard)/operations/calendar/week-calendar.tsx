@@ -215,8 +215,8 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
                 key={dateStr}
                 className={`
                   rounded-lg border p-2 transition-colors min-h-[120px] flex flex-col
-                  ${today ? 'border-gleam-400 bg-gleam-50/30 ring-1 ring-gleam-200' : 'border-border'}
-                  ${isDropping ? 'border-gleam-500 bg-gleam-50 border-dashed border-2' : ''}
+                  ${today ? 'border-brand-400 bg-brand-50/30 ring-1 ring-brand-200' : 'border-border'}
+                  ${isDropping ? 'border-brand-500 bg-brand-50 border-dashed border-2' : ''}
                   ${isPast ? 'bg-muted/50' : ''}
                 `}
                 onDragOver={(e) => handleDragOver(e, dateStr)}
@@ -225,10 +225,10 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
               >
                 {/* Day header */}
                 <div className="text-center mb-2 pb-1 border-b border-border/50">
-                  <p className={`text-xs font-medium ${today ? 'text-gleam-600' : 'text-muted-foreground'}`}>
+                  <p className={`text-xs font-medium ${today ? 'text-brand-600' : 'text-muted-foreground'}`}>
                     {DAY_NAMES[day.getDay()]}
                   </p>
-                  <p className={`text-lg font-bold leading-tight ${today ? 'text-gleam-600' : 'text-foreground'}`}>
+                  <p className={`text-lg font-bold leading-tight ${today ? 'text-brand-600' : 'text-foreground'}`}>
                     {day.getDate()}
                   </p>
                   {dayTickets.length > 0 && (

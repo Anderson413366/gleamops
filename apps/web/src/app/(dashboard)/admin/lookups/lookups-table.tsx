@@ -6,7 +6,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { Lookup } from '@gleamops/shared';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton,
+  EmptyState, Badge, Pagination, TableSkeleton, cn,
 } from '@gleamops/ui';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
@@ -21,6 +21,7 @@ interface Props {
 export default function LookupsTable({ search, autoCreate, onAutoCreateHandled }: Props) {
   const [rows, setRows] = useState<Lookup[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -44,14 +45,23 @@ export default function LookupsTable({ search, autoCreate, onAutoCreateHandled }
   }, [autoCreate, loading, onAutoCreateHandled]);
 
   const filtered = useMemo(() => {
-    if (!search) return rows;
+    let result = rows;
+    if (activeFilter === 'active') result = result.filter((row) => row.is_active);
+    if (activeFilter === 'inactive') result = result.filter((row) => !row.is_active);
+    if (!search) return result;
     const q = search.toLowerCase();
-    return rows.filter((r) =>
+    return result.filter((r) =>
       r.category.toLowerCase().includes(q) ||
       r.code.toLowerCase().includes(q) ||
       r.label.toLowerCase().includes(q)
     );
-  }, [rows, search]);
+  }, [rows, search, activeFilter]);
+
+  const activeCounts = useMemo(() => ({
+    all: rows.length,
+    active: rows.filter((row) => row.is_active).length,
+    inactive: rows.filter((row) => !row.is_active).length,
+  }), [rows]);
 
   const { sorted, sortKey, sortDir, onSort } = useTableSort(
     filtered as unknown as Record<string, unknown>[],
@@ -74,6 +84,29 @@ export default function LookupsTable({ search, autoCreate, onAutoCreateHandled }
 
   return (
     <div>
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        {(['all', 'active', 'inactive'] as const).map((option) => (
+          <button
+            key={option}
+            type="button"
+            onClick={() => setActiveFilter(option)}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors',
+              activeFilter === option
+                ? 'bg-module-accent text-module-accent-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            )}
+          >
+            {option.charAt(0).toUpperCase() + option.slice(1)}
+            <span className={cn(
+              'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+              activeFilter === option ? 'bg-white/20' : 'bg-background'
+            )}>
+              {activeCounts[option]}
+            </span>
+          </button>
+        ))}
+      </div>
       <Table>
         <TableHeader>
           <tr>

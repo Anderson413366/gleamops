@@ -47,6 +47,19 @@ function formatCategory(val: string | null) {
   return val.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+function formatRelativeDateTime(dateStr: string): string {
+  const target = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - target.getTime();
+  const diffMinutes = Math.floor(diffMs / 60000);
+  if (diffMinutes < 1) return 'just now';
+  if (diffMinutes < 60) return `${diffMinutes} min ago`;
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours} hr ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+}
+
 export default function TaskDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [task, setTask] = useState<Task | null>(null);
@@ -150,6 +163,7 @@ export default function TaskDetailPage() {
               <Badge color={task.is_active ? 'green' : 'red'}>
                 {task.is_active ? 'Active' : 'Inactive'}
               </Badge>
+              <Badge color="gray">{`Updated ${formatRelativeDateTime(task.updated_at)}`}</Badge>
               {task.category && (
                 <Badge color={CATEGORY_COLORS[task.category] ?? 'gray'}>
                   {formatCategory(task.category)}

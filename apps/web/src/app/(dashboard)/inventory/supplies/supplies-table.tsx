@@ -13,7 +13,6 @@ import {
   TableRow,
   TableCell,
   EmptyState,
-  Badge,
   Pagination,
   TableSkeleton,
   SlideOver,
@@ -38,7 +37,8 @@ const UNIT_OPTIONS = [
   { value: 'GAL', label: 'Gallon' },
   { value: 'BOTTLE', label: 'Bottle' },
 ];
-const STATUS_OPTIONS = ['all', 'ACTIVE', 'DISCONTINUED'] as const;
+// UX requirement: default to Active, show Active first, and move All to the end.
+const STATUS_OPTIONS = ['ACTIVE', 'DISCONTINUED', 'all'] as const;
 
 interface SuppliesTableProps {
   search: string;
@@ -50,7 +50,7 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
   const router = useRouter();
   const [rows, setRows] = useState<SupplyCatalog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('ACTIVE');
   const { view, setView } = useViewPreference('supplies');
 
   // SlideOver form state (create only)
@@ -312,7 +312,7 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
     );
   }
 
-  if (loading) return <TableSkeleton rows={8} cols={5} />;
+  if (loading) return <TableSkeleton rows={8} cols={8} />;
 
   if (filtered.length === 0) {
     return (
@@ -344,7 +344,6 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
             { key: 'unit', label: 'Unit' },
             { key: 'unit_cost', label: 'Cost' },
             { key: 'preferred_vendor', label: 'Vendor' },
-            { key: 'supply_status', label: 'Status' },
           ]}
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
@@ -389,7 +388,6 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
             <TableHead sortable sorted={sortKey === 'unit' && sortDir} onSort={() => onSort('unit')}>Unit</TableHead>
             <TableHead sortable sorted={sortKey === 'unit_cost' && sortDir} onSort={() => onSort('unit_cost')}>Cost</TableHead>
             <TableHead>Vendor</TableHead>
-            <TableHead>Status</TableHead>
             <TableHead>SDS</TableHead>
           </tr>
         </TableHeader>
@@ -408,11 +406,6 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
                 {row.unit_cost != null ? `$${Number(row.unit_cost).toFixed(2)}` : '—'}
               </TableCell>
               <TableCell className="text-muted-foreground">{row.preferred_vendor ?? '—'}</TableCell>
-              <TableCell>
-                <Badge color={row.supply_status === 'ACTIVE' ? 'green' : row.supply_status === 'DISCONTINUED' ? 'red' : 'gray'}>
-                  {row.supply_status ?? 'ACTIVE'}
-                </Badge>
-              </TableCell>
               <TableCell>
                 {row.sds_url ? (
                   <a

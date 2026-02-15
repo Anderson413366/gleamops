@@ -57,9 +57,11 @@ export default function AdminPageClient() {
       const supabase = getSupabaseBrowserClient();
       const [tasksRes, servicesRes, lookupsRes, rulesRes] = await Promise.all([
         supabase.from('tasks').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('is_active', true),
-        supabase.from('services').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('is_active', true),
+        // services table has no is_active column; archived_at is the soft-delete flag
+        supabase.from('services').select('id', { count: 'exact', head: true }).is('archived_at', null),
         supabase.from('lookups').select('id', { count: 'exact', head: true }).eq('is_active', true),
-        supabase.from('status_transitions').select('id', { count: 'exact', head: true }).is('archived_at', null),
+        // status_transitions does not have archived_at in the live schema
+        supabase.from('status_transitions').select('id', { count: 'exact', head: true }),
       ]);
 
       setKpis({

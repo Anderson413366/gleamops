@@ -86,7 +86,8 @@ export default function FinancialIntelligencePage() {
         .is('archived_at', null),
       supabase
         .from('inspections')
-        .select('status, pass_fail')
+        // inspections table uses boolean `passed` (no `pass_fail`)
+        .select('status, passed')
         .is('archived_at', null),
       supabase
         .from('work_tickets')
@@ -124,7 +125,7 @@ export default function FinancialIntelligencePage() {
     const laborHours30d = laborMinutes30d / 60;
 
     const completedInspections = (inspectionsRes.data ?? []).filter((row) => row.status === 'COMPLETED' || row.status === 'SUBMITTED');
-    const passedInspections = completedInspections.filter((row) => row.pass_fail === 'PASS').length;
+    const passedInspections = completedInspections.filter((row) => row.passed === true).length;
     const inspectionPassRate = completedInspections.length > 0 ? passedInspections / completedInspections.length : 0;
 
     const tickets = ticketsRes.data ?? [];

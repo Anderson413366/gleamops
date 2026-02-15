@@ -42,7 +42,8 @@ export default function ReportsPageClient() {
       supabase.from('work_tickets').select('id', { count: 'exact', head: true }).is('archived_at', null).in('status', ['OPEN', 'IN_PROGRESS']),
       supabase.from('sales_opportunities').select('estimated_monthly_value').is('archived_at', null),
       supabase.from('site_jobs').select('billing_amount').is('archived_at', null).eq('status', 'ACTIVE'),
-      supabase.from('inspections').select('status, pass_fail').is('archived_at', null),
+      // inspections table uses boolean `passed` (no `pass_fail`)
+      supabase.from('inspections').select('status, passed').is('archived_at', null),
       supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('staff_status', 'ACTIVE'),
       supabase.from('supply_catalog').select('id', { count: 'exact', head: true }).is('archived_at', null).neq('supply_status', 'DISCONTINUED'),
     ]);
@@ -50,7 +51,7 @@ export default function ReportsPageClient() {
     const pipelineValue = (oppsRes.data ?? []).reduce((sum, row) => sum + (row.estimated_monthly_value ?? 0), 0);
     const monthlyRevenue = (jobsRes.data ?? []).reduce((sum, row) => sum + (row.billing_amount ?? 0), 0);
     const completedInspections = (inspectionsRes.data ?? []).filter((row) => row.status === 'COMPLETED' || row.status === 'SUBMITTED');
-    const passCount = completedInspections.filter((row) => row.pass_fail === 'PASS').length;
+    const passCount = completedInspections.filter((row) => row.passed === true).length;
     const passRate = completedInspections.length > 0 ? Math.round((passCount / completedInspections.length) * 100) : 0;
 
     setSnapshot({

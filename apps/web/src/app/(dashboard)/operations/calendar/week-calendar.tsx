@@ -3,8 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Users, Clock, GripVertical } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { Badge, Button, Skeleton } from '@gleamops/ui';
-import { TICKET_STATUS_COLORS } from '@gleamops/shared';
+import { Button, Skeleton } from '@gleamops/ui';
 import type { WorkTicket } from '@gleamops/shared';
 
 interface TicketWithRelations extends WorkTicket {
@@ -74,19 +73,25 @@ const STATUS_DOT: Record<string, string> = {
 };
 
 export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
-  const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()));
+  // Use a stable initial value to prevent SSR/client clock or timezone drift from
+  // causing hydration errors. After mount we sync to the real current week.
+  const [weekStart, setWeekStart] = useState<Date>(() => getWeekStart(new Date(0)));
+  const [mounted, setMounted] = useState(false);
   const [tickets, setTickets] = useState<TicketWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [dragTicketId, setDragTicketId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
 
-  const weekDays = getWeekDays(weekStart);
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekEnd.getDate() + 6);
+  useEffect(() => {
+    setMounted(true);
+    setWeekStart(getWeekStart(new Date()));
+  }, []);
 
   const fetchTickets = useCallback(async () => {
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
     const { data, error } = await supabase
       .from('work_tickets')
       .select(`
@@ -104,7 +109,10 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
     setLoading(false);
   }, [weekStart]);
 
-  useEffect(() => { fetchTickets(); }, [fetchTickets]);
+  useEffect(() => {
+    if (!mounted) return;
+    fetchTickets();
+  }, [mounted, fetchTickets]);
 
   const goToPrevWeek = () => setWeekStart((prev) => { const d = new Date(prev); d.setDate(d.getDate() - 7); return d; });
   const goToNextWeek = () => setWeekStart((prev) => { const d = new Date(prev); d.setDate(d.getDate() + 7); return d; });
@@ -145,6 +153,10 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
   const handleDragEnd = () => { setDragTicketId(null); setDropTarget(null); };
 
   // Group tickets by date
+  const weekDays = mounted ? getWeekDays(weekStart) : [];
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+
   const ticketsByDate = new Map<string, TicketWithRelations[]>();
   for (const day of weekDays) ticketsByDate.set(formatDate(day), []);
   for (const ticket of tickets) {
@@ -157,6 +169,31 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
   const totalTickets = tickets.length;
   const completedCount = tickets.filter((t) => t.status === 'COMPLETED' || t.status === 'VERIFIED').length;
   const unassignedCount = tickets.filter((t) => !t.assignments || t.assignments.length === 0).length;
+
+  if (!mounted) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-8 w-8" />
+            <Skeleton className="h-8 w-16" />
+            <Skeleton className="h-8 w-8" />
+          </div>
+          <Skeleton className="h-5 w-56" />
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+        </div>
+        <div className="grid grid-cols-7 gap-2">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <Skeleton key={i} className="h-48 w-full" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   const weekLabel = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} — ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
 

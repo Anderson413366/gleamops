@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   Building2,
   Ticket,
@@ -477,13 +477,20 @@ export default function HomePage() {
     }
   }, [authLoading, fetchDashboard]);
 
-  // Greeting based on time of day
-  const getGreeting = () => {
-    const hour = new Date().getHours();
+  // Avoid SSR/client timezone/time drift causing hydration mismatches:
+  // render time-based strings only after mount.
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    setNow(new Date());
+  }, []);
+
+  const greeting = useMemo(() => {
+    if (!now) return 'Welcome';
+    const hour = now.getHours();
     if (hour < 12) return 'Good morning';
     if (hour < 18) return 'Good afternoon';
     return 'Good evening';
-  };
+  }, [now]);
 
   const displayName = user?.email?.split('@')[0]?.replace(/[._-]/g, ' ')?.replace(/\b\w/g, (c) => c.toUpperCase()) ?? '';
   const simpleView = prefMounted && preferences.simple_view;
@@ -496,10 +503,10 @@ export default function HomePage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">
-            {getGreeting()}{displayName ? `, ${displayName}` : ''}
+            {greeting}{displayName ? `, ${displayName}` : ''}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {fullDateFormatter.format(new Date())}
+            {now ? fullDateFormatter.format(now) : <Skeleton className="h-4 w-44" />}
           </p>
           {timeAwareness && lastUpdatedAt && (
             <p className="text-xs text-muted-foreground mt-1 inline-flex items-center gap-1.5">

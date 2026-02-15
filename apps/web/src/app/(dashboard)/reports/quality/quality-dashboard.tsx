@@ -37,7 +37,8 @@ export default function QualityDashboard() {
     const [inspRes, issuesRes] = await Promise.all([
       supabase
         .from('inspections')
-        .select('id, status, overall_score, pass_fail')
+        // inspections schema: score_pct numeric, passed boolean
+        .select('id, status, score_pct, passed')
         .is('archived_at', null),
       supabase
         .from('inspection_issues')
@@ -56,17 +57,18 @@ export default function QualityDashboard() {
         byStatus[insp.status] = (byStatus[insp.status] || 0) + 1;
         if (insp.status === 'COMPLETED' || insp.status === 'SUBMITTED') {
           completed++;
-          if (insp.overall_score != null) {
-            totalScore += insp.overall_score;
+          if (insp.score_pct != null) {
+            totalScore += insp.score_pct;
             scored++;
           }
-          if (insp.pass_fail === 'PASS') passed++;
+          if (insp.passed === true) passed++;
         }
       }
 
       setQuality({
         totalInspections: inspRes.data.length,
         completedInspections: completed,
+        // score_pct is 0..100; show a 1-decimal average percentage
         avgScore: scored > 0 ? Math.round((totalScore / scored) * 10) / 10 : 0,
         passRate: completed > 0 ? Math.round((passed / completed) * 100) : 0,
       });

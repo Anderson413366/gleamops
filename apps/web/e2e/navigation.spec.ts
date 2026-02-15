@@ -20,13 +20,18 @@ const SIDEBAR_ROUTES = [
 test.describe('Sidebar navigation', () => {
   for (const { label, href } of SIDEBAR_ROUTES) {
     test(`navigates to ${label} (${href})`, async ({ page }) => {
-      await page.goto('/home');
-      // Click sidebar link (desktop nav)
-      const sidebarLink = page.locator(`aside nav a[href="${href}"]`).first();
-      await sidebarLink.scrollIntoViewIfNeeded();
-      await expect(sidebarLink).toBeVisible();
-      await sidebarLink.click();
-      await expect(page).toHaveURL(new RegExp(href));
+      await page.goto('/home', { waitUntil: 'domcontentloaded' });
+
+      // Click sidebar link (desktop nav). Use role-based lookup within the visible
+      // sidebar to avoid stale element handles during hydration/layout transitions.
+      const sidebar = page.locator('aside:visible');
+      await expect(sidebar).toBeVisible({ timeout: 10_000 });
+
+      const link = sidebar.getByRole('link', { name: label, exact: true });
+      await expect(link).toBeVisible({ timeout: 10_000 });
+      await link.click();
+
+      await expect(page).toHaveURL(new RegExp(`${href}(\\?|$)`));
       // Page should render a heading (all module pages have h1/h2)
       await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 10_000 });
     });

@@ -7,10 +7,9 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton,
+  EmptyState, Pagination, TableSkeleton,
   ExportButton, ViewToggle,
 } from '@gleamops/ui';
-import { VEHICLE_STATUS_COLORS } from '@gleamops/shared';
 import type { Vehicle } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
@@ -92,7 +91,7 @@ export default function VehiclesTable({ search, formOpen, onFormClose, onRefresh
   const sortedRows = sorted as unknown as VehicleWithAssigned[];
   const pag = usePagination(sortedRows, 25);
 
-  if (loading) return <TableSkeleton rows={6} cols={7} />;
+  if (loading) return <TableSkeleton rows={6} cols={6} />;
 
   if (filtered.length === 0) {
     return (
@@ -125,7 +124,6 @@ export default function VehiclesTable({ search, formOpen, onFormClose, onRefresh
             { key: 'model', label: 'Model' },
             { key: 'year', label: 'Year' },
             { key: 'license_plate', label: 'License Plate' },
-            { key: 'status', label: 'Status' },
           ]}
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
@@ -141,7 +139,6 @@ export default function VehiclesTable({ search, formOpen, onFormClose, onRefresh
             <TableHead>Make / Model</TableHead>
             <TableHead sortable sorted={sortKey === 'year' && sortDir} onSort={() => onSort('year')}>Year</TableHead>
             <TableHead>License Plate</TableHead>
-            <TableHead sortable sorted={sortKey === 'status' && sortDir} onSort={() => onSort('status')}>Status</TableHead>
             <TableHead>Assigned To</TableHead>
           </tr>
         </TableHeader>
@@ -155,9 +152,6 @@ export default function VehiclesTable({ search, formOpen, onFormClose, onRefresh
               </TableCell>
               <TableCell className="text-muted-foreground">{row.year ?? '—'}</TableCell>
               <TableCell className="text-muted-foreground">{row.license_plate ?? '—'}</TableCell>
-              <TableCell>
-                <Badge color={VEHICLE_STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
-              </TableCell>
               <TableCell className="text-muted-foreground">
                 {row.assigned?.full_name ?? '—'}
               </TableCell>

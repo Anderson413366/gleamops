@@ -10,7 +10,6 @@ import {
   EmptyState, Badge, Pagination, TableSkeleton,
   ExportButton,
 } from '@gleamops/ui';
-import { KEY_STATUS_COLORS } from '@gleamops/shared';
 import type { KeyInventory } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
@@ -89,7 +88,7 @@ export default function KeysTable({ search, formOpen, onFormClose, onRefresh }: 
   const sortedRows = sorted as unknown as KeyWithRelations[];
   const pag = usePagination(sortedRows, 25);
 
-  if (loading) return <TableSkeleton rows={6} cols={7} />;
+  if (loading) return <TableSkeleton rows={6} cols={6} />;
 
   if (filtered.length === 0) {
     return (
@@ -118,7 +117,6 @@ export default function KeysTable({ search, formOpen, onFormClose, onRefresh }: 
             { key: 'key_code', label: 'Code' },
             { key: 'label', label: 'Label' },
             { key: 'key_type', label: 'Type' },
-            { key: 'status', label: 'Status' },
             { key: 'total_count', label: 'Count' },
           ]}
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
@@ -131,7 +129,6 @@ export default function KeysTable({ search, formOpen, onFormClose, onRefresh }: 
             <TableHead sortable sorted={sortKey === 'label' && sortDir} onSort={() => onSort('label')}>Label</TableHead>
             <TableHead sortable sorted={sortKey === 'key_type' && sortDir} onSort={() => onSort('key_type')}>Type</TableHead>
             <TableHead>Site</TableHead>
-            <TableHead sortable sorted={sortKey === 'status' && sortDir} onSort={() => onSort('status')}>Status</TableHead>
             <TableHead>Assigned To</TableHead>
             <TableHead sortable sorted={sortKey === 'total_count' && sortDir} onSort={() => onSort('total_count')}>Count</TableHead>
           </tr>
@@ -146,9 +143,6 @@ export default function KeysTable({ search, formOpen, onFormClose, onRefresh }: 
               </TableCell>
               <TableCell className="text-muted-foreground">
                 {row.site?.name ?? '—'}
-              </TableCell>
-              <TableCell>
-                <Badge color={KEY_STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
               </TableCell>
               <TableCell className="text-muted-foreground">
                 {row.assigned?.full_name ?? '—'}

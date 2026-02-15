@@ -6,7 +6,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { EquipmentAssignment } from '@gleamops/shared';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton,
+  EmptyState, Pagination, TableSkeleton,
 } from '@gleamops/ui';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
@@ -86,7 +86,7 @@ export default function EqAssignmentsTable({ search, formOpen, onFormClose, onRe
   const sortedRows = sorted as unknown as AssignmentRow[];
   const pag = usePagination(sortedRows, 25);
 
-  if (loading) return <TableSkeleton rows={8} cols={5} />;
+  if (loading) return <TableSkeleton rows={8} cols={4} />;
 
   if (filtered.length === 0) {
     return (
@@ -119,7 +119,6 @@ export default function EqAssignmentsTable({ search, formOpen, onFormClose, onRe
             <TableHead sortable sorted={sortKey === 'assigned_date' && sortDir} onSort={() => onSort('assigned_date')}>
               Assigned
             </TableHead>
-            <TableHead>Status</TableHead>
           </tr>
         </TableHeader>
         <TableBody>
@@ -136,11 +135,6 @@ export default function EqAssignmentsTable({ search, formOpen, onFormClose, onRe
               <TableCell>{row.staff?.full_name ?? '—'}</TableCell>
               <TableCell>{row.site?.name ?? '—'}</TableCell>
               <TableCell>{dateFmt.format(toSafeDate(row.assigned_date))}</TableCell>
-              <TableCell>
-                <Badge color={row.returned_date ? 'gray' : 'green'}>
-                  {row.returned_date ? 'Returned' : 'Checked Out'}
-                </Badge>
-              </TableCell>
             </TableRow>
           ))}
         </TableBody>

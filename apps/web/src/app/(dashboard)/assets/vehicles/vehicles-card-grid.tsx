@@ -1,8 +1,6 @@
 'use client';
 
 import { Car } from 'lucide-react';
-import { Badge } from '@gleamops/ui';
-import { VEHICLE_STATUS_COLORS } from '@gleamops/shared';
 import type { Vehicle } from '@gleamops/shared';
 
 interface VehicleWithAssigned extends Vehicle {
@@ -36,9 +34,6 @@ export function VehiclesCardGrid({ rows, onSelect }: VehiclesCardGridProps) {
           )}
           <p className="mt-3 text-sm font-semibold text-foreground leading-tight">{item.name ?? item.vehicle_code}</p>
           <p className="mt-1 text-xs text-muted-foreground">{item.vehicle_code}</p>
-          <div className="mt-3 flex flex-wrap justify-center gap-1.5">
-            <Badge color={VEHICLE_STATUS_COLORS[item.status] ?? 'gray'}>{item.status}</Badge>
-          </div>
           <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">
             {(item.make || item.model) && (
               <p>{[item.make, item.model, item.year].filter(Boolean).join(' ')}</p>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -79,9 +79,34 @@ function formatCurrency(n: number | null) {
 
 // formatDate imported from @/lib/utils/date
 
+function formatRelativeDate(dateStr: string | null): string {
+  if (!dateStr) return '\u2014';
+  const target = new Date(dateStr);
+  const now = new Date();
+  const diffMs = target.getTime() - now.getTime();
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return 'today';
+  if (diffDays === 1) return 'tomorrow';
+  if (diffDays === -1) return 'yesterday';
+  if (diffDays > 1) return `in ${diffDays} days`;
+  return `${Math.abs(diffDays)} days ago`;
+}
+
+function formatRelativeDateTime(dateStr: string): string {
+  const target = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - target.getTime();
+  const diffMinutes = Math.floor(diffMs / 60000);
+  if (diffMinutes < 1) return 'just now';
+  if (diffMinutes < 60) return `${diffMinutes} min ago`;
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours} hr ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+}
+
 export default function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
   const [job, setJob] = useState<JobWithRelations | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
@@ -245,6 +270,8 @@ export default function JobDetailPage() {
   const marginPct = financials
     ? `${financials.profit_margin_pct.toFixed(1)}%`
     : '\u2014';
+  const startsIn = formatRelativeDate(job.start_date);
+  const updatedAgo = formatRelativeDateTime(job.updated_at);
 
   return (
     <div className="space-y-6">
@@ -281,6 +308,8 @@ export default function JobDetailPage() {
                   {job.frequency}
                 </Badge>
               )}
+              <Badge color="blue">{`Starts ${startsIn}`}</Badge>
+              <Badge color="gray">{`Updated ${updatedAgo}`}</Badge>
             </div>
           </div>
         </div>

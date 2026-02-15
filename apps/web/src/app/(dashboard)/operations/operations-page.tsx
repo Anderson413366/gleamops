@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Calendar, ClipboardList, Briefcase, ClipboardCheck, FileText, MapPin, AlertTriangle, MessageSquare } from 'lucide-react';
-import { ChipTabs, SearchInput } from '@gleamops/ui';
+import { Calendar, ClipboardList, Briefcase, ClipboardCheck, FileText, MapPin, AlertTriangle, MessageSquare, Eye, EyeOff } from 'lucide-react';
+import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import type { WorkTicket, Inspection, Geofence, MessageThread } from '@gleamops/shared';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 import TicketsTable from './tickets/tickets-table';
 import { TicketDetail } from './tickets/ticket-detail';
@@ -67,16 +68,57 @@ export default function OperationsPageClient() {
   const [editGeofence, setEditGeofence] = useState<GeofenceWithSite | null>(null);
   const [selectedThread, setSelectedThread] = useState<{ id: string; subject: string; thread_type: string } | null>(null);
   const [showMessageForm, setShowMessageForm] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
+  const [kpis, setKpis] = useState({
+    todayTickets: 0,
+    openTickets: 0,
+    activeJobs: 0,
+    openAlerts: 0,
+  });
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
+  useEffect(() => {
+    async function fetchKpis() {
+      const supabase = getSupabaseBrowserClient();
+      const today = new Date().toISOString().slice(0, 10);
+      const [todayRes, openRes, jobsRes, alertsRes] = await Promise.all([
+        supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('scheduled_date', today).is('archived_at', null),
+        supabase.from('work_tickets').select('id', { count: 'exact', head: true }).in('status', ['SCHEDULED', 'IN_PROGRESS']).is('archived_at', null),
+        supabase.from('site_jobs').select('id', { count: 'exact', head: true }).eq('status', 'ACTIVE').is('archived_at', null),
+        supabase.from('alerts').select('id', { count: 'exact', head: true }).eq('alert_type', 'TIME_EXCEPTION').is('dismissed_at', null),
+      ]);
+
+      setKpis({
+        todayTickets: todayRes.count ?? 0,
+        openTickets: openRes.count ?? 0,
+        activeJobs: jobsRes.count ?? 0,
+        openAlerts: alertsRes.count ?? 0,
+      });
+    }
+    fetchKpis();
+  }, [refreshKey]);
+
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${focusMode ? 'mx-auto max-w-5xl' : ''}`}>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Operations</h1>
           <p className="text-sm text-muted-foreground mt-1">Calendar, Work Tickets, Service Plans, Inspections, Templates, Geofences, Messages</p>
         </div>
+        <Button variant="secondary" onClick={() => setFocusMode((prev) => !prev)}>
+          {focusMode ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          {focusMode ? 'Exit Focus' : 'Focus Mode'}
+        </Button>
       </div>
+
+      {!focusMode && (
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Tickets Today</p><p className="text-xl font-semibold">{kpis.todayTickets}</p></CardContent></Card>
+          <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Open Tickets</p><p className="text-xl font-semibold">{kpis.openTickets}</p></CardContent></Card>
+          <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Jobs</p><p className="text-xl font-semibold">{kpis.activeJobs}</p></CardContent></Card>
+          <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Open Alerts</p><p className="text-xl font-semibold text-warning">{kpis.openAlerts}</p></CardContent></Card>
+        </div>
+      )}
 
       <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
       {tab !== 'calendar' && (

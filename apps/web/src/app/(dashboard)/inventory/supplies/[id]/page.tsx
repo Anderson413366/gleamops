@@ -14,6 +14,7 @@ import {
   FileText,
   ExternalLink,
   ShieldCheck,
+  Sparkles,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Badge, Skeleton } from '@gleamops/ui';
@@ -36,11 +37,25 @@ function supplyStatusColor(status: string | null): 'green' | 'red' | 'gray' {
   return 'gray';
 }
 
+function formatRelativeDateTime(dateStr: string): string {
+  const target = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - target.getTime();
+  const diffMinutes = Math.floor(diffMs / 60000);
+  if (diffMinutes < 1) return 'just now';
+  if (diffMinutes < 60) return `${diffMinutes} min ago`;
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours} hr ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+}
+
 export default function SupplyDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [supply, setSupply] = useState<SupplyCatalog | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
+  const [simpleView, setSimpleView] = useState(false);
 
   const fetchSupply = async () => {
     setLoading(true);
@@ -61,6 +76,14 @@ export default function SupplyDetailPage() {
   useEffect(() => {
     fetchSupply();
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    setSimpleView(localStorage.getItem('gleamops-inventory-simple-view') === 'true');
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('gleamops-inventory-simple-view', String(simpleView));
+  }, [simpleView]);
 
   if (loading) {
     return (
@@ -123,10 +146,19 @@ export default function SupplyDetailPage() {
               <Badge color={supplyStatusColor(supply.supply_status)}>
                 {supply.supply_status ?? 'ACTIVE'}
               </Badge>
+              <Badge color="gray">{`Updated ${formatRelativeDateTime(supply.updated_at)}`}</Badge>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setSimpleView((value) => !value)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            {simpleView ? 'Simple View On' : 'Simple View'}
+          </button>
           <button
             type="button"
             onClick={() => setFormOpen(true)}
@@ -173,6 +205,7 @@ export default function SupplyDetailPage() {
       </div>
 
       {/* Section Cards */}
+      {!simpleView && (
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Product Info */}
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
@@ -342,6 +375,7 @@ export default function SupplyDetailPage() {
           </dl>
         </div>
       </div>
+      )}
 
       {/* Metadata */}
       <div className="text-xs text-muted-foreground space-y-1 pt-4 border-t border-border">

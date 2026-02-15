@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   Package, Box, MapPin, ClipboardList, ShoppingCart,
-  Plus,
+  Plus, Sparkles,
 } from 'lucide-react';
-import { ChipTabs, SearchInput, Button } from '@gleamops/ui';
+import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 import SuppliesTable from './supplies/supplies-table';
 import KitsTable from './kits/kits-table';
@@ -32,15 +33,60 @@ const ADD_LABELS: Record<string, string> = {
 export default function InventoryPageClient() {
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab');
+  const [simpleView, setSimpleView] = useState(false);
+  const visibleTabs = useMemo(() => {
+    if (!simpleView) return TABS;
+    return TABS.filter((tabOption) => ['supplies', 'orders', 'counts'].includes(tabOption.key));
+  }, [simpleView]);
   const [tab, setTab] = useState(TABS.some(t => t.key === initialTab) ? initialTab! : TABS[0].key);
   const [search, setSearch] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
+  const [kpis, setKpis] = useState({
+    activeSupplies: 0,
+    replenishmentWatch: 0,
+    openOrders: 0,
+    pendingCounts: 0,
+  });
 
   // autoCreate triggers
   const [autoCreateSupply, setAutoCreateSupply] = useState(false);
   const [autoCreateKit, setAutoCreateKit] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('gleamops-inventory-simple-view') === 'true';
+    setSimpleView(stored);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('gleamops-inventory-simple-view', String(simpleView));
+  }, [simpleView]);
+
+  useEffect(() => {
+    if (visibleTabs.some((tabOption) => tabOption.key === tab)) return;
+    setTab(visibleTabs[0]?.key ?? 'supplies');
+  }, [tab, visibleTabs]);
+
+  useEffect(() => {
+    async function fetchKpis() {
+      const supabase = getSupabaseBrowserClient();
+      const [activeRes, replenishmentRes, openOrdersRes, pendingCountsRes] = await Promise.all([
+        supabase.from('supply_catalog').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('supply_status', 'ACTIVE'),
+        supabase.from('supply_catalog').select('id', { count: 'exact', head: true }).is('archived_at', null).not('min_stock_level', 'is', null),
+        supabase.from('supply_orders').select('id', { count: 'exact', head: true }).is('archived_at', null).in('status', ['ORDERED', 'SHIPPED']),
+        supabase.from('inventory_counts').select('id', { count: 'exact', head: true }).is('archived_at', null).in('status', ['DRAFT', 'IN_PROGRESS']),
+      ]);
+
+      setKpis({
+        activeSupplies: activeRes.count ?? 0,
+        replenishmentWatch: replenishmentRes.count ?? 0,
+        openOrders: openOrdersRes.count ?? 0,
+        pendingCounts: pendingCountsRes.count ?? 0,
+      });
+    }
+    fetchKpis();
+  }, [refreshKey]);
 
   const handleAdd = () => {
     if (tab === 'supplies') {
@@ -61,16 +107,32 @@ export default function InventoryPageClient() {
           <h1 className="text-2xl font-bold text-foreground">Inventory</h1>
           <p className="text-sm text-muted-foreground mt-1">Supplies, kits, site assignments, counts, and orders</p>
         </div>
-        {addLabel && (
-          <Button onClick={handleAdd}>
-            <Plus className="h-4 w-4" />
-            {addLabel}
+        <div className="flex items-center gap-2">
+          <Button
+            variant={simpleView ? 'primary' : 'secondary'}
+            onClick={() => setSimpleView((value) => !value)}
+          >
+            <Sparkles className="h-4 w-4" />
+            {simpleView ? 'Simple View On' : 'Simple View'}
           </Button>
-        )}
+          {addLabel && (
+            <Button onClick={handleAdd}>
+              <Plus className="h-4 w-4" />
+              {addLabel}
+            </Button>
+          )}
+        </div>
       </div>
 
-      <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
-      <SearchInput value={search} onChange={setSearch} placeholder={`Search ${tab}...`} />
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Supplies</p><p className="text-xl font-semibold">{kpis.activeSupplies}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Replenishment Watch</p><p className="text-xl font-semibold text-warning">{kpis.replenishmentWatch}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Open Orders</p><p className="text-xl font-semibold">{kpis.openOrders}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Pending Counts</p><p className="text-xl font-semibold">{kpis.pendingCounts}</p></CardContent></Card>
+      </div>
+
+      <ChipTabs tabs={visibleTabs} active={tab} onChange={setTab} />
+      <SearchInput value={search} onChange={setSearch} placeholder={simpleView ? 'Search core inventory...' : `Search ${tab}...`} />
 
       {tab === 'supplies' && (
         <SuppliesTable

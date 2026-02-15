@@ -23,6 +23,7 @@ import {
   Button,
   ExportButton,
   ViewToggle,
+  cn,
 } from '@gleamops/ui';
 import type { SupplyCatalog } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
@@ -37,6 +38,7 @@ const UNIT_OPTIONS = [
   { value: 'GAL', label: 'Gallon' },
   { value: 'BOTTLE', label: 'Bottle' },
 ];
+const STATUS_OPTIONS = ['all', 'ACTIVE', 'DISCONTINUED'] as const;
 
 interface SuppliesTableProps {
   search: string;
@@ -48,6 +50,7 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
   const router = useRouter();
   const [rows, setRows] = useState<SupplyCatalog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const { view, setView } = useViewPreference('supplies');
 
   // SlideOver form state (create only)
@@ -89,16 +92,29 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
     }
   }, [autoCreate, loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: rows.length };
+    for (const row of rows) {
+      const status = row.supply_status ?? 'ACTIVE';
+      counts[status] = (counts[status] || 0) + 1;
+    }
+    return counts;
+  }, [rows]);
+
   const filtered = useMemo(() => {
-    if (!search) return rows;
+    let result = rows;
+    if (statusFilter !== 'all') {
+      result = result.filter((row) => (row.supply_status ?? 'ACTIVE') === statusFilter);
+    }
+    if (!search) return result;
     const q = search.toLowerCase();
-    return rows.filter(
+    return result.filter(
       (r) =>
         r.name.toLowerCase().includes(q) ||
         r.code.toLowerCase().includes(q) ||
         (r.category && r.category.toLowerCase().includes(q))
     );
-  }, [rows, search]);
+  }, [rows, search, statusFilter]);
 
   const { sorted, sortKey, sortDir, onSort } = useTableSort(
     filtered as unknown as Record<string, unknown>[],
@@ -332,6 +348,33 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
           ]}
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
+      </div>
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        {STATUS_OPTIONS.map((status) => (
+          <button
+            key={status}
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setStatusFilter(status);
+            }}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors',
+              statusFilter === status
+                ? 'bg-module-accent text-module-accent-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            )}
+          >
+            {status === 'all' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase().replace(/_/g, ' ')}
+            <span className={cn(
+              'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+              statusFilter === status ? 'bg-white/20' : 'bg-background'
+            )}>
+              {statusCounts[status] || 0}
+            </span>
+          </button>
+        ))}
       </div>
       {view === 'card' ? (
         <SuppliesCardGrid rows={pag.page} onSelect={handleRowClick} />

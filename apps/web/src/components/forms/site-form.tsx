@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ChangeEvent, type DragEvent } from 'react';
+import { ImagePlus } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { siteSchema, type SiteFormData } from '@gleamops/shared';
@@ -70,6 +71,9 @@ const WIZARD_STEPS: WizardStep[] = [
   { id: 'facility', title: 'Facility & Notes' },
 ];
 
+const MAX_PHOTO_SIZE = 2 * 1024 * 1024;
+const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
 interface SiteFormProps {
   open: boolean;
   onClose: () => void;
@@ -83,6 +87,8 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
   const supabase = getSupabaseBrowserClient();
   const wizard = useWizardSteps(WIZARD_STEPS.length);
   const [clients, setClients] = useState<{ value: string; label: string }[]>([]);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
   const { values, errors, loading, setValue, onBlur, handleSubmit, reset } = useForm<SiteFormData>({
     schema: siteSchema,
@@ -121,7 +127,28 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
         }
       : { ...DEFAULTS, client_id: preselectedClientId ?? '' },
     onSubmit: async (data) => {
-      const { site_code, ...fields } = data;
+      let photoUrl = data.photo_url;
+      if (photoFile) {
+        if (photoFile.size > MAX_PHOTO_SIZE) {
+          throw new Error('Site photo must be under 2MB');
+        }
+        if (!ALLOWED_PHOTO_TYPES.includes(photoFile.type)) {
+          throw new Error('Site photo must be JPEG, PNG, or WebP');
+        }
+
+        const ext = photoFile.name.split('.').pop();
+        const path = `${data.site_code}-${Date.now()}.${ext}`;
+        const { error: uploadErr } = await supabase.storage.from('site-photos').upload(path, photoFile, { upsert: true });
+        if (uploadErr) {
+          throw uploadErr;
+        }
+        const { data: urlData } = supabase.storage.from('site-photos').getPublicUrl(path);
+        photoUrl = urlData.publicUrl;
+      }
+
+      const submitData = { ...data, photo_url: photoUrl };
+      const fields = { ...submitData } as Partial<SiteFormData>;
+      delete fields.site_code;
       if (isEdit) {
         const result = await supabase
           .from('sites')
@@ -132,7 +159,7 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
         assertUpdateSucceeded(result);
       } else {
         const { error } = await supabase.from('sites').insert({
-          ...data,
+          ...submitData,
           tenant_id: (await supabase.auth.getUser()).data.user?.app_metadata?.tenant_id,
         });
         if (error) throw error;
@@ -169,11 +196,35 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
     }
   }, [open, isEdit]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (!photoFile) {
+      setPhotoPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(photoFile);
+    setPhotoPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [photoFile]);
+
   const handleClose = () => {
     reset();
     wizard.reset();
+    setPhotoFile(null);
     onClose();
   };
+
+  const handlePhotoPick = (e: ChangeEvent<HTMLInputElement>) => {
+    setPhotoFile(e.target.files?.[0] ?? null);
+  };
+
+  const handlePhotoDrop = (e: DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    if (e.dataTransfer.files.length > 0) {
+      setPhotoFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const photoPreviewUrl = photoPreview ?? values.photo_url;
 
   const validateStep = (step: number): boolean => {
     if (step === 0) return !!values.name.trim() && !!values.client_id;
@@ -192,6 +243,27 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
             <Input label="Name" value={values.name} onChange={(e) => setValue('name', e.target.value)} onBlur={() => onBlur('name')} error={errors.name} required />
             <Select label="Client" value={values.client_id} onChange={(e) => setValue('client_id', e.target.value)} options={clients} required />
             <Select label="Status" value={values.status} onChange={(e) => setValue('status', e.target.value)} options={STATUS_OPTIONS} />
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Site Photo</label>
+              <label
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={handlePhotoDrop}
+                className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-border p-3 hover:border-module-accent/50 hover:bg-muted/40"
+              >
+                {photoPreviewUrl ? (
+                  <img src={photoPreviewUrl} alt="Site preview" className="h-14 w-14 rounded-lg border border-border object-cover" />
+                ) : (
+                  <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                    <ImagePlus className="h-5 w-5" />
+                  </div>
+                )}
+                <div className="text-sm">
+                  <p className="font-medium text-foreground">Drop image or click to upload</p>
+                  <p className="text-xs text-muted-foreground">JPEG/PNG/WebP, max 2MB.</p>
+                </div>
+                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoPick} className="hidden" />
+              </label>
+            </div>
           </div>
           {/* Address & Facility */}
           <div className="space-y-4">
@@ -286,6 +358,27 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
               required
             />
             <Select label="Status" value={values.status} onChange={(e) => setValue('status', e.target.value)} options={STATUS_OPTIONS} />
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Site Photo</label>
+              <label
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={handlePhotoDrop}
+                className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-border p-3 hover:border-module-accent/50 hover:bg-muted/40"
+              >
+                {photoPreviewUrl ? (
+                  <img src={photoPreviewUrl} alt="Site preview" className="h-14 w-14 rounded-lg border border-border object-cover" />
+                ) : (
+                  <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                    <ImagePlus className="h-5 w-5" />
+                  </div>
+                )}
+                <div className="text-sm">
+                  <p className="font-medium text-foreground">Drop image or click to upload</p>
+                  <p className="text-xs text-muted-foreground">JPEG/PNG/WebP, max 2MB.</p>
+                </div>
+                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoPick} className="hidden" />
+              </label>
+            </div>
           </div>
         )}
 

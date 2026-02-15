@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -43,7 +43,6 @@ function formatDate(d: string | null) {
 
 export default function SiteDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
   const [site, setSite] = useState<SiteWithClient | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
@@ -142,9 +141,17 @@ export default function SiteDetailPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-xl font-bold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-            <MapPin className="h-7 w-7" />
-          </div>
+          {site.photo_url ? (
+            <img
+              src={site.photo_url}
+              alt={site.name}
+              className="h-16 w-16 rounded-full border border-border object-cover"
+            />
+          ) : (
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-module-accent/15 text-module-accent">
+              <MapPin className="h-7 w-7" />
+            </div>
+          )}
           <div>
             <h1 className="text-2xl font-bold text-foreground">{site.name}</h1>
             <div className="flex items-center gap-2 mt-1">

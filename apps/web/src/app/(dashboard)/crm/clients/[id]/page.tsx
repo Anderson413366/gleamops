@@ -1,15 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
-  Building2,
   Pencil,
   Trash2,
-  Mail,
-  Phone,
   Globe,
   MapPin,
   AlertTriangle,
@@ -47,9 +44,13 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
+function getFaviconUrl(website: string): string {
+  const host = website.replace(/^https?:\/\//i, '').split('/')[0];
+  return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=128`;
+}
+
 export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
@@ -166,9 +167,17 @@ export default function ClientDetailPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-xl font-bold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-            {getInitials(client.name)}
-          </div>
+          {client.website ? (
+            <img
+              src={getFaviconUrl(client.website)}
+              alt={`${client.name} logo`}
+              className="h-16 w-16 rounded-full border border-border object-cover"
+            />
+          ) : (
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-module-accent/15 text-xl font-bold text-module-accent">
+              {getInitials(client.name)}
+            </div>
+          )}
           <div>
             <h1 className="text-2xl font-bold text-foreground">
               {client.name}

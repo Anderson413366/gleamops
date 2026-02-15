@@ -137,7 +137,7 @@ export default function ClientsTable({ search }: ClientsTableProps) {
             className={cn(
               'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors',
               statusFilter === status
-                ? 'bg-blue-600 text-white'
+                ? 'bg-module-accent text-module-accent-foreground'
                 : 'bg-muted text-muted-foreground hover:bg-muted/80'
             )}
           >

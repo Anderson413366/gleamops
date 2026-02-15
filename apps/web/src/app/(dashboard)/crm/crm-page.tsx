@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Building2, MapPin, Users, Plus } from 'lucide-react';
-import { ChipTabs, SearchInput, Button } from '@gleamops/ui';
+import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import type { Contact } from '@gleamops/shared';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 import ClientsTable from './clients/clients-table';
 import SitesTable from './sites/sites-table';
@@ -24,6 +25,13 @@ export default function CRMPageClient() {
   const initialTab = searchParams.get('tab');
   const [tab, setTab] = useState(TABS.some(t => t.key === initialTab) ? initialTab! : TABS[0].key);
   const [search, setSearch] = useState('');
+  const [kpis, setKpis] = useState({
+    clients: 0,
+    activeClients: 0,
+    sites: 0,
+    activeSites: 0,
+    contacts: 0,
+  });
 
   // Form state
   const [clientFormOpen, setClientFormOpen] = useState(false);
@@ -34,6 +42,29 @@ export default function CRMPageClient() {
   // Refresh keys
   const [refreshKey, setRefreshKey] = useState(0);
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
+
+  const fetchKpis = useCallback(async () => {
+    const supabase = getSupabaseBrowserClient();
+    const [clientsRes, activeClientsRes, sitesRes, activeSitesRes, contactsRes] = await Promise.all([
+      supabase.from('clients').select('id', { count: 'exact', head: true }).is('archived_at', null),
+      supabase.from('clients').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'ACTIVE'),
+      supabase.from('sites').select('id', { count: 'exact', head: true }).is('archived_at', null),
+      supabase.from('sites').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'ACTIVE'),
+      supabase.from('contacts').select('id', { count: 'exact', head: true }).is('archived_at', null),
+    ]);
+
+    setKpis({
+      clients: clientsRes.count ?? 0,
+      activeClients: activeClientsRes.count ?? 0,
+      sites: sitesRes.count ?? 0,
+      activeSites: activeSitesRes.count ?? 0,
+      contacts: contactsRes.count ?? 0,
+    });
+  }, []);
+
+  useEffect(() => {
+    fetchKpis();
+  }, [fetchKpis, refreshKey]);
 
   const handleAdd = () => {
     if (tab === 'clients') {
@@ -63,6 +94,39 @@ export default function CRMPageClient() {
 
       <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
       <SearchInput value={search} onChange={setSearch} placeholder={`Search ${tab}...`} />
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <Card>
+          <CardContent className="pt-4">
+            <p className="text-2xl font-semibold tabular-nums">{kpis.clients}</p>
+            <p className="text-xs text-muted-foreground">Total Clients</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <p className="text-2xl font-semibold tabular-nums">{kpis.activeClients}</p>
+            <p className="text-xs text-muted-foreground">Active Clients</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <p className="text-2xl font-semibold tabular-nums">{kpis.sites}</p>
+            <p className="text-xs text-muted-foreground">Total Sites</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <p className="text-2xl font-semibold tabular-nums">{kpis.activeSites}</p>
+            <p className="text-xs text-muted-foreground">Active Sites</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <p className="text-2xl font-semibold tabular-nums">{kpis.contacts}</p>
+            <p className="text-xs text-muted-foreground">Contacts</p>
+          </CardContent>
+        </Card>
+      </div>
 
       {tab === 'clients' && (
         <ClientsTable

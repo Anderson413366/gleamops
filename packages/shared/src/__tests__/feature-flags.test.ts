@@ -26,6 +26,8 @@ describe('feature-flags', () => {
         ops_geofence_auto: false,
         messaging_v1: false,
         mobile_inspections: false,
+        qbo_timesheet_sync: false,
+        financial_intel_v1: false,
       });
     });
 
@@ -41,6 +43,8 @@ describe('feature-flags', () => {
       expect(flags.bid_specialization).toBe(false);
       expect(flags.proposal_studio_v2).toBe(false);
       expect(flags.ops_geofence_auto).toBe(false);
+      expect(flags.qbo_timesheet_sync).toBe(false);
+      expect(flags.financial_intel_v1).toBe(false);
     });
 
     it('treats "disabled" as false', () => {
@@ -84,7 +88,7 @@ describe('feature-flags', () => {
       expect(isFeatureEnabled('ops_geofence_auto')).toBe(true);
     });
 
-    it('works for all 6 domains', () => {
+    it('works for all feature domains', () => {
       const domains: FeatureDomain[] = [
         'schema_parity',
         'bid_specialization',
@@ -92,6 +96,8 @@ describe('feature-flags', () => {
         'ops_geofence_auto',
         'messaging_v1',
         'mobile_inspections',
+        'qbo_timesheet_sync',
+        'financial_intel_v1',
       ];
       for (const domain of domains) {
         // All should be false by default

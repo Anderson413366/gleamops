@@ -28,9 +28,11 @@ import {
   Briefcase,
   ClipboardCheck,
   AlertTriangle,
+  LineChart,
 } from 'lucide-react';
 import { getModuleFromPathname, NAV_ITEMS } from '@gleamops/shared';
 import { useAuth } from '@/hooks/use-auth';
+import { useFeatureFlag } from '@/hooks/use-feature-flag';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -70,6 +72,7 @@ function getInitials(email: string): string {
 export function Sidebar() {
   const pathname = usePathname();
   const activeModule = getModuleFromPathname(pathname);
+  const financialIntelEnabled = useFeatureFlag('financial_intel_v1');
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
@@ -225,6 +228,27 @@ export function Sidebar() {
               </Link>
             );
           })}
+          {financialIntelEnabled && (
+            <Link
+              href="/financial-intelligence"
+              onClick={() => setMobileOpen(false)}
+              aria-current={pathname.startsWith('/financial-intelligence') ? 'page' : undefined}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 ease-in-out group ${
+                pathname.startsWith('/financial-intelligence')
+                  ? 'border-module-accent/30 bg-module-accent/15 text-module-accent'
+                  : 'border-transparent text-sidebar-text hover:bg-sidebar-hover hover:text-white'
+              }`}
+            >
+              <LineChart
+                className={`h-[18px] w-[18px] shrink-0 transition-colors duration-200 ${
+                  pathname.startsWith('/financial-intelligence')
+                    ? 'text-module-accent'
+                    : 'text-sidebar-text group-hover:text-white'
+                }`}
+              />
+              Financial Intel
+            </Link>
+          )}
         </nav>
 
         {/* Quick Action FAB + Popover */}

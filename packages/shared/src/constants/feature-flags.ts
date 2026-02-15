@@ -14,7 +14,8 @@ export type FeatureDomain =
   | 'ops_geofence_auto'
   | 'messaging_v1'
   | 'mobile_inspections'
-  | 'qbo_timesheet_sync';
+  | 'qbo_timesheet_sync'
+  | 'financial_intel_v1';
 
 export type FeatureFlags = Record<FeatureDomain, boolean>;
 
@@ -26,6 +27,7 @@ const DOMAIN_TO_ENV: Record<FeatureDomain, string> = {
   messaging_v1: 'NEXT_PUBLIC_FF_MESSAGING_V1',
   mobile_inspections: 'NEXT_PUBLIC_FF_MOBILE_INSPECTIONS',
   qbo_timesheet_sync: 'NEXT_PUBLIC_FF_QBO_TIMESHEET_SYNC',
+  financial_intel_v1: 'NEXT_PUBLIC_FF_FINANCIAL_INTEL_V1',
 };
 
 /**
@@ -36,6 +38,7 @@ const WORKER_ENV: Record<string, string> = {
   NEXT_PUBLIC_FF_BID_SPECIALIZATION: 'FF_BID_SPECIALIZATION',
   NEXT_PUBLIC_FF_PROPOSAL_STUDIO_V2: 'FF_PROPOSAL_STUDIO_V2',
   NEXT_PUBLIC_FF_QBO_TIMESHEET_SYNC: 'FF_QBO_TIMESHEET_SYNC',
+  NEXT_PUBLIC_FF_FINANCIAL_INTEL_V1: 'FF_FINANCIAL_INTEL_V1',
 };
 
 const ALL_DOMAINS: FeatureDomain[] = [
@@ -46,6 +49,7 @@ const ALL_DOMAINS: FeatureDomain[] = [
   'messaging_v1',
   'mobile_inspections',
   'qbo_timesheet_sync',
+  'financial_intel_v1',
 ];
 
 let _cache: FeatureFlags | null = null;

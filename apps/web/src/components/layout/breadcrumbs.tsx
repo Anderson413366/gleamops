@@ -54,13 +54,14 @@ export function Breadcrumbs() {
   if (!pathname || pathname === '/') return null;
 
   const segments = pathname.split('/').filter(Boolean);
+  const normalized = segments[0] === 'home' ? segments.slice(1) : segments;
   if (segments.length === 0) return null;
 
   const crumbs = [
     { label: 'Home', href: '/' },
-    ...segments.map((seg, i) => ({
+    ...normalized.map((seg, i) => ({
       label: humanize(seg),
-      href: '/' + segments.slice(0, i + 1).join('/'),
+      href: '/' + normalized.slice(0, i + 1).join('/'),
     })),
   ];
 
@@ -76,7 +77,10 @@ export function Breadcrumbs() {
   }
 
   return (
-    <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm min-w-0">
+    <nav
+      aria-label="Breadcrumb"
+      className="inline-flex min-w-0 items-center gap-1 rounded-xl border border-border/60 bg-background/80 px-2 py-1 text-sm shadow-sm"
+    >
       {displayCrumbs.map((crumb, i) => {
         const isLast = i === displayCrumbs.length - 1;
         return (

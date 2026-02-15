@@ -197,10 +197,11 @@ export function Sidebar() {
                 key={item.id}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ease-in-out group ${
+                aria-current={isActive ? 'page' : undefined}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 ease-in-out group ${
                   isActive
-                    ? 'bg-module-accent/15 text-module-accent'
-                    : 'text-sidebar-text hover:bg-sidebar-hover hover:text-white'
+                    ? 'border-module-accent/30 bg-module-accent/15 text-module-accent'
+                    : 'border-transparent text-sidebar-text hover:bg-sidebar-hover hover:text-white'
                 }`}
               >
                 <Icon
@@ -268,7 +269,7 @@ export function Sidebar() {
           <button
             type="button"
             onClick={() => setQuickOpen(!quickOpen)}
-            className={`flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/20 transition-colors ${
+            className={`flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/20 transition-colors ${
               quickOpen
                 ? 'bg-primary/90 ring-2 ring-primary/30'
                 : 'bg-primary hover:bg-primary/90'

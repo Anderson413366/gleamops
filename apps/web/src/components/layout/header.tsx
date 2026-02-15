@@ -48,6 +48,8 @@ interface FeedItem {
   dismissed_at?: string | null;
 }
 
+type FeedTone = 'info' | 'positive' | 'attention' | 'urgent';
+
 function getAlertIcon(alertType: string | undefined) {
   switch (alertType) {
     case 'TIME_EXCEPTION':
@@ -56,6 +58,43 @@ function getAlertIcon(alertType: string | undefined) {
       return <Clock className="h-3.5 w-3.5 text-destructive" />;
     default:
       return <Bell className="h-3.5 w-3.5 text-muted-foreground" />;
+  }
+}
+
+function getFeedTone(item: FeedItem): FeedTone {
+  if (item.source === 'notification') {
+    return item.read_at ? 'info' : 'positive';
+  }
+
+  const severity = item.severity?.toUpperCase();
+  if (severity === 'CRITICAL' || severity === 'HIGH') return 'urgent';
+  if (severity === 'MEDIUM' || severity === 'WARNING') return 'attention';
+  return 'info';
+}
+
+function getToneLabel(tone: FeedTone): string {
+  switch (tone) {
+    case 'positive':
+      return 'Positive';
+    case 'attention':
+      return 'Attention';
+    case 'urgent':
+      return 'Action needed';
+    default:
+      return 'FYI';
+  }
+}
+
+function getToneChipClass(tone: FeedTone): string {
+  switch (tone) {
+    case 'positive':
+      return 'bg-success/15 text-success';
+    case 'attention':
+      return 'bg-warning/15 text-warning';
+    case 'urgent':
+      return 'bg-destructive/15 text-destructive';
+    default:
+      return 'bg-info/15 text-info';
   }
 }
 
@@ -104,6 +143,7 @@ export function Header() {
   const themeRef = useRef<HTMLDivElement>(null);
 
   const unreadCount = feedItems.filter((n) => !n.read_at).length;
+  const unreadUrgentCount = feedItems.filter((n) => !n.read_at && getFeedTone(n) === 'urgent').length;
 
   // Fetch notifications + alerts on mount + when dropdown opens
   const fetchFeed = useCallback(async () => {
@@ -399,8 +439,8 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 backdrop-blur-xl bg-background/80 border-b border-border">
-        <div className="h-16 flex items-center justify-between px-6">
+      <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-xl">
+        <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Left: breadcrumbs */}
         <div className="flex-1 min-w-0">
           <Breadcrumbs />
@@ -499,15 +539,21 @@ export function Header() {
             >
               <Bell className="h-5 w-5" />
               {unreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+                <span
+                  className={`absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-bold ${
+                    unreadUrgentCount > 0
+                      ? 'bg-destructive text-destructive-foreground'
+                      : 'bg-info text-primary-foreground'
+                  }`}
+                >
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
             </button>
             {notifOpen && (
-              <div className="absolute right-0 top-full mt-2 w-80 bg-card rounded-xl shadow-xl border border-border z-50 animate-scale-in overflow-hidden">
-                <div className="px-4 py-3 border-b border-border bg-muted/50 flex items-center justify-between">
-                  <p className="text-sm font-semibold text-foreground">Notifications & Alerts</p>
+              <div className="absolute right-0 top-full z-50 mt-2 w-[22rem] overflow-hidden rounded-xl border border-border bg-card shadow-xl animate-scale-in">
+                <div className="flex items-center justify-between border-b border-border bg-muted/50 px-4 py-3">
+                  <p className="text-sm font-semibold text-foreground">Updates</p>
                   {unreadCount > 0 && (
                     <button
                       type="button"
@@ -527,19 +573,20 @@ export function Header() {
                     <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-muted mb-3">
                       <Bell className="h-5 w-5 text-muted-foreground" />
                     </div>
-                    <p className="text-sm font-medium text-foreground">All caught up!</p>
-                    <p className="text-xs text-muted-foreground mt-1">No new notifications or alerts</p>
+                    <p className="text-sm font-medium text-foreground">You are all caught up.</p>
+                    <p className="text-xs text-muted-foreground mt-1">When you are ready, new updates will appear here.</p>
                   </div>
                 ) : (
                   <div className="max-h-80 overflow-y-auto divide-y divide-border">
                     {feedItems.map((item) => {
                       const link = getAlertLink(item);
+                      const tone = getFeedTone(item);
                       return (
                         <button
                           key={`${item.source}-${item.id}`}
                           type="button"
-                          className={`w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors ${
-                            !item.read_at ? 'bg-primary/5' : ''
+                          className={`w-full px-4 py-3 text-left transition-colors hover:bg-muted/50 ${
+                            !item.read_at ? 'bg-module-accent/5' : ''
                           }`}
                           onClick={() => {
                             if (!item.read_at) markAsRead(item);
@@ -555,12 +602,15 @@ export function Header() {
                               {item.source === 'alert' ? (
                                 getAlertIcon(item.alert_type)
                               ) : !item.read_at ? (
-                                <span className="mt-0.5 h-2 w-2 rounded-full bg-primary block" />
+                                <span className="mt-0.5 block h-2 w-2 rounded-full bg-module-accent" />
                               ) : (
                                 <Check className="h-3 w-3 text-muted-foreground" />
                               )}
                             </div>
                             <div className="min-w-0 flex-1">
+                              <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${getToneChipClass(tone)}`}>
+                                {getToneLabel(tone)}
+                              </span>
                               <p className={`text-sm truncate ${!item.read_at ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>
                                 {item.title}
                               </p>

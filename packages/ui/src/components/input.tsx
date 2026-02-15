@@ -20,15 +20,17 @@ export function Input({ label, error, hint, className, id, ...props }: InputProp
       <input
         id={inputId}
         className={cn(
-          'block min-h-11 w-full rounded-[10px] border px-3.5 py-2.5 text-sm leading-6 transition-all duration-200 ease-in-out',
-          'bg-card text-foreground placeholder:text-muted-foreground',
-          'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background',
+          // Use border-box + fixed control height to prevent text clipping/overlap under responsive reflow.
+          'box-border block h-11 w-full rounded-[var(--radius-input)] border px-3.5 text-sm leading-5 transition-colors duration-200',
+          'bg-background text-foreground placeholder:text-muted-foreground',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
           error
-            ? 'border-destructive/50 focus:border-destructive focus:ring-destructive/40'
-            : 'border-border focus:border-primary focus:ring-ring/40',
+            ? 'border-destructive/50 focus-visible:border-destructive focus-visible:ring-destructive/40'
+            : 'border-border focus-visible:border-primary focus-visible:ring-ring/40',
           'disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed',
           className
         )}
+        aria-invalid={!!error}
         {...props}
       />
       {error && <p className="text-xs font-medium text-destructive">{error}</p>}

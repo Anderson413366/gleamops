@@ -38,7 +38,7 @@ export function TableSkeleton({ rows = 5, cols = 4 }: { rows?: number; cols?: nu
 /** Card skeleton */
 export function CardSkeleton() {
   return (
-    <div className="rounded-lg border border-border bg-card p-6 space-y-4 shadow-sm">
+    <div className="rounded-2xl border border-border bg-card p-6 space-y-4 shadow-[var(--shadow-card)]">
       <Skeleton className="h-5 w-1/3" />
       <Skeleton className="h-4 w-2/3" />
       <Skeleton className="h-4 w-1/2" />

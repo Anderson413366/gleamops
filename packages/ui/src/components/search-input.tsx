@@ -46,7 +46,7 @@ export function SearchInput({
         value={local}
         onChange={(e) => handleChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-lg border border-border bg-background py-2 pl-10 pr-9 text-sm text-foreground placeholder:text-muted-foreground transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
+        className="box-border h-11 w-full rounded-[var(--radius-input)] border border-border bg-background pl-10 pr-9 text-sm leading-5 text-foreground placeholder:text-muted-foreground transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:border-primary"
       />
       {local && (
         <button

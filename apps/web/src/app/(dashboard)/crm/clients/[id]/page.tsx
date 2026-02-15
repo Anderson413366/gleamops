@@ -9,13 +9,17 @@ import {
   Trash2,
   Globe,
   MapPin,
+  Mail,
+  Phone,
+  Users,
   AlertTriangle,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Badge, Skeleton } from '@gleamops/ui';
-import type { Client } from '@gleamops/shared';
+import type { Client, Contact } from '@gleamops/shared';
 import { CLIENT_STATUS_COLORS } from '@gleamops/shared';
 import { ClientForm } from '@/components/forms/client-form';
+import { ContactForm } from '@/components/forms/contact-form';
 
 function formatCurrency(n: number | null) {
   if (n == null) return '\u2014';
@@ -54,6 +58,10 @@ export default function ClientDetailPage() {
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [contactsLoading, setContactsLoading] = useState(false);
+  const [contactFormOpen, setContactFormOpen] = useState(false);
+  const [editContact, setEditContact] = useState<Contact | null>(null);
 
   // Related data counts
   const [siteCount, setSiteCount] = useState(0);
@@ -73,6 +81,18 @@ export default function ClientDetailPage() {
     if (data) {
       const c = data as unknown as Client;
       setClient(c);
+
+      // Fetch contacts for this client (for primary contact + contact list)
+      setContactsLoading(true);
+      const { data: contactRows } = await supabase
+        .from('contacts')
+        .select('*')
+        .eq('client_id', c.id)
+        .is('archived_at', null)
+        .order('is_primary', { ascending: false })
+        .order('name');
+      setContacts((contactRows ?? []) as unknown as Contact[]);
+      setContactsLoading(false);
 
       // Fetch related counts
       const [sitesRes] = await Promise.all([
@@ -152,6 +172,21 @@ export default function ClientDetailPage() {
         : client.contract_end_date
           ? 'Expired'
           : '\u2014';
+
+  const primaryContact =
+    contacts.find((c) => c.id === client.primary_contact_id) ??
+    contacts.find((c) => c.is_primary) ??
+    (contacts.length > 0 ? contacts[0] : null);
+
+  const openAddContact = () => {
+    setEditContact(null);
+    setContactFormOpen(true);
+  };
+
+  const openEditContact = (c: Contact) => {
+    setEditContact(c);
+    setContactFormOpen(true);
+  };
 
   return (
     <div className="space-y-6">
@@ -240,50 +275,138 @@ export default function ClientDetailPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Contact Info */}
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <h3 className="mb-4 text-sm font-semibold text-foreground">
-            Contact Info
-          </h3>
-          <dl className="space-y-3 text-sm">
-            {client.billing_contact_id && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Billing Contact</dt>
-                <dd className="font-medium">{client.bill_to_name ?? '\u2014'}</dd>
-              </div>
-            )}
-            {client.website && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground inline-flex items-center gap-1">
-                  <Globe className="h-3 w-3" /> Website
-                </dt>
-                <dd className="font-medium">
-                  <a
-                    href={
-                      client.website.startsWith('http')
-                        ? client.website
-                        : `https://${client.website}`
-                    }
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline dark:text-blue-400"
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="text-sm font-semibold text-foreground">Contact</h3>
+            <button
+              type="button"
+              onClick={openAddContact}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              <Users className="h-3.5 w-3.5" />
+              Add Contact
+            </button>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 gap-5 lg:grid-cols-2">
+            {/* Primary Contact */}
+            <div className="rounded-lg border border-border bg-muted/20 p-4">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Primary Contact</p>
+              {primaryContact ? (
+                <div className="mt-2 space-y-3">
+                  <div>
+                    <p className="text-base font-semibold text-foreground">{primaryContact.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {[primaryContact.role_title, primaryContact.role].filter(Boolean).join(' · ') || '\u2014'}
+                    </p>
+                  </div>
+                  <div className="space-y-1.5 text-sm">
+                    {primaryContact.email ? (
+                      <a
+                        href={`mailto:${primaryContact.email}`}
+                        className="inline-flex items-center gap-2 text-sm text-foreground hover:underline"
+                      >
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        {primaryContact.email}
+                      </a>
+                    ) : (
+                      <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                        <Mail className="h-4 w-4" /> No email on file
+                      </p>
+                    )}
+                    {(primaryContact.work_phone || primaryContact.mobile_phone || primaryContact.phone) ? (
+                      <div className="space-y-1">
+                        {(primaryContact.work_phone || primaryContact.phone) && (
+                          <a
+                            href={`tel:${(primaryContact.work_phone || primaryContact.phone) ?? ''}`}
+                            className="inline-flex items-center gap-2 text-sm text-foreground hover:underline"
+                          >
+                            <Phone className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-muted-foreground">Office</span>
+                            <span>{primaryContact.work_phone || primaryContact.phone}</span>
+                          </a>
+                        )}
+                        {primaryContact.mobile_phone && (
+                          <a
+                            href={`tel:${primaryContact.mobile_phone}`}
+                            className="inline-flex items-center gap-2 text-sm text-foreground hover:underline"
+                          >
+                            <Phone className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-muted-foreground">Mobile</span>
+                            <span>{primaryContact.mobile_phone}</span>
+                          </a>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                        <Phone className="h-4 w-4" /> No phone on file
+                      </p>
+                    )}
+                    <div className="text-xs text-muted-foreground">
+                      Preferred method: <span className="text-foreground">{primaryContact.preferred_contact_method ?? 'No preference'}</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-2 space-y-3">
+                  <p className="text-sm text-muted-foreground">No contacts yet. Add the first person to call for this client.</p>
+                  <button
+                    type="button"
+                    onClick={openAddContact}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                   >
-                    {client.website}
-                  </a>
-                </dd>
-              </div>
-            )}
-            {client.client_type && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Type</dt>
-                <dd className="font-medium">{client.client_type}</dd>
-              </div>
-            )}
-            {client.industry && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Industry</dt>
-                <dd className="font-medium">{client.industry}</dd>
-              </div>
-            )}
-          </dl>
+                    <Users className="h-3.5 w-3.5" />
+                    Add First Contact
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Company Info */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Company</p>
+              <dl className="mt-2 space-y-3 text-sm">
+                {client.website && (
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground inline-flex items-center gap-1">
+                      <Globe className="h-3 w-3" /> Website
+                    </dt>
+                    <dd className="font-medium text-right">
+                      <a
+                        href={
+                          client.website.startsWith('http')
+                            ? client.website
+                            : `https://${client.website}`
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline dark:text-blue-400"
+                      >
+                        {client.website}
+                      </a>
+                    </dd>
+                  </div>
+                )}
+                {client.client_type && (
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">Type</dt>
+                    <dd className="font-medium text-right">{client.client_type}</dd>
+                  </div>
+                )}
+                {client.industry && (
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">Industry</dt>
+                    <dd className="font-medium text-right">{client.industry}</dd>
+                  </div>
+                )}
+                {client.billing_contact_id && (
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">Billing Contact</dt>
+                    <dd className="font-medium text-right">{client.bill_to_name ?? '\u2014'}</dd>
+                  </div>
+                )}
+              </dl>
+            </div>
+          </div>
         </div>
 
         {/* Address */}
@@ -416,6 +539,87 @@ export default function ClientDetailPage() {
         </div>
       </div>
 
+      {/* Contacts */}
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-foreground">Contacts</h3>
+            <Badge color="blue">{contacts.length}</Badge>
+          </div>
+          <button
+            type="button"
+            onClick={openAddContact}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          >
+            <Users className="h-3.5 w-3.5" />
+            Add Contact
+          </button>
+        </div>
+
+        <div className="mt-4">
+          {contactsLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ) : contacts.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-border bg-muted/20 p-6 text-center">
+              <p className="text-sm font-medium text-foreground">No contacts yet</p>
+              <p className="mt-1 text-sm text-muted-foreground">Add your first contact so your team knows exactly who to call.</p>
+              <button
+                type="button"
+                onClick={openAddContact}
+                className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              >
+                <Users className="h-3.5 w-3.5" />
+                Add Your First Contact
+              </button>
+            </div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {contacts.map((c) => (
+                <li key={c.id} className="py-3">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-medium text-foreground truncate">{c.name}</p>
+                        {c.is_primary && <Badge color="green">Primary</Badge>}
+                        {c.preferred_contact_method && <Badge color="blue">{c.preferred_contact_method}</Badge>}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {[c.role_title, c.role].filter(Boolean).join(' · ') || '\u2014'}
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-4 text-xs text-muted-foreground">
+                        {c.email && (
+                          <a href={`mailto:${c.email}`} className="inline-flex items-center gap-1 hover:underline">
+                            <Mail className="h-3.5 w-3.5" />
+                            {c.email}
+                          </a>
+                        )}
+                        {(c.work_phone || c.mobile_phone || c.phone) && (
+                          <span className="inline-flex items-center gap-1">
+                            <Phone className="h-3.5 w-3.5" />
+                            {c.mobile_phone || c.work_phone || c.phone}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => openEditContact(c)}
+                      className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      Edit
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
       {/* Notes */}
       {client.notes && (
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
@@ -437,6 +641,17 @@ export default function ClientDetailPage() {
         open={formOpen}
         onClose={() => setFormOpen(false)}
         initialData={client}
+        onSuccess={fetchClient}
+      />
+
+      <ContactForm
+        open={contactFormOpen}
+        onClose={() => {
+          setContactFormOpen(false);
+          setEditContact(null);
+        }}
+        initialData={editContact}
+        preselectedClientId={client.id}
         onSuccess={fetchClient}
       />
     </div>

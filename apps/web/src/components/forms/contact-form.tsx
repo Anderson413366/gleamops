@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { contactSchema, type ContactFormData } from '@gleamops/shared';
@@ -81,36 +81,42 @@ export function ContactForm({
   const supabase = getSupabaseBrowserClient();
   const [clients, setClients] = useState<{ value: string; label: string }[]>([]);
   const [sites, setSites] = useState<{ value: string; label: string }[]>([]);
+  const [codeGenerationFailed, setCodeGenerationFailed] = useState(false);
+
+  const initialValues = useMemo<ContactFormData>(() => {
+    if (initialData) {
+      return {
+        contact_code: initialData.contact_code,
+        client_id: initialData.client_id,
+        site_id: initialData.site_id,
+        first_name: initialData.first_name ?? '',
+        last_name: initialData.last_name ?? '',
+        name: initialData.name,
+        contact_type: initialData.contact_type,
+        company_name: initialData.company_name,
+        role_title: initialData.role_title,
+        email: initialData.email,
+        phone: initialData.phone,
+        mobile_phone: initialData.mobile_phone,
+        work_phone: initialData.work_phone,
+        role: initialData.role,
+        preferred_contact_method: initialData.preferred_contact_method,
+        preferred_language: initialData.preferred_language,
+        is_primary: initialData.is_primary,
+        timezone: initialData.timezone,
+        notes: initialData.notes,
+      };
+    }
+    return {
+      ...DEFAULTS,
+      client_id: preselectedClientId ?? null,
+      site_id: preselectedSiteId ?? null,
+    };
+  }, [initialData, preselectedClientId, preselectedSiteId]);
 
   const { values, errors, loading, setValue, onBlur, handleSubmit, reset } = useForm<ContactFormData>({
     schema: contactSchema,
-    initialValues: initialData
-      ? {
-          contact_code: initialData.contact_code,
-          client_id: initialData.client_id,
-          site_id: initialData.site_id,
-          first_name: initialData.first_name ?? '',
-          last_name: initialData.last_name ?? '',
-          name: initialData.name,
-          contact_type: initialData.contact_type,
-          company_name: initialData.company_name,
-          role_title: initialData.role_title,
-          email: initialData.email,
-          phone: initialData.phone,
-          mobile_phone: initialData.mobile_phone,
-          work_phone: initialData.work_phone,
-          role: initialData.role,
-          preferred_contact_method: initialData.preferred_contact_method,
-          preferred_language: initialData.preferred_language,
-          is_primary: initialData.is_primary,
-          timezone: initialData.timezone,
-          notes: initialData.notes,
-        }
-      : {
-          ...DEFAULTS,
-          client_id: preselectedClientId ?? null,
-          site_id: preselectedSiteId ?? null,
-        },
+    initialValues,
     onSubmit: async (data) => {
       // Compute full name
       const fullName = `${data.first_name} ${data.last_name}`.trim();
@@ -136,6 +142,14 @@ export function ContactForm({
       handleClose();
     },
   });
+
+  // `useForm` doesn't automatically reinitialize when `initialData` changes.
+  // When opening, reset to the correct record/defaults so the form always pre-fills.
+  useEffect(() => {
+    if (!open) return;
+    reset(initialValues);
+    setCodeGenerationFailed(false);
+  }, [open, reset, initialValues]);
 
   // Load clients and sites for dropdowns
   useEffect(() => {
@@ -169,15 +183,32 @@ export function ContactForm({
 
   // Generate next code on create
   useEffect(() => {
-    if (open && !isEdit && !values.contact_code) {
-      supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'CON' }).then(({ data }) => {
-        if (data) setValue('contact_code', data);
-      });
-    }
-  }, [open, isEdit]); // eslint-disable-line react-hooks/exhaustive-deps
+    let cancelled = false;
+    if (!open || isEdit || values.contact_code) return;
+
+    (async () => {
+      const { data, error } = await supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'CON' });
+      if (cancelled) return;
+      if (error || !data) {
+        // Backend RPC can be blocked by permissions in some environments.
+        // Provide a safe client-side fallback that matches the `CON-XXXX` schema format.
+        const fallback = `CON-${new Date().getFullYear()}${String(Math.floor(Math.random() * 1_000_000)).padStart(6, '0')}`;
+        setCodeGenerationFailed(true);
+        setValue('contact_code', fallback);
+        return;
+      }
+      setCodeGenerationFailed(false);
+      setValue('contact_code', data);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, isEdit, values.contact_code, supabase, setValue]);
 
   const handleClose = () => {
     reset();
+    setCodeGenerationFailed(false);
     onClose();
   };
 
@@ -187,7 +218,17 @@ export function ContactForm({
         {/* Identity */}
         <div className="space-y-4">
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Identity</h3>
-          <Input label="Contact Code" value={values.contact_code} readOnly disabled hint="Auto-generated" />
+          <Input
+            label="Contact Code"
+            value={values.contact_code}
+            readOnly={isEdit || !codeGenerationFailed}
+            disabled={isEdit || !codeGenerationFailed}
+            hint={codeGenerationFailed ? 'Could not auto-generate. Please verify this code before saving.' : 'Auto-generated'}
+            onChange={(e) => setValue('contact_code', e.target.value)}
+            onBlur={() => onBlur('contact_code')}
+            error={errors.contact_code}
+            required
+          />
           <div className="grid grid-cols-2 gap-3">
             <Input
               label="First Name"

@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Wrench, ArrowLeftRight, KeyRound, Truck, Settings2, Plus } from 'lucide-react';
-import { ChipTabs, SearchInput, Button } from '@gleamops/ui';
+import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 import EquipmentTable from './equipment/equipment-table';
 import EqAssignmentsTable from './eq-assignments/eq-assignments-table';
@@ -31,6 +32,12 @@ export default function AssetsPageClient() {
   const [search, setSearch] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
   const [formOpen, setFormOpen] = useState(false);
+  const [kpis, setKpis] = useState({
+    equipment: 0,
+    activeVehicles: 0,
+    keysAtRisk: 0,
+    maintenanceDueSoon: 0,
+  });
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   const addLabel = ADD_LABELS[tab];
@@ -38,6 +45,35 @@ export default function AssetsPageClient() {
   const handleAdd = () => {
     setFormOpen(true);
   };
+
+  useEffect(() => {
+    async function fetchKpis() {
+      const supabase = getSupabaseBrowserClient();
+      const today = new Date();
+      const in30Days = new Date(today);
+      in30Days.setDate(in30Days.getDate() + 30);
+
+      const [equipmentRes, vehiclesRes, keysRiskRes, maintenanceRes] = await Promise.all([
+        supabase.from('equipment').select('id', { count: 'exact', head: true }).is('archived_at', null),
+        supabase.from('vehicles').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'ACTIVE'),
+        supabase.from('key_inventory').select('id', { count: 'exact', head: true }).is('archived_at', null).in('status', ['LOST', 'ASSIGNED']),
+        supabase
+          .from('vehicle_maintenance')
+          .select('id', { count: 'exact', head: true })
+          .is('archived_at', null)
+          .gte('next_service_date', today.toISOString().slice(0, 10))
+          .lte('next_service_date', in30Days.toISOString().slice(0, 10)),
+      ]);
+
+      setKpis({
+        equipment: equipmentRes.count ?? 0,
+        activeVehicles: vehiclesRes.count ?? 0,
+        keysAtRisk: keysRiskRes.count ?? 0,
+        maintenanceDueSoon: maintenanceRes.count ?? 0,
+      });
+    }
+    fetchKpis();
+  }, [refreshKey]);
 
   return (
     <div className="space-y-6">
@@ -52,6 +88,13 @@ export default function AssetsPageClient() {
             {addLabel}
           </Button>
         )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Equipment Assets</p><p className="text-xl font-semibold">{kpis.equipment}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Vehicles</p><p className="text-xl font-semibold">{kpis.activeVehicles}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Keys Requiring Attention</p><p className="text-xl font-semibold text-warning">{kpis.keysAtRisk}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Maintenance Due in 30 Days</p><p className="text-xl font-semibold text-warning">{kpis.maintenanceDueSoon}</p></CardContent></Card>
       </div>
 
       <ChipTabs tabs={TABS} active={tab} onChange={setTab} />

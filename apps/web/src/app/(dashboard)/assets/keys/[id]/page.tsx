@@ -9,6 +9,7 @@ import {
   Pencil,
   Trash2,
   AlertTriangle,
+  ShieldAlert,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Badge, Skeleton } from '@gleamops/ui';
@@ -19,6 +20,14 @@ import { KeyForm } from '@/components/forms/key-form';
 interface KeyWithRelations extends KeyInventory {
   site?: { name: string; site_code: string } | null;
   assigned?: { full_name: string; staff_code: string } | null;
+}
+
+function getKeyRisk(status: KeyInventory['status']): { label: string; color: 'green' | 'blue' | 'yellow' | 'red' | 'gray' } {
+  if (status === 'LOST') return { label: 'Security Risk', color: 'red' };
+  if (status === 'ASSIGNED') return { label: 'In Circulation', color: 'blue' };
+  if (status === 'AVAILABLE') return { label: 'Secure', color: 'green' };
+  if (status === 'RETURNED') return { label: 'Returned', color: 'gray' };
+  return { label: 'Review', color: 'yellow' };
 }
 
 export default function KeyDetailPage() {
@@ -71,6 +80,8 @@ export default function KeyDetailPage() {
     );
   }
 
+  const keyRisk = getKeyRisk(key.status);
+
   return (
     <div className="space-y-6">
       {/* Back Link */}
@@ -101,6 +112,7 @@ export default function KeyDetailPage() {
               >
                 {key.status}
               </Badge>
+              <Badge color={keyRisk.color}>{keyRisk.label}</Badge>
             </div>
           </div>
         </div>
@@ -137,10 +149,11 @@ export default function KeyDetailPage() {
           <p className="text-xs text-muted-foreground">Site</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <p className="text-2xl font-bold text-foreground">
-            <Badge color="blue">{key.key_type}</Badge>
+          <p className="text-2xl font-bold text-foreground inline-flex items-center gap-2">
+            <ShieldAlert className="h-6 w-6 text-muted-foreground" />
+            <Badge color={keyRisk.color}>{keyRisk.label}</Badge>
           </p>
-          <p className="text-xs text-muted-foreground">Key Type</p>
+          <p className="text-xs text-muted-foreground">Risk Status</p>
         </div>
       </div>
 

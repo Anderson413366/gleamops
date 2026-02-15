@@ -6,7 +6,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { VehicleMaintenance } from '@gleamops/shared';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Pagination, TableSkeleton,
+  EmptyState, Pagination, TableSkeleton, Badge,
 } from '@gleamops/ui';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
@@ -22,6 +22,16 @@ interface Props {
   formOpen?: boolean;
   onFormClose?: () => void;
   onRefresh?: () => void;
+}
+
+function getUrgency(nextServiceDate: string | null): { label: string; color: 'green' | 'yellow' | 'red' | 'gray' } {
+  if (!nextServiceDate) return { label: 'Not Scheduled', color: 'gray' };
+  const today = new Date();
+  const due = new Date(nextServiceDate);
+  const diffDays = Math.floor((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays < 0) return { label: 'Overdue', color: 'red' };
+  if (diffDays <= 7) return { label: 'Due This Week', color: 'yellow' };
+  return { label: 'Scheduled', color: 'green' };
 }
 
 export default function MaintenanceTable({ search, formOpen, onFormClose, onRefresh }: Props) {
@@ -142,9 +152,17 @@ export default function MaintenanceTable({ search, formOpen, onFormClose, onRefr
                 {row.cost != null ? currFmt.format(row.cost) : '—'}
               </TableCell>
               <TableCell>
-                {row.next_service_date
-                  ? dateFmt.format(toSafeDate(row.next_service_date))
-                  : <span className="text-muted-foreground">—</span>}
+                {(() => {
+                  const urgency = getUrgency(row.next_service_date);
+                  return (
+                    <div className="flex items-center gap-2">
+                      {row.next_service_date
+                        ? dateFmt.format(toSafeDate(row.next_service_date))
+                        : <span className="text-muted-foreground">—</span>}
+                      <Badge color={urgency.color}>{urgency.label}</Badge>
+                    </div>
+                  );
+                })()}
               </TableCell>
             </TableRow>
           ))}

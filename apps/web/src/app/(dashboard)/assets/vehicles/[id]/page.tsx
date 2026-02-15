@@ -9,6 +9,7 @@ import {
   Pencil,
   Trash2,
   AlertTriangle,
+  Clock3,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Badge, Skeleton } from '@gleamops/ui';
@@ -20,18 +21,19 @@ interface VehicleWithAssigned extends Vehicle {
   assigned?: { full_name: string; staff_code: string } | null;
 }
 
-function formatDate(d: string | null) {
-  if (!d) return '\u2014';
-  return new Date(d).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+interface VehicleMaintenanceSummary {
+  service_date: string | null;
+  next_service_date: string | null;
 }
 
-function formatNumber(n: number | null) {
-  if (n == null) return '\u2014';
-  return new Intl.NumberFormat('en-US').format(n);
+function getMaintenanceUrgency(nextServiceDate: string | null): { label: string; color: 'green' | 'yellow' | 'red' | 'gray' } {
+  if (!nextServiceDate) return { label: 'Not Scheduled', color: 'gray' };
+  const today = new Date();
+  const due = new Date(nextServiceDate);
+  const diffDays = Math.floor((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays < 0) return { label: 'Overdue', color: 'red' };
+  if (diffDays <= 7) return { label: 'Due This Week', color: 'yellow' };
+  return { label: 'On Schedule', color: 'green' };
 }
 
 export default function VehicleDetailPage() {
@@ -39,6 +41,7 @@ export default function VehicleDetailPage() {
   const [vehicle, setVehicle] = useState<VehicleWithAssigned | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
+  const [maintenance, setMaintenance] = useState<VehicleMaintenanceSummary | null>(null);
 
   const fetchVehicle = async () => {
     setLoading(true);
@@ -52,6 +55,14 @@ export default function VehicleDetailPage() {
 
     if (data) {
       setVehicle(data as unknown as VehicleWithAssigned);
+      const { data: maintenanceRows } = await supabase
+        .from('vehicle_maintenance')
+        .select('service_date, next_service_date')
+        .eq('vehicle_id', data.id)
+        .is('archived_at', null)
+        .order('service_date', { ascending: false })
+        .limit(1);
+      setMaintenance((maintenanceRows?.[0] as VehicleMaintenanceSummary | undefined) ?? null);
     }
     setLoading(false);
   };
@@ -85,6 +96,7 @@ export default function VehicleDetailPage() {
   }
 
   const makeModel = [vehicle.make, vehicle.model].filter(Boolean).join(' ') || '\u2014';
+  const maintenanceUrgency = getMaintenanceUrgency(maintenance?.next_service_date ?? null);
 
   return (
     <div className="space-y-6">
@@ -116,6 +128,7 @@ export default function VehicleDetailPage() {
               >
                 {vehicle.status}
               </Badge>
+              <Badge color={maintenanceUrgency.color}>{maintenanceUrgency.label}</Badge>
             </div>
           </div>
         </div>
@@ -151,9 +164,9 @@ export default function VehicleDetailPage() {
         </div>
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <p className="text-2xl font-bold text-foreground">
-            {vehicle.assigned?.full_name ?? 'Unassigned'}
+            {maintenance?.next_service_date ? new Date(maintenance.next_service_date).toLocaleDateString() : '\u2014'}
           </p>
-          <p className="text-xs text-muted-foreground">Assigned To</p>
+          <p className="text-xs text-muted-foreground">Next Service</p>
         </div>
       </div>
 
@@ -216,6 +229,18 @@ export default function VehicleDetailPage() {
                 </Badge>
               </dd>
             </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground inline-flex items-center gap-1"><Clock3 className="h-3 w-3" /> Maintenance</dt>
+              <dd className="font-medium">
+                <Badge color={maintenanceUrgency.color}>{maintenanceUrgency.label}</Badge>
+              </dd>
+            </div>
+            {maintenance?.service_date && (
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">Last Service</dt>
+                <dd className="font-medium">{new Date(maintenance.service_date).toLocaleDateString()}</dd>
+              </div>
+            )}
           </dl>
         </div>
       </div>

@@ -471,42 +471,53 @@ export default function ClientDetailPage() {
 
         {/* Billing Info */}
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <h3 className="mb-4 text-sm font-semibold text-foreground">
-            Billing Info
-          </h3>
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold text-foreground">Billing Info</h3>
+            <button
+              type="button"
+              onClick={() => { setClientFormFocus('billing'); setFormOpen(true); }}
+              className="text-xs font-medium text-muted-foreground hover:text-foreground hover:underline"
+            >
+              Edit billing →
+            </button>
+          </div>
           <dl className="space-y-3 text-sm">
-            {client.payment_terms && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Payment Terms</dt>
-                <dd className="font-medium">{client.payment_terms}</dd>
-              </div>
-            )}
-            {client.invoice_frequency && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Invoice Frequency</dt>
-                <dd className="font-medium">{client.invoice_frequency}</dd>
-              </div>
-            )}
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted-foreground">Bill To Name</dt>
+              <dd className="font-medium text-right">
+                {client.bill_to_name ? client.bill_to_name : <span className="text-muted-foreground">Not Set</span>}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted-foreground">Payment Terms</dt>
+              <dd className="font-medium text-right">
+                {client.payment_terms ? client.payment_terms : <span className="text-muted-foreground">Not Set</span>}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted-foreground">Invoice Frequency</dt>
+              <dd className="font-medium text-right">
+                {client.invoice_frequency ? client.invoice_frequency : <span className="text-muted-foreground">Not Set</span>}
+              </dd>
+            </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">PO Required</dt>
               <dd className="font-medium">
                 {client.po_required ? 'Yes' : 'No'}
               </dd>
             </div>
-            {client.credit_limit != null && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Credit Limit</dt>
-                <dd className="font-medium">
-                  {formatCurrency(client.credit_limit)}
-                </dd>
-              </div>
-            )}
-            {client.tax_id && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Tax ID</dt>
-                <dd className="font-medium">{client.tax_id}</dd>
-              </div>
-            )}
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted-foreground">Credit Limit</dt>
+              <dd className="font-medium text-right">
+                {client.credit_limit != null ? formatCurrency(client.credit_limit) : <span className="text-muted-foreground">Not Set</span>}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted-foreground">Tax ID</dt>
+              <dd className="font-medium text-right">
+                {client.tax_id ? client.tax_id : <span className="text-muted-foreground">Not Set</span>}
+              </dd>
+            </div>
           </dl>
         </div>
 

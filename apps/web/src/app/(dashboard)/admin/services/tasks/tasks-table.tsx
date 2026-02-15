@@ -144,7 +144,7 @@ export default function TasksTable({ search, autoCreate, onAutoCreateHandled, on
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id} onClick={() => router.push(`/admin/services/tasks/${row.task_code}`)}>
+            <TableRow key={row.id} onClick={() => router.push(`/services/tasks/${row.task_code}`)}>
               <TableCell className="font-mono text-xs">{row.task_code}</TableCell>
               <TableCell className="font-medium">{row.name}</TableCell>
               <TableCell>

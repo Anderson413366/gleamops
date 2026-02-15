@@ -118,7 +118,7 @@ export function TaskForm({ open, onClose, initialData, onSuccess }: TaskFormProp
         {/* Basic Info */}
         <div className="space-y-4">
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Basic Info</h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               label="Task Code"
               value={values.task_code}
@@ -141,7 +141,7 @@ export function TaskForm({ open, onClose, initialData, onSuccess }: TaskFormProp
             error={errors.name}
             required
           />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               label="Category"
               value={values.category ?? ''}
@@ -158,7 +158,7 @@ export function TaskForm({ open, onClose, initialData, onSuccess }: TaskFormProp
         {/* Classification */}
         <div className="space-y-4">
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Classification</h3>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Input
               label="Area Type"
               value={values.area_type ?? ''}
@@ -183,7 +183,7 @@ export function TaskForm({ open, onClose, initialData, onSuccess }: TaskFormProp
         {/* Production & Time */}
         <div className="space-y-4">
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Production & Time</h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               label="Production Rate (sq ft / hour)"
               type="number"

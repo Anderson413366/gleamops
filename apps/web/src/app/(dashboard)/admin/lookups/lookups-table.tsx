@@ -21,7 +21,8 @@ interface Props {
 export default function LookupsTable({ search, autoCreate, onAutoCreateHandled }: Props) {
   const [rows, setRows] = useState<Lookup[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  // Per product rule: default to ACTIVE; ACTIVE first; ALL last.
+  const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('active');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -85,7 +86,7 @@ export default function LookupsTable({ search, autoCreate, onAutoCreateHandled }
   return (
     <div>
       <div className="flex items-center gap-2 mb-4 flex-wrap">
-        {(['all', 'active', 'inactive'] as const).map((option) => (
+        {(['active', 'inactive', 'all'] as const).map((option) => (
           <button
             key={option}
             type="button"
@@ -114,7 +115,6 @@ export default function LookupsTable({ search, autoCreate, onAutoCreateHandled }
             <TableHead sortable sorted={sortKey === 'code' && sortDir} onSort={() => onSort('code')}>Code</TableHead>
             <TableHead sortable sorted={sortKey === 'label' && sortDir} onSort={() => onSort('label')}>Label</TableHead>
             <TableHead>Order</TableHead>
-            <TableHead>Active</TableHead>
           </tr>
         </TableHeader>
         <TableBody>
@@ -126,11 +126,6 @@ export default function LookupsTable({ search, autoCreate, onAutoCreateHandled }
               <TableCell className="font-mono text-xs">{row.code}</TableCell>
               <TableCell className="font-medium">{row.label}</TableCell>
               <TableCell>{row.sort_order}</TableCell>
-              <TableCell>
-                <Badge color={row.is_active ? 'green' : 'gray'}>
-                  {row.is_active ? 'Yes' : 'No'}
-                </Badge>
-              </TableCell>
             </TableRow>
           ))}
         </TableBody>

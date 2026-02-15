@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Save, Building2, Bell, Shield, Sun, Moon, Palette, Brain, Focus, Clock3, Sparkles, ScanLine, Type } from 'lucide-react';
+import { Save, Building2, Bell, Shield, Sun, Moon, Palette, Brain, Focus, Clock3, Sparkles, ScanLine, Type, Highlighter } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardHeader, CardTitle, CardContent, Input, Button } from '@gleamops/ui';
 import { useAuth } from '@/hooks/use-auth';
@@ -258,6 +258,20 @@ export default function SettingsPage() {
                 </div>
                 <span className={`rounded-full px-2 py-1 text-xs font-medium ${preferences.dyslexia_font ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-muted text-muted-foreground'}`}>
                   {preferences.dyslexia_font ? 'On' : 'Off'}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => togglePreference('reading_ruler')}
+                className="flex w-full items-center justify-between rounded-xl border border-border p-3 text-left hover:border-module-accent/40 hover:bg-muted/30 transition-colors"
+              >
+                <div>
+                  <p className="text-sm font-medium text-foreground inline-flex items-center gap-2"><Highlighter className="h-4 w-4 text-module-accent" />Reading Ruler</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Highlight the line you’re reading as you move through lists and text.</p>
+                </div>
+                <span className={`rounded-full px-2 py-1 text-xs font-medium ${preferences.reading_ruler ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-muted text-muted-foreground'}`}>
+                  {preferences.reading_ruler ? 'On' : 'Off'}
                 </span>
               </button>
             </CardContent>

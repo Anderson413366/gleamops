@@ -50,6 +50,14 @@ export default function RootLayout({
                 if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                   document.documentElement.classList.add('dark');
                 }
+                const rawPrefs = localStorage.getItem('gleamops-ui-preferences');
+                if (rawPrefs) {
+                  const p = JSON.parse(rawPrefs) || {};
+                  if (p.dyslexia_font) document.documentElement.classList.add('dyslexia-font');
+                  if (p.reading_ruler) document.documentElement.classList.add('reading-ruler');
+                  document.documentElement.dataset.focusMode = p.focus_mode ? 'true' : 'false';
+                  document.documentElement.dataset.simpleView = p.simple_view ? 'true' : 'false';
+                }
               } catch(e) {}
             `,
           }}

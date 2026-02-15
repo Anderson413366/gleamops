@@ -28,7 +28,16 @@ export function useUiPreferences() {
     const root = document.documentElement;
     root.classList.toggle('dyslexia-font', preferences.dyslexia_font);
     root.classList.toggle('reading-ruler', preferences.reading_ruler);
-  }, [mounted, preferences.dyslexia_font, preferences.reading_ruler]);
+    // Attributes enable pre-hydration CSS (via inline script) and deterministic styling.
+    root.dataset.focusMode = preferences.focus_mode ? 'true' : 'false';
+    root.dataset.simpleView = preferences.simple_view ? 'true' : 'false';
+  }, [
+    mounted,
+    preferences.dyslexia_font,
+    preferences.reading_ruler,
+    preferences.focus_mode,
+    preferences.simple_view,
+  ]);
 
   const updatePreference = useCallback(<K extends keyof UiPreferences>(key: K, value: UiPreferences[K]) => {
     setPreferences((prev) => {

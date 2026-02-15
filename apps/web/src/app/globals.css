@@ -441,3 +441,30 @@ html.reading-ruler li:hover,
 html.reading-ruler td:hover {
   background-image: linear-gradient(transparent 35%, rgba(59, 130, 246, 0.18) 35%, rgba(59, 130, 246, 0.18) 75%, transparent 75%);
 }
+
+/* ═══════════════════════════════════════════════════════
+   FOCUS MODE — Hide shell chrome, keep one task in view
+   Controlled by html[data-focus-mode="true"] (set by prefs)
+   ═══════════════════════════════════════════════════════ */
+
+.app-shell-focus-fab {
+  display: none;
+}
+
+html[data-focus-mode="true"] .app-shell-sidebar,
+html[data-focus-mode="true"] .app-shell-header {
+  display: none;
+}
+
+html[data-focus-mode="true"] .app-shell-content {
+  margin-left: 0 !important;
+}
+
+html[data-focus-mode="true"] .app-shell-focus-fab {
+  display: inline-flex;
+}
+
+html[data-focus-mode="true"] .app-shell-main {
+  max-width: 72rem; /* ~max-w-5xl */
+  padding-top: 1.25rem;
+}

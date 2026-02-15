@@ -307,14 +307,33 @@ export function Header() {
 
   // Open palette with Cmd+K / Ctrl+K
   useEffect(() => {
+    function isInsideFormField(e: KeyboardEvent): boolean {
+      const target = e.target;
+      if (!(target instanceof HTMLElement)) return false;
+      const tag = target.tagName.toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
+      if (target.isContentEditable) return true;
+      return false;
+    }
+
     function handleKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        if (isInsideFormField(e)) return;
         e.preventDefault();
         setPaletteOpen((prev) => !prev);
       }
     }
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
+  }, []);
+
+  // Allow non-header UI (for example sidebar search) to open the command palette.
+  useEffect(() => {
+    function handleOpen() {
+      setPaletteOpen(true);
+    }
+    window.addEventListener('gleamops:open-command-palette', handleOpen);
+    return () => window.removeEventListener('gleamops:open-command-palette', handleOpen);
   }, []);
 
   // Search across entities when palette opens

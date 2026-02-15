@@ -174,9 +174,9 @@ export function Sidebar() {
           <button
             type="button"
             onClick={() => {
-              window.dispatchEvent(
-                new KeyboardEvent('keydown', { key: 'k', metaKey: true })
-              );
+              // Header owns the CommandPalette open state.
+              window.dispatchEvent(new CustomEvent('gleamops:open-command-palette'));
+              setMobileOpen(false);
             }}
             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-sidebar-text hover:bg-sidebar-hover hover:text-white transition-colors"
           >

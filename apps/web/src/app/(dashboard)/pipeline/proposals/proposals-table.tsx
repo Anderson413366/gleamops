@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, ExportButton,
+  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, cn,
 } from '@gleamops/ui';
 import { PROPOSAL_STATUS_COLORS } from '@gleamops/shared';
 import type { SalesProposal } from '@gleamops/shared';
@@ -33,6 +33,7 @@ interface ProposalsTableProps {
 export default function ProposalsTable({ search, onSelect }: ProposalsTableProps) {
   const [rows, setRows] = useState<ProposalWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -60,17 +61,26 @@ export default function ProposalsTable({ search, onSelect }: ProposalsTableProps
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  const statusOptions = useMemo(
+    () => ['all', ...Array.from(new Set(rows.map((r) => r.status).filter(Boolean)))],
+    [rows],
+  );
+
   const filtered = useMemo(() => {
-    if (!search) return rows;
+    let result = rows;
+    if (statusFilter !== 'all') {
+      result = result.filter((r) => r.status === statusFilter);
+    }
+    if (!search) return result;
     const q = search.toLowerCase();
-    return rows.filter(
+    return result.filter(
       (r) =>
         r.proposal_code.toLowerCase().includes(q) ||
         r.bid_version?.bid?.bid_code?.toLowerCase().includes(q) ||
         r.bid_version?.bid?.client?.name?.toLowerCase().includes(q) ||
         r.status.toLowerCase().includes(q)
     );
-  }, [rows, search]);
+  }, [rows, search, statusFilter]);
 
   const { sorted, sortKey, sortDir, onSort } = useTableSort(
     filtered as unknown as Record<string, unknown>[], 'proposal_code', 'asc'
@@ -105,6 +115,21 @@ export default function ProposalsTable({ search, onSelect }: ProposalsTableProps
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
       </div>
+      <div className="mb-4 flex flex-wrap gap-2">
+        {statusOptions.map((status) => (
+          <button
+            key={status}
+            type="button"
+            onClick={() => setStatusFilter(status)}
+            className={cn(
+              'inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors',
+              statusFilter === status ? 'bg-module-accent text-module-accent-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80',
+            )}
+          >
+            {status === 'all' ? 'All statuses' : status.replace(/_/g, ' ')}
+          </button>
+        ))}
+      </div>
       <Table>
         <TableHeader>
           <tr>
@@ -118,7 +143,7 @@ export default function ProposalsTable({ search, onSelect }: ProposalsTableProps
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id} onClick={() => onSelect?.(row)}>
+            <TableRow key={row.id} onClick={() => onSelect?.(row)} className="cursor-pointer">
               <TableCell className="font-mono text-xs">{row.proposal_code}</TableCell>
               <TableCell className="font-mono text-xs text-muted-foreground">
                 {row.bid_version?.bid?.bid_code ?? '—'}

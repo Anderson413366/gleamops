@@ -2,8 +2,9 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { Users, Target, FileText, Send, Plus, Zap, BarChart3 } from 'lucide-react';
-import { ChipTabs, SearchInput, Button, SlideOver, Badge } from '@gleamops/ui';
+import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import type {
   SalesProspect,
   SalesOpportunity,
@@ -98,6 +99,8 @@ export default function PipelinePageClient() {
     activeBids: 0,
     staleDeals: 0,
     emailProblems: 0,
+    proposalsSent30d: 0,
+    winRate: '0%',
   });
 
   // Fetch pipeline stats on mount and when refreshKey changes
@@ -108,7 +111,9 @@ export default function PipelinePageClient() {
 
       const fourteenDaysAgo = new Date(Date.now() - 14 * 86400000).toISOString();
 
-      const [pipelineRes, bidsRes, staleRes, emailRes] = await Promise.all([
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
+
+      const [pipelineRes, bidsRes, staleRes, emailRes, sentRes, wonRes, totalRes] = await Promise.all([
         // Pipeline value
         supabase
           .from('sales_opportunities')
@@ -132,6 +137,18 @@ export default function PipelinePageClient() {
           .from('sales_proposal_sends')
           .select('id', { count: 'exact', head: true })
           .in('status', ['BOUNCED', 'FAILED']),
+        supabase
+          .from('sales_proposals')
+          .select('id', { count: 'exact', head: true })
+          .gte('created_at', thirtyDaysAgo)
+          .in('status', ['SENT', 'VIEWED', 'SIGNED', 'WON']),
+        supabase
+          .from('sales_proposals')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'WON'),
+        supabase
+          .from('sales_proposals')
+          .select('id', { count: 'exact', head: true }),
       ]);
 
       const pipelineSum = (pipelineRes.data ?? []).reduce(
@@ -139,11 +156,15 @@ export default function PipelinePageClient() {
         0,
       );
 
+      const totalProposals = totalRes.count ?? 0;
+      const wonCount = wonRes.count ?? 0;
       setPipelineStats({
         pipelineValue: `$${(pipelineSum / 1000).toFixed(1)}k`,
         activeBids: bidsRes.count ?? 0,
         staleDeals: staleRes.count ?? 0,
         emailProblems: emailRes.count ?? 0,
+        proposalsSent30d: sentRes.count ?? 0,
+        winRate: totalProposals > 0 ? `${Math.round((wonCount / totalProposals) * 100)}%` : '0%',
       });
     };
 
@@ -294,6 +315,12 @@ export default function PipelinePageClient() {
           <p className="text-sm text-muted-foreground mt-1">Manage prospects, opportunities, bids, and proposals</p>
         </div>
         <div className="flex gap-2">
+          <Link
+            href="/pipeline/admin"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-card px-4 py-2.5 text-sm font-medium text-foreground ring-1 ring-inset ring-border shadow-sm transition-all hover:bg-muted hover:shadow-md"
+          >
+            Sales Admin
+          </Link>
           {tab === 'bids' && (
             <Button variant="secondary" onClick={() => setExpressOpen(true)}>
               <Zap className="h-4 w-4" />
@@ -310,23 +337,13 @@ export default function PipelinePageClient() {
       </div>
 
       {/* Pipeline Overview Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
-          <p className="text-xs text-muted-foreground">Pipeline Value</p>
-          <p className="text-xl font-bold text-foreground">{pipelineStats.pipelineValue}</p>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
-          <p className="text-xs text-muted-foreground">Active Bids</p>
-          <p className="text-xl font-bold text-foreground">{pipelineStats.activeBids}</p>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
-          <p className="text-xs text-muted-foreground">Stale Deals (14d)</p>
-          <p className="text-xl font-bold text-foreground">{pipelineStats.staleDeals}</p>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
-          <p className="text-xs text-muted-foreground">Email Issues</p>
-          <p className="text-xl font-bold text-foreground">{pipelineStats.emailProblems}</p>
-        </div>
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Pipeline Value</p><p className="text-xl font-bold text-foreground">{pipelineStats.pipelineValue}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Bids</p><p className="text-xl font-bold text-foreground">{pipelineStats.activeBids}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Stale Deals (14d)</p><p className="text-xl font-bold text-warning">{pipelineStats.staleDeals}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Email Issues</p><p className="text-xl font-bold text-destructive">{pipelineStats.emailProblems}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Proposals Sent (30d)</p><p className="text-xl font-bold text-foreground">{pipelineStats.proposalsSent30d}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Win Rate</p><p className="text-xl font-bold text-success">{pipelineStats.winRate}</p></CardContent></Card>
       </div>
 
       <ChipTabs tabs={TABS} active={tab} onChange={setTab} />

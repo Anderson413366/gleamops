@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, ExportButton,
+  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, cn,
 } from '@gleamops/ui';
 import { PROSPECT_STATUS_COLORS } from '@gleamops/shared';
 import type { SalesProspect } from '@gleamops/shared';
@@ -24,6 +24,7 @@ export default function ProspectsTable({ search, onSelect }: ProspectsTableProps
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editItem, setEditItem] = useState<SalesProspect | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -39,16 +40,25 @@ export default function ProspectsTable({ search, onSelect }: ProspectsTableProps
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  const statusOptions = useMemo(
+    () => ['all', ...Array.from(new Set(rows.map((r) => r.prospect_status_code).filter(Boolean)))],
+    [rows],
+  );
+
   const filtered = useMemo(() => {
-    if (!search) return rows;
+    let result = rows;
+    if (statusFilter !== 'all') {
+      result = result.filter((r) => r.prospect_status_code === statusFilter);
+    }
+    if (!search) return result;
     const q = search.toLowerCase();
-    return rows.filter(
+    return result.filter(
       (r) =>
         r.company_name.toLowerCase().includes(q) ||
         r.prospect_code.toLowerCase().includes(q) ||
         r.source?.toLowerCase().includes(q)
     );
-  }, [rows, search]);
+  }, [rows, search, statusFilter]);
 
   const { sorted, sortKey, sortDir, onSort } = useTableSort(
     filtered as unknown as Record<string, unknown>[], 'company_name', 'asc'
@@ -56,14 +66,17 @@ export default function ProspectsTable({ search, onSelect }: ProspectsTableProps
   const sortedRows = sorted as unknown as SalesProspect[];
   const pag = usePagination(sortedRows, 25);
 
-  const handleAdd = () => {
-    setEditItem(null);
-    setFormOpen(true);
-  };
-
   const handleEdit = (item: SalesProspect) => {
     setEditItem(item);
     setFormOpen(true);
+  };
+
+  const handleRowSelect = (item: SalesProspect) => {
+    if (onSelect) {
+      onSelect(item);
+      return;
+    }
+    handleEdit(item);
   };
 
   if (loading) return <TableSkeleton rows={6} cols={5} />;
@@ -102,6 +115,21 @@ export default function ProspectsTable({ search, onSelect }: ProspectsTableProps
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
       </div>
+      <div className="mb-4 flex flex-wrap gap-2">
+        {statusOptions.map((status) => (
+          <button
+            key={status}
+            type="button"
+            onClick={() => setStatusFilter(status)}
+            className={cn(
+              'inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors',
+              statusFilter === status ? 'bg-module-accent text-module-accent-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80',
+            )}
+          >
+            {status === 'all' ? 'All statuses' : status}
+          </button>
+        ))}
+      </div>
       <Table>
         <TableHeader>
           <tr>
@@ -114,7 +142,7 @@ export default function ProspectsTable({ search, onSelect }: ProspectsTableProps
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id} onClick={() => handleEdit(row)} className="cursor-pointer">
+            <TableRow key={row.id} onClick={() => handleRowSelect(row)} className="cursor-pointer">
               <TableCell className="font-mono text-xs">{row.prospect_code}</TableCell>
               <TableCell className="font-medium">{row.company_name}</TableCell>
               <TableCell>

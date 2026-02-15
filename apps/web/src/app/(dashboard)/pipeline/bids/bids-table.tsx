@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, ExportButton,
+  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, cn,
 } from '@gleamops/ui';
 import { BID_STATUS_COLORS } from '@gleamops/shared';
 import type { SalesBid } from '@gleamops/shared';
@@ -31,6 +31,7 @@ function formatCurrency(n: number | null) {
 export default function BidsTable({ search, onSelect }: BidsTableProps) {
   const [rows, setRows] = useState<BidWithClient[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -46,16 +47,25 @@ export default function BidsTable({ search, onSelect }: BidsTableProps) {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  const statusOptions = useMemo(
+    () => ['all', ...Array.from(new Set(rows.map((r) => r.status).filter(Boolean)))],
+    [rows],
+  );
+
   const filtered = useMemo(() => {
-    if (!search) return rows;
+    let result = rows;
+    if (statusFilter !== 'all') {
+      result = result.filter((r) => r.status === statusFilter);
+    }
+    if (!search) return result;
     const q = search.toLowerCase();
-    return rows.filter(
+    return result.filter(
       (r) =>
         r.bid_code.toLowerCase().includes(q) ||
         r.client?.name?.toLowerCase().includes(q) ||
         r.status.toLowerCase().includes(q)
     );
-  }, [rows, search]);
+  }, [rows, search, statusFilter]);
 
   const { sorted, sortKey, sortDir, onSort } = useTableSort(
     filtered as unknown as Record<string, unknown>[], 'bid_code', 'asc'
@@ -91,6 +101,21 @@ export default function BidsTable({ search, onSelect }: BidsTableProps) {
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
       </div>
+      <div className="mb-4 flex flex-wrap gap-2">
+        {statusOptions.map((status) => (
+          <button
+            key={status}
+            type="button"
+            onClick={() => setStatusFilter(status)}
+            className={cn(
+              'inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors',
+              statusFilter === status ? 'bg-module-accent text-module-accent-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80',
+            )}
+          >
+            {status === 'all' ? 'All statuses' : status.replace(/_/g, ' ')}
+          </button>
+        ))}
+      </div>
       <Table>
         <TableHeader>
           <tr>
@@ -104,7 +129,7 @@ export default function BidsTable({ search, onSelect }: BidsTableProps) {
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id} onClick={() => onSelect?.(row)}>
+            <TableRow key={row.id} onClick={() => onSelect?.(row)} className="cursor-pointer">
               <TableCell className="font-mono text-xs">{row.bid_code}</TableCell>
               <TableCell className="font-medium">{row.client?.name ?? '—'}</TableCell>
               <TableCell className="text-muted-foreground">{row.service?.name ?? '—'}</TableCell>

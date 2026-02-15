@@ -1,0 +1,369 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#main-content"
+    - complementary [ref=e4]:
+      - link "GleamOps" [ref=e6] [cursor=pointer]:
+        - /url: /home
+        - img [ref=e8]
+        - generic [ref=e10]: GleamOps
+      - button "Search... ⌘K" [ref=e12]:
+        - img [ref=e13]
+        - generic [ref=e16]: Search...
+        - generic [ref=e17]: ⌘K
+      - navigation [ref=e18]:
+        - link "Home" [ref=e19] [cursor=pointer]:
+          - /url: /home
+          - img [ref=e20]
+          - text: Home
+        - link "Pipeline" [ref=e24] [cursor=pointer]:
+          - /url: /pipeline
+          - img [ref=e25]
+          - text: Pipeline
+        - link "CRM" [ref=e28] [cursor=pointer]:
+          - /url: /crm
+          - img [ref=e29]
+          - text: CRM
+        - link "Operations" [ref=e33] [cursor=pointer]:
+          - /url: /operations
+          - img [ref=e34]
+          - text: Operations
+        - link "Workforce" [ref=e36] [cursor=pointer]:
+          - /url: /workforce
+          - img [ref=e37]
+          - text: Workforce
+        - link "Inventory" [ref=e42] [cursor=pointer]:
+          - /url: /inventory
+          - img [ref=e43]
+          - text: Inventory
+        - link "Assets" [ref=e47] [cursor=pointer]:
+          - /url: /assets
+          - img [ref=e48]
+          - text: Assets
+        - link "Vendors" [ref=e50] [cursor=pointer]:
+          - /url: /vendors
+          - img [ref=e51]
+          - text: Vendors
+        - link "Safety" [ref=e56] [cursor=pointer]:
+          - /url: /safety
+          - img [ref=e57]
+          - text: Safety
+        - link "Admin" [ref=e60] [cursor=pointer]:
+          - /url: /admin
+          - img [ref=e61]
+          - text: Admin
+      - button "Quick Action" [ref=e64]:
+        - img [ref=e65]
+        - text: Quick Action
+      - generic [ref=e66]:
+        - generic [ref=e67]:
+          - generic [ref=e68]: AG
+          - generic [ref=e69]:
+            - paragraph [ref=e70]: agomes@andersoncleaning.com
+            - paragraph [ref=e71]: authenticated
+        - link "Settings" [ref=e72] [cursor=pointer]:
+          - /url: /settings?view=profile
+          - img [ref=e73]
+          - text: Settings
+        - button "Sign out" [ref=e76]:
+          - img [ref=e77]
+          - text: Sign out
+    - generic [ref=e80]:
+      - banner [ref=e81]:
+        - generic [ref=e82]:
+          - navigation "Breadcrumb" [ref=e84]:
+            - generic [ref=e86]: Home
+          - generic [ref=e87]:
+            - button "Search" [ref=e88]:
+              - img [ref=e89]
+              - generic [ref=e92]: Search...
+              - generic [ref=e93]: ⌘K
+            - generic [ref=e94]:
+              - button "Comfortable density" [ref=e95]:
+                - img [ref=e96]
+              - button "Compact density" [ref=e97]:
+                - img [ref=e98]
+            - button "Theme" [ref=e100]:
+              - img [ref=e101]
+            - button "Notifications" [ref=e104]:
+              - img [ref=e105]
+            - button "AG" [ref=e109] [cursor=pointer]
+      - main [ref=e110]:
+        - generic [ref=e111]:
+          - generic [ref=e112]:
+            - generic [ref=e113]:
+              - heading "Good morning, Agomes" [level=1] [ref=e114]
+              - paragraph [ref=e115]: Sunday, February 15, 2026
+              - paragraph [ref=e404]:
+                - img [ref=e405]
+                - text: Last refreshed 8:07 AM
+            - generic [ref=e116]:
+              - button "Focus Mode" [ref=e117]:
+                - img [ref=e118]
+                - text: Focus Mode
+              - button "Simple View" [ref=e124]:
+                - img [ref=e125]
+                - text: Simple View
+          - generic [ref=e130]:
+            - heading "Executive Overview" [level=2] [ref=e131]
+            - generic [ref=e132]:
+              - link "Active Clients 78" [ref=e408] [cursor=pointer]:
+                - /url: /crm?tab=clients
+                - generic [ref=e409]:
+                  - generic [ref=e410]:
+                    - paragraph [ref=e411]: Active Clients
+                    - paragraph [ref=e412]: "78"
+                  - img [ref=e414]
+              - link "Active Sites 233" [ref=e418] [cursor=pointer]:
+                - /url: /crm?tab=sites
+                - generic [ref=e419]:
+                  - generic [ref=e420]:
+                    - paragraph [ref=e421]: Active Sites
+                    - paragraph [ref=e422]: "233"
+                  - img [ref=e424]
+              - link "Active Jobs 154" [ref=e427] [cursor=pointer]:
+                - /url: /operations?tab=jobs
+                - generic [ref=e428]:
+                  - generic [ref=e429]:
+                    - paragraph [ref=e430]: Active Jobs
+                    - paragraph [ref=e431]: "154"
+                  - img [ref=e433]
+              - link "Open Tickets 0" [ref=e436] [cursor=pointer]:
+                - /url: /operations?tab=tickets
+                - generic [ref=e437]:
+                  - generic [ref=e438]:
+                    - paragraph [ref=e439]: Open Tickets
+                    - paragraph [ref=e440]: "0"
+                  - img [ref=e442]
+              - link "Active Staff 49" [ref=e444] [cursor=pointer]:
+                - /url: /workforce?tab=staff
+                - generic [ref=e445]:
+                  - generic [ref=e446]:
+                    - paragraph [ref=e447]: Active Staff
+                    - paragraph [ref=e448]: "49"
+                  - img [ref=e450]
+              - link "Pending Bids 0" [ref=e455] [cursor=pointer]:
+                - /url: /pipeline?tab=bids
+                - generic [ref=e456]:
+                  - generic [ref=e457]:
+                    - paragraph [ref=e458]: Pending Bids
+                    - paragraph [ref=e459]: "0"
+                  - img [ref=e461]
+              - link "Revenue/mo $207.8k" [ref=e464] [cursor=pointer]:
+                - /url: /reports?tab=financial
+                - generic [ref=e465]:
+                  - generic [ref=e466]:
+                    - paragraph [ref=e467]: Revenue/mo
+                    - paragraph [ref=e468]: $207.8k
+                  - img [ref=e470]
+              - link "Overdue Inspections 0" [ref=e472] [cursor=pointer]:
+                - /url: /operations?tab=inspections
+                - generic [ref=e473]:
+                  - generic [ref=e474]:
+                    - paragraph [ref=e475]: Overdue Inspections
+                    - paragraph [ref=e476]: "0"
+                  - img [ref=e478]
+          - generic [ref=e181]:
+            - heading "Sales Pipeline" [level=2] [ref=e182]
+            - generic [ref=e183]:
+              - link "Pipeline Value $0.0k" [ref=e480] [cursor=pointer]:
+                - /url: /pipeline?tab=opportunities
+                - generic [ref=e481]:
+                  - generic [ref=e482]:
+                    - paragraph [ref=e483]: Pipeline Value
+                    - paragraph [ref=e484]: $0.0k
+                  - img [ref=e486]
+              - link "Proposals Sent (30d) 0" [ref=e489] [cursor=pointer]:
+                - /url: /pipeline?tab=proposals
+                - generic [ref=e490]:
+                  - generic [ref=e491]:
+                    - paragraph [ref=e492]: Proposals Sent (30d)
+                    - paragraph [ref=e493]: "0"
+                  - img [ref=e495]
+              - link "Win Rate 0%" [ref=e498] [cursor=pointer]:
+                - /url: /pipeline?tab=analytics
+                - generic [ref=e499]:
+                  - generic [ref=e500]:
+                    - paragraph [ref=e501]: Win Rate
+                    - paragraph [ref=e502]: 0%
+                  - img [ref=e504]
+              - link "Follow-ups Due 0" [ref=e510] [cursor=pointer]:
+                - /url: /pipeline?tab=proposals
+                - generic [ref=e511]:
+                  - generic [ref=e512]:
+                    - paragraph [ref=e513]: Follow-ups Due
+                    - paragraph [ref=e514]: "0"
+                  - img [ref=e516]
+          - heading "Operations" [level=2] [ref=e208]
+          - generic [ref=e209]:
+            - generic [ref=e210]:
+              - button "Recent Activity" [expanded] [ref=e211] [cursor=pointer]:
+                - generic [ref=e212]:
+                  - img [ref=e214]
+                  - generic [ref=e217]: Recent Activity
+                - img [ref=e219]
+              - region "No recent activity." [ref=e519]:
+                - paragraph [ref=e520]: No recent activity.
+            - generic [ref=e238]:
+              - button "Upcoming Tickets" [expanded] [ref=e239] [cursor=pointer]:
+                - generic [ref=e240]:
+                  - img [ref=e242]
+                  - generic [ref=e245]: Upcoming Tickets
+                - img [ref=e247]
+              - region "No upcoming tickets." [ref=e521]:
+                - paragraph [ref=e522]: No upcoming tickets.
+            - generic [ref=e266]:
+              - button "Pipeline Overview" [expanded] [ref=e267] [cursor=pointer]:
+                - generic [ref=e268]:
+                  - img [ref=e270]
+                  - generic [ref=e274]: Pipeline Overview
+                - img [ref=e276]
+              - region "No prospects in the pipeline." [ref=e523]:
+                - paragraph [ref=e524]: No prospects in the pipeline.
+            - generic [ref=e295]:
+              - button "Team on Shift" [expanded] [ref=e296] [cursor=pointer]:
+                - generic [ref=e297]:
+                  - img [ref=e299]
+                  - generic [ref=e303]: Team on Shift
+                - img [ref=e305]
+              - region "No staff currently on shift." [ref=e525]:
+                - paragraph [ref=e526]: No staff currently on shift.
+          - heading "Compliance" [level=2] [ref=e321]
+          - generic [ref=e323]:
+            - button "Compliance Alerts" [expanded] [ref=e324] [cursor=pointer]:
+              - generic [ref=e325]:
+                - img [ref=e327]
+                - generic [ref=e331]: Compliance Alerts
+              - img [ref=e333]
+            - region "All clear. No expiring certifications, training, or documents." [ref=e527]:
+              - paragraph [ref=e530]: All clear. No expiring certifications, training, or documents.
+          - heading "Inventory & Data Quality" [level=2] [ref=e349]
+          - generic [ref=e350]:
+            - generic [ref=e351]:
+              - button "Inventory Alerts" [expanded] [ref=e352] [cursor=pointer]:
+                - generic [ref=e353]:
+                  - img [ref=e355]
+                  - generic [ref=e360]: Inventory Alerts
+                - img [ref=e362]
+              - region "BAG WAXED SANITARY DISPOSAL LINER 500/CS DCF BAG WAXED SANITARY DISPOSAL LINER 500/CS VA Clinic BAG WAXED SANITARY DISPOSAL LINER 500/CS NEDLC-NOR BAG WAXED SANITARY DISPOSAL LINER 500/CS Greenfield Corporate-CAM BAG WAXED SANITARY DISPOSAL LINER 500/CS Spartan BAG WAXED SANITARY DISPOSAL LINER 500/CS Cambrex-104Gold BAG WAXED SANITARY DISPOSAL LINER 500/CS Agawam Crossing BAG WAXED SANITARY DISPOSAL LINER 500/CS Oxbow-8Atwood-CAM BAG WAXED SANITARY DISPOSAL LINER 500/CS CSO-SPR-BH BAG WAXED SANITARY DISPOSAL LINER 500/CS CSO-GRF-BH" [ref=e531]:
+                - list [ref=e532]:
+                  - listitem [ref=e533]:
+                    - generic [ref=e534]:
+                      - img [ref=e535]
+                      - generic [ref=e539]: BAG WAXED SANITARY DISPOSAL LINER 500/CS
+                    - generic [ref=e540]: DCF
+                  - listitem [ref=e541]:
+                    - generic [ref=e542]:
+                      - img [ref=e543]
+                      - generic [ref=e547]: BAG WAXED SANITARY DISPOSAL LINER 500/CS
+                    - generic [ref=e548]: VA Clinic
+                  - listitem [ref=e549]:
+                    - generic [ref=e550]:
+                      - img [ref=e551]
+                      - generic [ref=e555]: BAG WAXED SANITARY DISPOSAL LINER 500/CS
+                    - generic [ref=e556]: NEDLC-NOR
+                  - listitem [ref=e557]:
+                    - generic [ref=e558]:
+                      - img [ref=e559]
+                      - generic [ref=e563]: BAG WAXED SANITARY DISPOSAL LINER 500/CS
+                    - generic [ref=e564]: Greenfield Corporate-CAM
+                  - listitem [ref=e565]:
+                    - generic [ref=e566]:
+                      - img [ref=e567]
+                      - generic [ref=e571]: BAG WAXED SANITARY DISPOSAL LINER 500/CS
+                    - generic [ref=e572]: Spartan
+                  - listitem [ref=e573]:
+                    - generic [ref=e574]:
+                      - img [ref=e575]
+                      - generic [ref=e579]: BAG WAXED SANITARY DISPOSAL LINER 500/CS
+                    - generic [ref=e580]: Cambrex-104Gold
+                  - listitem [ref=e581]:
+                    - generic [ref=e582]:
+                      - img [ref=e583]
+                      - generic [ref=e587]: BAG WAXED SANITARY DISPOSAL LINER 500/CS
+                    - generic [ref=e588]: Agawam Crossing
+                  - listitem [ref=e589]:
+                    - generic [ref=e590]:
+                      - img [ref=e591]
+                      - generic [ref=e595]: BAG WAXED SANITARY DISPOSAL LINER 500/CS
+                    - generic [ref=e596]: Oxbow-8Atwood-CAM
+                  - listitem [ref=e597]:
+                    - generic [ref=e598]:
+                      - img [ref=e599]
+                      - generic [ref=e603]: BAG WAXED SANITARY DISPOSAL LINER 500/CS
+                    - generic [ref=e604]: CSO-SPR-BH
+                  - listitem [ref=e605]:
+                    - generic [ref=e606]:
+                      - img [ref=e607]
+                      - generic [ref=e611]: BAG WAXED SANITARY DISPOSAL LINER 500/CS
+                    - generic [ref=e612]: CSO-GRF-BH
+            - generic [ref=e378]:
+              - button "Data Quality" [expanded] [ref=e379] [cursor=pointer]:
+                - generic [ref=e380]:
+                  - img [ref=e382]
+                  - generic [ref=e385]: Data Quality
+                - img [ref=e387]
+              - region "CLI-1046 Missing billing address Client CLI-1059 Missing billing address Client CLI-1062 Missing billing address Client CLI-1072 Missing billing address Client CLI-1081 Missing billing address Client CLI-1096 Missing billing address Client CLI-1100 Missing billing address Client CLI-1214 Missing billing address Client CLI-1274 Missing billing address Client CLI-1304 Missing billing address Client" [ref=e613]:
+                - list [ref=e614]:
+                  - listitem [ref=e615]:
+                    - generic [ref=e616]:
+                      - img [ref=e617]
+                      - generic [ref=e619]: CLI-1046
+                      - generic [ref=e620]: Missing billing address
+                    - generic [ref=e621]: Client
+                  - listitem [ref=e623]:
+                    - generic [ref=e624]:
+                      - img [ref=e625]
+                      - generic [ref=e627]: CLI-1059
+                      - generic [ref=e628]: Missing billing address
+                    - generic [ref=e629]: Client
+                  - listitem [ref=e631]:
+                    - generic [ref=e632]:
+                      - img [ref=e633]
+                      - generic [ref=e635]: CLI-1062
+                      - generic [ref=e636]: Missing billing address
+                    - generic [ref=e637]: Client
+                  - listitem [ref=e639]:
+                    - generic [ref=e640]:
+                      - img [ref=e641]
+                      - generic [ref=e643]: CLI-1072
+                      - generic [ref=e644]: Missing billing address
+                    - generic [ref=e645]: Client
+                  - listitem [ref=e647]:
+                    - generic [ref=e648]:
+                      - img [ref=e649]
+                      - generic [ref=e651]: CLI-1081
+                      - generic [ref=e652]: Missing billing address
+                    - generic [ref=e653]: Client
+                  - listitem [ref=e655]:
+                    - generic [ref=e656]:
+                      - img [ref=e657]
+                      - generic [ref=e659]: CLI-1096
+                      - generic [ref=e660]: Missing billing address
+                    - generic [ref=e661]: Client
+                  - listitem [ref=e663]:
+                    - generic [ref=e664]:
+                      - img [ref=e665]
+                      - generic [ref=e667]: CLI-1100
+                      - generic [ref=e668]: Missing billing address
+                    - generic [ref=e669]: Client
+                  - listitem [ref=e671]:
+                    - generic [ref=e672]:
+                      - img [ref=e673]
+                      - generic [ref=e675]: CLI-1214
+                      - generic [ref=e676]: Missing billing address
+                    - generic [ref=e677]: Client
+                  - listitem [ref=e679]:
+                    - generic [ref=e680]:
+                      - img [ref=e681]
+                      - generic [ref=e683]: CLI-1274
+                      - generic [ref=e684]: Missing billing address
+                    - generic [ref=e685]: Client
+                  - listitem [ref=e687]:
+                    - generic [ref=e688]:
+                      - img [ref=e689]
+                      - generic [ref=e691]: CLI-1304
+                      - generic [ref=e692]: Missing billing address
+                    - generic [ref=e693]: Client
+  - region "Notifications alt+T"
+  - alert [ref=e403]

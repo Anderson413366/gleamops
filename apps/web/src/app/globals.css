@@ -2,7 +2,7 @@
 
 /* ═══════════════════════════════════════════════════════
    SOURCE OF TRUTH — Bare Semantic Tokens (HSL Channels)
-   Anderson Cleaning style: slate palette, Blue-600 primary.
+   GleamOps style: warm neutrals + strong module accents.
    Values are space-separated HSL channels: H S% L%
    Override these in .dark / .true-black; --color-* aliases
    in @theme automatically follow via hsl(var(--token)).
@@ -10,14 +10,15 @@
 
 :root {
   /* ── Core surfaces ── */
-  --background: 0 0% 100%;
+  /* Warm cream instead of sterile white. */
+  --background: 40 33% 98%;
   --foreground: 222.2 47.4% 11.2%;
   --card: 0 0% 100%;
   --card-foreground: 222.2 47.4% 11.2%;
   --surface: 0 0% 100%;
 
   /* ── Muted / subtle ── */
-  --muted: 210 40% 96.1%;
+  --muted: 40 20% 95%;
   --muted-foreground: 215.4 16.3% 46.9%;
 
   /* ── Primary (Blue-600) ── */
@@ -39,8 +40,8 @@
   --destructive-foreground: 210 40% 98%;
 
   /* ── Borders & inputs ── */
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
+  --border: 34 21% 88%;
+  --input: 34 21% 88%;
   --ring: 217.2 91.2% 59.8%;
 
   /* ── Status colors ── */
@@ -70,6 +71,18 @@
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
   --radius-xl: 1rem;
+
+  /* ── Layout geometry (design system) ── */
+  --radius-card: 1rem;      /* 16px */
+  --radius-button: 0.75rem; /* 12px */
+  --radius-input: 0.625rem; /* 10px */
+  --card-padding: 1.5rem;   /* 24px */
+  --section-gap: 1rem;      /* 16px */
+  --control-height: 2.75rem; /* 44px */
+
+  /* ── Elevation (design system) ── */
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-float: 0 12px 28px rgba(0, 0, 0, 0.14);
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -81,6 +94,10 @@
    ═══════════════════════════════════════════════════════ */
 
 @theme {
+  /* ── Typography (fonts loaded via next/font in layout.tsx) ── */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+
   /* ── Brand Scale (Anderson Blue-600 family — fixed hex) ── */
   --color-brand-50:  #eff6ff;
   --color-brand-100: #dbeafe;
@@ -414,7 +431,7 @@ textarea::placeholder {
 
 /* Optional readability modes controlled by user preferences */
 html.dyslexia-font body {
-  font-family: "Atkinson Hyperlegible", "Inter", "Segoe UI", sans-serif;
+  font-family: var(--font-atkinson), var(--font-inter), "Segoe UI", sans-serif;
   letter-spacing: 0.02em;
   word-spacing: 0.06em;
 }

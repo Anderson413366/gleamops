@@ -1,0 +1,197 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#main-content"
+    - complementary [ref=e4]:
+      - link "GleamOps" [ref=e6] [cursor=pointer]:
+        - /url: /home
+        - img [ref=e8]
+        - generic [ref=e10]: GleamOps
+      - button "Search... ⌘K" [ref=e12]:
+        - img [ref=e13]
+        - generic [ref=e16]: Search...
+        - generic [ref=e17]: ⌘K
+      - navigation [ref=e18]:
+        - link "Home" [ref=e19] [cursor=pointer]:
+          - /url: /home
+          - img [ref=e20]
+          - text: Home
+        - link "Pipeline" [ref=e23] [cursor=pointer]:
+          - /url: /pipeline
+          - img [ref=e24]
+          - text: Pipeline
+        - link "CRM" [ref=e28] [cursor=pointer]:
+          - /url: /crm
+          - img [ref=e29]
+          - text: CRM
+        - link "Operations" [ref=e33] [cursor=pointer]:
+          - /url: /operations
+          - img [ref=e34]
+          - text: Operations
+        - link "Workforce" [ref=e36] [cursor=pointer]:
+          - /url: /workforce
+          - img [ref=e37]
+          - text: Workforce
+        - link "Inventory" [ref=e42] [cursor=pointer]:
+          - /url: /inventory
+          - img [ref=e43]
+          - text: Inventory
+        - link "Assets" [ref=e47] [cursor=pointer]:
+          - /url: /assets
+          - img [ref=e48]
+          - text: Assets
+        - link "Vendors" [ref=e50] [cursor=pointer]:
+          - /url: /vendors
+          - img [ref=e51]
+          - text: Vendors
+        - link "Safety" [ref=e56] [cursor=pointer]:
+          - /url: /safety
+          - img [ref=e57]
+          - text: Safety
+        - link "Admin" [ref=e60] [cursor=pointer]:
+          - /url: /admin
+          - img [ref=e61]
+          - text: Admin
+      - button "Quick Action" [ref=e64]:
+        - img [ref=e65]
+        - text: Quick Action
+      - generic [ref=e66]:
+        - generic [ref=e67]:
+          - generic [ref=e68]: AG
+          - generic [ref=e69]:
+            - paragraph [ref=e70]: agomes@andersoncleaning.com
+            - paragraph [ref=e71]: authenticated
+        - link "Settings" [ref=e72] [cursor=pointer]:
+          - /url: /settings?view=profile
+          - img [ref=e73]
+          - text: Settings
+        - button "Sign out" [ref=e76]:
+          - img [ref=e77]
+          - text: Sign out
+    - generic [ref=e80]:
+      - banner [ref=e81]:
+        - generic [ref=e82]:
+          - navigation "Breadcrumb" [ref=e84]:
+            - link "Home" [ref=e86] [cursor=pointer]:
+              - /url: /
+            - generic [ref=e87]:
+              - img [ref=e88]
+              - link "Pipeline" [ref=e222] [cursor=pointer]:
+                - /url: /pipeline
+            - generic [ref=e223]:
+              - img [ref=e224]
+              - generic [ref=e226]: Admin
+          - generic [ref=e91]:
+            - button "Search" [ref=e92]:
+              - img [ref=e93]
+              - generic [ref=e96]: Search...
+              - generic [ref=e97]: ⌘K
+            - generic [ref=e98]:
+              - button "Comfortable density" [ref=e99]:
+                - img [ref=e100]
+              - button "Compact density" [ref=e101]:
+                - img [ref=e102]
+            - button "Theme" [ref=e104]:
+              - img [ref=e105]
+            - button "Notifications" [ref=e108]:
+              - img [ref=e109]
+            - button "AG" [ref=e113] [cursor=pointer]
+      - main [ref=e114]:
+        - generic [ref=e227]:
+          - generic [ref=e228]:
+            - heading "Sales Admin" [level=1] [ref=e229]
+            - paragraph [ref=e230]: Control pricing models, follow-up templates, and proposal inserts.
+          - generic [ref=e231]:
+            - generic [ref=e233]:
+              - paragraph [ref=e234]: Production Rates
+              - paragraph [ref=e235]: "0"
+            - generic [ref=e237]:
+              - paragraph [ref=e238]: Follow-up Templates
+              - paragraph [ref=e239]: "0"
+            - generic [ref=e241]:
+              - paragraph [ref=e242]: Active Follow-ups
+              - paragraph [ref=e243]: "0"
+            - generic [ref=e245]:
+              - paragraph [ref=e246]: Marketing Inserts
+              - paragraph [ref=e247]: "0"
+          - generic [ref=e248]:
+            - button "Production Rates" [ref=e249]
+            - button "Follow-up Templates" [ref=e250]
+            - button "Marketing Inserts" [ref=e251]
+          - generic [ref=e252]:
+            - img [ref=e253]
+            - textbox "Search rates..." [ref=e256]
+          - button "Add Rate" [active] [ref=e258]:
+            - img [ref=e259]
+            - text: Add Rate
+          - generic [ref=e260]:
+            - img [ref=e262]
+            - heading "No production rates" [level=3] [ref=e265]
+            - paragraph [ref=e266]: Add your first production rate to get started.
+          - generic [ref=e269]:
+            - generic [ref=e270]:
+              - heading "New Production Rate" [level=2] [ref=e272]
+              - button "Close" [ref=e273]:
+                - img [ref=e274]
+            - generic [ref=e278]:
+              - generic [ref=e279]:
+                - heading "Basic Info" [level=3] [ref=e280]
+                - generic [ref=e281]:
+                  - generic [ref=e282]:
+                    - generic [ref=e283]: Rate Code*
+                    - textbox "Rate Code*" [ref=e284]
+                    - paragraph [ref=e285]: Auto-generated
+                  - generic [ref=e286]:
+                    - generic [ref=e287]: Unit
+                    - combobox "Unit" [ref=e288]:
+                      - option "Sq Ft (per 1,000)" [selected]
+                      - option "Each"
+                - generic [ref=e289]:
+                  - generic [ref=e290]: Task Name*
+                  - textbox "Task Name*" [ref=e291]
+              - generic [ref=e292]:
+                - heading "Production Settings" [level=3] [ref=e293]
+                - generic [ref=e294]:
+                  - generic [ref=e295]:
+                    - generic [ref=e296]: Base Minutes*
+                    - spinbutton "Base Minutes*" [ref=e297]: "0"
+                  - generic [ref=e298]:
+                    - generic [ref=e299]: ML Adjustment (default)
+                    - spinbutton "ML Adjustment (default)" [ref=e300]: "1"
+              - generic [ref=e301]:
+                - heading "Scope Filters (optional)" [level=3] [ref=e302]
+                - generic [ref=e303]:
+                  - generic [ref=e304]:
+                    - generic [ref=e305]: Floor Type
+                    - combobox "Floor Type" [ref=e306]:
+                      - option "Any (no filter)" [selected]
+                      - option "Carpet"
+                      - option "VCT"
+                      - option "Ceramic"
+                      - option "Hardwood"
+                      - option "Concrete"
+                      - option "LVT"
+                  - generic [ref=e307]:
+                    - generic [ref=e308]: Building Type
+                    - combobox "Building Type" [ref=e309]:
+                      - option "Any (no filter)" [selected]
+                      - option "Office"
+                      - option "Medical / Healthcare"
+                      - option "Retail"
+                      - option "School / Education"
+                      - option "Industrial / Manufacturing"
+                      - option "Government"
+                      - option "Restaurant / Food"
+                      - option "Gym / Fitness"
+              - generic [ref=e310]:
+                - generic [ref=e311]:
+                  - checkbox "Active" [checked] [ref=e312]
+                  - text: Active
+                - generic [ref=e313]:
+                  - generic [ref=e314]: Notes
+                  - textbox "Notes" [ref=e315]
+              - generic [ref=e316]:
+                - button "Cancel" [ref=e317]
+                - button "Create Rate" [ref=e318]
+  - region "Notifications alt+T"
+  - alert [ref=e221]

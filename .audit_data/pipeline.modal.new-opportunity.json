@@ -1,0 +1,19 @@
+{
+  "url": "https://gleamops.vercel.app/pipeline",
+  "modal": "New Opportunity",
+  "fields": [
+    {"label": "Opportunity Code", "control": "Text input (disabled)", "notes": "Auto-generated"},
+    {"label": "Name", "control": "Text input", "required": true, "placeholder": "e.g., Downtown Office Complex Cleaning"},
+    {"label": "Prospect", "control": "Select", "required": true, "placeholder": "Select prospect..."},
+    {"label": "Stage", "control": "Select", "default": "Qualified"},
+    {"label": "Estimated Monthly Value", "control": "Number input", "placeholder": "0.00"},
+    {"label": "Probability (%)", "control": "Number input", "placeholder": "0 - 100"},
+    {"label": "Target Close Date", "control": "Date input", "placeholder": "mm/dd/yyyy", "affordance": "calendar icon"},
+    {"label": "Competitor Notes", "control": "Textarea", "placeholder": "Known competitors, their strengths, pricing intel..."},
+    {"label": "Notes", "control": "Textarea", "placeholder": "Additional details about this opportunity..."}
+  ],
+  "actions": ["Cancel", "Create Opportunity"],
+  "observedIssues": [
+    "Console/network error observed while opening: supabase RPC next_code failed to load."
+  ]
+}

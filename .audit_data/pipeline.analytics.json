@@ -1,0 +1,21 @@
+{
+  "url": "https://gleamops.vercel.app/pipeline",
+  "tab": "Analytics",
+  "components": [
+    {
+      "type": "Chart",
+      "name": "Conversion Funnel",
+      "stages": ["Prospects", "Opportunities", "Bids", "Proposals", "Won"]
+    },
+    {
+      "type": "KPI Cards",
+      "metrics": [
+        {"label": "Win Rate (90d)", "value": "N/A"},
+        {"label": "Pipeline Value", "value": "$0/mo"},
+        {"label": "Won Revenue", "value": "$0/mo"},
+        {"label": "Avg Deal Size", "value": "N/A/mo"}
+      ]
+    }
+  ],
+  "searchPlaceholder": "Search analytics..."
+}

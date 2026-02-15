@@ -5,6 +5,7 @@ import { DollarSign, TrendingUp, Send, Target } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, Skeleton, Badge } from '@gleamops/ui';
 import { BID_STATUS_COLORS, PROPOSAL_STATUS_COLORS, OPPORTUNITY_STAGE_COLORS } from '@gleamops/shared';
+import { MetricCard } from '../_components/report-components';
 
 interface PipelineStats {
   totalOpportunities: number;
@@ -122,63 +123,32 @@ export default function SalesDashboard() {
     <div className="space-y-6">
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-success/10">
-                <DollarSign className="h-5 w-5 text-success" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Pipeline Value</p>
-                <p className="text-2xl font-bold">{formatCurrency(pipeline.totalValue)}</p>
-                <p className="text-xs text-muted-foreground">/month</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <TrendingUp className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Active Opportunities</p>
-                <p className="text-2xl font-bold">{pipeline.totalOpportunities}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-accent/10">
-                <Send className="h-5 w-5 text-accent" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Proposals Sent (30d)</p>
-                <p className="text-2xl font-bold">{proposalStats.sentLast30}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-warning/10">
-                <Target className="h-5 w-5 text-warning" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Win Rate</p>
-                <p className="text-2xl font-bold">{winRate}%</p>
-                <p className="text-xs text-muted-foreground">{bidStats.wonCount}W / {bidStats.lostCount}L</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <MetricCard
+          icon={<DollarSign className="h-5 w-5" />}
+          tone="success"
+          label="Pipeline Value"
+          value={formatCurrency(pipeline.totalValue)}
+          sublabel="/month"
+        />
+        <MetricCard
+          icon={<TrendingUp className="h-5 w-5" />}
+          tone="primary"
+          label="Active Opportunities"
+          value={pipeline.totalOpportunities}
+        />
+        <MetricCard
+          icon={<Send className="h-5 w-5" />}
+          tone="accent"
+          label="Proposals Sent (30d)"
+          value={proposalStats.sentLast30}
+        />
+        <MetricCard
+          icon={<Target className="h-5 w-5" />}
+          tone="warning"
+          label="Win Rate"
+          value={`${winRate}%`}
+          helper={`${bidStats.wonCount}W / ${bidStats.lostCount}L`}
+        />
       </div>
 
       {/* Pipeline + Bids + Proposals */}

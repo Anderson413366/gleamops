@@ -5,6 +5,7 @@ import { Calendar, AlertTriangle, Clock, CheckCircle } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, Skeleton, Badge } from '@gleamops/ui';
 import { TICKET_STATUS_COLORS, EXCEPTION_SEVERITY_COLORS } from '@gleamops/shared';
+import { MetricCard, BreakdownRow } from '../_components/report-components';
 
 interface TicketStats {
   total: number;
@@ -113,64 +114,26 @@ export default function OpsDashboard() {
     <div className="space-y-6">
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Calendar className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Tickets Today</p>
-                <p className="text-2xl font-bold">{ticketStats.total}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-success/10">
-                <CheckCircle className="h-5 w-5 text-success" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Completed Today</p>
-                <p className="text-2xl font-bold">{(ticketStats.byStatus['COMPLETED'] || 0) + (ticketStats.byStatus['VERIFIED'] || 0)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-warning/10">
-                <AlertTriangle className="h-5 w-5 text-warning" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Open Exceptions</p>
-                <p className="text-2xl font-bold">{exceptionSummary.unresolved}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-accent/10">
-                <Clock className="h-5 w-5 text-accent" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Hours Logged Today</p>
-                <p className="text-2xl font-bold">{timeStats.totalHoursToday}</p>
-                {timeStats.openEntries > 0 && (
-                  <p className="text-xs text-success">{timeStats.openEntries} currently clocked in</p>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <MetricCard icon={<Calendar className="h-5 w-5" />} tone="primary" label="Tickets Today" value={ticketStats.total} />
+        <MetricCard
+          icon={<CheckCircle className="h-5 w-5" />}
+          tone="success"
+          label="Completed Today"
+          value={(ticketStats.byStatus['COMPLETED'] || 0) + (ticketStats.byStatus['VERIFIED'] || 0)}
+        />
+        <MetricCard
+          icon={<AlertTriangle className="h-5 w-5" />}
+          tone="warning"
+          label="Open Exceptions"
+          value={exceptionSummary.unresolved}
+        />
+        <MetricCard
+          icon={<Clock className="h-5 w-5" />}
+          tone="accent"
+          label="Hours Logged Today"
+          value={timeStats.totalHoursToday}
+          helper={timeStats.openEntries > 0 ? `${timeStats.openEntries} currently clocked in` : undefined}
+        />
       </div>
 
       {/* Ticket Status Breakdown */}
@@ -185,18 +148,12 @@ export default function OpsDashboard() {
             ) : (
               <div className="space-y-3">
                 {Object.entries(ticketStats.byStatus).map(([status, count]) => (
-                  <div key={status} className="flex items-center justify-between">
-                    <Badge color={TICKET_STATUS_COLORS[status] ?? 'gray'}>{status}</Badge>
-                    <div className="flex items-center gap-2 flex-1 mx-4">
-                      <div className="flex-1 bg-muted rounded-full h-2">
-                        <div
-                          className="h-2 rounded-full bg-primary"
-                          style={{ width: `${ticketStats.total > 0 ? (count / ticketStats.total) * 100 : 0}%` }}
-                        />
-                      </div>
-                      <span className="text-sm font-medium w-8 text-right">{count}</span>
-                    </div>
-                  </div>
+                  <BreakdownRow
+                    key={status}
+                    left={<Badge color={TICKET_STATUS_COLORS[status] ?? 'gray'}>{status}</Badge>}
+                    right={count}
+                    pct={ticketStats.total > 0 ? count / ticketStats.total : 0}
+                  />
                 ))}
               </div>
             )}

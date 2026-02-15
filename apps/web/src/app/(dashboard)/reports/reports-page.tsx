@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { BarChart3, TrendingUp, DollarSign, Shield, Users, Package, RefreshCw } from 'lucide-react';
-import { ChipTabs, Card, CardContent, Button, Badge } from '@gleamops/ui';
+import { ChipTabs, Button, Badge } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 import OpsDashboard from './ops/ops-dashboard';
@@ -12,6 +12,7 @@ import FinancialDashboard from './financial/financial-dashboard';
 import QualityDashboard from './quality/quality-dashboard';
 import WorkforceDashboard from './workforce/workforce-dashboard';
 import InventoryDashboard from './inventory/inventory-dashboard';
+import { MetricCard } from './_components/report-components';
 
 const TABS = [
   { key: 'ops', label: 'Operations', icon: <BarChart3 className="h-4 w-4" /> },
@@ -91,13 +92,44 @@ export default function ReportsPageClient() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Open Tickets</p><p className="text-xl font-semibold">{snapshot.openTickets}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Pipeline Value</p><p className="text-xl font-semibold">{formatCurrency(snapshot.pipelineValue)}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Monthly Revenue</p><p className="text-xl font-semibold">{formatCurrency(snapshot.monthlyRevenue)}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Pass Rate</p><p className="text-xl font-semibold">{snapshot.passRate}%</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Staff</p><p className="text-xl font-semibold">{snapshot.activeStaff}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Supplies</p><p className="text-xl font-semibold">{snapshot.activeSupplies}</p></CardContent></Card>
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+        <MetricCard
+          icon={<BarChart3 className="h-5 w-5" />}
+          tone="primary"
+          label="Open Tickets"
+          value={snapshot.openTickets}
+        />
+        <MetricCard
+          icon={<TrendingUp className="h-5 w-5" />}
+          tone="accent"
+          label="Pipeline Value"
+          value={formatCurrency(snapshot.pipelineValue)}
+          sublabel="/month"
+        />
+        <MetricCard
+          icon={<DollarSign className="h-5 w-5" />}
+          tone="success"
+          label="Monthly Revenue"
+          value={formatCurrency(snapshot.monthlyRevenue)}
+        />
+        <MetricCard
+          icon={<Shield className="h-5 w-5" />}
+          tone="warning"
+          label="Pass Rate"
+          value={`${snapshot.passRate}%`}
+        />
+        <MetricCard
+          icon={<Users className="h-5 w-5" />}
+          tone="primary"
+          label="Active Staff"
+          value={snapshot.activeStaff}
+        />
+        <MetricCard
+          icon={<Package className="h-5 w-5" />}
+          tone="primary"
+          label="Active Supplies"
+          value={snapshot.activeSupplies}
+        />
       </div>
 
       <ChipTabs tabs={TABS} active={tab} onChange={setTab} />

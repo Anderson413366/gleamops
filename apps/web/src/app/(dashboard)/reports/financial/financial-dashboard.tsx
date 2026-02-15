@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { DollarSign, TrendingUp, Building2, Briefcase } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, Skeleton, Badge } from '@gleamops/ui';
+import { MetricCard } from '../_components/report-components';
 
 interface RevenueStats {
   totalMonthlyRevenue: number;
@@ -34,15 +35,11 @@ export default function FinancialDashboard() {
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
 
-    const [jobsRes, clientsRes] = await Promise.all([
+    const [jobsRes] = await Promise.all([
       supabase
         .from('site_jobs')
         .select('id, billing_amount, frequency, status, site:site_id(name, client:client_id(name))')
         .eq('status', 'ACTIVE')
-        .is('archived_at', null),
-      supabase
-        .from('clients')
-        .select('id, name')
         .is('archived_at', null),
     ]);
 
@@ -105,62 +102,31 @@ export default function FinancialDashboard() {
     <div className="space-y-6">
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-success/10">
-                <DollarSign className="h-5 w-5 text-success" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Monthly Revenue</p>
-                <p className="text-2xl font-bold">{formatCurrency(stats.totalMonthlyRevenue)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Briefcase className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Active Jobs</p>
-                <p className="text-2xl font-bold">{stats.activeJobsCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-accent/10">
-                <TrendingUp className="h-5 w-5 text-accent" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Avg Job Value</p>
-                <p className="text-2xl font-bold">{formatCurrency(stats.avgJobValue)}</p>
-                <p className="text-xs text-muted-foreground">/month</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-warning/10">
-                <Building2 className="h-5 w-5 text-warning" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Annual Projection</p>
-                <p className="text-2xl font-bold">{formatCurrency(stats.totalMonthlyRevenue * 12)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <MetricCard
+          icon={<DollarSign className="h-5 w-5" />}
+          tone="success"
+          label="Monthly Revenue"
+          value={formatCurrency(stats.totalMonthlyRevenue)}
+        />
+        <MetricCard
+          icon={<Briefcase className="h-5 w-5" />}
+          tone="primary"
+          label="Active Jobs"
+          value={stats.activeJobsCount}
+        />
+        <MetricCard
+          icon={<TrendingUp className="h-5 w-5" />}
+          tone="accent"
+          label="Avg Job Value"
+          value={formatCurrency(stats.avgJobValue)}
+          sublabel="/month"
+        />
+        <MetricCard
+          icon={<Building2 className="h-5 w-5" />}
+          tone="warning"
+          label="Annual Projection"
+          value={formatCurrency(stats.totalMonthlyRevenue * 12)}
+        />
       </div>
 
       {/* Top Clients + Frequency Breakdown */}

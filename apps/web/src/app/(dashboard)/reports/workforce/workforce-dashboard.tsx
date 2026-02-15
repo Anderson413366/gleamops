@@ -5,6 +5,7 @@ import { Users, Clock, AlertTriangle, UserCheck } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, Skeleton, Badge } from '@gleamops/ui';
 import { EXCEPTION_SEVERITY_COLORS, TIMESHEET_STATUS_COLORS } from '@gleamops/shared';
+import { MetricCard, BreakdownRow } from '../_components/report-components';
 
 interface WorkforceStats {
   totalStaff: number;
@@ -135,63 +136,32 @@ export default function WorkforceDashboard() {
     <div className="space-y-6">
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Users className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Total Staff</p>
-                <p className="text-2xl font-bold">{stats.totalStaff}</p>
-                <p className="text-xs text-muted-foreground">{stats.activeStaff} active</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-success/10">
-                <UserCheck className="h-5 w-5 text-success" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Clocked In Now</p>
-                <p className="text-2xl font-bold">{stats.clockedInNow}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-accent/10">
-                <Clock className="h-5 w-5 text-accent" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Hours This Week</p>
-                <p className="text-2xl font-bold">{stats.hoursThisWeek}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-warning/10">
-                <AlertTriangle className="h-5 w-5 text-warning" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Open Exceptions</p>
-                <p className="text-2xl font-bold">{exceptions.unresolved}</p>
-                <p className="text-xs text-muted-foreground">{exceptions.total} total</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <MetricCard
+          icon={<Users className="h-5 w-5" />}
+          tone="primary"
+          label="Total Staff"
+          value={stats.totalStaff}
+          helper={`${stats.activeStaff} active`}
+        />
+        <MetricCard
+          icon={<UserCheck className="h-5 w-5" />}
+          tone="success"
+          label="Clocked In Now"
+          value={stats.clockedInNow}
+        />
+        <MetricCard
+          icon={<Clock className="h-5 w-5" />}
+          tone="accent"
+          label="Hours This Week"
+          value={stats.hoursThisWeek}
+        />
+        <MetricCard
+          icon={<AlertTriangle className="h-5 w-5" />}
+          tone="warning"
+          label="Open Exceptions"
+          value={exceptions.unresolved}
+          helper={`${exceptions.total} total`}
+        />
       </div>
 
       {/* Timesheets + Exceptions */}
@@ -205,24 +175,17 @@ export default function WorkforceDashboard() {
               <p className="text-sm text-muted-foreground">No timesheets recorded yet.</p>
             ) : (
               <div className="space-y-3">
-                {Object.entries(timesheets).map(([status, count]) => (
-                  <div key={status} className="flex items-center justify-between">
-                    <Badge color={TIMESHEET_STATUS_COLORS[status] ?? 'gray'}>{status}</Badge>
-                    <div className="flex items-center gap-2 flex-1 mx-4">
-                      <div className="flex-1 bg-muted rounded-full h-2">
-                        <div
-                          className="h-2 rounded-full bg-primary"
-                          style={{
-                            width: `${Object.values(timesheets).reduce((a, b) => a + b, 0) > 0
-                              ? (count / Object.values(timesheets).reduce((a, b) => a + b, 0)) * 100
-                              : 0}%`,
-                          }}
-                        />
-                      </div>
-                      <span className="text-sm font-medium w-8 text-right">{count}</span>
-                    </div>
-                  </div>
-                ))}
+                {(() => {
+                  const total = Object.values(timesheets).reduce((a, b) => a + b, 0);
+                  return Object.entries(timesheets).map(([status, count]) => (
+                    <BreakdownRow
+                      key={status}
+                      left={<Badge color={TIMESHEET_STATUS_COLORS[status] ?? 'gray'}>{status}</Badge>}
+                      right={count}
+                      pct={total > 0 ? count / total : 0}
+                    />
+                  ));
+                })()}
               </div>
             )}
           </CardContent>

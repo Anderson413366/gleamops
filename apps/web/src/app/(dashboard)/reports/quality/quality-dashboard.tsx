@@ -5,6 +5,7 @@ import { Shield, CheckCircle, AlertTriangle, Star } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, Skeleton, Badge } from '@gleamops/ui';
 import { INSPECTION_STATUS_COLORS, ISSUE_SEVERITY_COLORS } from '@gleamops/shared';
+import { MetricCard, BreakdownRow } from '../_components/report-components';
 
 interface QualityStats {
   totalInspections: number;
@@ -106,63 +107,22 @@ export default function QualityDashboard() {
     <div className="space-y-6">
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Shield className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Total Inspections</p>
-                <p className="text-2xl font-bold">{quality.totalInspections}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-success/10">
-                <CheckCircle className="h-5 w-5 text-success" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Pass Rate</p>
-                <p className="text-2xl font-bold">{quality.passRate}%</p>
-                <p className="text-xs text-muted-foreground">{quality.completedInspections} completed</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-accent/10">
-                <Star className="h-5 w-5 text-accent" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Avg Score</p>
-                <p className="text-2xl font-bold">{quality.avgScore}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-destructive/10">
-                <AlertTriangle className="h-5 w-5 text-destructive" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Open Issues</p>
-                <p className="text-2xl font-bold">{issues.open}</p>
-                <p className="text-xs text-muted-foreground">{issues.total} total</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <MetricCard icon={<Shield className="h-5 w-5" />} tone="primary" label="Total Inspections" value={quality.totalInspections} />
+        <MetricCard
+          icon={<CheckCircle className="h-5 w-5" />}
+          tone="success"
+          label="Pass Rate"
+          value={`${quality.passRate}%`}
+          helper={`${quality.completedInspections} completed`}
+        />
+        <MetricCard icon={<Star className="h-5 w-5" />} tone="accent" label="Avg Score" value={quality.avgScore} />
+        <MetricCard
+          icon={<AlertTriangle className="h-5 w-5" />}
+          tone="destructive"
+          label="Open Issues"
+          value={issues.open}
+          helper={`${issues.total} total`}
+        />
       </div>
 
       {/* Inspection Status + Issues */}
@@ -177,20 +137,12 @@ export default function QualityDashboard() {
             ) : (
               <div className="space-y-3">
                 {Object.entries(inspByStatus).map(([status, count]) => (
-                  <div key={status} className="flex items-center justify-between">
-                    <Badge color={INSPECTION_STATUS_COLORS[status] ?? 'gray'}>{status}</Badge>
-                    <div className="flex items-center gap-2 flex-1 mx-4">
-                      <div className="flex-1 bg-muted rounded-full h-2">
-                        <div
-                          className="h-2 rounded-full bg-primary"
-                          style={{
-                            width: `${quality.totalInspections > 0 ? (count / quality.totalInspections) * 100 : 0}%`,
-                          }}
-                        />
-                      </div>
-                      <span className="text-sm font-medium w-8 text-right">{count}</span>
-                    </div>
-                  </div>
+                  <BreakdownRow
+                    key={status}
+                    left={<Badge color={INSPECTION_STATUS_COLORS[status] ?? 'gray'}>{status}</Badge>}
+                    right={count}
+                    pct={quality.totalInspections > 0 ? count / quality.totalInspections : 0}
+                  />
                 ))}
               </div>
             )}

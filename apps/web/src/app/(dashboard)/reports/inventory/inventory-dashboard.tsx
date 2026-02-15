@@ -3,13 +3,15 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Package, Boxes, Truck, AlertTriangle } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle, Skeleton, Badge } from '@gleamops/ui';
+import { Card, CardContent, CardHeader, CardTitle, Skeleton } from '@gleamops/ui';
+import { MetricCard, BreakdownRow } from '../_components/report-components';
 
 interface InventoryStats {
   catalogItems: number;
   activeSupplies: number;
   totalKits: number;
   vehicleCount: number;
+  siteSupplyAssignments: number;
 }
 
 interface CategoryBreakdown {
@@ -26,6 +28,7 @@ export default function InventoryDashboard() {
     activeSupplies: 0,
     totalKits: 0,
     vehicleCount: 0,
+    siteSupplyAssignments: 0,
   });
   const [categories, setCategories] = useState<CategoryBreakdown>({});
   const [topSupplies, setTopSupplies] = useState<{ name: string; unit_cost: number; category: string }[]>([]);
@@ -74,6 +77,7 @@ export default function InventoryDashboard() {
         activeSupplies: active.length,
         totalKits: kitsRes.count || 0,
         vehicleCount: vehiclesRes.count || 0,
+        siteSupplyAssignments: siteSuppliesRes.count || 0,
       });
       setCategories(byCategory);
       setTopSupplies(sorted);
@@ -98,62 +102,31 @@ export default function InventoryDashboard() {
     <div className="space-y-6">
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Package className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Catalog Items</p>
-                <p className="text-2xl font-bold">{stats.catalogItems}</p>
-                <p className="text-xs text-muted-foreground">{stats.activeSupplies} active</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-success/10">
-                <Boxes className="h-5 w-5 text-success" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Supply Kits</p>
-                <p className="text-2xl font-bold">{stats.totalKits}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-accent/10">
-                <Truck className="h-5 w-5 text-accent" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Vehicles</p>
-                <p className="text-2xl font-bold">{stats.vehicleCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-warning/10">
-                <AlertTriangle className="h-5 w-5 text-warning" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Categories</p>
-                <p className="text-2xl font-bold">{Object.keys(categories).length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <MetricCard
+          icon={<Package className="h-5 w-5" />}
+          tone="primary"
+          label="Catalog Items"
+          value={stats.catalogItems}
+          helper={`${stats.activeSupplies} active`}
+        />
+        <MetricCard
+          icon={<Boxes className="h-5 w-5" />}
+          tone="success"
+          label="Supply Kits"
+          value={stats.totalKits}
+        />
+        <MetricCard
+          icon={<Truck className="h-5 w-5" />}
+          tone="accent"
+          label="Vehicles"
+          value={stats.vehicleCount}
+        />
+        <MetricCard
+          icon={<AlertTriangle className="h-5 w-5" />}
+          tone="warning"
+          label="Site Supply Records"
+          value={stats.siteSupplyAssignments}
+        />
       </div>
 
       {/* Categories + Top Items */}
@@ -170,20 +143,12 @@ export default function InventoryDashboard() {
                 {Object.entries(categories)
                   .sort((a, b) => b[1] - a[1])
                   .map(([cat, count]) => (
-                    <div key={cat} className="flex items-center justify-between">
-                      <span className="text-sm font-medium truncate max-w-[200px]">{cat}</span>
-                      <div className="flex items-center gap-2 flex-1 mx-4">
-                        <div className="flex-1 bg-muted rounded-full h-2">
-                          <div
-                            className="h-2 rounded-full bg-primary"
-                            style={{
-                              width: `${stats.catalogItems > 0 ? (count / stats.catalogItems) * 100 : 0}%`,
-                            }}
-                          />
-                        </div>
-                        <span className="text-sm font-medium w-8 text-right">{count}</span>
-                      </div>
-                    </div>
+                    <BreakdownRow
+                      key={cat}
+                      left={<span className="text-sm font-medium truncate max-w-[200px]">{cat}</span>}
+                      right={count}
+                      pct={stats.catalogItems > 0 ? count / stats.catalogItems : 0}
+                    />
                   ))}
               </div>
             )}

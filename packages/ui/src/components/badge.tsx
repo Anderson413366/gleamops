@@ -16,7 +16,7 @@ export function Badge({ color, children, className, dot = true, ...props }: Badg
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium',
+        'inline-flex min-h-6 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium leading-none',
         c.bg, c.text, c.border,
         className
       )}

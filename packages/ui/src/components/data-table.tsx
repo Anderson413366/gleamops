@@ -6,7 +6,7 @@ import { cn } from '../utils';
 // ---------------------------------------------------------------------------
 export function Table({ className, ...props }: React.HTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-border">
+    <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
       <table className={cn('min-w-full divide-y divide-border', className)} {...props} />
     </div>
   );
@@ -50,7 +50,7 @@ export function TableRow({ className, onClick, ...props }: React.HTMLAttributes<
 export function TableCell({ className, ...props }: React.TdHTMLAttributes<HTMLTableCellElement>) {
   return (
     <td
-      className={cn('px-4 py-3 text-sm text-foreground', className)}
+      className={cn('px-4 py-4 text-sm text-foreground', className)}
       {...props}
     />
   );
@@ -84,7 +84,7 @@ export function TableHead({
   return (
     <th
       className={cn(
-        'px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider',
+        'px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider',
         sortable && 'cursor-pointer select-none hover:text-foreground transition-colors',
         className
       )}

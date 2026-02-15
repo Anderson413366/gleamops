@@ -20,7 +20,7 @@ export function Textarea({ label, error, hint, className, id, ...props }: Textar
       <textarea
         id={textareaId}
         className={cn(
-          'block w-full rounded-lg border px-3.5 py-2.5 text-sm transition-all duration-200 ease-in-out resize-y',
+          'block w-full rounded-[10px] border px-3.5 py-2.5 text-sm leading-6 transition-all duration-200 ease-in-out resize-y',
           'bg-card text-foreground placeholder:text-muted-foreground',
           'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background',
           error

@@ -10,7 +10,7 @@ export function Textarea({ label, error, hint, className, id, ...props }: Textar
   const textareaId = id || label?.toLowerCase().replace(/\s+/g, '-');
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1.5 min-w-0">
       {label && (
         <label htmlFor={textareaId} className="block text-sm font-medium text-foreground">
           {label}
@@ -20,7 +20,7 @@ export function Textarea({ label, error, hint, className, id, ...props }: Textar
       <textarea
         id={textareaId}
         className={cn(
-          'box-border block w-full rounded-[var(--radius-input)] border px-3.5 py-2.5 text-sm leading-5 transition-colors duration-200 resize-y',
+          'box-border block w-full min-w-0 rounded-[var(--radius-input)] border px-3.5 py-2.5 text-sm leading-5 transition-colors duration-200 resize-y',
           'bg-background text-foreground placeholder:text-muted-foreground',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
           error

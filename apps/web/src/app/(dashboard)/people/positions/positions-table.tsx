@@ -6,7 +6,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { StaffPosition } from '@gleamops/shared';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton
+  EmptyState, Badge, Pagination, TableSkeleton, SlideOver
 } from '@gleamops/ui';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
@@ -18,6 +18,7 @@ interface Props {
 export default function PositionsTable({ search }: Props) {
   const [rows, setRows] = useState<StaffPosition[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<StaffPosition | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -59,21 +60,15 @@ export default function PositionsTable({ search }: Props) {
             <TableHead sortable sorted={sortKey === 'title' && sortDir} onSort={() => onSort('title')}>Title</TableHead>
             <TableHead sortable sorted={sortKey === 'department' && sortDir} onSort={() => onSort('department')}>Department</TableHead>
             <TableHead>Pay Grade</TableHead>
-            <TableHead>Status</TableHead>
           </tr>
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id}>
+            <TableRow key={row.id} className="cursor-pointer" onClick={() => setSelected(row)}>
               <TableCell className="font-mono text-xs">{row.position_code}</TableCell>
               <TableCell className="font-medium">{row.title}</TableCell>
               <TableCell>{row.department ?? '—'}</TableCell>
               <TableCell>{row.pay_grade ?? '—'}</TableCell>
-              <TableCell>
-                <Badge color={row.is_active ? 'green' : 'gray'}>
-                  {row.is_active ? 'Active' : 'Inactive'}
-                </Badge>
-              </TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -84,6 +79,32 @@ export default function PositionsTable({ search }: Props) {
         hasNext={pag.hasNext} hasPrev={pag.hasPrev}
         onNext={pag.nextPage} onPrev={pag.prevPage} onGoTo={pag.goToPage}
       />
+
+      <SlideOver
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        title={selected ? `${selected.title}` : 'Position'}
+        subtitle={selected?.position_code}
+      >
+        {selected && (
+          <div className="space-y-3 text-sm">
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-muted-foreground">Status</span>
+              <Badge color={selected.is_active ? 'green' : 'gray'}>
+                {selected.is_active ? 'Active' : 'Inactive'}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-muted-foreground">Department</span>
+              <span className="font-medium text-right">{selected.department ?? '—'}</span>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-muted-foreground">Pay Grade</span>
+              <span className="font-medium text-right">{selected.pay_grade ?? '—'}</span>
+            </div>
+          </div>
+        )}
+      </SlideOver>
     </div>
   );
 }

@@ -12,10 +12,10 @@ import {
   TableRow,
   TableCell,
   EmptyState,
-  Badge,
   Pagination,
   TableSkeleton,
   ExportButton,
+  cn,
 } from '@gleamops/ui';
 import type { Site } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
@@ -31,19 +31,13 @@ interface SitesTableProps {
   onSelect?: (site: SiteWithClient) => void;
 }
 
-const STATUS_OPTIONS = ['all', 'ACTIVE', 'INACTIVE', 'ON_HOLD', 'CANCELED'] as const;
-
-const SITE_STATUS_COLORS: Record<string, 'green' | 'gray' | 'yellow' | 'red'> = {
-  ACTIVE: 'green',
-  INACTIVE: 'gray',
-  ON_HOLD: 'yellow',
-  CANCELED: 'red',
-};
+// UX requirement: default to Active, show Active first, and move All to the end.
+const STATUS_OPTIONS = ['ACTIVE', 'INACTIVE', 'ON_HOLD', 'CANCELED', 'all'] as const;
 
 export default function SitesTable({ search, onSelect }: SitesTableProps) {
   const [rows, setRows] = useState<SiteWithClient[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('ACTIVE');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -131,14 +125,18 @@ export default function SitesTable({ search, onSelect }: SitesTableProps) {
               e.stopPropagation();
               setStatusFilter(status);
             }}
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors',
               statusFilter === status
-                ? 'bg-blue-600 text-white'
+                ? 'bg-module-accent text-module-accent-foreground'
                 : 'bg-muted text-muted-foreground hover:bg-muted/80'
-            }`}
+            )}
           >
             {status === 'all' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase().replace(/_/g, ' ')}
-            <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${statusFilter === status ? 'bg-white/20' : 'bg-background'}`}>
+            <span className={cn(
+              'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+              statusFilter === status ? 'bg-white/20' : 'bg-background'
+            )}>
               {statusCounts[status] || 0}
             </span>
           </button>
@@ -154,7 +152,6 @@ export default function SitesTable({ search, onSelect }: SitesTableProps) {
               Name
             </TableHead>
             <TableHead>Client</TableHead>
-            <TableHead>Status</TableHead>
             <TableHead>Address</TableHead>
             <TableHead>Sq Ft</TableHead>
           </tr>
@@ -165,13 +162,6 @@ export default function SitesTable({ search, onSelect }: SitesTableProps) {
               <TableCell className="font-mono text-xs">{row.site_code}</TableCell>
               <TableCell className="font-medium">{row.name}</TableCell>
               <TableCell className="text-muted-foreground">{row.client?.name ?? '—'}</TableCell>
-              <TableCell>
-                {row.status ? (
-                  <Badge color={SITE_STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
-                ) : (
-                  '—'
-                )}
-              </TableCell>
               <TableCell className="text-muted-foreground">
                 {row.address
                   ? [row.address.street, row.address.city, row.address.state]

@@ -6,19 +6,12 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, ExportButton,
+  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, cn,
 } from '@gleamops/ui';
 import type { Staff } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 import { StaffForm } from '@/components/forms/staff-form';
-
-const STATUS_COLORS: Record<string, 'green' | 'gray' | 'yellow' | 'red'> = {
-  ACTIVE: 'green',
-  INACTIVE: 'gray',
-  ON_LEAVE: 'yellow',
-  TERMINATED: 'red',
-};
 
 const ROLE_COLORS: Record<string, 'purple' | 'blue' | 'green' | 'orange' | 'yellow' | 'gray'> = {
   OWNER_ADMIN: 'purple',
@@ -29,7 +22,8 @@ const ROLE_COLORS: Record<string, 'purple' | 'blue' | 'green' | 'orange' | 'yell
   CLEANER: 'gray',
 };
 
-const STATUS_OPTIONS = ['all', 'ACTIVE', 'INACTIVE', 'ON_LEAVE', 'TERMINATED'] as const;
+// UX requirement: default to Active, show Active first, and move All to the end.
+const STATUS_OPTIONS = ['ACTIVE', 'INACTIVE', 'ON_LEAVE', 'TERMINATED', 'all'] as const;
 
 interface StaffTableProps {
   search: string;
@@ -47,7 +41,7 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editItem, setEditItem] = useState<Staff | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('ACTIVE');
 
   const handleAdd = () => { setEditItem(null); setFormOpen(true); };
   const handleEdit = (item: Staff) => { setEditItem(item); setFormOpen(true); };
@@ -155,14 +149,18 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
               e.stopPropagation();
               setStatusFilter(status);
             }}
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors',
               statusFilter === status
-                ? 'bg-blue-600 text-white'
+                ? 'bg-module-accent text-module-accent-foreground'
                 : 'bg-muted text-muted-foreground hover:bg-muted/80'
-            }`}
+            )}
           >
             {status === 'all' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase().replace(/_/g, ' ')}
-            <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${statusFilter === status ? 'bg-white/20' : 'bg-background'}`}>
+            <span className={cn(
+              'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+              statusFilter === status ? 'bg-white/20' : 'bg-background'
+            )}>
               {statusCounts[status] || 0}
             </span>
           </button>
@@ -174,7 +172,6 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
             <TableHead sortable sorted={sortKey === 'staff_code' && sortDir} onSort={() => onSort('staff_code')}>Code</TableHead>
             <TableHead sortable sorted={sortKey === 'full_name' && sortDir} onSort={() => onSort('full_name')}>Name</TableHead>
             <TableHead sortable sorted={sortKey === 'role' && sortDir} onSort={() => onSort('role')}>Role</TableHead>
-            <TableHead sortable sorted={sortKey === 'staff_status' && sortDir} onSort={() => onSort('staff_status')}>Status</TableHead>
             <TableHead>Employment</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Phone</TableHead>
@@ -189,11 +186,6 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
               <TableCell>
                 <Badge color={ROLE_COLORS[row.role] ?? 'gray'}>
                   {row.role.replace(/_/g, ' ')}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                <Badge color={STATUS_COLORS[row.staff_status ?? 'ACTIVE'] ?? 'gray'}>
-                  {(row.staff_status ?? 'ACTIVE').replace(/_/g, ' ')}
                 </Badge>
               </TableCell>
               <TableCell className="text-muted-foreground">{row.employment_type ?? '—'}</TableCell>

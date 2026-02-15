@@ -10,7 +10,7 @@ export function Input({ label, error, hint, className, id, ...props }: InputProp
   const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1.5 min-w-0">
       {label && (
         <label htmlFor={inputId} className="block text-sm font-medium text-foreground">
           {label}
@@ -21,7 +21,7 @@ export function Input({ label, error, hint, className, id, ...props }: InputProp
         id={inputId}
         className={cn(
           // Use border-box + fixed control height to prevent text clipping/overlap under responsive reflow.
-          'box-border block h-11 w-full rounded-[var(--radius-input)] border px-3.5 text-sm leading-5 transition-colors duration-200',
+          'box-border block h-11 w-full min-w-0 rounded-[var(--radius-input)] border px-3.5 text-sm leading-5 transition-colors duration-200',
           'bg-background text-foreground placeholder:text-muted-foreground',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
           error

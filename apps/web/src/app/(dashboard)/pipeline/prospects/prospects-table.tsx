@@ -23,8 +23,8 @@ export default function ProspectsTable({ search, onSelect }: ProspectsTableProps
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editItem, setEditItem] = useState<SalesProspect | null>(null);
-  // UX requirement: prefer a non-"all" view by default; move "all" to the end.
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  // UX requirement: default to Active when available; move "all" to the end.
+  const [statusFilter, setStatusFilter] = useState<string>('ACTIVE');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -49,16 +49,17 @@ export default function ProspectsTable({ search, onSelect }: ProspectsTableProps
     return ordered;
   }, [rows]);
 
-  useEffect(() => {
-    if (statusFilter !== 'all') return;
-    const preferred = statusOptions.find((s) => s !== 'all');
-    if (preferred) setStatusFilter(preferred);
-  }, [statusOptions, statusFilter]);
+  const effectiveStatusFilter = useMemo(() => {
+    if (statusFilter === 'all') return 'all';
+    if (statusOptions.includes(statusFilter)) return statusFilter;
+    if (statusOptions.includes('ACTIVE')) return 'ACTIVE';
+    return statusOptions.find((s) => s !== 'all') ?? 'all';
+  }, [statusFilter, statusOptions]);
 
   const filtered = useMemo(() => {
     let result = rows;
-    if (statusFilter !== 'all') {
-      result = result.filter((r) => r.prospect_status_code === statusFilter);
+    if (effectiveStatusFilter !== 'all') {
+      result = result.filter((r) => r.prospect_status_code === effectiveStatusFilter);
     }
     if (!search) return result;
     const q = search.toLowerCase();
@@ -68,7 +69,7 @@ export default function ProspectsTable({ search, onSelect }: ProspectsTableProps
         r.prospect_code.toLowerCase().includes(q) ||
         r.source?.toLowerCase().includes(q)
     );
-  }, [rows, search, statusFilter]);
+  }, [rows, search, effectiveStatusFilter]);
 
   const { sorted, sortKey, sortDir, onSort } = useTableSort(
     filtered as unknown as Record<string, unknown>[], 'company_name', 'asc'
@@ -133,7 +134,7 @@ export default function ProspectsTable({ search, onSelect }: ProspectsTableProps
             onClick={() => setStatusFilter(status)}
             className={cn(
               'inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors',
-              statusFilter === status ? 'bg-module-accent text-module-accent-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80',
+              effectiveStatusFilter === status ? 'bg-module-accent text-module-accent-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80',
             )}
           >
             {status === 'all' ? 'All' : status}

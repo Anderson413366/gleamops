@@ -4,11 +4,9 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { ShoppingCart } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { SupplyOrder } from '@gleamops/shared';
-import { SUPPLY_ORDER_STATUS_COLORS } from '@gleamops/shared';
-import type { StatusColor } from '@gleamops/shared';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton,
+  EmptyState, Pagination, TableSkeleton,
 } from '@gleamops/ui';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
@@ -118,7 +116,6 @@ export default function OrdersTable({ search, formOpen, onFormClose, onRefresh }
               Order Date
             </TableHead>
             <TableHead>Total</TableHead>
-            <TableHead>Status</TableHead>
           </tr>
         </TableHeader>
         <TableBody>
@@ -129,11 +126,6 @@ export default function OrdersTable({ search, formOpen, onFormClose, onRefresh }
               <TableCell>{dateFmt.format(toSafeDate(row.order_date))}</TableCell>
               <TableCell className="font-mono text-xs">
                 {row.total_amount != null ? currFmt.format(row.total_amount) : '—'}
-              </TableCell>
-              <TableCell>
-                <Badge color={(SUPPLY_ORDER_STATUS_COLORS[row.status] as StatusColor) ?? 'gray'}>
-                  {row.status.replace(/_/g, ' ')}
-                </Badge>
               </TableCell>
             </TableRow>
           ))}

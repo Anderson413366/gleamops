@@ -432,6 +432,7 @@ function SignatureSection({ companyName, signatures }: {
           <View key={i} style={styles.signatureBlock}>
             <Text style={styles.signatureLabel}>Signed by</Text>
             {sig.signatureImageUrl ? (
+              // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image does not support alt text
               <Image src={sig.signatureImageUrl} style={styles.signatureImage} />
             ) : (
               <View style={styles.signatureLine} />

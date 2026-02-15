@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, Button, ExportButton,
+  EmptyState, Badge, Pagination, TableSkeleton, Button, ExportButton, SlideOver,
 } from '@gleamops/ui';
 import { TIMESHEET_STATUS_COLORS } from '@gleamops/shared';
 import type { Timesheet } from '@gleamops/shared';
@@ -24,6 +24,7 @@ interface TimesheetsTableProps {
 export default function TimesheetsTable({ search }: TimesheetsTableProps) {
   const [rows, setRows] = useState<TimesheetWithStaff[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<TimesheetWithStaff | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -137,13 +138,12 @@ export default function TimesheetsTable({ search }: TimesheetsTableProps) {
             <TableHead>Overtime</TableHead>
             <TableHead>Breaks</TableHead>
             <TableHead>Exceptions</TableHead>
-            <TableHead>Status</TableHead>
             <TableHead>Actions</TableHead>
           </tr>
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id}>
+            <TableRow key={row.id} className="cursor-pointer" onClick={() => setSelected(row)}>
               <TableCell>
                 <span className="text-sm">
                   {new Date(row.week_start).toLocaleDateString()} — {new Date(row.week_end).toLocaleDateString()}
@@ -164,13 +164,29 @@ export default function TimesheetsTable({ search }: TimesheetsTableProps) {
                 )}
               </TableCell>
               <TableCell>
-                <Badge color={TIMESHEET_STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
-              </TableCell>
-              <TableCell>
                 {row.status === 'SUBMITTED' && (
                   <div className="flex items-center gap-1">
-                    <Button size="sm" onClick={() => handleApprove(row.id)}>Approve</Button>
-                    <Button size="sm" variant="secondary" onClick={() => handleReject(row.id)}>Reject</Button>
+                    <Button
+                      size="sm"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleApprove(row.id);
+                      }}
+                    >
+                      Approve
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleReject(row.id);
+                      }}
+                    >
+                      Reject
+                    </Button>
                   </div>
                 )}
               </TableCell>
@@ -183,6 +199,48 @@ export default function TimesheetsTable({ search }: TimesheetsTableProps) {
         pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
         onNext={pag.nextPage} onPrev={pag.prevPage}
       />
+
+      <SlideOver
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        title={selected ? `Timesheet ${selected.staff?.full_name ?? ''}`.trim() : 'Timesheet'}
+        subtitle={selected ? `${new Date(selected.week_start).toLocaleDateString()} — ${new Date(selected.week_end).toLocaleDateString()}` : undefined}
+      >
+        {selected && (
+          <div className="space-y-4 text-sm">
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-muted-foreground">Status</span>
+              <Badge color={TIMESHEET_STATUS_COLORS[selected.status] ?? 'gray'}>{selected.status}</Badge>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-border bg-muted/20 p-3">
+                <div className="text-xs text-muted-foreground">Total Hours</div>
+                <div className="text-lg font-semibold">{Number(selected.total_hours).toFixed(1)}</div>
+              </div>
+              <div className="rounded-xl border border-border bg-muted/20 p-3">
+                <div className="text-xs text-muted-foreground">Exceptions</div>
+                <div className="text-lg font-semibold">{selected.exception_count}</div>
+              </div>
+              <div className="rounded-xl border border-border bg-muted/20 p-3">
+                <div className="text-xs text-muted-foreground">Regular</div>
+                <div className="text-lg font-semibold">{Number(selected.regular_hours).toFixed(1)}</div>
+              </div>
+              <div className="rounded-xl border border-border bg-muted/20 p-3">
+                <div className="text-xs text-muted-foreground">Overtime</div>
+                <div className={`text-lg font-semibold ${Number(selected.overtime_hours) > 0 ? 'text-warning' : ''}`}>
+                  {Number(selected.overtime_hours).toFixed(1)}
+                </div>
+              </div>
+            </div>
+            {selected.status === 'SUBMITTED' && (
+              <div className="pt-2 flex items-center gap-2">
+                <Button onClick={() => handleApprove(selected.id)}>Approve</Button>
+                <Button variant="secondary" onClick={() => handleReject(selected.id)}>Reject</Button>
+              </div>
+            )}
+          </div>
+        )}
+      </SlideOver>
     </div>
   );
 }

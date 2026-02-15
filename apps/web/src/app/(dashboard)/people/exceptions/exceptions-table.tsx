@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, Button, ExportButton,
+  EmptyState, Badge, Pagination, TableSkeleton, Button, ExportButton, SlideOver,
 } from '@gleamops/ui';
 import { EXCEPTION_SEVERITY_COLORS } from '@gleamops/shared';
 import type { TimeException } from '@gleamops/shared';
@@ -32,6 +32,7 @@ const EXCEPTION_TYPE_LABELS: Record<string, string> = {
 export default function ExceptionsTable({ search }: ExceptionsTableProps) {
   const [rows, setRows] = useState<ExceptionWithStaff[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<ExceptionWithStaff | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -121,13 +122,12 @@ export default function ExceptionsTable({ search }: ExceptionsTableProps) {
             <TableHead>Type</TableHead>
             <TableHead>Severity</TableHead>
             <TableHead>Description</TableHead>
-            <TableHead>Status</TableHead>
             <TableHead>Actions</TableHead>
           </tr>
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id}>
+            <TableRow key={row.id} className="cursor-pointer" onClick={() => setSelected(row)}>
               <TableCell>{new Date(row.created_at).toLocaleDateString()}</TableCell>
               <TableCell className="font-medium">{row.staff?.full_name ?? '—'}</TableCell>
               <TableCell>
@@ -138,18 +138,16 @@ export default function ExceptionsTable({ search }: ExceptionsTableProps) {
               </TableCell>
               <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{row.description ?? '—'}</TableCell>
               <TableCell>
-                {row.resolved_at ? (
-                  <span className="inline-flex items-center gap-1 text-success text-xs">
-                    <CheckCircle className="h-3 w-3" />
-                    Resolved
-                  </span>
-                ) : (
-                  <Badge color="red">Open</Badge>
-                )}
-              </TableCell>
-              <TableCell>
                 {!row.resolved_at && (
-                  <Button size="sm" variant="secondary" onClick={() => handleResolve(row.id)}>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleResolve(row.id);
+                    }}
+                  >
                     Resolve
                   </Button>
                 )}
@@ -163,6 +161,58 @@ export default function ExceptionsTable({ search }: ExceptionsTableProps) {
         pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
         onNext={pag.nextPage} onPrev={pag.prevPage}
       />
+
+      <SlideOver
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        title={selected ? `Exception ${selected.staff?.full_name ?? ''}`.trim() : 'Exception'}
+        subtitle={selected ? (EXCEPTION_TYPE_LABELS[selected.exception_type] ?? selected.exception_type) : undefined}
+      >
+        {selected && (
+          <div className="space-y-4 text-sm">
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-muted-foreground">Severity</span>
+              <Badge color={EXCEPTION_SEVERITY_COLORS[selected.severity] ?? 'gray'}>{selected.severity}</Badge>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-muted-foreground">Status</span>
+              {selected.resolved_at ? (
+                <span className="inline-flex items-center gap-1 text-success">
+                  <CheckCircle className="h-4 w-4" />
+                  Resolved
+                </span>
+              ) : (
+                <Badge color="red">Open</Badge>
+              )}
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-muted-foreground">Created</span>
+              <span className="font-medium text-right">{new Date(selected.created_at).toLocaleString()}</span>
+            </div>
+            {selected.description && (
+              <div>
+                <div className="text-muted-foreground mb-1">Description</div>
+                <div className="rounded-lg border border-border bg-muted/30 p-3 whitespace-pre-wrap">
+                  {selected.description}
+                </div>
+              </div>
+            )}
+            {selected.resolved_at && (
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-muted-foreground">Resolved</span>
+                <span className="font-medium text-right">{new Date(selected.resolved_at).toLocaleString()}</span>
+              </div>
+            )}
+            {!selected.resolved_at && (
+              <div className="pt-2">
+                <Button variant="secondary" onClick={() => handleResolve(selected.id)}>
+                  Resolve Exception
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+      </SlideOver>
     </div>
   );
 }

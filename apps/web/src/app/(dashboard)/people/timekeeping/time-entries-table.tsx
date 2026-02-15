@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, Button, ExportButton,
+  EmptyState, Badge, Pagination, TableSkeleton, Button, ExportButton, SlideOver,
 } from '@gleamops/ui';
 import { TIME_ENTRY_STATUS_COLORS } from '@gleamops/shared';
 import type { TimeEntry } from '@gleamops/shared';
@@ -27,6 +27,7 @@ interface TimeEntriesTableProps {
 export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTableProps) {
   const [rows, setRows] = useState<EntryWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<EntryWithRelations | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -203,12 +204,11 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
                 <TableHead>Start</TableHead>
                 <TableHead>End</TableHead>
                 <TableHead>Duration</TableHead>
-                <TableHead>Status</TableHead>
               </tr>
             </TableHeader>
             <TableBody>
               {pag.page.map((row) => (
-                <TableRow key={row.id}>
+                <TableRow key={row.id} className="cursor-pointer" onClick={() => setSelected(row)}>
                   <TableCell>{new Date(row.start_at).toLocaleDateString()}</TableCell>
                   <TableCell className="font-medium">{row.staff?.full_name ?? '—'}</TableCell>
                   <TableCell className="font-mono text-xs">{row.ticket?.ticket_code ?? '—'}</TableCell>
@@ -219,9 +219,6 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
                     {row.duration_minutes != null
                       ? `${Math.floor(row.duration_minutes / 60)}h ${row.duration_minutes % 60}m`
                       : '—'}
-                  </TableCell>
-                  <TableCell>
-                    <Badge color={TIME_ENTRY_STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
                   </TableCell>
                 </TableRow>
               ))}
@@ -234,6 +231,44 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
           />
         </>
       )}
+
+      <SlideOver
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        title={selected ? `Time Entry ${selected.staff?.full_name ?? ''}`.trim() : 'Time Entry'}
+        subtitle={selected?.ticket?.ticket_code ? `Ticket ${selected.ticket.ticket_code}` : undefined}
+      >
+        {selected && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-3 text-sm">
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-muted-foreground">Status</span>
+                <Badge color={TIME_ENTRY_STATUS_COLORS[selected.status] ?? 'gray'}>{selected.status}</Badge>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-muted-foreground">Site</span>
+                <span className="font-medium text-right">{selected.site?.name ?? '—'}</span>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-muted-foreground">Start</span>
+                <span className="font-medium text-right">{new Date(selected.start_at).toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-muted-foreground">End</span>
+                <span className="font-medium text-right">{selected.end_at ? new Date(selected.end_at).toLocaleString() : '—'}</span>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-muted-foreground">Duration</span>
+                <span className="font-medium text-right">
+                  {selected.duration_minutes != null
+                    ? `${Math.floor(selected.duration_minutes / 60)}h ${selected.duration_minutes % 60}m`
+                    : '—'}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+      </SlideOver>
     </div>
   );
 }

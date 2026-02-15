@@ -4,11 +4,9 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { ClipboardList } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { InventoryCount } from '@gleamops/shared';
-import { INVENTORY_COUNT_STATUS_COLORS } from '@gleamops/shared';
-import type { StatusColor } from '@gleamops/shared';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton,
+  EmptyState, Pagination, TableSkeleton,
 } from '@gleamops/ui';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
@@ -122,7 +120,6 @@ export default function CountsTable({ search, formOpen, onFormClose, onRefresh }
               Date
             </TableHead>
             <TableHead>Counted By</TableHead>
-            <TableHead>Status</TableHead>
           </tr>
         </TableHeader>
         <TableBody>
@@ -132,11 +129,6 @@ export default function CountsTable({ search, formOpen, onFormClose, onRefresh }
               <TableCell>{row.site?.name ?? '—'}</TableCell>
               <TableCell>{dateFmt.format(toSafeDate(row.count_date))}</TableCell>
               <TableCell>{row.counter?.full_name ?? '—'}</TableCell>
-              <TableCell>
-                <Badge color={(INVENTORY_COUNT_STATUS_COLORS[row.status] as StatusColor) ?? 'gray'}>
-                  {row.status.replace(/_/g, ' ')}
-                </Badge>
-              </TableCell>
             </TableRow>
           ))}
         </TableBody>

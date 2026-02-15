@@ -106,7 +106,8 @@ function getAlertLink(item: FeedItem): string | null {
     case 'time_exception':
       return '/workforce?tab=exceptions';
     case 'work_ticket':
-      return `/schedule?ticket=${item.entity_id}`;
+      // Legacy links used /schedule; operations now owns ticket details.
+      return `/operations?tab=tickets&ticket=${item.entity_id}`;
     case 'time_entry':
       return '/workforce?tab=timekeeping';
     default:
@@ -437,7 +438,7 @@ export function Header() {
           sublabel: s.staff_code,
           category: 'Team',
           icon: <Users className="h-4 w-4" />,
-          href: `/people?staff=${s.staff_code}`,
+          href: `/workforce/staff/${s.staff_code}`,
         });
       }
     }

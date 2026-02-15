@@ -58,7 +58,12 @@ const TABS = [
 export default function OperationsPageClient() {
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab');
-  const [tab, setTab] = useState(TABS.some(t => t.key === initialTab) ? initialTab! : TABS[0].key);
+  const initialTicketId = searchParams.get('ticket');
+  const [tab, setTab] = useState(
+    TABS.some((t) => t.key === initialTab)
+      ? initialTab!
+      : (initialTicketId ? 'tickets' : TABS[0].key)
+  );
   const [search, setSearch] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedTicket, setSelectedTicket] = useState<TicketWithRelations | null>(null);
@@ -97,6 +102,38 @@ export default function OperationsPageClient() {
     }
     fetchKpis();
   }, [refreshKey]);
+
+  // Deep link support for legacy routes like /schedule?ticket=<id>.
+  // If a ticket id is present, preselect the Tickets tab and open the detail modal.
+  useEffect(() => {
+    let ignore = false;
+    async function openTicketFromQuery(ticketId: string) {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from('work_tickets')
+        .select(`
+          *,
+          job:job_id(job_code, billing_amount),
+          site:site_id(site_code, name, address, client:client_id(name, client_code))
+        `)
+        .eq('id', ticketId)
+        .is('archived_at', null)
+        .single();
+
+      if (ignore) return;
+      if (!error && data) {
+        setTab('tickets');
+        setSelectedTicket(data as unknown as TicketWithRelations);
+      }
+    }
+
+    if (initialTicketId) {
+      void openTicketFromQuery(initialTicketId);
+    }
+    return () => {
+      ignore = true;
+    };
+  }, [initialTicketId]);
 
   return (
     <div className={`space-y-6 ${focusMode ? 'mx-auto max-w-5xl' : ''}`}>

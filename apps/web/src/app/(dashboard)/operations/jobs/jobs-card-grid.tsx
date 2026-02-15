@@ -1,15 +1,7 @@
 'use client';
 
 import { Briefcase } from 'lucide-react';
-import { Badge } from '@gleamops/ui';
 import type { SiteJob } from '@gleamops/shared';
-
-const JOB_STATUS_COLORS: Record<string, 'green' | 'yellow' | 'gray' | 'red'> = {
-  ACTIVE: 'green',
-  ON_HOLD: 'yellow',
-  CANCELED: 'red',
-  COMPLETED: 'green',
-};
 
 interface JobWithRelations extends SiteJob {
   site?: { site_code: string; name: string; client?: { name: string } | null } | null;
@@ -40,8 +32,9 @@ export function JobsCardGrid({ rows, onSelect }: JobsCardGridProps) {
           <p className="mt-3 text-sm font-semibold text-foreground leading-tight">{item.job_name ?? item.job_code}</p>
           <p className="mt-1 text-xs text-muted-foreground">{item.job_code}</p>
           <div className="mt-3 flex flex-wrap justify-center gap-1.5">
-            <Badge color={JOB_STATUS_COLORS[item.status] ?? 'gray'}>{item.status}</Badge>
-            <Badge color="blue">{item.frequency}</Badge>
+            <span className="inline-flex items-center rounded-full bg-module-accent/12 px-2.5 py-1 text-[11px] font-medium text-module-accent">
+              {item.frequency}
+            </span>
           </div>
           <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">
             {item.site?.name && <p className="truncate max-w-full">{item.site.name}</p>}

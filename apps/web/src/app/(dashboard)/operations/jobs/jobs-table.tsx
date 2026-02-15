@@ -16,13 +16,6 @@ import { useViewPreference } from '@/hooks/use-view-preference';
 import { JobForm } from '@/components/forms/job-form';
 import { JobsCardGrid } from './jobs-card-grid';
 
-const JOB_STATUS_COLORS: Record<string, 'green' | 'yellow' | 'gray' | 'red'> = {
-  ACTIVE: 'green',
-  ON_HOLD: 'yellow',
-  CANCELED: 'red',
-  COMPLETED: 'green',
-};
-
 const PRIORITY_COLORS: Record<string, 'red' | 'blue' | 'yellow' | 'gray'> = {
   CRITICAL: 'red',
   HIGH: 'blue',
@@ -31,7 +24,8 @@ const PRIORITY_COLORS: Record<string, 'red' | 'blue' | 'yellow' | 'gray'> = {
   STANDARD: 'gray',
 };
 
-const STATUS_OPTIONS = ['all', 'ACTIVE', 'ON_HOLD', 'COMPLETED', 'CANCELED'] as const;
+// UX requirement: default to Active, show Active first, and move All to the end.
+const STATUS_OPTIONS = ['ACTIVE', 'ON_HOLD', 'COMPLETED', 'CANCELED', 'all'] as const;
 
 interface JobWithRelations extends SiteJob {
   site?: { site_code: string; name: string; client?: { name: string } | null } | null;
@@ -52,7 +46,7 @@ export default function JobsTable({ search }: JobsTableProps) {
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editItem, setEditItem] = useState<SiteJob | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('ACTIVE');
   const { view, setView } = useViewPreference('jobs');
 
   const fetchData = useCallback(async () => {
@@ -92,8 +86,7 @@ export default function JobsTable({ search }: JobsTableProps) {
           r.job_code.toLowerCase().includes(q) ||
           (r.job_name ?? '').toLowerCase().includes(q) ||
           r.site?.name?.toLowerCase().includes(q) ||
-          r.site?.client?.name?.toLowerCase().includes(q) ||
-          r.status.toLowerCase().includes(q)
+          r.site?.client?.name?.toLowerCase().includes(q)
       );
     }
     return result;
@@ -109,7 +102,7 @@ export default function JobsTable({ search }: JobsTableProps) {
     router.push(`/operations/jobs/${row.job_code}`);
   };
 
-  if (loading) return <TableSkeleton rows={6} cols={6} />;
+  if (loading) return <TableSkeleton rows={6} cols={8} />;
 
   if (filtered.length === 0) {
     return (
@@ -150,7 +143,6 @@ export default function JobsTable({ search }: JobsTableProps) {
               { key: 'job_name', label: 'Name' },
               { key: 'frequency', label: 'Frequency' },
               { key: 'billing_amount', label: 'Billing' },
-              { key: 'status', label: 'Status' },
             ]}
             onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
           />
@@ -197,7 +189,6 @@ export default function JobsTable({ search }: JobsTableProps) {
             <TableHead>Frequency</TableHead>
             <TableHead sortable sorted={sortKey === 'billing_amount' && sortDir} onSort={() => onSort('billing_amount')}>Billing</TableHead>
             <TableHead>Priority</TableHead>
-            <TableHead>Status</TableHead>
           </tr>
         </TableHeader>
         <TableBody>
@@ -214,9 +205,6 @@ export default function JobsTable({ search }: JobsTableProps) {
                 {row.priority_level ? (
                   <Badge color={PRIORITY_COLORS[row.priority_level] ?? 'gray'}>{row.priority_level}</Badge>
                 ) : '\u2014'}
-              </TableCell>
-              <TableCell>
-                <Badge color={JOB_STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
               </TableCell>
             </TableRow>
           ))}

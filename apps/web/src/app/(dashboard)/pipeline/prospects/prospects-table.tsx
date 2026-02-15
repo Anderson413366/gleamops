@@ -6,9 +6,8 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, cn,
+  EmptyState, Pagination, TableSkeleton, ExportButton, cn,
 } from '@gleamops/ui';
-import { PROSPECT_STATUS_COLORS } from '@gleamops/shared';
 import type { SalesProspect } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
@@ -24,6 +23,7 @@ export default function ProspectsTable({ search, onSelect }: ProspectsTableProps
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editItem, setEditItem] = useState<SalesProspect | null>(null);
+  // UX requirement: prefer a non-"all" view by default; move "all" to the end.
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const fetchData = useCallback(async () => {
@@ -40,10 +40,20 @@ export default function ProspectsTable({ search, onSelect }: ProspectsTableProps
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const statusOptions = useMemo(
-    () => ['all', ...Array.from(new Set(rows.map((r) => r.prospect_status_code).filter(Boolean)))],
-    [rows],
-  );
+  const statusOptions = useMemo(() => {
+    const unique = Array.from(new Set(rows.map((r) => r.prospect_status_code).filter(Boolean)));
+    const hasActive = unique.includes('ACTIVE');
+    const ordered = hasActive
+      ? ['ACTIVE', ...unique.filter((s) => s !== 'ACTIVE'), 'all']
+      : [...unique, 'all'];
+    return ordered;
+  }, [rows]);
+
+  useEffect(() => {
+    if (statusFilter !== 'all') return;
+    const preferred = statusOptions.find((s) => s !== 'all');
+    if (preferred) setStatusFilter(preferred);
+  }, [statusOptions, statusFilter]);
 
   const filtered = useMemo(() => {
     let result = rows;
@@ -79,7 +89,7 @@ export default function ProspectsTable({ search, onSelect }: ProspectsTableProps
     handleEdit(item);
   };
 
-  if (loading) return <TableSkeleton rows={6} cols={5} />;
+  if (loading) return <TableSkeleton rows={6} cols={4} />;
 
   if (filtered.length === 0) {
     return (
@@ -126,7 +136,7 @@ export default function ProspectsTable({ search, onSelect }: ProspectsTableProps
               statusFilter === status ? 'bg-module-accent text-module-accent-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80',
             )}
           >
-            {status === 'all' ? 'All statuses' : status}
+            {status === 'all' ? 'All' : status}
           </button>
         ))}
       </div>
@@ -135,7 +145,6 @@ export default function ProspectsTable({ search, onSelect }: ProspectsTableProps
           <tr>
             <TableHead sortable sorted={sortKey === 'prospect_code' && sortDir} onSort={() => onSort('prospect_code')}>Code</TableHead>
             <TableHead sortable sorted={sortKey === 'company_name' && sortDir} onSort={() => onSort('company_name')}>Company</TableHead>
-            <TableHead>Status</TableHead>
             <TableHead>Source</TableHead>
             <TableHead sortable sorted={sortKey === 'created_at' && sortDir} onSort={() => onSort('created_at')}>Created</TableHead>
           </tr>
@@ -145,11 +154,6 @@ export default function ProspectsTable({ search, onSelect }: ProspectsTableProps
             <TableRow key={row.id} onClick={() => handleRowSelect(row)} className="cursor-pointer">
               <TableCell className="font-mono text-xs">{row.prospect_code}</TableCell>
               <TableCell className="font-medium">{row.company_name}</TableCell>
-              <TableCell>
-                <Badge color={PROSPECT_STATUS_COLORS[row.prospect_status_code] ?? 'gray'}>
-                  {row.prospect_status_code}
-                </Badge>
-              </TableCell>
               <TableCell className="text-muted-foreground">{row.source ?? '—'}</TableCell>
               <TableCell className="text-muted-foreground">{new Date(row.created_at).toLocaleDateString()}</TableCell>
             </TableRow>

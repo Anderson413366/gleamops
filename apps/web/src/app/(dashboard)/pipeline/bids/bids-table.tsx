@@ -6,9 +6,8 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, cn,
+  EmptyState, Pagination, TableSkeleton, ExportButton, cn,
 } from '@gleamops/ui';
-import { BID_STATUS_COLORS } from '@gleamops/shared';
 import type { SalesBid } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
@@ -31,6 +30,7 @@ function formatCurrency(n: number | null) {
 export default function BidsTable({ search, onSelect }: BidsTableProps) {
   const [rows, setRows] = useState<BidWithClient[]>([]);
   const [loading, setLoading] = useState(true);
+  // UX requirement: prefer a non-"all" view by default; move "all" to the end.
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const fetchData = useCallback(async () => {
@@ -47,10 +47,20 @@ export default function BidsTable({ search, onSelect }: BidsTableProps) {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const statusOptions = useMemo(
-    () => ['all', ...Array.from(new Set(rows.map((r) => r.status).filter(Boolean)))],
-    [rows],
-  );
+  const statusOptions = useMemo(() => {
+    const unique = Array.from(new Set(rows.map((r) => r.status).filter(Boolean)));
+    const hasActive = unique.includes('ACTIVE');
+    const ordered = hasActive
+      ? ['ACTIVE', ...unique.filter((s) => s !== 'ACTIVE'), 'all']
+      : [...unique, 'all'];
+    return ordered;
+  }, [rows]);
+
+  useEffect(() => {
+    if (statusFilter !== 'all') return;
+    const preferred = statusOptions.find((s) => s !== 'all');
+    if (preferred) setStatusFilter(preferred);
+  }, [statusOptions, statusFilter]);
 
   const filtered = useMemo(() => {
     let result = rows;
@@ -62,8 +72,7 @@ export default function BidsTable({ search, onSelect }: BidsTableProps) {
     return result.filter(
       (r) =>
         r.bid_code.toLowerCase().includes(q) ||
-        r.client?.name?.toLowerCase().includes(q) ||
-        r.status.toLowerCase().includes(q)
+        r.client?.name?.toLowerCase().includes(q)
     );
   }, [rows, search, statusFilter]);
 
@@ -73,7 +82,7 @@ export default function BidsTable({ search, onSelect }: BidsTableProps) {
   const sortedRows = sorted as unknown as BidWithClient[];
   const pag = usePagination(sortedRows, 25);
 
-  if (loading) return <TableSkeleton rows={6} cols={6} />;
+  if (loading) return <TableSkeleton rows={6} cols={5} />;
 
   if (filtered.length === 0) {
     return (
@@ -112,7 +121,7 @@ export default function BidsTable({ search, onSelect }: BidsTableProps) {
               statusFilter === status ? 'bg-module-accent text-module-accent-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80',
             )}
           >
-            {status === 'all' ? 'All statuses' : status.replace(/_/g, ' ')}
+            {status === 'all' ? 'All' : status.replace(/_/g, ' ')}
           </button>
         ))}
       </div>
@@ -124,7 +133,6 @@ export default function BidsTable({ search, onSelect }: BidsTableProps) {
             <TableHead>Service</TableHead>
             <TableHead sortable sorted={sortKey === 'total_sqft' && sortDir} onSort={() => onSort('total_sqft')}>Sq Ft</TableHead>
             <TableHead sortable sorted={sortKey === 'bid_monthly_price' && sortDir} onSort={() => onSort('bid_monthly_price')}>Monthly Price</TableHead>
-            <TableHead>Status</TableHead>
           </tr>
         </TableHeader>
         <TableBody>
@@ -135,9 +143,6 @@ export default function BidsTable({ search, onSelect }: BidsTableProps) {
               <TableCell className="text-muted-foreground">{row.service?.name ?? '—'}</TableCell>
               <TableCell className="text-right tabular-nums">{row.total_sqft?.toLocaleString() ?? '—'}</TableCell>
               <TableCell className="text-right tabular-nums font-medium">{formatCurrency(row.bid_monthly_price)}</TableCell>
-              <TableCell>
-                <Badge color={BID_STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
-              </TableCell>
             </TableRow>
           ))}
         </TableBody>

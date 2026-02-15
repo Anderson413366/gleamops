@@ -6,9 +6,8 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, cn,
+  EmptyState, Pagination, TableSkeleton, ExportButton, cn,
 } from '@gleamops/ui';
-import { PROPOSAL_STATUS_COLORS } from '@gleamops/shared';
 import type { SalesProposal } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
@@ -33,6 +32,7 @@ interface ProposalsTableProps {
 export default function ProposalsTable({ search, onSelect }: ProposalsTableProps) {
   const [rows, setRows] = useState<ProposalWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
+  // UX requirement: prefer a non-"all" view by default; move "all" to the end.
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const fetchData = useCallback(async () => {
@@ -61,10 +61,20 @@ export default function ProposalsTable({ search, onSelect }: ProposalsTableProps
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const statusOptions = useMemo(
-    () => ['all', ...Array.from(new Set(rows.map((r) => r.status).filter(Boolean)))],
-    [rows],
-  );
+  const statusOptions = useMemo(() => {
+    const unique = Array.from(new Set(rows.map((r) => r.status).filter(Boolean)));
+    const hasActive = unique.includes('ACTIVE');
+    const ordered = hasActive
+      ? ['ACTIVE', ...unique.filter((s) => s !== 'ACTIVE'), 'all']
+      : [...unique, 'all'];
+    return ordered;
+  }, [rows]);
+
+  useEffect(() => {
+    if (statusFilter !== 'all') return;
+    const preferred = statusOptions.find((s) => s !== 'all');
+    if (preferred) setStatusFilter(preferred);
+  }, [statusOptions, statusFilter]);
 
   const filtered = useMemo(() => {
     let result = rows;
@@ -77,8 +87,7 @@ export default function ProposalsTable({ search, onSelect }: ProposalsTableProps
       (r) =>
         r.proposal_code.toLowerCase().includes(q) ||
         r.bid_version?.bid?.bid_code?.toLowerCase().includes(q) ||
-        r.bid_version?.bid?.client?.name?.toLowerCase().includes(q) ||
-        r.status.toLowerCase().includes(q)
+        r.bid_version?.bid?.client?.name?.toLowerCase().includes(q)
     );
   }, [rows, search, statusFilter]);
 
@@ -88,7 +97,7 @@ export default function ProposalsTable({ search, onSelect }: ProposalsTableProps
   const sortedRows = sorted as unknown as ProposalWithRelations[];
   const pag = usePagination(sortedRows, 25);
 
-  if (loading) return <TableSkeleton rows={6} cols={6} />;
+  if (loading) return <TableSkeleton rows={6} cols={5} />;
 
   if (filtered.length === 0) {
     return (
@@ -126,7 +135,7 @@ export default function ProposalsTable({ search, onSelect }: ProposalsTableProps
               statusFilter === status ? 'bg-module-accent text-module-accent-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80',
             )}
           >
-            {status === 'all' ? 'All statuses' : status.replace(/_/g, ' ')}
+            {status === 'all' ? 'All' : status.replace(/_/g, ' ')}
           </button>
         ))}
       </div>
@@ -136,7 +145,6 @@ export default function ProposalsTable({ search, onSelect }: ProposalsTableProps
             <TableHead sortable sorted={sortKey === 'proposal_code' && sortDir} onSort={() => onSort('proposal_code')}>Code</TableHead>
             <TableHead>Bid</TableHead>
             <TableHead>Client</TableHead>
-            <TableHead>Status</TableHead>
             <TableHead sortable sorted={sortKey === 'created_at' && sortDir} onSort={() => onSort('created_at')}>Created</TableHead>
             <TableHead>Sent</TableHead>
           </tr>
@@ -150,9 +158,6 @@ export default function ProposalsTable({ search, onSelect }: ProposalsTableProps
               </TableCell>
               <TableCell className="font-medium">
                 {row.bid_version?.bid?.client?.name ?? '—'}
-              </TableCell>
-              <TableCell>
-                <Badge color={PROPOSAL_STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
               </TableCell>
               <TableCell className="text-muted-foreground">
                 {new Date(row.created_at).toLocaleDateString()}

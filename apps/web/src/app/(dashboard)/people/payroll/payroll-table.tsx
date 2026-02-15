@@ -35,6 +35,19 @@ export default function PayrollTable({ search }: Props) {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  const filtered = useMemo(() => {
+    if (!search) return rows;
+    const q = search.toLowerCase();
+    return rows.filter((r) =>
+      r.full_name.toLowerCase().includes(q) ||
+      r.staff_code.toLowerCase().includes(q)
+    );
+  }, [rows, search]);
+
+  const { sorted, sortKey, sortDir, onSort } = useTableSort(filtered as unknown as Record<string, unknown>[], 'full_name', 'asc');
+  const sortedRows = sorted as unknown as Staff[];
+  const pag = usePagination(sortedRows, 25);
+
   // Wait for auth to load before checking role
   if (authLoading) return <TableSkeleton rows={8} cols={5} />;
 
@@ -48,19 +61,6 @@ export default function PayrollTable({ search }: Props) {
       </div>
     );
   }
-
-  const filtered = useMemo(() => {
-    if (!search) return rows;
-    const q = search.toLowerCase();
-    return rows.filter((r) =>
-      r.full_name.toLowerCase().includes(q) ||
-      r.staff_code.toLowerCase().includes(q)
-    );
-  }, [rows, search]);
-
-  const { sorted, sortKey, sortDir, onSort } = useTableSort(filtered as unknown as Record<string, unknown>[], 'full_name', 'asc');
-  const sortedRows = sorted as unknown as Staff[];
-  const pag = usePagination(sortedRows, 25);
 
   if (loading) return <TableSkeleton rows={8} cols={5} />;
   if (filtered.length === 0) return <EmptyState icon={<DollarSign className="h-10 w-10" />} title="No payroll data" description="Payroll information will appear here when staff records are available." />;

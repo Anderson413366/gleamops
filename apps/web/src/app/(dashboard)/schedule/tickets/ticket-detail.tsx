@@ -513,11 +513,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
   // -----------------------------------------------------------------------
   // Derived data
   // -----------------------------------------------------------------------
-  if (!ticket) return null;
-
-  const site = ticket.site;
-  const addressParts = [site?.address?.street, site?.address?.city, site?.address?.state, site?.address?.zip].filter(Boolean);
-  const assignedStaffIds = new Set(assignments.map((a) => a.staff_id));
+  const assignedStaffIds = useMemo(() => new Set(assignments.map((a) => a.staff_id)), [assignments]);
 
   const staffForDropdown = useMemo(() => {
     return allStaff
@@ -536,6 +532,11 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
         };
       });
   }, [allStaff, assignedStaffIds, busyMap, showAvailableOnly]);
+
+  if (!ticket) return null;
+
+  const site = ticket.site;
+  const addressParts = [site?.address?.street, site?.address?.city, site?.address?.state, site?.address?.zip].filter(Boolean);
 
   // Photos
   const allPhotos = checklistItems.flatMap((i) => (i.photos ?? []).map((p) => ({ ...p, itemLabel: i.label })));

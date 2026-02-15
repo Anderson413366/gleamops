@@ -22,7 +22,10 @@ test.describe('Sidebar navigation', () => {
     test(`navigates to ${label} (${href})`, async ({ page }) => {
       await page.goto('/home');
       // Click sidebar link (desktop nav)
-      await page.locator(`nav a[href="${href}"]`).first().click();
+      const sidebarLink = page.locator(`aside nav a[href="${href}"]`).first();
+      await sidebarLink.scrollIntoViewIfNeeded();
+      await expect(sidebarLink).toBeVisible();
+      await sidebarLink.click();
       await expect(page).toHaveURL(new RegExp(href));
       // Page should render a heading (all module pages have h1/h2)
       await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 10_000 });

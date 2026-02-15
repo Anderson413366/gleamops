@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   User,
   Briefcase,
-  Clock,
   Wrench,
   Mail,
   Phone,
@@ -54,6 +53,19 @@ function formatDate(d: string | null) {
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+function formatRelativeDateTime(dateStr: string): string {
+  const target = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - target.getTime();
+  const diffMinutes = Math.floor(diffMs / 60000);
+  if (diffMinutes < 1) return 'just now';
+  if (diffMinutes < 60) return `${diffMinutes} min ago`;
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours} hr ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+}
+
 const TABS = [
   { key: 'overview', label: 'Overview', icon: <User className="h-4 w-4" /> },
   { key: 'jobs', label: 'Assigned Jobs', icon: <Briefcase className="h-4 w-4" /> },
@@ -69,6 +81,7 @@ export default function StaffDetailPage() {
   const [jobs, setJobs] = useState<JobAssignment[]>([]);
   const [equipment, setEquipment] = useState<EquipmentRow[]>([]);
   const [formOpen, setFormOpen] = useState(false);
+  const [supervisedTeamCount, setSupervisedTeamCount] = useState(0);
 
   const fetchStaff = async () => {
     setLoading(true);
@@ -96,9 +109,15 @@ export default function StaffDetailPage() {
           .eq('staff_id', data.id)
           .is('archived_at', null)
           .order('assigned_date', { ascending: false }),
-      ]).then(([jobsRes, equipRes]) => {
+        supabase
+          .from('staff')
+          .select('id', { count: 'exact', head: true })
+          .eq('supervisor_id', data.id)
+          .is('archived_at', null),
+      ]).then(([jobsRes, equipRes, supervisedRes]) => {
         if (jobsRes.data) setJobs(jobsRes.data as unknown as JobAssignment[]);
         if (equipRes.data) setEquipment(equipRes.data as unknown as EquipmentRow[]);
+        setSupervisedTeamCount(supervisedRes.count ?? 0);
       });
     }
     setLoading(false);
@@ -129,6 +148,9 @@ export default function StaffDetailPage() {
     );
   }
 
+  const activeJobCount = jobs.filter((j) => j.job?.status === 'ACTIVE').length;
+  const updatedAgo = formatRelativeDateTime(staff.updated_at);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -153,10 +175,18 @@ export default function StaffDetailPage() {
         </div>
         <div className="flex items-center gap-3">
           <Badge color={STATUS_COLORS[staff.staff_status ?? ''] ?? 'gray'}>{staff.staff_status ?? 'N/A'}</Badge>
+          <Badge color="gray">{`Updated ${updatedAgo}`}</Badge>
           <Button variant="secondary" size="sm" onClick={() => setFormOpen(true)}>
             <Pencil className="h-3.5 w-3.5" /> Edit
           </Button>
         </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Assigned Jobs</p><p className="text-xl font-semibold">{jobs.length}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Jobs</p><p className="text-xl font-semibold">{activeJobCount}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Team Supervised</p><p className="text-xl font-semibold">{supervisedTeamCount}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Equipment Assigned</p><p className="text-xl font-semibold">{equipment.length}</p></CardContent></Card>
       </div>
 
       {/* Tabs */}

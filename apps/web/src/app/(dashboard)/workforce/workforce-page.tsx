@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Users, Clock, FileText, AlertTriangle, BriefcaseBusiness, DollarSign, Plus, MessageSquare } from 'lucide-react';
-import { ChipTabs, SearchInput, Button } from '@gleamops/ui';
+import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import { useFeatureFlag } from '@/hooks/use-feature-flag';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 // Import existing tables from /people/ subdirectories
 import StaffTable from '../people/staff/staff-table';
@@ -41,7 +42,33 @@ export default function WorkforcePageClient() {
   const [search, setSearch] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
   const [autoCreateStaff, setAutoCreateStaff] = useState(false);
+  const [kpis, setKpis] = useState({
+    activeStaff: 0,
+    supervisors: 0,
+    openExceptions: 0,
+    onLeave: 0,
+  });
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
+
+  useEffect(() => {
+    async function fetchKpis() {
+      const supabase = getSupabaseBrowserClient();
+      const [activeRes, supervisorsRes, exceptionsRes, leaveRes] = await Promise.all([
+        supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('staff_status', 'ACTIVE'),
+        supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).in('role', ['SUPERVISOR', 'MANAGER']),
+        supabase.from('alerts').select('id', { count: 'exact', head: true }).eq('alert_type', 'TIME_EXCEPTION').is('dismissed_at', null),
+        supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('staff_status', 'ON_LEAVE'),
+      ]);
+
+      setKpis({
+        activeStaff: activeRes.count ?? 0,
+        supervisors: supervisorsRes.count ?? 0,
+        openExceptions: exceptionsRes.count ?? 0,
+        onLeave: leaveRes.count ?? 0,
+      });
+    }
+    fetchKpis();
+  }, [refreshKey]);
 
   const handleAdd = () => {
     if (tab === 'staff') {
@@ -65,6 +92,12 @@ export default function WorkforcePageClient() {
       </div>
 
       <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Staff</p><p className="text-xl font-semibold">{kpis.activeStaff}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Supervisors</p><p className="text-xl font-semibold">{kpis.supervisors}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Open Exceptions</p><p className="text-xl font-semibold text-warning">{kpis.openExceptions}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">On Leave</p><p className="text-xl font-semibold">{kpis.onLeave}</p></CardContent></Card>
+      </div>
       <SearchInput value={search} onChange={setSearch} placeholder={`Search ${tab}...`} />
 
       {tab === 'staff' && (

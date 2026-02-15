@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useMemo } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { equipmentSchema, type EquipmentFormData } from '@gleamops/shared';
@@ -36,21 +37,24 @@ export function EquipmentForm({ open, onClose, initialData, onSuccess }: Equipme
   const isEdit = !!initialData?.id;
   const supabase = getSupabaseBrowserClient();
 
+  const initialValues = useMemo<EquipmentFormData>(() => {
+    if (!initialData) return DEFAULTS;
+    return {
+      equipment_code: initialData.equipment_code,
+      name: initialData.name,
+      equipment_type: initialData.equipment_type,
+      condition: (initialData.condition as 'GOOD' | 'FAIR' | 'POOR' | 'OUT_OF_SERVICE' | null) ?? 'GOOD',
+      serial_number: initialData.serial_number,
+      purchase_date: initialData.purchase_date,
+      assigned_to: initialData.assigned_to,
+      site_id: initialData.site_id,
+      notes: initialData.notes,
+    };
+  }, [initialData]);
+
   const { values, errors, loading, setValue, onBlur, handleSubmit, reset } = useForm<EquipmentFormData>({
     schema: equipmentSchema,
-    initialValues: initialData
-      ? {
-          equipment_code: initialData.equipment_code,
-          name: initialData.name,
-          equipment_type: initialData.equipment_type,
-          condition: initialData.condition as 'GOOD' | 'FAIR' | 'POOR' | 'OUT_OF_SERVICE' ?? 'GOOD',
-          serial_number: initialData.serial_number,
-          purchase_date: initialData.purchase_date,
-          assigned_to: initialData.assigned_to,
-          site_id: initialData.site_id,
-          notes: initialData.notes,
-        }
-      : DEFAULTS,
+    initialValues,
     onSubmit: async (data) => {
       if (isEdit) {
         const result = await supabase
@@ -80,6 +84,13 @@ export function EquipmentForm({ open, onClose, initialData, onSuccess }: Equipme
       handleClose();
     },
   });
+
+  // `useForm` doesn't automatically reinitialize when `initialData` changes.
+  // When opening the SlideOver, reset to the current record defaults so edit forms prefill.
+  useEffect(() => {
+    if (!open) return;
+    reset(initialValues);
+  }, [open, reset, initialValues]);
 
   const handleClose = () => {
     reset();

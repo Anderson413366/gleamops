@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -41,10 +42,10 @@ function formatDate(d: string | null) {
 }
 
 export default function EquipmentTable({ search, onSelect, formOpen, onFormClose, onRefresh }: Props) {
+  const router = useRouter();
   const [rows, setRows] = useState<EquipmentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
-  const [editItem, setEditItem] = useState<EquipmentRow | null>(null);
   const { view, setView } = useViewPreference('equipment');
 
   const fetchData = useCallback(async () => {
@@ -63,7 +64,6 @@ export default function EquipmentTable({ search, onSelect, formOpen, onFormClose
 
   useEffect(() => {
     if (formOpen) {
-      setEditItem(null);
       setCreateOpen(true);
     }
   }, [formOpen]);
@@ -72,14 +72,12 @@ export default function EquipmentTable({ search, onSelect, formOpen, onFormClose
     if (onSelect) {
       onSelect(row);
     } else {
-      setEditItem(row);
-      setCreateOpen(true);
+      router.push(`/assets/equipment/${encodeURIComponent(row.equipment_code)}`);
     }
   };
 
   const handleFormClose = () => {
     setCreateOpen(false);
-    setEditItem(null);
     onFormClose?.();
   };
 
@@ -120,7 +118,6 @@ export default function EquipmentTable({ search, onSelect, formOpen, onFormClose
         <EquipmentForm
           open={createOpen}
           onClose={handleFormClose}
-          initialData={editItem}
           onSuccess={handleFormSuccess}
         />
       </>
@@ -198,7 +195,6 @@ export default function EquipmentTable({ search, onSelect, formOpen, onFormClose
       <EquipmentForm
         open={createOpen}
         onClose={handleFormClose}
-        initialData={editItem}
         onSuccess={handleFormSuccess}
       />
     </div>

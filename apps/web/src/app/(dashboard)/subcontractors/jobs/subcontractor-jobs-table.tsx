@@ -5,20 +5,13 @@ import { Briefcase, Plus } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, Button,
+  EmptyState, Pagination, TableSkeleton, Button,
 } from '@gleamops/ui';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 import type { SubcontractorJobAssignment } from '@gleamops/shared';
 import { SubcontractorJobDetail } from './subcontractor-job-detail';
 import { SubcontractorJobForm } from './subcontractor-job-form';
-
-const STATUS_COLORS: Record<string, 'green' | 'yellow' | 'gray' | 'red'> = {
-  ACTIVE: 'green',
-  COMPLETED: 'green',
-  SUSPENDED: 'yellow',
-  CANCELED: 'gray',
-};
 
 const BILLING_LABELS: Record<string, string> = {
   HOURLY: 'Hourly',
@@ -119,7 +112,6 @@ export default function SubcontractorJobsTable({ search }: Props) {
             <TableHead sortable sorted={sortKey === 'billing_rate' && sortDir} onSort={() => onSort('billing_rate')}>Billing</TableHead>
             <TableHead>Type</TableHead>
             <TableHead sortable sorted={sortKey === 'start_date' && sortDir} onSort={() => onSort('start_date')}>Start</TableHead>
-            <TableHead>Status</TableHead>
           </tr>
         </TableHeader>
         <TableBody>
@@ -136,9 +128,6 @@ export default function SubcontractorJobsTable({ search }: Props) {
               <TableCell className="text-right tabular-nums font-medium">{formatCurrency(row.billing_rate)}</TableCell>
               <TableCell className="text-xs text-muted-foreground">{BILLING_LABELS[row.billing_type ?? ''] ?? row.billing_type ?? '—'}</TableCell>
               <TableCell className="text-xs text-muted-foreground">{row.start_date ?? '—'}</TableCell>
-              <TableCell>
-                <Badge color={STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
-              </TableCell>
             </TableRow>
           ))}
         </TableBody>

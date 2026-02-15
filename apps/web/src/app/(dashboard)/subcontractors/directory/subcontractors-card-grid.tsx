@@ -1,10 +1,7 @@
 'use client';
 
 import { HardHat } from 'lucide-react';
-import { Badge } from '@gleamops/ui';
 import type { Subcontractor } from '@gleamops/shared';
-import { SUBCONTRACTOR_STATUS_COLORS } from '@gleamops/shared';
-import type { StatusColor } from '@gleamops/shared';
 
 interface SubcontractorsCardGridProps {
   rows: Subcontractor[];
@@ -25,11 +22,6 @@ export function SubcontractorsCardGrid({ rows, onSelect }: SubcontractorsCardGri
           </div>
           <p className="mt-3 text-sm font-semibold text-foreground leading-tight">{item.company_name}</p>
           <p className="mt-1 text-xs text-muted-foreground">{item.subcontractor_code}</p>
-          <div className="mt-3 flex flex-wrap justify-center gap-1.5">
-            <Badge color={(SUBCONTRACTOR_STATUS_COLORS[item.status] as StatusColor) ?? 'gray'}>
-              {item.status}
-            </Badge>
-          </div>
           <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">
             {item.contact_name && <p>{item.contact_name}</p>}
             {item.services_provided && (

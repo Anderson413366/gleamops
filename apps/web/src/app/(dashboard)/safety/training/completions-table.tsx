@@ -390,7 +390,7 @@ export default function CompletionsTable({ search, autoCreate, onAutoCreateHandl
                 </TableCell>
                 <TableCell>
                   {row.passed === true && <Badge color="green">Passed</Badge>}
-                  {row.passed === false && <Badge color="red">Failed</Badge>}
+                  {row.passed === false && <Badge color="yellow">Needs attention</Badge>}
                   {row.passed == null && <span className="text-muted-foreground text-xs">—</span>}
                 </TableCell>
                 <TableCell className="text-muted-foreground">{row.instructor ?? '—'}</TableCell>

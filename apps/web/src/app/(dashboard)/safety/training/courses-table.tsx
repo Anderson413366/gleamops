@@ -100,7 +100,7 @@ export default function CoursesTable({ search, formOpen, onFormClose, onRefresh 
   const sortedRows = sorted as unknown as TrainingCourse[];
   const pag = usePagination(sortedRows, 25);
 
-  if (loading) return <TableSkeleton rows={8} cols={6} />;
+  if (loading) return <TableSkeleton rows={8} cols={7} />;
 
   if (filtered.length === 0) {
     return (
@@ -134,7 +134,6 @@ export default function CoursesTable({ search, formOpen, onFormClose, onRefresh 
             { key: 'duration_hours', label: 'Duration (hrs)' },
             { key: 'recurrence_months', label: 'Recurrence (mo)' },
             { key: 'is_required', label: 'Required' },
-            { key: 'is_active', label: 'Active' },
           ]}
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
@@ -149,7 +148,6 @@ export default function CoursesTable({ search, formOpen, onFormClose, onRefresh 
             <TableHead>Duration</TableHead>
             <TableHead>Recurrence</TableHead>
             <TableHead>Required</TableHead>
-            <TableHead>Status</TableHead>
           </tr>
         </TableHeader>
         <TableBody>
@@ -171,11 +169,6 @@ export default function CoursesTable({ search, formOpen, onFormClose, onRefresh 
                 ) : (
                   <span className="text-muted-foreground text-xs">Optional</span>
                 )}
-              </TableCell>
-              <TableCell>
-                <Badge color={row.is_active ? 'green' : 'gray'}>
-                  {row.is_active ? 'Active' : 'Inactive'}
-                </Badge>
               </TableCell>
             </TableRow>
           ))}

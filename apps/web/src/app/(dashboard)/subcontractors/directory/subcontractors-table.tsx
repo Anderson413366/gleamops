@@ -5,18 +5,17 @@ import { HardHat, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { Subcontractor } from '@gleamops/shared';
-import { SUBCONTRACTOR_STATUS_COLORS } from '@gleamops/shared';
-import type { StatusColor } from '@gleamops/shared';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, ViewToggle, cn,
+  EmptyState, Pagination, TableSkeleton, ExportButton, ViewToggle, cn,
 } from '@gleamops/ui';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 import { useViewPreference } from '@/hooks/use-view-preference';
 import { SubcontractorsCardGrid } from './subcontractors-card-grid';
 
-const STATUS_OPTIONS = ['all', 'ACTIVE', 'INACTIVE', 'PENDING'] as const;
+// Per product rule: default to ACTIVE; ACTIVE first; ALL last.
+const STATUS_OPTIONS = ['ACTIVE', 'INACTIVE', 'PENDING', 'all'] as const;
 
 interface Props {
   search: string;
@@ -36,7 +35,7 @@ function formatCurrency(n: number | null) {
 export default function SubcontractorsTable({ search, onSelect }: Props) {
   const [rows, setRows] = useState<Subcontractor[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('ACTIVE');
   const { view, setView } = useViewPreference('subcontractors');
 
   const fetchData = useCallback(async () => {
@@ -82,7 +81,7 @@ export default function SubcontractorsTable({ search, onSelect }: Props) {
   const sortedRows = sorted as unknown as Subcontractor[];
   const pag = usePagination(sortedRows, 25);
 
-  if (loading) return <TableSkeleton rows={8} cols={9} />;
+  if (loading) return <TableSkeleton rows={8} cols={8} />;
   if (filtered.length === 0) {
     return (
       <EmptyState
@@ -106,7 +105,6 @@ export default function SubcontractorsTable({ search, onSelect }: Props) {
             { key: 'contact_name', label: 'Contact' },
             { key: 'business_phone', label: 'Phone' },
             { key: 'services_provided', label: 'Services' },
-            { key: 'status', label: 'Status' },
             { key: 'license_expiry', label: 'License Expiry' },
             { key: 'hourly_rate', label: 'Hourly Rate' },
           ]}
@@ -154,7 +152,6 @@ export default function SubcontractorsTable({ search, onSelect }: Props) {
             <TableHead sortable sorted={sortKey === 'hourly_rate' && sortDir} onSort={() => onSort('hourly_rate')}>Rate</TableHead>
             <TableHead>License Exp.</TableHead>
             <TableHead>W9</TableHead>
-            <TableHead>Status</TableHead>
           </tr>
         </TableHeader>
         <TableBody>
@@ -173,11 +170,6 @@ export default function SubcontractorsTable({ search, onSelect }: Props) {
                 ) : (
                   <XCircle className="h-4 w-4 text-destructive/70" />
                 )}
-              </TableCell>
-              <TableCell>
-                <Badge color={(SUBCONTRACTOR_STATUS_COLORS[row.status] as StatusColor) ?? 'gray'}>
-                  {row.status}
-                </Badge>
               </TableCell>
             </TableRow>
           ))}

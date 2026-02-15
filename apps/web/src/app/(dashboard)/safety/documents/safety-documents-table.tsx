@@ -12,7 +12,6 @@ import {
   TableRow,
   TableCell,
   EmptyState,
-  Badge,
   Pagination,
   TableSkeleton,
   SlideOver,
@@ -22,8 +21,7 @@ import {
   Button,
   ExportButton,
 } from '@gleamops/ui';
-import { SAFETY_DOCUMENT_STATUS_COLORS } from '@gleamops/shared';
-import type { SafetyDocument, StatusColor } from '@gleamops/shared';
+import type { SafetyDocument } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 
@@ -326,7 +324,6 @@ export default function SafetyDocumentsTable({ search, autoCreate, onAutoCreateH
             { key: 'effective_date', label: 'Effective' },
             { key: 'review_date', label: 'Review' },
             { key: 'expiry_date', label: 'Expires' },
-            { key: 'status', label: 'Status' },
           ]}
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
@@ -340,7 +337,6 @@ export default function SafetyDocumentsTable({ search, autoCreate, onAutoCreateH
             <TableHead>Category</TableHead>
             <TableHead sortable sorted={sortKey === 'review_date' && sortDir} onSort={() => onSort('review_date')}>Review</TableHead>
             <TableHead sortable sorted={sortKey === 'expiry_date' && sortDir} onSort={() => onSort('expiry_date')}>Expires</TableHead>
-            <TableHead sortable sorted={sortKey === 'status' && sortDir} onSort={() => onSort('status')}>Status</TableHead>
           </tr>
         </TableHeader>
         <TableBody>
@@ -352,11 +348,6 @@ export default function SafetyDocumentsTable({ search, autoCreate, onAutoCreateH
               <TableCell className="text-muted-foreground">{row.category ?? '—'}</TableCell>
               <TableCell className="text-muted-foreground">{row.review_date ?? '—'}</TableCell>
               <TableCell className="text-muted-foreground">{row.expiry_date ?? '—'}</TableCell>
-              <TableCell>
-                <Badge color={SAFETY_DOCUMENT_STATUS_COLORS[row.status] as StatusColor ?? 'gray'}>
-                  {row.status.replace(/_/g, ' ')}
-                </Badge>
-              </TableCell>
             </TableRow>
           ))}
         </TableBody>

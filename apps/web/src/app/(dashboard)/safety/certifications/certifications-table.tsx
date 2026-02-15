@@ -12,7 +12,6 @@ import {
   TableRow,
   TableCell,
   EmptyState,
-  Badge,
   Pagination,
   TableSkeleton,
   SlideOver,
@@ -22,8 +21,7 @@ import {
   Button,
   ExportButton,
 } from '@gleamops/ui';
-import { CERTIFICATION_STATUS_COLORS } from '@gleamops/shared';
-import type { StaffCertification, StatusColor } from '@gleamops/shared';
+import type { StaffCertification } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 
@@ -288,7 +286,7 @@ export default function CertificationsTable({ search, autoCreate, onAutoCreateHa
     );
   }
 
-  if (loading) return <TableSkeleton rows={8} cols={6} />;
+  if (loading) return <TableSkeleton rows={8} cols={5} />;
 
   if (filtered.length === 0) {
     return (
@@ -317,7 +315,6 @@ export default function CertificationsTable({ search, autoCreate, onAutoCreateHa
             { key: 'certification_number', label: 'Number' },
             { key: 'issued_date', label: 'Issued' },
             { key: 'expiry_date', label: 'Expires' },
-            { key: 'status', label: 'Status' },
           ]}
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
@@ -330,7 +327,6 @@ export default function CertificationsTable({ search, autoCreate, onAutoCreateHa
             <TableHead sortable sorted={sortKey === 'issuing_authority' && sortDir} onSort={() => onSort('issuing_authority')}>Authority</TableHead>
             <TableHead sortable sorted={sortKey === 'issued_date' && sortDir} onSort={() => onSort('issued_date')}>Issued</TableHead>
             <TableHead sortable sorted={sortKey === 'expiry_date' && sortDir} onSort={() => onSort('expiry_date')}>Expires</TableHead>
-            <TableHead sortable sorted={sortKey === 'status' && sortDir} onSort={() => onSort('status')}>Status</TableHead>
           </tr>
         </TableHeader>
         <TableBody>
@@ -341,11 +337,6 @@ export default function CertificationsTable({ search, autoCreate, onAutoCreateHa
               <TableCell className="text-muted-foreground">{row.issuing_authority ?? '—'}</TableCell>
               <TableCell className="text-muted-foreground">{row.issued_date ?? '—'}</TableCell>
               <TableCell className="text-muted-foreground">{row.expiry_date ?? '—'}</TableCell>
-              <TableCell>
-                <Badge color={CERTIFICATION_STATUS_COLORS[row.status] as StatusColor ?? 'gray'}>
-                  {row.status}
-                </Badge>
-              </TableCell>
             </TableRow>
           ))}
         </TableBody>

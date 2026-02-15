@@ -22,7 +22,17 @@ export type NavSpace =
   | 'assets'
   | 'vendors'
   | 'safety'
-  | 'admin';
+  | 'admin'
+  | 'reports'
+  | 'settings';
+
+export type ModuleKey = NavSpace;
+
+export interface ModuleAccent {
+  name: string;
+  hex: string;
+  hsl: string; // "H S% L%" channel tuple for CSS variable assignment
+}
 
 export interface NavItem {
   id: NavSpace;

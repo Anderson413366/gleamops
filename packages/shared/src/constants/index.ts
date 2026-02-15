@@ -1,7 +1,7 @@
 /**
  * GleamOps constants — lookup seeds, status maps, nav config.
  */
-import type { NavItem, StatusColor } from '../types/app';
+import type { ModuleAccent, ModuleKey, NavItem, StatusColor } from '../types/app';
 
 // ---------------------------------------------------------------------------
 // Navigation (6 consolidated modules)
@@ -18,6 +18,41 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'safety', label: 'Safety', href: '/safety', icon: 'ShieldCheck' },
   { id: 'admin', label: 'Admin', href: '/admin', icon: 'Wrench' },
 ];
+
+// ---------------------------------------------------------------------------
+// Module accent colors (single source of truth for module-level theming)
+// ---------------------------------------------------------------------------
+export const MODULE_ACCENTS: Record<ModuleKey, ModuleAccent> = {
+  home: { name: 'Harbor Blue', hex: '#2563EB', hsl: '217 82% 54%' },
+  pipeline: { name: 'Canyon Orange', hex: '#F97316', hsl: '24 95% 53%' },
+  crm: { name: 'Evergreen', hex: '#10B981', hsl: '160 84% 39%' },
+  operations: { name: 'Royal Indigo', hex: '#4F46E5', hsl: '244 75% 59%' },
+  workforce: { name: 'Rosewood', hex: '#E11D48', hsl: '347 77% 50%' },
+  inventory: { name: 'Goldenrod', hex: '#D97706', hsl: '35 91% 44%' },
+  assets: { name: 'Slate Teal', hex: '#0F766E', hsl: '175 77% 26%' },
+  vendors: { name: 'Grape', hex: '#7C3AED', hsl: '263 70% 56%' },
+  safety: { name: 'Forest', hex: '#15803D', hsl: '142 72% 29%' },
+  admin: { name: 'Charcoal', hex: '#334155', hsl: '215 25% 27%' },
+  reports: { name: 'Cerulean', hex: '#0284C7', hsl: '199 98% 39%' },
+  settings: { name: 'Steel Gray', hex: '#64748B', hsl: '215 16% 47%' },
+};
+
+export const DEFAULT_MODULE_KEY: ModuleKey = 'home';
+
+export function getModuleFromPathname(pathname: string): ModuleKey {
+  if (pathname.startsWith('/pipeline')) return 'pipeline';
+  if (pathname.startsWith('/crm') || pathname.startsWith('/customers')) return 'crm';
+  if (pathname.startsWith('/operations') || pathname.startsWith('/schedule')) return 'operations';
+  if (pathname.startsWith('/workforce') || pathname.startsWith('/people') || pathname.startsWith('/team')) return 'workforce';
+  if (pathname.startsWith('/inventory')) return 'inventory';
+  if (pathname.startsWith('/assets')) return 'assets';
+  if (pathname.startsWith('/vendors') || pathname.startsWith('/subcontractors')) return 'vendors';
+  if (pathname.startsWith('/safety')) return 'safety';
+  if (pathname.startsWith('/admin') || pathname.startsWith('/services')) return 'admin';
+  if (pathname.startsWith('/reports')) return 'reports';
+  if (pathname.startsWith('/settings')) return 'settings';
+  return 'home';
+}
 
 // ---------------------------------------------------------------------------
 // Status → Color mappings

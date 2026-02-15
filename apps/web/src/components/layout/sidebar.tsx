@@ -29,7 +29,7 @@ import {
   ClipboardCheck,
   AlertTriangle,
 } from 'lucide-react';
-import { NAV_ITEMS } from '@gleamops/shared';
+import { getModuleFromPathname, NAV_ITEMS } from '@gleamops/shared';
 import { useAuth } from '@/hooks/use-auth';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
@@ -69,6 +69,7 @@ function getInitials(email: string): string {
 
 export function Sidebar() {
   const pathname = usePathname();
+  const activeModule = getModuleFromPathname(pathname);
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
@@ -188,7 +189,7 @@ export function Sidebar() {
         <nav className="flex-1 py-3 px-3 space-y-1 overflow-y-auto">
           {NAV_ITEMS.map((item) => {
             const Icon = ICON_MAP[item.icon] ?? Building2;
-            const isActive = pathname.startsWith(item.href);
+            const isActive = activeModule === item.id || pathname.startsWith(item.href);
             const badgeCount = badgeCounts[item.id] ?? 0;
 
             return (
@@ -198,23 +199,23 @@ export function Sidebar() {
                 onClick={() => setMobileOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ease-in-out group ${
                   isActive
-                    ? 'bg-blue-600/10 text-blue-400'
+                    ? 'bg-module-accent/15 text-module-accent'
                     : 'text-sidebar-text hover:bg-sidebar-hover hover:text-white'
                 }`}
               >
                 <Icon
                   className={`h-[18px] w-[18px] shrink-0 transition-colors duration-200 ${
-                    isActive ? 'text-blue-400' : 'text-sidebar-text group-hover:text-white'
+                    isActive ? 'text-module-accent' : 'text-sidebar-text group-hover:text-white'
                   }`}
                 />
                 {item.label}
                 {isActive && badgeCount === 0 && (
-                  <span className="ml-auto h-1.5 w-1.5 rounded-full bg-blue-400" />
+                  <span className="ml-auto h-1.5 w-1.5 rounded-full bg-module-accent" />
                 )}
                 {badgeCount > 0 && (
                   <span className={`ml-auto inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-semibold ${
                     isActive
-                      ? 'bg-blue-400/20 text-blue-400'
+                      ? 'bg-module-accent/20 text-module-accent'
                       : 'bg-destructive/20 text-destructive'
                   }`}>
                     {badgeCount}

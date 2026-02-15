@@ -1,21 +1,22 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Save, Building2, Bell, Shield, Sun, Moon, Palette } from 'lucide-react';
+import { Save, Building2, Bell, Shield, Sun, Moon, Palette, Brain, Focus, Clock3, Sparkles, ScanLine, Type } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardHeader, CardTitle, CardContent, Input, Button } from '@gleamops/ui';
 import { useAuth } from '@/hooks/use-auth';
 import { useTheme } from '@/hooks/use-theme';
+import { useUiPreferences } from '@/hooks/use-ui-preferences';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 export default function SettingsPage() {
   const { user, role, tenantId } = useAuth();
   const { resolvedTheme, trueBlack, setTheme, setTrueBlack, mounted } = useTheme();
+  const { preferences, togglePreference, mounted: prefMounted } = useUiPreferences();
   const [companyName, setCompanyName] = useState('');
   const [companyPhone, setCompanyPhone] = useState('');
   const [companyEmail, setCompanyEmail] = useState('');
   const [saving, setSaving] = useState(false);
-  const [loaded, setLoaded] = useState(false);
 
   const fetchTenant = useCallback(async () => {
     const supabase = getSupabaseBrowserClient();
@@ -32,12 +33,11 @@ export default function SettingsPage() {
       setCompanyPhone(data.phone ?? '');
       setCompanyEmail(data.email ?? '');
     }
-    setLoaded(true);
   }, [tenantId]);
 
   useEffect(() => {
     if (tenantId) fetchTenant();
-  }, [user, fetchTenant]);
+  }, [tenantId, fetchTenant]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -177,6 +177,89 @@ export default function SettingsPage() {
                   />
                 </button>
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Neurodivergent Preferences */}
+        {prefMounted && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Brain className="h-5 w-5 text-primary" />
+                Neurodivergent Preferences
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <button
+                type="button"
+                onClick={() => togglePreference('focus_mode')}
+                className="flex w-full items-center justify-between rounded-xl border border-border p-3 text-left hover:border-module-accent/40 hover:bg-muted/30 transition-colors"
+              >
+                <div>
+                  <p className="text-sm font-medium text-foreground inline-flex items-center gap-2"><Focus className="h-4 w-4 text-module-accent" />Focus Mode</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Hide non-essential panels and keep one task at a time in view.</p>
+                </div>
+                <span className={`rounded-full px-2 py-1 text-xs font-medium ${preferences.focus_mode ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-muted text-muted-foreground'}`}>
+                  {preferences.focus_mode ? 'On' : 'Off'}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => togglePreference('simple_view')}
+                className="flex w-full items-center justify-between rounded-xl border border-border p-3 text-left hover:border-module-accent/40 hover:bg-muted/30 transition-colors"
+              >
+                <div>
+                  <p className="text-sm font-medium text-foreground inline-flex items-center gap-2"><ScanLine className="h-4 w-4 text-module-accent" />Simple View (Low-Energy Mode)</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Show only the most important cards and actions on dense pages.</p>
+                </div>
+                <span className={`rounded-full px-2 py-1 text-xs font-medium ${preferences.simple_view ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-muted text-muted-foreground'}`}>
+                  {preferences.simple_view ? 'On' : 'Off'}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => togglePreference('time_awareness')}
+                className="flex w-full items-center justify-between rounded-xl border border-border p-3 text-left hover:border-module-accent/40 hover:bg-muted/30 transition-colors"
+              >
+                <div>
+                  <p className="text-sm font-medium text-foreground inline-flex items-center gap-2"><Clock3 className="h-4 w-4 text-module-accent" />Time Awareness</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Show subtle time context like last refresh and time-sensitive indicators.</p>
+                </div>
+                <span className={`rounded-full px-2 py-1 text-xs font-medium ${preferences.time_awareness ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-muted text-muted-foreground'}`}>
+                  {preferences.time_awareness ? 'On' : 'Off'}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => togglePreference('celebration_effects')}
+                className="flex w-full items-center justify-between rounded-xl border border-border p-3 text-left hover:border-module-accent/40 hover:bg-muted/30 transition-colors"
+              >
+                <div>
+                  <p className="text-sm font-medium text-foreground inline-flex items-center gap-2"><Sparkles className="h-4 w-4 text-module-accent" />Positive Completion Feedback</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Enable gentle success feedback after key actions complete.</p>
+                </div>
+                <span className={`rounded-full px-2 py-1 text-xs font-medium ${preferences.celebration_effects ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-muted text-muted-foreground'}`}>
+                  {preferences.celebration_effects ? 'On' : 'Off'}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => togglePreference('dyslexia_font')}
+                className="flex w-full items-center justify-between rounded-xl border border-border p-3 text-left hover:border-module-accent/40 hover:bg-muted/30 transition-colors"
+              >
+                <div>
+                  <p className="text-sm font-medium text-foreground inline-flex items-center gap-2"><Type className="h-4 w-4 text-module-accent" />Dyslexia Font Assist</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Use stronger letter shapes and spacing for easier reading.</p>
+                </div>
+                <span className={`rounded-full px-2 py-1 text-xs font-medium ${preferences.dyslexia_font ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-muted text-muted-foreground'}`}>
+                  {preferences.dyslexia_font ? 'On' : 'Off'}
+                </span>
+              </button>
             </CardContent>
           </Card>
         )}

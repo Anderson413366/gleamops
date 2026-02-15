@@ -22,6 +22,9 @@ import {
   Send,
   Trophy,
   Mail,
+  Focus,
+  ScanLine,
+  Clock3,
 } from 'lucide-react';
 import { StatCard, CollapsibleCard, Badge, Skeleton } from '@gleamops/ui';
 import {
@@ -31,6 +34,7 @@ import {
 import type { StatusColor } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
+import { useUiPreferences } from '@/hooks/use-ui-preferences';
 import { toSafeDate } from '@/lib/utils/date';
 
 // ---------------------------------------------------------------------------
@@ -197,6 +201,7 @@ function formatEntityType(type: string): string {
 // ---------------------------------------------------------------------------
 export default function HomePage() {
   const { user, loading: authLoading } = useAuth();
+  const { preferences, togglePreference, mounted: prefMounted } = useUiPreferences();
 
   const [metrics, setMetrics] = useState<Metrics>({
     activeClients: null,
@@ -222,6 +227,7 @@ export default function HomePage() {
 
   const [metricsLoading, setMetricsLoading] = useState(true);
   const [sectionsLoading, setSectionsLoading] = useState(true);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
 
   // Fetch all dashboard data
   const fetchDashboard = useCallback(async () => {
@@ -462,6 +468,7 @@ export default function HomePage() {
     setComplianceAlerts(alerts.slice(0, 10));
 
     setSectionsLoading(false);
+    setLastUpdatedAt(new Date());
   }, []);
 
   useEffect(() => {
@@ -479,17 +486,52 @@ export default function HomePage() {
   };
 
   const displayName = user?.email?.split('@')[0]?.replace(/[._-]/g, ' ')?.replace(/\b\w/g, (c) => c.toUpperCase()) ?? '';
+  const simpleView = prefMounted && preferences.simple_view;
+  const focusMode = prefMounted && preferences.focus_mode;
+  const timeAwareness = prefMounted ? preferences.time_awareness : true;
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className={`space-y-6 animate-fade-in-up ${focusMode ? 'max-w-5xl mx-auto' : ''}`}>
       {/* Welcome Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">
-          {getGreeting()}{displayName ? `, ${displayName}` : ''}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {fullDateFormatter.format(new Date())}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            {getGreeting()}{displayName ? `, ${displayName}` : ''}
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {fullDateFormatter.format(new Date())}
+          </p>
+          {timeAwareness && lastUpdatedAt && (
+            <p className="text-xs text-muted-foreground mt-1 inline-flex items-center gap-1.5">
+              <Clock3 className="h-3.5 w-3.5" />
+              Last refreshed {timeFormatter.format(lastUpdatedAt)}
+            </p>
+          )}
+        </div>
+        {prefMounted && (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => togglePreference('focus_mode')}
+              className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
+                focusMode ? 'border-module-accent/40 bg-module-accent/10 text-module-accent' : 'border-border text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              <Focus className="h-3.5 w-3.5" />
+              Focus Mode
+            </button>
+            <button
+              type="button"
+              onClick={() => togglePreference('simple_view')}
+              className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
+                simpleView ? 'border-module-accent/40 bg-module-accent/10 text-module-accent' : 'border-border text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              <ScanLine className="h-3.5 w-3.5" />
+              Simple View
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Executive Dashboard — Stat Cards */}
@@ -539,31 +581,36 @@ export default function HomePage() {
                 icon={<Users className="h-5 w-5" />}
                 href="/workforce?tab=staff"
               />
-              <StatCard
-                label="Pending Bids"
-                value={metrics.pendingBids ?? 0}
-                icon={<FileText className="h-5 w-5" />}
-                href="/pipeline?tab=bids"
-              />
-              <StatCard
-                label="Revenue/mo"
-                value={`$${((metrics.revenueThisMonth ?? 0) / 1000).toFixed(1)}k`}
-                icon={<DollarSign className="h-5 w-5" />}
-                href="/reports?tab=financial"
-              />
-              <StatCard
-                label="Overdue Inspections"
-                value={metrics.overdueInspections ?? 0}
-                icon={<ShieldAlert className="h-5 w-5" />}
-                href="/operations?tab=inspections"
-              />
+              {!simpleView && (
+                <>
+                  <StatCard
+                    label="Pending Bids"
+                    value={metrics.pendingBids ?? 0}
+                    icon={<FileText className="h-5 w-5" />}
+                    href="/pipeline?tab=bids"
+                  />
+                  <StatCard
+                    label="Revenue/mo"
+                    value={`$${((metrics.revenueThisMonth ?? 0) / 1000).toFixed(1)}k`}
+                    icon={<DollarSign className="h-5 w-5" />}
+                    href="/reports?tab=financial"
+                  />
+                  <StatCard
+                    label="Overdue Inspections"
+                    value={metrics.overdueInspections ?? 0}
+                    icon={<ShieldAlert className="h-5 w-5" />}
+                    href="/operations?tab=inspections"
+                  />
+                </>
+              )}
             </>
           )}
         </div>
       </div>
 
       {/* Sales Pipeline KPIs */}
-      <div>
+      {!simpleView && (
+        <div>
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Sales Pipeline</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {metricsLoading ? (
@@ -602,45 +649,48 @@ export default function HomePage() {
             </>
           )}
         </div>
-      </div>
+        </div>
+      )}
 
       {/* Operations Dashboard — 2x2 grid */}
       <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Operations</h2>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Activity */}
-        <CollapsibleCard
-          id="dashboard-activity"
-          title="Recent Activity"
-          icon={<Activity className="h-5 w-5" />}
-        >
-          {sectionsLoading ? (
-            <ListSkeleton rows={5} />
-          ) : auditEvents.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No recent activity.</p>
-          ) : (
-            <ul className="space-y-2.5">
-              {auditEvents.map((event) => (
-                <li
-                  key={event.id}
-                  className="flex items-center justify-between gap-3 text-sm"
-                >
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <span className="font-medium text-foreground shrink-0">
-                      {formatAction(event.action)}
+        {!simpleView && (
+          <CollapsibleCard
+            id="dashboard-activity"
+            title="Recent Activity"
+            icon={<Activity className="h-5 w-5" />}
+          >
+            {sectionsLoading ? (
+              <ListSkeleton rows={5} />
+            ) : auditEvents.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No recent activity.</p>
+            ) : (
+              <ul className="space-y-2.5">
+                {auditEvents.map((event) => (
+                  <li
+                    key={event.id}
+                    className="flex items-center justify-between gap-3 text-sm"
+                  >
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <span className="font-medium text-foreground shrink-0">
+                        {formatAction(event.action)}
+                      </span>
+                      <span className="text-muted-foreground truncate">
+                        {formatEntityType(event.entity_type)}
+                        {event.entity_code ? ` (${event.entity_code})` : ''}
+                      </span>
+                    </div>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
+                      {formatRelativeTime(event.created_at)}
                     </span>
-                    <span className="text-muted-foreground truncate">
-                      {formatEntityType(event.entity_type)}
-                      {event.entity_code ? ` (${event.entity_code})` : ''}
-                    </span>
-                  </div>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
-                    {formatRelativeTime(event.created_at)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CollapsibleCard>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CollapsibleCard>
+        )}
 
         {/* Upcoming Tickets */}
         <CollapsibleCard
@@ -677,42 +727,44 @@ export default function HomePage() {
         </CollapsibleCard>
 
         {/* Pipeline Overview */}
-        <CollapsibleCard
-          id="dashboard-pipeline"
-          title="Pipeline Overview"
-          icon={<TrendingUp className="h-5 w-5" />}
-        >
-          {sectionsLoading ? (
-            <ListSkeleton rows={5} />
-          ) : prospects.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No prospects in the pipeline.</p>
-          ) : (
-            <ul className="space-y-2.5">
-              {prospects.map((prospect) => (
-                <li
-                  key={prospect.id}
-                  className="flex items-center justify-between gap-3 text-sm"
-                >
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <span className="font-medium text-foreground truncate">
-                      {prospect.company_name}
-                    </span>
-                    {prospect.source && (
-                      <span className="text-xs text-muted-foreground shrink-0">
-                        {prospect.source.replace(/_/g, ' ')}
-                      </span>
-                    )}
-                  </div>
-                  <Badge
-                    color={PROSPECT_STATUS_COLORS[prospect.prospect_status_code] as StatusColor ?? 'gray'}
+        {!simpleView && (
+          <CollapsibleCard
+            id="dashboard-pipeline"
+            title="Pipeline Overview"
+            icon={<TrendingUp className="h-5 w-5" />}
+          >
+            {sectionsLoading ? (
+              <ListSkeleton rows={5} />
+            ) : prospects.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No prospects in the pipeline.</p>
+            ) : (
+              <ul className="space-y-2.5">
+                {prospects.map((prospect) => (
+                  <li
+                    key={prospect.id}
+                    className="flex items-center justify-between gap-3 text-sm"
                   >
-                    {prospect.prospect_status_code.replace(/_/g, ' ')}
-                  </Badge>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CollapsibleCard>
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <span className="font-medium text-foreground truncate">
+                        {prospect.company_name}
+                      </span>
+                      {prospect.source && (
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          {prospect.source.replace(/_/g, ' ')}
+                        </span>
+                      )}
+                    </div>
+                    <Badge
+                      color={PROSPECT_STATUS_COLORS[prospect.prospect_status_code] as StatusColor ?? 'gray'}
+                    >
+                      {prospect.prospect_status_code.replace(/_/g, ' ')}
+                    </Badge>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CollapsibleCard>
+        )}
 
         {/* Team on Shift */}
         <CollapsibleCard
@@ -786,6 +838,8 @@ export default function HomePage() {
       </div>
 
       {/* Inventory & Data Quality Dashboards */}
+      {!simpleView && (
+        <>
       <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Inventory & Data Quality</h2>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Inventory Dashboard */}
@@ -855,6 +909,8 @@ export default function HomePage() {
           )}
         </CollapsibleCard>
       </div>
+        </>
+      )}
     </div>
   );
 }

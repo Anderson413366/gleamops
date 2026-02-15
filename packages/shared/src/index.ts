@@ -1,6 +1,8 @@
 // Types
 export type * from './types/database';
 export type * from './types/app';
+export type * from './types/preferences';
+export { DEFAULT_UI_PREFERENCES } from './types/preferences';
 
 // Constants
 export * from './constants/index';

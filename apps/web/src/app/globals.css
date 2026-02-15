@@ -411,3 +411,16 @@ textarea::placeholder {
   color: var(--color-muted-foreground);
   opacity: 0.7;
 }
+
+/* Optional readability modes controlled by user preferences */
+html.dyslexia-font body {
+  font-family: "Atkinson Hyperlegible", "Inter", "Segoe UI", sans-serif;
+  letter-spacing: 0.02em;
+  word-spacing: 0.06em;
+}
+
+html.reading-ruler p:hover,
+html.reading-ruler li:hover,
+html.reading-ruler td:hover {
+  background-image: linear-gradient(transparent 35%, rgba(59, 130, 246, 0.18) 35%, rgba(59, 130, 246, 0.18) 75%, transparent 75%);
+}

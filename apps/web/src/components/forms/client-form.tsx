@@ -67,9 +67,11 @@ interface ClientFormProps {
   onClose: () => void;
   initialData?: Client | null;
   onSuccess?: () => void;
+  /** Scrolls the form to a specific section when opened. */
+  focusSection?: 'basics' | 'billing' | 'contract' | 'notes';
 }
 
-export function ClientForm({ open, onClose, initialData, onSuccess }: ClientFormProps) {
+export function ClientForm({ open, onClose, initialData, onSuccess, focusSection }: ClientFormProps) {
   const isEdit = !!initialData?.id;
   const supabase = getSupabaseBrowserClient();
   const wizard = useWizardSteps(WIZARD_STEPS.length);
@@ -138,6 +140,25 @@ export function ClientForm({ open, onClose, initialData, onSuccess }: ClientForm
     }
   }, [open, isEdit]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // When requested, take the user directly to a specific section.
+  useEffect(() => {
+    if (!open || !focusSection) return;
+
+    if (!isEdit) {
+      const idx = focusSection === 'basics' ? 0 : focusSection === 'billing' ? 1 : focusSection === 'contract' ? 2 : 3;
+      wizard.goToStep(idx);
+      return;
+    }
+
+    const el = document.querySelector<HTMLElement>(`[data-client-form-section="${focusSection}"]`);
+    if (!el) return;
+    // Smooth scroll after the SlideOver content has mounted.
+    window.setTimeout(() => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      el.focus?.();
+    }, 50);
+  }, [open, focusSection, isEdit, wizard]);
+
   const handleClose = () => {
     reset();
     wizard.reset();
@@ -156,7 +177,7 @@ export function ClientForm({ open, onClose, initialData, onSuccess }: ClientForm
       <SlideOver open={open} onClose={handleClose} title="Edit Client" subtitle={initialData?.client_code} wide>
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Info */}
-          <div className="space-y-4">
+          <div className="space-y-4" data-client-form-section="basics" tabIndex={-1}>
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Basic Info</h3>
             <Input label="Client Code" value={values.client_code} readOnly disabled />
             <Input label="Name" value={values.name} onChange={(e) => setValue('name', e.target.value)} onBlur={() => onBlur('name')} error={errors.name} required />
@@ -168,7 +189,7 @@ export function ClientForm({ open, onClose, initialData, onSuccess }: ClientForm
             <Input label="Website" value={values.website ?? ''} onChange={(e) => setValue('website', e.target.value || null)} />
           </div>
           {/* Billing */}
-          <div className="space-y-4">
+          <div className="space-y-4" data-client-form-section="billing" tabIndex={-1}>
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Billing</h3>
             <Input label="Bill To Name" value={values.bill_to_name ?? ''} onChange={(e) => setValue('bill_to_name', e.target.value || null)} />
             <Input label="Street" value={values.billing_address?.street ?? ''} onChange={(e) => setValue('billing_address', { ...values.billing_address, street: e.target.value })} />
@@ -188,7 +209,7 @@ export function ClientForm({ open, onClose, initialData, onSuccess }: ClientForm
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={values.po_required} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue('po_required', e.target.checked)} className="rounded border-border" /> PO Required</label>
           </div>
           {/* Contract */}
-          <div className="space-y-4">
+          <div className="space-y-4" data-client-form-section="contract" tabIndex={-1}>
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Contract & Insurance</h3>
             <div className="grid grid-cols-2 gap-3">
               <Input label="Contract Start" type="date" value={values.contract_start_date ?? ''} onChange={(e) => setValue('contract_start_date', e.target.value || null)} />
@@ -199,7 +220,9 @@ export function ClientForm({ open, onClose, initialData, onSuccess }: ClientForm
             <Input label="Insurance Expiry" type="date" value={values.insurance_expiry ?? ''} onChange={(e) => setValue('insurance_expiry', e.target.value || null)} />
           </div>
           {/* Notes */}
-          <Textarea label="Notes" value={values.notes ?? ''} onChange={(e) => setValue('notes', e.target.value || null)} rows={3} />
+          <div data-client-form-section="notes" tabIndex={-1}>
+            <Textarea label="Notes" value={values.notes ?? ''} onChange={(e) => setValue('notes', e.target.value || null)} rows={3} />
+          </div>
           <div className="flex justify-end gap-3 pt-4 border-t border-border">
             <Button variant="secondary" type="button" onClick={handleClose}>Cancel</Button>
             <Button type="submit" loading={loading}>Save Changes</Button>

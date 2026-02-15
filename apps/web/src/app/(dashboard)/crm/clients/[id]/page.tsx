@@ -53,11 +53,26 @@ function getFaviconUrl(website: string): string {
   return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=128`;
 }
 
+function getContractHealth(start: string | null, end: string | null): { label: string; color: 'green' | 'yellow' | 'red' | 'gray' } {
+  if (!start && !end) return { label: 'No Contract', color: 'gray' };
+  const today = new Date();
+  const endDate = end ? new Date(end) : null;
+
+  if (endDate && Number.isFinite(endDate.getTime())) {
+    const diffDays = Math.floor((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) return { label: 'Expired', color: 'red' };
+    if (diffDays <= 30) return { label: 'Expiring Soon', color: 'yellow' };
+  }
+
+  return { label: 'Active', color: 'green' };
+}
+
 export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
+  const [clientFormFocus, setClientFormFocus] = useState<'basics' | 'billing' | 'contract' | 'notes' | undefined>(undefined);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [contactsLoading, setContactsLoading] = useState(false);
   const [contactFormOpen, setContactFormOpen] = useState(false);
@@ -163,15 +178,8 @@ export default function ClientDetailPage() {
   }
 
   const addr = client.billing_address;
-  const contractActive =
-    client.contract_start_date && !client.contract_end_date
-      ? 'Active'
-      : client.contract_end_date &&
-          new Date(client.contract_end_date) > new Date()
-        ? 'Active'
-        : client.contract_end_date
-          ? 'Expired'
-          : '\u2014';
+  const contractHealth = getContractHealth(client.contract_start_date, client.contract_end_date);
+  const contractNeedsDates = !client.contract_start_date && !client.contract_end_date;
 
   const primaryContact =
     contacts.find((c) => c.id === client.primary_contact_id) ??
@@ -264,10 +272,23 @@ export default function ClientDetailPage() {
           <p className="text-xs text-muted-foreground">Monthly Revenue</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <p className="text-2xl font-bold text-foreground">
-            {contractActive}
-          </p>
-          <p className="text-xs text-muted-foreground">Contract Status</p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">Contract Status</p>
+            {contractNeedsDates && (
+              <button
+                type="button"
+                onClick={() => { setClientFormFocus('contract'); setFormOpen(true); }}
+                className="text-xs font-medium text-amber-700 hover:underline dark:text-amber-300"
+              >
+                Set dates
+              </button>
+            )}
+          </div>
+          <div className="mt-3">
+            <Badge color={contractHealth.color} dot={false} className="px-4 py-2 text-sm font-semibold">
+              {contractHealth.label}
+            </Badge>
+          </div>
         </div>
       </div>
 
@@ -491,20 +512,37 @@ export default function ClientDetailPage() {
 
         {/* Contract Details */}
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <h3 className="mb-4 text-sm font-semibold text-foreground">
-            Contract Details
-          </h3>
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold text-foreground">Contract Details</h3>
+            {(client.contract_start_date == null || client.contract_end_date == null) && (
+              <button
+                type="button"
+                onClick={() => { setClientFormFocus('contract'); setFormOpen(true); }}
+                className="text-xs font-medium text-amber-700 hover:underline dark:text-amber-300"
+              >
+                Set contract dates →
+              </button>
+            )}
+          </div>
           <dl className="space-y-3 text-sm">
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Start Date</dt>
               <dd className="font-medium">
-                {formatDate(client.contract_start_date)}
+                {client.contract_start_date ? (
+                  formatDate(client.contract_start_date)
+                ) : (
+                  <span className="text-amber-700/80 dark:text-amber-300/80">Not Set</span>
+                )}
               </dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">End Date</dt>
               <dd className="font-medium">
-                {formatDate(client.contract_end_date)}
+                {client.contract_end_date ? (
+                  formatDate(client.contract_end_date)
+                ) : (
+                  <span className="text-amber-700/80 dark:text-amber-300/80">Not Set</span>
+                )}
               </dd>
             </div>
             <div className="flex justify-between">
@@ -639,9 +677,10 @@ export default function ClientDetailPage() {
       {/* Edit Form */}
       <ClientForm
         open={formOpen}
-        onClose={() => setFormOpen(false)}
+        onClose={() => { setFormOpen(false); setClientFormFocus(undefined); }}
         initialData={client}
         onSuccess={fetchClient}
+        focusSection={clientFormFocus}
       />
 
       <ContactForm

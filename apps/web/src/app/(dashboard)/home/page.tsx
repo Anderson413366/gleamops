@@ -497,6 +497,37 @@ export default function HomePage() {
   const focusMode = prefMounted && preferences.focus_mode;
   const timeAwareness = prefMounted ? preferences.time_awareness : true;
 
+  // Ensure the SSR HTML matches the initial client render. The home dashboard
+  // includes multiple time-relative labels; only render the real dashboard after
+  // mount when `now` is available on the client.
+  if (!now) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <Skeleton className="h-8 w-72" />
+            <div className="mt-2">
+              <Skeleton className="h-4 w-56" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-9 w-28" />
+            <Skeleton className="h-9 w-28" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Skeleton className="h-72 w-full" />
+          <Skeleton className="h-72 w-full" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`space-y-6 animate-fade-in-up ${focusMode ? 'max-w-5xl mx-auto' : ''}`}>
       {/* Welcome Header */}
@@ -506,7 +537,7 @@ export default function HomePage() {
             {greeting}{displayName ? `, ${displayName}` : ''}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {now ? fullDateFormatter.format(now) : <Skeleton className="h-4 w-44" />}
+            {fullDateFormatter.format(now)}
           </p>
           {timeAwareness && lastUpdatedAt && (
             <p className="text-xs text-muted-foreground mt-1 inline-flex items-center gap-1.5">

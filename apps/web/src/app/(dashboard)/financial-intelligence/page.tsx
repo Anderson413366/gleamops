@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Users, Receipt, Sparkles } from 'lucide-react';
+import { ArrowLeft, Users, Receipt, Sparkles, TriangleAlert } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, Skeleton, Badge } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useFeatureFlag } from '@/hooks/use-feature-flag';
+import { MetricCard, BreakdownRow } from '../reports/_components/report-components';
 
 interface TopItem {
   name: string;
@@ -21,6 +22,8 @@ interface FinancialIntelState {
   revenuePerStaff: number;
   teamEfficiencyIndex: number;
   sparkleScore: number;
+  clientDependencyPct: number;
+  clientDependencyName: string | null;
   topClients: TopItem[];
   topSites: TopItem[];
 }
@@ -50,6 +53,8 @@ export default function FinancialIntelligencePage() {
     revenuePerStaff: 0,
     teamEfficiencyIndex: 0,
     sparkleScore: 0,
+    clientDependencyPct: 0,
+    clientDependencyName: null,
     topClients: [],
     topSites: [],
   });
@@ -136,6 +141,9 @@ export default function FinancialIntelligencePage() {
     const revenuePerStaff = activeStaff > 0 ? revenueRunRate / activeStaff : 0;
     const teamEfficiencyIndex = laborHours30d > 0 ? revenueRunRate / laborHours30d : 0;
 
+    const topClient = topClients[0] ?? null;
+    const clientDependencyPct = revenueRunRate > 0 && topClient ? topClient.value / revenueRunRate : 0;
+
     setData({
       revenueRunRate,
       pipelineValue,
@@ -145,6 +153,8 @@ export default function FinancialIntelligencePage() {
       revenuePerStaff,
       teamEfficiencyIndex,
       sparkleScore,
+      clientDependencyPct,
+      clientDependencyName: topClient?.name ?? null,
       topClients,
       topSites,
     });
@@ -192,6 +202,8 @@ export default function FinancialIntelligencePage() {
 
   const topClientMax = Math.max(...data.topClients.map((row) => row.value), 1);
   const topSiteMax = Math.max(...data.topSites.map((row) => row.value), 1);
+  const dependencyPct = Math.round(data.clientDependencyPct * 100);
+  const dependencyRisk = dependencyPct >= 25;
 
   return (
     <div className="space-y-6">
@@ -208,15 +220,15 @@ export default function FinancialIntelligencePage() {
         <Badge color="blue">Feature Flag: `financial_intel_v1`</Badge>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Revenue Run Rate</p><p className="text-2xl font-semibold">{formatCurrency(data.revenueRunRate)}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Pipeline Value</p><p className="text-2xl font-semibold">{formatCurrency(data.pipelineValue)}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Supply Spend (30d)</p><p className="text-2xl font-semibold">{formatCurrency(data.supplySpend30d)}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Sparkle Score</p><p className="text-2xl font-semibold inline-flex items-center gap-2"><Sparkles className="h-5 w-5 text-amber-500" />{data.sparkleScore}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Revenue / Active Staff</p><p className="text-2xl font-semibold">{formatCurrency(data.revenuePerStaff)}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Team Efficiency Index</p><p className="text-2xl font-semibold">{formatCurrency(data.teamEfficiencyIndex)}/hr</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Staff</p><p className="text-2xl font-semibold inline-flex items-center gap-2"><Users className="h-5 w-5 text-primary" />{data.activeStaff}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Labor Hours (30d)</p><p className="text-2xl font-semibold inline-flex items-center gap-2"><Receipt className="h-5 w-5 text-primary" />{formatNumber(data.laborHours30d)}</p></CardContent></Card>
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
+        <MetricCard icon={<Sparkles className="h-5 w-5" />} tone="warning" label="Sparkle Score" value={data.sparkleScore} />
+        <MetricCard icon={<Receipt className="h-5 w-5" />} tone="success" label="Revenue Run Rate" value={formatCurrency(data.revenueRunRate)} />
+        <MetricCard icon={<Users className="h-5 w-5" />} tone="primary" label="Active Staff" value={data.activeStaff} />
+        <MetricCard icon={<Receipt className="h-5 w-5" />} tone="accent" label="Labor Hours (30d)" value={formatNumber(data.laborHours30d)} />
+        <MetricCard icon={<Receipt className="h-5 w-5" />} tone="success" label="Pipeline Value" value={formatCurrency(data.pipelineValue)} sublabel="/month" />
+        <MetricCard icon={<Receipt className="h-5 w-5" />} tone="warning" label="Supply Spend (30d)" value={formatCurrency(data.supplySpend30d)} />
+        <MetricCard icon={<Receipt className="h-5 w-5" />} tone="success" label="Revenue / Active Staff" value={formatCurrency(data.revenuePerStaff)} />
+        <MetricCard icon={<Receipt className="h-5 w-5" />} tone="accent" label="Team Efficiency Index" value={`${formatCurrency(data.teamEfficiencyIndex)}/hr`} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -225,15 +237,13 @@ export default function FinancialIntelligencePage() {
           <CardContent className="space-y-3">
             {data.topClients.length === 0 && <p className="text-sm text-muted-foreground">No revenue data available.</p>}
             {data.topClients.map((row) => (
-              <div key={row.name} className="space-y-1">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-medium">{row.name}</span>
-                  <span className="font-mono">{formatCurrency(row.value)}</span>
-                </div>
-                <div className="h-2 rounded-full bg-muted">
-                  <div className="h-2 rounded-full bg-module-accent" style={{ width: `${(row.value / topClientMax) * 100}%` }} />
-                </div>
-              </div>
+              <BreakdownRow
+                key={row.name}
+                left={<span className="text-sm font-medium truncate max-w-[220px]">{row.name}</span>}
+                right={<span className="font-mono text-xs">{formatCurrency(row.value)}</span>}
+                pct={row.value / topClientMax}
+                rightWidthClassName="w-28"
+              />
             ))}
           </CardContent>
         </Card>
@@ -243,19 +253,47 @@ export default function FinancialIntelligencePage() {
           <CardContent className="space-y-3">
             {data.topSites.length === 0 && <p className="text-sm text-muted-foreground">No site data available.</p>}
             {data.topSites.map((row) => (
-              <div key={row.name} className="space-y-1">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-medium">{row.name}</span>
-                  <span className="font-mono">{formatCurrency(row.value)}</span>
-                </div>
-                <div className="h-2 rounded-full bg-muted">
-                  <div className="h-2 rounded-full bg-primary" style={{ width: `${(row.value / topSiteMax) * 100}%` }} />
-                </div>
-              </div>
+              <BreakdownRow
+                key={row.name}
+                left={<span className="text-sm font-medium truncate max-w-[220px]">{row.name}</span>}
+                right={<span className="font-mono text-xs">{formatCurrency(row.value)}</span>}
+                pct={row.value / topSiteMax}
+                rightWidthClassName="w-28"
+              />
             ))}
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader><CardTitle className="text-sm">Risk Signals</CardTitle></CardHeader>
+        <CardContent className="space-y-2">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-foreground">Client Dependency Risk</p>
+              <p className="text-xs text-muted-foreground">
+                Warns if a single client represents 25%+ of revenue run rate.
+              </p>
+            </div>
+            <div className="shrink-0 text-right">
+              <Badge color={dependencyRisk ? 'yellow' : 'green'}>
+                {dependencyRisk ? 'Needs attention' : 'On track'}
+              </Badge>
+              <p className="mt-1 text-xs text-muted-foreground font-mono">
+                {data.clientDependencyName ? `${dependencyPct}%` : '—'}
+              </p>
+            </div>
+          </div>
+          {dependencyRisk && data.clientDependencyName && (
+            <div className="flex items-center gap-2 text-xs text-warning">
+              <TriangleAlert className="h-4 w-4" />
+              <span className="text-muted-foreground">
+                {data.clientDependencyName} is {dependencyPct}% of revenue run rate.
+              </span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader><CardTitle className="text-sm">Data Needed For Next-Level KPIs</CardTitle></CardHeader>

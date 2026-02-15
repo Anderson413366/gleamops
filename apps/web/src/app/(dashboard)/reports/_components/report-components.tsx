@@ -49,6 +49,7 @@ export function BreakdownRow(props: {
   right: ReactNode;
   // 0..1
   pct?: number;
+  rightWidthClassName?: string;
 }) {
   return (
     <div className="flex items-center justify-between gap-3">
@@ -61,7 +62,9 @@ export function BreakdownRow(props: {
               style={{ width: `${Math.max(0, Math.min(1, props.pct)) * 100}%` }}
             />
           </div>
-          <span className="text-sm font-medium w-10 text-right shrink-0">{props.right}</span>
+          <span className={`text-sm font-medium text-right shrink-0 ${props.rightWidthClassName ?? 'w-10'}`}>
+            {props.right}
+          </span>
         </div>
       ) : (
         <div className="shrink-0">{props.right}</div>
@@ -69,4 +72,3 @@ export function BreakdownRow(props: {
     </div>
   );
 }
-

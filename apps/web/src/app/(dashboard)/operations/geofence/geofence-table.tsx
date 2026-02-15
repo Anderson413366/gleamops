@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, Button, ExportButton,
+  EmptyState, Pagination, TableSkeleton, Button, ExportButton,
 } from '@gleamops/ui';
 import type { Geofence } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
@@ -60,7 +60,7 @@ export default function GeofenceTable({ search, onAdd, onSelect }: GeofenceTable
   const sortedRows = sorted as unknown as GeofenceWithSite[];
   const pag = usePagination(sortedRows, 25);
 
-  if (loading) return <TableSkeleton rows={6} cols={5} />;
+  if (loading) return <TableSkeleton rows={6} cols={4} />;
 
   return (
     <div>
@@ -72,7 +72,6 @@ export default function GeofenceTable({ search, onAdd, onSelect }: GeofenceTable
             { key: 'center_lat', label: 'Latitude' },
             { key: 'center_lng', label: 'Longitude' },
             { key: 'radius_meters', label: 'Radius (m)' },
-            { key: 'is_active', label: 'Active' },
           ]}
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
@@ -97,7 +96,6 @@ export default function GeofenceTable({ search, onAdd, onSelect }: GeofenceTable
                 <TableHead sortable sorted={sortKey === 'center_lat' && sortDir} onSort={() => onSort('center_lat')}>Latitude</TableHead>
                 <TableHead sortable sorted={sortKey === 'center_lng' && sortDir} onSort={() => onSort('center_lng')}>Longitude</TableHead>
                 <TableHead sortable sorted={sortKey === 'radius_meters' && sortDir} onSort={() => onSort('radius_meters')}>Radius (m)</TableHead>
-                <TableHead>Status</TableHead>
               </tr>
             </TableHeader>
             <TableBody>
@@ -107,11 +105,6 @@ export default function GeofenceTable({ search, onAdd, onSelect }: GeofenceTable
                   <TableCell className="font-mono text-xs">{row.center_lat.toFixed(6)}</TableCell>
                   <TableCell className="font-mono text-xs">{row.center_lng.toFixed(6)}</TableCell>
                   <TableCell>{row.radius_meters}m</TableCell>
-                  <TableCell>
-                    <Badge color={row.is_active ? 'green' : 'gray'}>
-                      {row.is_active ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

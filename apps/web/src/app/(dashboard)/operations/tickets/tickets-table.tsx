@@ -6,9 +6,8 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, ExportButton,
+  EmptyState, Pagination, TableSkeleton, ExportButton,
 } from '@gleamops/ui';
-import { TICKET_STATUS_COLORS } from '@gleamops/shared';
 import type { WorkTicket } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
@@ -54,8 +53,7 @@ export default function TicketsTable({ search, onSelect }: TicketsTableProps) {
         r.ticket_code.toLowerCase().includes(q) ||
         r.job?.job_code?.toLowerCase().includes(q) ||
         r.site?.name?.toLowerCase().includes(q) ||
-        r.site?.client?.name?.toLowerCase().includes(q) ||
-        r.status.toLowerCase().includes(q)
+        r.site?.client?.name?.toLowerCase().includes(q)
     );
   }, [rows, search]);
 
@@ -65,7 +63,7 @@ export default function TicketsTable({ search, onSelect }: TicketsTableProps) {
   const sortedRows = sorted as unknown as TicketWithRelations[];
   const pag = usePagination(sortedRows, 25);
 
-  if (loading) return <TableSkeleton rows={6} cols={6} />;
+  if (loading) return <TableSkeleton rows={6} cols={5} />;
 
   if (filtered.length === 0) {
     return (
@@ -86,7 +84,6 @@ export default function TicketsTable({ search, onSelect }: TicketsTableProps) {
           columns={[
             { key: 'ticket_code', label: 'Ticket' },
             { key: 'scheduled_date', label: 'Date' },
-            { key: 'status', label: 'Status' },
           ]}
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
@@ -99,7 +96,6 @@ export default function TicketsTable({ search, onSelect }: TicketsTableProps) {
             <TableHead>Site</TableHead>
             <TableHead>Client</TableHead>
             <TableHead sortable sorted={sortKey === 'scheduled_date' && sortDir} onSort={() => onSort('scheduled_date')}>Date</TableHead>
-            <TableHead>Status</TableHead>
           </tr>
         </TableHeader>
         <TableBody>
@@ -110,9 +106,6 @@ export default function TicketsTable({ search, onSelect }: TicketsTableProps) {
               <TableCell className="font-medium">{row.site?.name ?? '—'}</TableCell>
               <TableCell className="text-muted-foreground">{row.site?.client?.name ?? '—'}</TableCell>
               <TableCell>{formatDate(row.scheduled_date)}</TableCell>
-              <TableCell>
-                <Badge color={TICKET_STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
-              </TableCell>
             </TableRow>
           ))}
         </TableBody>

@@ -6,9 +6,8 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, Button, ExportButton,
+  EmptyState, Pagination, TableSkeleton, Button, ExportButton,
 } from '@gleamops/ui';
-import { INSPECTION_STATUS_COLORS } from '@gleamops/shared';
 import type { Inspection } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
@@ -60,8 +59,7 @@ export default function InspectionsTable({ search, onSelect, onCreateNew }: Insp
         r.inspection_code.toLowerCase().includes(q) ||
         r.site?.name?.toLowerCase().includes(q) ||
         r.inspector?.full_name?.toLowerCase().includes(q) ||
-        r.template?.name?.toLowerCase().includes(q) ||
-        r.status.toLowerCase().includes(q)
+        r.template?.name?.toLowerCase().includes(q)
     );
   }, [rows, search]);
 
@@ -71,7 +69,7 @@ export default function InspectionsTable({ search, onSelect, onCreateNew }: Insp
   const sortedRows = sorted as unknown as InspectionWithRelations[];
   const pag = usePagination(sortedRows, 25);
 
-  if (loading) return <TableSkeleton rows={6} cols={7} />;
+  if (loading) return <TableSkeleton rows={6} cols={6} />;
 
   return (
     <div>
@@ -81,7 +79,6 @@ export default function InspectionsTable({ search, onSelect, onCreateNew }: Insp
           filename="inspections"
           columns={[
             { key: 'inspection_code', label: 'Code' },
-            { key: 'status', label: 'Status' },
             { key: 'score_pct', label: 'Score %' },
             { key: 'created_at', label: 'Date' },
           ]}
@@ -109,7 +106,6 @@ export default function InspectionsTable({ search, onSelect, onCreateNew }: Insp
                 <TableHead>Site</TableHead>
                 <TableHead>Inspector</TableHead>
                 <TableHead>Score</TableHead>
-                <TableHead>Status</TableHead>
                 <TableHead sortable sorted={sortKey === 'created_at' && sortDir} onSort={() => onSort('created_at')}>Date</TableHead>
               </tr>
             </TableHeader>
@@ -128,9 +124,6 @@ export default function InspectionsTable({ search, onSelect, onCreateNew }: Insp
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge color={INSPECTION_STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
                   </TableCell>
                   <TableCell>{formatDate(row.created_at)}</TableCell>
                 </TableRow>

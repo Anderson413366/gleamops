@@ -1,7 +1,5 @@
-export const dynamic = 'force-dynamic';
+import { redirect } from 'next/navigation';
 
-import PeoplePageClient from './people-page';
-
-export default function PeoplePage() {
-  return <PeoplePageClient />;
+export default function PeopleRedirect() {
+  redirect('/workforce');
 }

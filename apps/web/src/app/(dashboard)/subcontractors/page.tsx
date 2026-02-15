@@ -1,7 +1,5 @@
-export const dynamic = 'force-dynamic';
+import { redirect } from 'next/navigation';
 
-import SubcontractorsPageClient from './subcontractors-page';
-
-export default function SubcontractorsPage() {
-  return <SubcontractorsPageClient />;
+export default function SubcontractorsRedirect() {
+  redirect('/vendors');
 }

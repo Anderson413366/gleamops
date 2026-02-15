@@ -4,13 +4,6 @@ import { User } from 'lucide-react';
 import { Badge } from '@gleamops/ui';
 import type { Staff } from '@gleamops/shared';
 
-const STATUS_COLORS: Record<string, 'green' | 'gray' | 'yellow' | 'red'> = {
-  ACTIVE: 'green',
-  INACTIVE: 'gray',
-  ON_LEAVE: 'yellow',
-  TERMINATED: 'red',
-};
-
 const ROLE_COLORS: Record<string, 'purple' | 'blue' | 'green' | 'orange' | 'yellow' | 'gray'> = {
   OWNER_ADMIN: 'purple',
   MANAGER: 'blue',
@@ -50,9 +43,6 @@ export function StaffCardGrid({ rows, onSelect }: StaffCardGridProps) {
           <div className="mt-3 flex flex-wrap justify-center gap-1.5">
             <Badge color={ROLE_COLORS[item.role] ?? 'gray'}>
               {item.role.replace(/_/g, ' ')}
-            </Badge>
-            <Badge color={STATUS_COLORS[item.staff_status ?? 'ACTIVE'] ?? 'gray'}>
-              {(item.staff_status ?? 'ACTIVE').replace(/_/g, ' ')}
             </Badge>
           </div>
           {item.email && (

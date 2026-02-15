@@ -16,13 +16,6 @@ import { useViewPreference } from '@/hooks/use-view-preference';
 import { StaffForm } from '@/components/forms/staff-form';
 import { StaffCardGrid } from './staff-card-grid';
 
-const STATUS_COLORS: Record<string, 'green' | 'gray' | 'yellow' | 'red'> = {
-  ACTIVE: 'green',
-  INACTIVE: 'gray',
-  ON_LEAVE: 'yellow',
-  TERMINATED: 'red',
-};
-
 const ROLE_COLORS: Record<string, 'purple' | 'blue' | 'green' | 'orange' | 'yellow' | 'gray'> = {
   OWNER_ADMIN: 'purple',
   MANAGER: 'blue',
@@ -32,7 +25,8 @@ const ROLE_COLORS: Record<string, 'purple' | 'blue' | 'green' | 'orange' | 'yell
   CLEANER: 'gray',
 };
 
-const STATUS_OPTIONS = ['all', 'ACTIVE', 'INACTIVE', 'ON_LEAVE', 'TERMINATED'] as const;
+// UX requirement: default to Active, show Active first, and move All to the end.
+const STATUS_OPTIONS = ['ACTIVE', 'INACTIVE', 'ON_LEAVE', 'TERMINATED', 'all'] as const;
 
 interface StaffTableProps {
   search: string;
@@ -51,7 +45,7 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editItem, setEditItem] = useState<Staff | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('ACTIVE');
 
   const { view, setView } = useViewPreference('staff');
   const handleAdd = () => { setEditItem(null); setFormOpen(true); };
@@ -103,7 +97,6 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
           r.staff_code.toLowerCase().includes(q) ||
           r.role.toLowerCase().includes(q) ||
           (r.email?.toLowerCase().includes(q) ?? false) ||
-          (r.staff_status?.toLowerCase().includes(q) ?? false) ||
           (r.employment_type?.toLowerCase().includes(q) ?? false)
       );
     }
@@ -116,7 +109,7 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
   const sortedRows = sorted as unknown as Staff[];
   const pag = usePagination(sortedRows, 25);
 
-  if (loading) return <TableSkeleton rows={6} cols={8} />;
+  if (loading) return <TableSkeleton rows={6} cols={7} />;
 
   if (filtered.length === 0) {
     return (
@@ -147,7 +140,6 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
             { key: 'staff_code', label: 'Code' },
             { key: 'full_name', label: 'Name' },
             { key: 'role', label: 'Role' },
-            { key: 'staff_status', label: 'Status' },
             { key: 'employment_type', label: 'Employment' },
             { key: 'email', label: 'Email' },
             { key: 'phone', label: 'Phone' },
@@ -192,7 +184,6 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
             <TableHead sortable sorted={sortKey === 'staff_code' && sortDir} onSort={() => onSort('staff_code')}>Code</TableHead>
             <TableHead sortable sorted={sortKey === 'full_name' && sortDir} onSort={() => onSort('full_name')}>Name</TableHead>
             <TableHead sortable sorted={sortKey === 'role' && sortDir} onSort={() => onSort('role')}>Role</TableHead>
-            <TableHead sortable sorted={sortKey === 'staff_status' && sortDir} onSort={() => onSort('staff_status')}>Status</TableHead>
             <TableHead>Employment</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Phone</TableHead>
@@ -207,11 +198,6 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
               <TableCell>
                 <Badge color={ROLE_COLORS[row.role] ?? 'gray'}>
                   {row.role.replace(/_/g, ' ')}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                <Badge color={STATUS_COLORS[row.staff_status ?? 'ACTIVE'] ?? 'gray'}>
-                  {(row.staff_status ?? 'ACTIVE').replace(/_/g, ' ')}
                 </Badge>
               </TableCell>
               <TableCell className="text-muted-foreground">{row.employment_type ?? '---'}</TableCell>

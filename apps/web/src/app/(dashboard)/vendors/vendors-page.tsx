@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { HardHat, Briefcase, Store, Plus } from 'lucide-react';
-import { ChipTabs, SearchInput, Button } from '@gleamops/ui';
+import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import type { Subcontractor } from '@gleamops/shared';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 import SubcontractorsTable from '../subcontractors/directory/subcontractors-table';
 import { SubcontractorDetail } from '../subcontractors/directory/subcontractor-detail';
@@ -31,6 +32,12 @@ export default function VendorsPageClient() {
   const [selected, setSelected] = useState<Subcontractor | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editItem, setEditItem] = useState<Subcontractor | null>(null);
+  const [kpis, setKpis] = useState({
+    activeSubs: 0,
+    pendingSubs: 0,
+    missingW9: 0,
+    supplyVendors: 0,
+  });
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   const addLabel = ADD_LABELS[tab];
@@ -41,6 +48,32 @@ export default function VendorsPageClient() {
       setFormOpen(true);
     }
   };
+
+  useEffect(() => {
+    async function fetchKpis() {
+      const supabase = getSupabaseBrowserClient();
+      const [activeRes, pendingRes, missingW9Res, vendorsRes] = await Promise.all([
+        supabase.from('subcontractors').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'ACTIVE'),
+        supabase.from('subcontractors').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'PENDING'),
+        supabase.from('subcontractors').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('w9_on_file', false),
+        supabase.from('supply_catalog').select('preferred_vendor').is('archived_at', null).not('preferred_vendor', 'is', null),
+      ]);
+
+      const uniqueVendors = new Set(
+        (vendorsRes.data ?? [])
+          .map((row) => String(row.preferred_vendor ?? '').trim())
+          .filter(Boolean)
+      );
+
+      setKpis({
+        activeSubs: activeRes.count ?? 0,
+        pendingSubs: pendingRes.count ?? 0,
+        missingW9: missingW9Res.count ?? 0,
+        supplyVendors: uniqueVendors.size,
+      });
+    }
+    fetchKpis();
+  }, [refreshKey]);
 
   return (
     <div className="space-y-6">
@@ -55,6 +88,13 @@ export default function VendorsPageClient() {
             {addLabel}
           </Button>
         )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Subcontractors</p><p className="text-xl font-semibold">{kpis.activeSubs}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Pending Approvals</p><p className="text-xl font-semibold text-warning">{kpis.pendingSubs}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Missing W-9</p><p className="text-xl font-semibold text-warning">{kpis.missingW9}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Supply Vendors</p><p className="text-xl font-semibold">{kpis.supplyVendors}</p></CardContent></Card>
       </div>
 
       <ChipTabs tabs={TABS} active={tab} onChange={setTab} />

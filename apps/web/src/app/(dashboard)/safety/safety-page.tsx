@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Award, BookOpen, FileText, CalendarCheck, Plus } from 'lucide-react';
-import { ChipTabs, SearchInput, Button } from '@gleamops/ui';
+import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 import CertificationsTable from './certifications/certifications-table';
 import CoursesTable from './training/courses-table';
@@ -27,6 +28,12 @@ export default function SafetyPageClient() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [autoCreate, setAutoCreate] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
+  const [kpis, setKpis] = useState({
+    certsExpiring30d: 0,
+    certsExpired: 0,
+    docsNeedReview: 0,
+    completionsExpiring30d: 0,
+  });
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   const canAdd = ['certifications', 'courses', 'completions', 'documents'].includes(tab);
@@ -46,6 +53,50 @@ export default function SafetyPageClient() {
     documents: 'New Document',
   };
 
+  useEffect(() => {
+    async function fetchKpis() {
+      const supabase = getSupabaseBrowserClient();
+      const today = new Date();
+      const in30Days = new Date(today);
+      in30Days.setDate(in30Days.getDate() + 30);
+      const todayStr = today.toISOString().slice(0, 10);
+      const in30DaysStr = in30Days.toISOString().slice(0, 10);
+
+      const [expiringRes, expiredRes, docsReviewRes, completionRes] = await Promise.all([
+        supabase
+          .from('staff_certifications')
+          .select('id', { count: 'exact', head: true })
+          .is('archived_at', null)
+          .gte('expiry_date', todayStr)
+          .lte('expiry_date', in30DaysStr),
+        supabase
+          .from('staff_certifications')
+          .select('id', { count: 'exact', head: true })
+          .is('archived_at', null)
+          .eq('status', 'EXPIRED'),
+        supabase
+          .from('safety_documents')
+          .select('id', { count: 'exact', head: true })
+          .is('archived_at', null)
+          .in('status', ['UNDER_REVIEW', 'EXPIRED']),
+        supabase
+          .from('training_completions')
+          .select('id', { count: 'exact', head: true })
+          .is('archived_at', null)
+          .gte('expiry_date', todayStr)
+          .lte('expiry_date', in30DaysStr),
+      ]);
+
+      setKpis({
+        certsExpiring30d: expiringRes.count ?? 0,
+        certsExpired: expiredRes.count ?? 0,
+        docsNeedReview: docsReviewRes.count ?? 0,
+        completionsExpiring30d: completionRes.count ?? 0,
+      });
+    }
+    fetchKpis();
+  }, [refreshKey]);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -61,6 +112,13 @@ export default function SafetyPageClient() {
             {addLabel[tab] ?? 'Add'}
           </Button>
         )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Certs Expiring (30d)</p><p className="text-xl font-semibold text-warning">{kpis.certsExpiring30d}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Expired Certifications</p><p className="text-xl font-semibold text-destructive">{kpis.certsExpired}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Docs Needing Review</p><p className="text-xl font-semibold text-warning">{kpis.docsNeedReview}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Completions Expiring (30d)</p><p className="text-xl font-semibold">{kpis.completionsExpiring30d}</p></CardContent></Card>
       </div>
 
       <ChipTabs tabs={TABS} active={tab} onChange={setTab} />

@@ -1,15 +1,7 @@
 'use client';
 
 import { MapPin } from 'lucide-react';
-import { Badge } from '@gleamops/ui';
 import type { Site } from '@gleamops/shared';
-
-const SITE_STATUS_COLORS: Record<string, 'green' | 'gray' | 'yellow' | 'red'> = {
-  ACTIVE: 'green',
-  INACTIVE: 'gray',
-  ON_HOLD: 'yellow',
-  CANCELED: 'red',
-};
 
 interface SiteWithClient extends Site {
   client?: { name: string; client_code: string } | null;
@@ -54,11 +46,6 @@ export function SitesCardGrid({ rows, onSelect }: SitesCardGridProps) {
           )}
           <p className="mt-3 text-sm font-semibold text-foreground leading-tight">{item.name}</p>
           <p className="mt-1 text-xs text-muted-foreground">{item.site_code}</p>
-          <div className="mt-3 flex flex-wrap justify-center gap-1.5">
-            {item.status && (
-              <Badge color={SITE_STATUS_COLORS[item.status] ?? 'gray'}>{item.status}</Badge>
-            )}
-          </div>
           <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">
             {item.square_footage && (
               <p>{item.square_footage.toLocaleString()} sq ft</p>

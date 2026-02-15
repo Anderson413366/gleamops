@@ -1,15 +1,6 @@
 'use client';
 
-import { Badge } from '@gleamops/ui';
 import type { Client } from '@gleamops/shared';
-
-const STATUS_COLORS: Record<string, 'green' | 'gray' | 'orange' | 'red' | 'yellow'> = {
-  ACTIVE: 'green',
-  INACTIVE: 'gray',
-  PROSPECT: 'orange',
-  ON_HOLD: 'yellow',
-  CANCELED: 'red',
-};
 
 interface ClientsCardGridProps {
   rows: Client[];
@@ -53,9 +44,10 @@ export function ClientsCardGrid({ rows, onSelect }: ClientsCardGridProps) {
           <p className="mt-3 text-sm font-semibold text-foreground leading-tight">{item.name}</p>
           <p className="mt-1 text-xs text-muted-foreground">{item.client_code}</p>
           <div className="mt-3 flex flex-wrap justify-center gap-1.5">
-            <Badge color={STATUS_COLORS[item.status] ?? 'gray'}>{item.status}</Badge>
             {item.client_type && (
-              <Badge color="blue">{item.client_type}</Badge>
+              <span className="inline-flex items-center rounded-full bg-module-accent/12 px-2.5 py-1 text-[11px] font-medium text-module-accent">
+                {item.client_type}
+              </span>
             )}
           </div>
           {item.industry && (

@@ -15,13 +15,6 @@ import { usePagination } from '@/hooks/use-pagination';
 import { useViewPreference } from '@/hooks/use-view-preference';
 import { SitesCardGrid } from './sites-card-grid';
 
-const SITE_STATUS_COLORS: Record<string, 'green' | 'gray' | 'yellow' | 'red'> = {
-  ACTIVE: 'green',
-  INACTIVE: 'gray',
-  ON_HOLD: 'yellow',
-  CANCELED: 'red',
-};
-
 const PRIORITY_COLORS: Record<string, 'red' | 'blue' | 'yellow' | 'gray'> = {
   CRITICAL: 'red',
   HIGH: 'blue',
@@ -31,7 +24,8 @@ const PRIORITY_COLORS: Record<string, 'red' | 'blue' | 'yellow' | 'gray'> = {
   STANDARD: 'gray',
 };
 
-const STATUS_OPTIONS = ['all', 'ACTIVE', 'INACTIVE', 'ON_HOLD', 'CANCELED'] as const;
+// UX requirement: default to Active, show Active first, and move All to the end.
+const STATUS_OPTIONS = ['ACTIVE', 'INACTIVE', 'ON_HOLD', 'CANCELED', 'all'] as const;
 
 interface SiteWithClient extends Site {
   client?: { name: string; client_code: string } | null;
@@ -45,7 +39,7 @@ export default function SitesTable({ search }: SitesTableProps) {
   const router = useRouter();
   const [rows, setRows] = useState<SiteWithClient[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('ACTIVE');
   const { view, setView } = useViewPreference('sites');
 
   const fetchData = useCallback(async () => {
@@ -85,8 +79,7 @@ export default function SitesTable({ search }: SitesTableProps) {
           r.site_code.toLowerCase().includes(q) ||
           r.client?.name?.toLowerCase().includes(q) ||
           r.address?.street?.toLowerCase().includes(q) ||
-          r.address?.city?.toLowerCase().includes(q) ||
-          r.status?.toLowerCase().includes(q)
+          r.address?.city?.toLowerCase().includes(q)
       );
     }
     return result;
@@ -102,7 +95,7 @@ export default function SitesTable({ search }: SitesTableProps) {
     router.push(`/crm/sites/${row.site_code}`);
   };
 
-  if (loading) return <TableSkeleton rows={8} cols={8} />;
+  if (loading) return <TableSkeleton rows={8} cols={7} />;
 
   if (filtered.length === 0) {
     return (
@@ -168,7 +161,6 @@ export default function SitesTable({ search }: SitesTableProps) {
             <TableHead sortable sorted={sortKey === 'site_code' && sortDir} onSort={() => onSort('site_code')}>Code</TableHead>
             <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Name</TableHead>
             <TableHead>Client</TableHead>
-            <TableHead sortable sorted={sortKey === 'status' && sortDir} onSort={() => onSort('status')}>Status</TableHead>
             <TableHead>Address</TableHead>
             <TableHead sortable sorted={sortKey === 'square_footage' && sortDir} onSort={() => onSort('square_footage')}>Sq Ft</TableHead>
             <TableHead>Floors</TableHead>
@@ -181,11 +173,6 @@ export default function SitesTable({ search }: SitesTableProps) {
               <TableCell className="font-mono text-xs">{row.site_code}</TableCell>
               <TableCell className="font-medium">{row.name}</TableCell>
               <TableCell className="text-muted-foreground">{row.client?.name ?? '---'}</TableCell>
-              <TableCell>
-                {row.status ? (
-                  <Badge color={SITE_STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
-                ) : '---'}
-              </TableCell>
               <TableCell className="text-muted-foreground">
                 {row.address
                   ? [row.address.city, row.address.state].filter(Boolean).join(', ')

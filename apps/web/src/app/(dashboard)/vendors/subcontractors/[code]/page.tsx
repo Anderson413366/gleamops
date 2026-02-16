@@ -45,6 +45,17 @@ function formatDateTime(value: string | null | undefined): string {
   return date.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+function formatUpdatedAgo(value: string | null | undefined): string {
+  if (!value) return 'Updated recently';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Updated recently';
+  const diffMs = Date.now() - date.getTime();
+  const diffDays = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+  if (diffDays === 0) return 'Updated today';
+  if (diffDays === 1) return 'Updated 1 day ago';
+  return `Updated ${diffDays} days ago`;
+}
+
 function formatMoney(value: number | null | undefined): string {
   if (value == null) return 'Not Set';
   return new Intl.NumberFormat('en-US', {
@@ -229,6 +240,7 @@ export default function SubcontractorDetailPage() {
   const license = expiryMeta(subcontractor.license_expiry);
   const insurance = expiryMeta(subcontractor.insurance_expiry);
   const isInactive = (subcontractor.status ?? '').toUpperCase() === 'INACTIVE';
+  const normalizedStatus = (subcontractor.status ?? 'ACTIVE').toUpperCase();
   const profileItems: CompletenessItem[] = [
     { key: 'company_name', label: 'Company Name', isComplete: isFieldComplete(subcontractor.company_name) },
     { key: 'contact_name', label: 'Contact Name', isComplete: isFieldComplete(subcontractor.contact_name) },
@@ -287,7 +299,11 @@ export default function SubcontractorDetailPage() {
             <h1 className="text-2xl font-bold text-foreground">{subcontractor.company_name}</h1>
             <div className="mt-1 flex items-center gap-2">
               <span className="text-sm font-mono text-muted-foreground">{subcontractor.subcontractor_code}</span>
-              <Badge color={statusTone(subcontractor.status)}>{`● ${subcontractor.status}`}</Badge>
+              <Badge color={statusTone(normalizedStatus)}>{`● ${normalizedStatus}`}</Badge>
+              <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                <Clock3 className="h-3.5 w-3.5" />
+                {formatUpdatedAgo(subcontractor.updated_at)}
+              </span>
             </div>
           </div>
         </div>
@@ -354,6 +370,10 @@ export default function SubcontractorDetailPage() {
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">Contact Name</dt>
                 <dd className="font-medium text-right">{subcontractor.contact_name ?? 'Not Set'}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted-foreground">Role / Title</dt>
+                <dd className="font-medium text-right">{subcontractor.contact_title ?? 'Not Set'}</dd>
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">Email</dt>
@@ -425,6 +445,10 @@ export default function SubcontractorDetailPage() {
                     : 'Not Set'}
                 </dd>
               </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted-foreground">Payment Terms</dt>
+                <dd className="font-medium text-right">{subcontractor.payment_terms ?? 'Not Set'}</dd>
+              </div>
             </dl>
           </div>
         </div>
@@ -470,6 +494,14 @@ export default function SubcontractorDetailPage() {
                     </span>
                   )}
                 </dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted-foreground">Insurance Company</dt>
+                <dd className="font-medium text-right">{subcontractor.insurance_company ?? 'Not Set'}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted-foreground">Policy Number</dt>
+                <dd className="font-medium text-right">{subcontractor.insurance_policy_number ?? 'Not Set'}</dd>
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">Insurance Expiry</dt>

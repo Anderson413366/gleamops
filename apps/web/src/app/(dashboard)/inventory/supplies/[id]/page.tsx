@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useEffect, useState } from 'react';
+import { type ChangeEvent, useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -17,11 +17,15 @@ import {
   ExternalLink,
   ShieldCheck,
   Sparkles,
+  SprayCan,
+  Brush,
+  Upload,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Badge, Skeleton } from '@gleamops/ui';
 import type { SupplyCatalog } from '@gleamops/shared';
 import { SupplyForm } from '@/components/forms/supply-form';
+import { toast } from 'sonner';
 
 function formatCurrency(n: number | null) {
   if (n == null) return '\u2014';
@@ -52,12 +56,33 @@ function formatRelativeDateTime(dateStr: string): string {
   return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
 }
 
+function supplyCategoryIcon(category: string | null | undefined) {
+  const normalized = (category ?? '').toLowerCase();
+  if (normalized.includes('liner') || normalized.includes('bag')) {
+    return <Trash2 className="h-7 w-7" aria-hidden />;
+  }
+  if (normalized.includes('chemical')) {
+    return <SprayCan className="h-7 w-7" aria-hidden />;
+  }
+  if (normalized.includes('mop') || normalized.includes('bucket')) {
+    return <Brush className="h-7 w-7" aria-hidden />;
+  }
+  if (normalized.includes('safety') || normalized.includes('ppe')) {
+    return <ShieldCheck className="h-7 w-7" aria-hidden />;
+  }
+  return <Package className="h-7 w-7" aria-hidden />;
+}
+
 export default function SupplyDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [supply, setSupply] = useState<SupplyCatalog | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [simpleView, setSimpleView] = useState(false);
+  const [imageLoadError, setImageLoadError] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
 
   const fetchSupply = async () => {
     setLoading(true);
@@ -86,6 +111,74 @@ export default function SupplyDetailPage() {
   useEffect(() => {
     localStorage.setItem('gleamops-inventory-simple-view', String(simpleView));
   }, [simpleView]);
+
+  useEffect(() => {
+    setImageLoadError(false);
+  }, [supply?.image_url]);
+
+  const handleImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !supply) return;
+
+    if (!file.type.startsWith('image/')) {
+      setImageUploadError('Please upload a valid image file.');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      setImageUploadError('Image must be 2MB or smaller.');
+      return;
+    }
+
+    setImageUploading(true);
+    setImageUploadError(null);
+
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      const safeExt = ['jpg', 'jpeg', 'png', 'webp'].includes(ext) ? ext : 'jpg';
+      const path = `supply-images/${supply.code}-${Date.now()}.${safeExt}`;
+      const buckets = ['supply-images', 'documents'];
+      let publicUrl: string | null = null;
+      let lastError: Error | null = null;
+
+      for (const bucket of buckets) {
+        const { error: uploadError } = await supabase.storage.from(bucket).upload(path, file, {
+          upsert: true,
+          contentType: file.type,
+        });
+        if (uploadError) {
+          lastError = uploadError;
+          continue;
+        }
+        const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(path);
+        publicUrl = urlData.publicUrl;
+        break;
+      }
+
+      if (!publicUrl) {
+        throw lastError ?? new Error('Upload failed.');
+      }
+
+      const { error: updateError } = await supabase
+        .from('supply_catalog')
+        .update({ image_url: publicUrl })
+        .eq('id', supply.id);
+
+      if (updateError) throw updateError;
+
+      setSupply((prev) => (prev ? { ...prev, image_url: publicUrl } : prev));
+      setImageLoadError(false);
+      toast.success('Product image updated.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Image upload failed.';
+      setImageUploadError(message);
+      toast.error(message);
+    } finally {
+      setImageUploading(false);
+      event.target.value = '';
+    }
+  };
 
   if (loading) {
     return (
@@ -125,15 +218,18 @@ export default function SupplyDetailPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          {supply.image_url ? (
-            <img
-              src={supply.image_url}
-              alt={supply.name}
-              className="h-16 w-16 rounded-full object-cover"
-            />
+          {supply.image_url && !imageLoadError ? (
+            <div className="flex h-16 w-16 items-center justify-center rounded-xl border border-border bg-slate-50 p-2 dark:bg-slate-900">
+              <img
+                src={supply.image_url}
+                alt={supply.name}
+                className="h-full w-full object-contain"
+                onError={() => setImageLoadError(true)}
+              />
+            </div>
           ) : (
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-xl font-bold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-              <Package className="h-7 w-7" />
+            <div className="flex h-16 w-16 items-center justify-center rounded-xl border border-border bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-300">
+              {supplyCategoryIcon(supply.category)}
             </div>
           )}
           <div>
@@ -153,6 +249,23 @@ export default function SupplyDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={handleImageUpload}
+            disabled={imageUploading}
+          />
+          <button
+            type="button"
+            onClick={() => imageInputRef.current?.click()}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={imageUploading}
+          >
+            <Upload className="h-3.5 w-3.5" />
+            {imageUploading ? 'Uploading...' : 'Upload Image'}
+          </button>
           <button
             type="button"
             onClick={() => setSimpleView((value) => !value)}
@@ -175,6 +288,9 @@ export default function SupplyDetailPage() {
           </button>
         </div>
       </div>
+      {imageUploadError && (
+        <p className="text-xs font-medium text-red-600 dark:text-red-400">{imageUploadError}</p>
+      )}
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

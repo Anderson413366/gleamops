@@ -20,7 +20,6 @@ const STATUS_OPTIONS = ['ACTIVE', 'INACTIVE', 'PENDING', 'all'] as const;
 
 interface Props {
   search: string;
-  onSelect?: (sub: Subcontractor) => void;
 }
 
 function formatDate(d: string | null) {
@@ -33,7 +32,7 @@ function formatCurrency(n: number | null) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(n);
 }
 
-export default function SubcontractorsTable({ search, onSelect }: Props) {
+export default function SubcontractorsTable({ search }: Props) {
   const router = useRouter();
   const [rows, setRows] = useState<Subcontractor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,8 +95,7 @@ export default function SubcontractorsTable({ search, onSelect }: Props) {
 
   const openDetail = useCallback((row: Subcontractor) => {
     router.push(`/vendors/subcontractors/${encodeURIComponent(row.subcontractor_code)}`);
-    onSelect?.(row);
-  }, [onSelect, router]);
+  }, [router]);
 
   if (loading) return <TableSkeleton rows={8} cols={8} />;
 

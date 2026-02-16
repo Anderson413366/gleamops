@@ -14,7 +14,8 @@ import {
   MapPin,
   ArrowLeft,
   Pencil,
-  Archive,
+  PauseCircle,
+  PlayCircle,
   AlertTriangle,
   CalendarDays,
   ShieldCheck,
@@ -24,7 +25,6 @@ import {
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Badge,
-  ArchiveDialog,
   Button,
   Card,
   CardContent,
@@ -47,6 +47,7 @@ import { StaffForm } from '@/components/forms/staff-form';
 import { toast } from 'sonner';
 import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
+import { StatusToggleDialog } from '@/components/detail/status-toggle-dialog';
 
 const STATUS_COLORS: Record<string, 'green' | 'gray' | 'yellow' | 'red'> = {
   ACTIVE: 'green',
@@ -418,16 +419,17 @@ export default function StaffDetailPage() {
     await fetchStaff();
   };
 
-  const handleArchive = async (reason: string) => {
+  const handleStatusToggle = async () => {
     if (!staff) return;
     setArchiveLoading(true);
     const supabase = getSupabaseBrowserClient();
+    const isInactive = (staff.staff_status ?? '').toUpperCase() === 'INACTIVE' || (staff.staff_status ?? '').toUpperCase() === 'TERMINATED';
+    const nextStatus = isInactive ? 'ACTIVE' : 'TERMINATED';
     try {
       const { error } = await supabase
         .from('staff')
         .update({
-          staff_status: 'TERMINATED',
-          archive_reason: reason,
+          staff_status: nextStatus,
         })
         .eq('id', staff.id)
         .eq('version_etag', staff.version_etag);
@@ -437,7 +439,7 @@ export default function StaffDetailPage() {
         return;
       }
 
-      toast.success('Staff set to inactive');
+      toast.success(`Successfully ${isInactive ? 'reactivated' : 'deactivated'} ${staff.full_name}`);
       await fetchStaff();
     } finally {
       setArchiveLoading(false);
@@ -547,11 +549,12 @@ export default function StaffDetailPage() {
           <button
             type="button"
             onClick={() => setArchiveOpen(true)}
-            disabled={isInactive}
-            className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950"
+            className={isInactive
+              ? 'inline-flex items-center gap-2 rounded-lg border border-green-300 px-3.5 py-2 text-sm font-medium text-green-700 hover:bg-green-50 transition-colors'
+              : 'inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3.5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors'}
           >
-            <Archive className="h-3.5 w-3.5" />
-            Set Inactive
+            {isInactive ? <PlayCircle className="h-3.5 w-3.5" /> : <PauseCircle className="h-3.5 w-3.5" />}
+            {isInactive ? 'Reactivate' : 'Deactivate'}
           </button>
         </div>
       </div>
@@ -1005,14 +1008,16 @@ export default function StaffDetailPage() {
         focusSection={staffFormFocus}
       />
 
-      <ArchiveDialog
+      <StatusToggleDialog
         open={archiveOpen}
         onClose={() => setArchiveOpen(false)}
-        onConfirm={handleArchive}
-        entityName="Staff"
-        title="Set Staff Inactive"
-        description="Are you sure? This will hide this staff member from active lists, but the data will never be deleted."
-        confirmLabel="Set Inactive"
+        onConfirm={handleStatusToggle}
+        entityLabel="Staff"
+        entityName={staff.full_name}
+        mode={isInactive ? 'reactivate' : 'deactivate'}
+        warning={!isInactive && activeJobCount > 0
+          ? `⚠️ This team member has ${activeJobCount} active job${activeJobCount === 1 ? '' : 's'} that may be affected.`
+          : null}
         loading={archiveLoading}
       />
     </div>

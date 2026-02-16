@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { HardHat, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -33,6 +34,7 @@ function formatCurrency(n: number | null) {
 }
 
 export default function SubcontractorsTable({ search, onSelect }: Props) {
+  const router = useRouter();
   const [rows, setRows] = useState<Subcontractor[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('ACTIVE');
@@ -92,6 +94,11 @@ export default function SubcontractorsTable({ search, onSelect }: Props) {
       ? 'Add a subcontractor to get started.'
       : 'All subcontractors are currently in other statuses.';
 
+  const openDetail = useCallback((row: Subcontractor) => {
+    router.push(`/vendors/subcontractors/${encodeURIComponent(row.subcontractor_code)}`);
+    onSelect?.(row);
+  }, [onSelect, router]);
+
   if (loading) return <TableSkeleton rows={8} cols={8} />;
 
   return (
@@ -148,7 +155,7 @@ export default function SubcontractorsTable({ search, onSelect }: Props) {
             description={emptyDescription}
           />
         ) : (
-          <SubcontractorsCardGrid rows={pag.page} onSelect={(item) => onSelect?.(item)} />
+          <SubcontractorsCardGrid rows={pag.page} onSelect={openDetail} />
         )
       ) : (
         <>
@@ -167,7 +174,7 @@ export default function SubcontractorsTable({ search, onSelect }: Props) {
             </TableHeader>
             <TableBody>
               {pag.page.map((row) => (
-                <TableRow key={row.id} onClick={() => onSelect?.(row)} className="cursor-pointer">
+                <TableRow key={row.id} onClick={() => openDetail(row)} className="cursor-pointer">
                   <TableCell className="font-mono text-xs">{row.subcontractor_code}</TableCell>
                   <TableCell className="font-medium">{row.company_name}</TableCell>
                   <TableCell>{row.contact_name ?? '---'}</TableCell>

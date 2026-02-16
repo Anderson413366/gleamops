@@ -7,7 +7,6 @@ import { ChipTabs, SearchInput, Button } from '@gleamops/ui';
 import type { Subcontractor } from '@gleamops/shared';
 
 import SubcontractorsTable from './directory/subcontractors-table';
-import { SubcontractorDetail } from './directory/subcontractor-detail';
 import { SubcontractorForm } from '@/components/forms/subcontractor-form';
 import SubcontractorJobsTable from './jobs/subcontractor-jobs-table';
 
@@ -22,7 +21,6 @@ export default function SubcontractorsPageClient() {
   const [tab, setTab] = useState(TABS.some(t => t.key === initialTab) ? initialTab! : TABS[0].key);
   const [search, setSearch] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
-  const [selected, setSelected] = useState<Subcontractor | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editItem, setEditItem] = useState<Subcontractor | null>(null);
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
@@ -47,24 +45,12 @@ export default function SubcontractorsPageClient() {
         <SubcontractorsTable
           key={`sub-${refreshKey}`}
           search={search}
-          onSelect={(s) => setSelected(s)}
         />
       )}
 
       {tab === 'jobs' && (
         <SubcontractorJobsTable search={search} />
       )}
-
-      <SubcontractorDetail
-        subcontractor={selected}
-        open={!!selected}
-        onClose={() => setSelected(null)}
-        onEdit={(s) => {
-          setSelected(null);
-          setEditItem(s);
-          setFormOpen(true);
-        }}
-      />
 
       <SubcontractorForm
         open={formOpen}

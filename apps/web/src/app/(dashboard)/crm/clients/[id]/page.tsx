@@ -8,7 +8,8 @@ import Link from 'next/link';
 import {
   ArrowLeft,
   Pencil,
-  Archive,
+  PauseCircle,
+  PlayCircle,
   Globe,
   MapPin,
   Mail,
@@ -17,13 +18,14 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { ArchiveDialog, Badge, Skeleton } from '@gleamops/ui';
+import { Badge, Skeleton } from '@gleamops/ui';
 import type { Client, Contact } from '@gleamops/shared';
 import { CLIENT_STATUS_COLORS } from '@gleamops/shared';
 import { ClientForm } from '@/components/forms/client-form';
 import { ContactForm } from '@/components/forms/contact-form';
 import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
+import { StatusToggleDialog } from '@/components/detail/status-toggle-dialog';
 import { toast } from 'sonner';
 
 function formatCurrency(n: number | null) {
@@ -87,6 +89,7 @@ export default function ClientDetailPage() {
 
   // Related data counts
   const [siteCount, setSiteCount] = useState(0);
+  const [activeSiteCount, setActiveSiteCount] = useState(0);
   const [activeJobCount, setActiveJobCount] = useState(0);
   const [monthlyRevenue, setMonthlyRevenue] = useState(0);
   const [siteIds, setSiteIds] = useState<string[]>([]);
@@ -121,13 +124,15 @@ export default function ClientDetailPage() {
       const [sitesRes] = await Promise.all([
         supabase
           .from('sites')
-          .select('id')
+          .select('id, status')
           .eq('client_id', c.id)
           .is('archived_at', null),
       ]);
 
       const sites = sitesRes.data ?? [];
       setSiteCount(sites.length);
+      const activeSites = sites.filter((s: { status?: string | null }) => (s.status ?? '').toUpperCase() === 'ACTIVE');
+      setActiveSiteCount(activeSites.length);
       setSiteIds(sites.map((s: { id: string }) => s.id));
 
       if (sites.length > 0) {
@@ -154,6 +159,7 @@ export default function ClientDetailPage() {
         setActiveJobCount(0);
         setMonthlyRevenue(0);
         setSiteIds([]);
+        setActiveSiteCount(0);
       }
     }
     setLoading(false);
@@ -163,16 +169,17 @@ export default function ClientDetailPage() {
     fetchClient();
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleArchive = async (reason: string) => {
+  const handleStatusToggle = async () => {
     if (!client) return;
     setArchiveLoading(true);
     const supabase = getSupabaseBrowserClient();
+    const isInactive = (client.status ?? '').toUpperCase() === 'INACTIVE';
+    const nextStatus = isInactive ? 'ACTIVE' : 'INACTIVE';
     try {
       const { error } = await supabase
         .from('clients')
         .update({
-          status: 'INACTIVE',
-          archive_reason: reason,
+          status: nextStatus,
         })
         .eq('id', client.id)
         .eq('version_etag', client.version_etag);
@@ -182,7 +189,7 @@ export default function ClientDetailPage() {
         return;
       }
 
-      toast.success('Client set to inactive');
+      toast.success(`Successfully ${isInactive ? 'reactivated' : 'deactivated'} ${client.name}`);
       await fetchClient();
     } finally {
       setArchiveLoading(false);
@@ -217,6 +224,7 @@ export default function ClientDetailPage() {
   const addr = client.billing_address;
   const contractHealth = getContractHealth(client.contract_start_date, client.contract_end_date);
   const contractNeedsDates = !client.contract_start_date && !client.contract_end_date;
+  const isInactive = (client.status ?? '').toUpperCase() === 'INACTIVE';
   const clientColor = client.status === 'PROSPECT'
     ? 'yellow'
     : (CLIENT_STATUS_COLORS[client.status] ?? 'gray');
@@ -272,7 +280,7 @@ export default function ClientDetailPage() {
         Back to CRM
       </Link>
 
-      {client.status === 'INACTIVE' && (
+      {isInactive && (
         <div className="rounded-xl border-2 border-red-300 bg-red-50 px-4 py-3 text-center text-base font-semibold tracking-wide text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
           INACTIVE
         </div>
@@ -320,11 +328,12 @@ export default function ClientDetailPage() {
           <button
             type="button"
             onClick={() => setArchiveOpen(true)}
-            disabled={client.status === 'INACTIVE'}
-            className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950"
+            className={isInactive
+              ? 'inline-flex items-center gap-2 rounded-lg border border-green-300 px-3.5 py-2 text-sm font-medium text-green-700 hover:bg-green-50 transition-colors'
+              : 'inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3.5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors'}
           >
-            <Archive className="h-3.5 w-3.5" />
-            Set Inactive
+            {isInactive ? <PlayCircle className="h-3.5 w-3.5" /> : <PauseCircle className="h-3.5 w-3.5" />}
+            {isInactive ? 'Reactivate' : 'Deactivate'}
           </button>
         </div>
       </div>
@@ -802,14 +811,16 @@ export default function ClientDetailPage() {
         onSuccess={fetchClient}
       />
 
-      <ArchiveDialog
+      <StatusToggleDialog
         open={archiveOpen}
         onClose={() => setArchiveOpen(false)}
-        onConfirm={handleArchive}
-        entityName="Client"
-        title="Set Client Inactive"
-        description="Are you sure? This will hide this client from active lists, but the data will never be deleted."
-        confirmLabel="Set Inactive"
+        onConfirm={handleStatusToggle}
+        entityLabel="Client"
+        entityName={client.name}
+        mode={isInactive ? 'reactivate' : 'deactivate'}
+        warning={!isInactive && (activeSiteCount > 0 || activeJobCount > 0)
+          ? `⚠️ This client has ${activeSiteCount} active site${activeSiteCount === 1 ? '' : 's'} and ${activeJobCount} active job${activeJobCount === 1 ? '' : 's'} that may be affected.`
+          : null}
         loading={archiveLoading}
       />
     </div>

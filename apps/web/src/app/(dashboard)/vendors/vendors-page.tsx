@@ -8,7 +8,6 @@ import type { Subcontractor } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 import SubcontractorsTable from '../subcontractors/directory/subcontractors-table';
-import { SubcontractorDetail } from '../subcontractors/directory/subcontractor-detail';
 import { SubcontractorForm } from '@/components/forms/subcontractor-form';
 import SubcontractorJobsTable from '../subcontractors/jobs/subcontractor-jobs-table';
 import VendorsTable from './vendor-directory/vendors-table';
@@ -30,7 +29,6 @@ export default function VendorsPageClient() {
   const [tab, setTab] = useState(TABS.some(t => t.key === initialTab) ? initialTab! : TABS[0].key);
   const [search, setSearch] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
-  const [selected, setSelected] = useState<Subcontractor | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [vendorFormOpen, setVendorFormOpen] = useState(false);
   const [editItem, setEditItem] = useState<Subcontractor | null>(null);
@@ -108,7 +106,6 @@ export default function VendorsPageClient() {
         <SubcontractorsTable
           key={`sub-${refreshKey}`}
           search={search}
-          onSelect={(s) => setSelected(s)}
         />
       )}
 
@@ -125,17 +122,6 @@ export default function VendorsPageClient() {
           onRefresh={refresh}
         />
       )}
-
-      <SubcontractorDetail
-        subcontractor={selected}
-        open={!!selected}
-        onClose={() => setSelected(null)}
-        onEdit={(s) => {
-          setSelected(null);
-          setEditItem(s);
-          setFormOpen(true);
-        }}
-      />
 
       <SubcontractorForm
         open={formOpen}

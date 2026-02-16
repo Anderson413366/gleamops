@@ -3,13 +3,14 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useState, type ReactNode } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
   MapPin,
   Pencil,
-  Archive,
+  PauseCircle,
+  PlayCircle,
   Building2,
   Shield,
   AlertTriangle,
@@ -19,12 +20,13 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { ArchiveDialog, Badge, Skeleton } from '@gleamops/ui';
+import { Badge, Skeleton } from '@gleamops/ui';
 import type { Site, Contact, Staff, KeyInventory } from '@gleamops/shared';
 import { SITE_STATUS_COLORS } from '@gleamops/shared';
 import { SiteForm } from '@/components/forms/site-form';
 import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
+import { StatusToggleDialog } from '@/components/detail/status-toggle-dialog';
 import { toast } from 'sonner';
 
 interface SiteWithClient extends Site {
@@ -91,7 +93,6 @@ const RISK_BADGE: Record<string, 'red' | 'orange' | 'blue' | 'gray' | 'yellow'> 
 
 export default function SiteDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
   const [site, setSite] = useState<SiteWithClient | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
@@ -167,18 +168,18 @@ export default function SiteDetailPage() {
     fetchSite();
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleArchive = async (reason: string) => {
+  const handleStatusToggle = async () => {
     if (!site) return;
     setArchiveLoading(true);
     const supabase = getSupabaseBrowserClient();
+    const isInactive = (site.status ?? '').toUpperCase() === 'INACTIVE';
+    const nextStatus = isInactive ? 'ACTIVE' : 'INACTIVE';
     try {
-      const { data: authData } = await supabase.auth.getUser();
       const { error } = await supabase
         .from('sites')
         .update({
-          archived_at: new Date().toISOString(),
-          archived_by: authData.user?.id ?? null,
-          archive_reason: reason,
+          status: nextStatus,
+          status_date: new Date().toISOString(),
         })
         .eq('id', site.id)
         .eq('version_etag', site.version_etag);
@@ -188,8 +189,8 @@ export default function SiteDetailPage() {
         return;
       }
 
-      toast.success('Site archived');
-      router.push('/crm?tab=sites');
+      toast.success(`Successfully ${isInactive ? 'reactivated' : 'deactivated'} ${site.name}`);
+      await fetchSite();
     } finally {
       setArchiveLoading(false);
       setArchiveOpen(false);
@@ -221,6 +222,7 @@ export default function SiteDetailPage() {
   }
 
   const addr = site.address;
+  const isInactive = (site.status ?? '').toUpperCase() === 'INACTIVE';
   const mapsUrl = mapsSearchUrl(addr);
   const heroMapUrl = site.photo_url ? null : osmStaticMapUrl(site.geofence_center_lat, site.geofence_center_lng);
   const siteCompletenessItems: CompletenessItem[] = [
@@ -295,10 +297,12 @@ export default function SiteDetailPage() {
             <button
               type="button"
               onClick={() => setArchiveOpen(true)}
-              className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-background/80 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950"
+              className={isInactive
+                ? 'inline-flex items-center gap-2 rounded-lg border border-green-300 bg-background/80 px-3.5 py-2 text-sm font-medium text-green-700 hover:bg-green-50 transition-colors'
+                : 'inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-background/80 px-3.5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors'}
             >
-              <Archive className="h-3.5 w-3.5" />
-              Archive
+              {isInactive ? <PlayCircle className="h-3.5 w-3.5" /> : <PauseCircle className="h-3.5 w-3.5" />}
+              {isInactive ? 'Reactivate' : 'Deactivate'}
             </button>
           </div>
         </div>
@@ -653,11 +657,16 @@ export default function SiteDetailPage() {
         focusSection={siteFormFocus}
       />
 
-      <ArchiveDialog
+      <StatusToggleDialog
         open={archiveOpen}
         onClose={() => setArchiveOpen(false)}
-        onConfirm={handleArchive}
-        entityName="Site"
+        onConfirm={handleStatusToggle}
+        entityLabel="Site"
+        entityName={site.name}
+        mode={isInactive ? 'reactivate' : 'deactivate'}
+        warning={!isInactive && activeJobCount > 0
+          ? `⚠️ This site has ${activeJobCount} active job${activeJobCount === 1 ? '' : 's'} that may be affected.`
+          : null}
         loading={archiveLoading}
       />
     </div>

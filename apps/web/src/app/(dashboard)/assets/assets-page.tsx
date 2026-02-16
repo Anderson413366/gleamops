@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Wrench, ArrowLeftRight, KeyRound, Truck, Settings2, Plus } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -28,7 +29,13 @@ const ADD_LABELS: Record<string, string> = {
 };
 
 export default function AssetsPageClient() {
-  const [tab, setTab] = useState(TABS[0].key);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get('tab');
+  const [tab, setTab] = useState(
+    TABS.some((entry) => entry.key === initialTab) ? initialTab! : TABS[0].key
+  );
   const [search, setSearch] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
   const [formOpen, setFormOpen] = useState(false);
@@ -45,6 +52,21 @@ export default function AssetsPageClient() {
   const handleAdd = () => {
     setFormOpen(true);
   };
+
+  useEffect(() => {
+    const urlTab = searchParams.get('tab');
+    if (urlTab && TABS.some((entry) => entry.key === urlTab) && urlTab !== tab) {
+      setTab(urlTab);
+    }
+  }, [searchParams, tab]);
+
+  useEffect(() => {
+    const currentTab = searchParams.get('tab');
+    if (currentTab === tab) return;
+    const next = new URLSearchParams(searchParams.toString());
+    next.set('tab', tab);
+    router.replace(`${pathname}?${next.toString()}`, { scroll: false });
+  }, [tab, pathname, router, searchParams]);
 
   useEffect(() => {
     async function fetchKpis() {

@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
   Briefcase,
   Pencil,
-  Archive,
+  PauseCircle,
+  PlayCircle,
   Calendar,
   DollarSign,
   ClipboardList,
@@ -17,7 +18,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { ArchiveDialog, Badge, Skeleton } from '@gleamops/ui';
+import { Badge, Skeleton } from '@gleamops/ui';
 import type { SiteJob } from '@gleamops/shared';
 import { JOB_STATUS_COLORS } from '@gleamops/shared';
 import { JobForm } from '@/components/forms/job-form';
@@ -28,6 +29,7 @@ import {
 import { formatDate } from '@/lib/utils/date';
 import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
+import { StatusToggleDialog } from '@/components/detail/status-toggle-dialog';
 
 interface JobWithRelations extends SiteJob {
   site?: {
@@ -109,7 +111,6 @@ function formatRelativeDateTime(dateStr: string): string {
 
 export default function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
   const [job, setJob] = useState<JobWithRelations | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
@@ -232,10 +233,16 @@ export default function JobDetailPage() {
     if (!job) return;
     setRemovingAssignmentId(assignmentId);
     const supabase = getSupabaseBrowserClient();
+    const { data: authData } = await supabase.auth.getUser();
     const { error } = await supabase
       .from('job_staff_assignments')
-      .delete()
-      .eq('id', assignmentId);
+      .update({
+        archived_at: new Date().toISOString(),
+        archived_by: authData.user?.id ?? null,
+        archive_reason: 'Assignment removed from service plan detail page',
+      })
+      .eq('id', assignmentId)
+      .is('archived_at', null);
     if (error) {
       toast.error(error.message);
     } else {
@@ -249,18 +256,18 @@ export default function JobDetailPage() {
     fetchJob();
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleArchive = async (reason: string) => {
+  const handleStatusToggle = async () => {
     if (!job) return;
     setArchiveLoading(true);
     const supabase = getSupabaseBrowserClient();
+    const normalizedStatus = (job.status ?? '').toUpperCase();
+    const isInactive = normalizedStatus === 'ON_HOLD' || normalizedStatus === 'CANCELED' || normalizedStatus === 'CANCELLED';
+    const nextStatus = isInactive ? 'ACTIVE' : 'ON_HOLD';
     try {
-      const { data: authData } = await supabase.auth.getUser();
       const { error } = await supabase
         .from('site_jobs')
         .update({
-          archived_at: new Date().toISOString(),
-          archived_by: authData.user?.id ?? null,
-          archive_reason: reason,
+          status: nextStatus,
         })
         .eq('id', job.id)
         .eq('version_etag', job.version_etag);
@@ -270,8 +277,8 @@ export default function JobDetailPage() {
         return;
       }
 
-      toast.success('Job archived');
-      router.push('/operations');
+      toast.success(`Successfully ${isInactive ? 'reactivated' : 'deactivated'} ${job.job_code}`);
+      await fetchJob();
     } finally {
       setArchiveLoading(false);
       setArchiveOpen(false);
@@ -307,6 +314,7 @@ export default function JobDetailPage() {
     : '\u2014';
   const startsIn = formatRelativeDate(job.start_date);
   const updatedAgo = formatRelativeDateTime(job.updated_at);
+  const isInactive = ['ON_HOLD', 'CANCELED', 'CANCELLED'].includes((job.status ?? '').toUpperCase());
   const jobCompletenessItems: CompletenessItem[] = [
     { key: 'job_name', label: 'Job Name', isComplete: isFieldComplete(job.job_name), section: 'assignment' },
     { key: 'site', label: 'Site Assignment', isComplete: isFieldComplete(job.site_id), section: 'assignment' },
@@ -373,10 +381,12 @@ export default function JobDetailPage() {
           <button
             type="button"
             onClick={() => setArchiveOpen(true)}
-            className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950"
+            className={isInactive
+              ? 'inline-flex items-center gap-2 rounded-lg border border-green-300 px-3.5 py-2 text-sm font-medium text-green-700 hover:bg-green-50 transition-colors'
+              : 'inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3.5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors'}
           >
-            <Archive className="h-3.5 w-3.5" />
-            Archive
+            {isInactive ? <PlayCircle className="h-3.5 w-3.5" /> : <PauseCircle className="h-3.5 w-3.5" />}
+            {isInactive ? 'Reactivate' : 'Deactivate'}
           </button>
         </div>
       </div>
@@ -774,11 +784,16 @@ export default function JobDetailPage() {
         focusSection={jobFormFocus}
       />
 
-      <ArchiveDialog
+      <StatusToggleDialog
         open={archiveOpen}
         onClose={() => setArchiveOpen(false)}
-        onConfirm={handleArchive}
-        entityName="Job"
+        onConfirm={handleStatusToggle}
+        entityLabel="Service Plan"
+        entityName={job.job_name || job.job_code}
+        mode={isInactive ? 'reactivate' : 'deactivate'}
+        warning={!isInactive && assignments.length > 0
+          ? `⚠️ This service plan has ${assignments.length} assigned staff member${assignments.length === 1 ? '' : 's'} that may be affected.`
+          : null}
         loading={archiveLoading}
       />
     </div>

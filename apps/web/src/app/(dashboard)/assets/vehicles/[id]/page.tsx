@@ -1,23 +1,25 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
   Car,
   Pencil,
-  Archive,
+  PauseCircle,
+  PlayCircle,
   AlertTriangle,
   Clock3,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { ArchiveDialog, Badge, Skeleton } from '@gleamops/ui';
+import { Badge, Skeleton } from '@gleamops/ui';
 import type { Vehicle } from '@gleamops/shared';
 import { VEHICLE_STATUS_COLORS } from '@gleamops/shared';
 import { VehicleForm } from '@/components/forms/vehicle-form';
 import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
+import { StatusToggleDialog } from '@/components/detail/status-toggle-dialog';
 import { toast } from 'sonner';
 
 interface VehicleWithAssigned extends Vehicle {
@@ -41,7 +43,6 @@ function getMaintenanceUrgency(nextServiceDate: string | null): { label: string;
 
 export default function VehicleDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
   const [vehicle, setVehicle] = useState<VehicleWithAssigned | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
@@ -78,18 +79,17 @@ export default function VehicleDetailPage() {
     fetchVehicle();
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleArchive = async (reason: string) => {
+  const handleStatusToggle = async () => {
     if (!vehicle) return;
     setArchiveLoading(true);
     const supabase = getSupabaseBrowserClient();
+    const isInactive = (vehicle.status ?? '').toUpperCase() === 'RETIRED';
+    const nextStatus = isInactive ? 'ACTIVE' : 'RETIRED';
     try {
-      const { data: authData } = await supabase.auth.getUser();
       const { error } = await supabase
         .from('vehicles')
         .update({
-          archived_at: new Date().toISOString(),
-          archived_by: authData.user?.id ?? null,
-          archive_reason: reason,
+          status: nextStatus,
         })
         .eq('id', vehicle.id)
         .eq('version_etag', vehicle.version_etag);
@@ -99,8 +99,8 @@ export default function VehicleDetailPage() {
         return;
       }
 
-      toast.success('Vehicle archived');
-      router.push('/assets');
+      toast.success(`Successfully ${isInactive ? 'reactivated' : 'deactivated'} ${vehicle.name || vehicle.vehicle_code}`);
+      await fetchVehicle();
     } finally {
       setArchiveLoading(false);
       setArchiveOpen(false);
@@ -133,6 +133,7 @@ export default function VehicleDetailPage() {
 
   const makeModel = [vehicle.make, vehicle.model].filter(Boolean).join(' ') || '\u2014';
   const maintenanceUrgency = getMaintenanceUrgency(maintenance?.next_service_date ?? null);
+  const isInactive = (vehicle.status ?? '').toUpperCase() === 'RETIRED';
   const vehicleCompletenessItems: CompletenessItem[] = [
     { key: 'name', label: 'Vehicle Name', isComplete: isFieldComplete(vehicle.name), section: 'basics' },
     { key: 'status', label: 'Vehicle Status', isComplete: isFieldComplete(vehicle.status), section: 'basics' },
@@ -190,10 +191,12 @@ export default function VehicleDetailPage() {
           <button
             type="button"
             onClick={() => setArchiveOpen(true)}
-            className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950"
+            className={isInactive
+              ? 'inline-flex items-center gap-2 rounded-lg border border-green-300 px-3.5 py-2 text-sm font-medium text-green-700 hover:bg-green-50 transition-colors'
+              : 'inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3.5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors'}
           >
-            <Archive className="h-3.5 w-3.5" />
-            Archive
+            {isInactive ? <PlayCircle className="h-3.5 w-3.5" /> : <PauseCircle className="h-3.5 w-3.5" />}
+            {isInactive ? 'Reactivate' : 'Deactivate'}
           </button>
         </div>
       </div>
@@ -340,11 +343,16 @@ export default function VehicleDetailPage() {
         focusSection={vehicleFormFocus}
       />
 
-      <ArchiveDialog
+      <StatusToggleDialog
         open={archiveOpen}
         onClose={() => setArchiveOpen(false)}
-        onConfirm={handleArchive}
-        entityName="Vehicle"
+        onConfirm={handleStatusToggle}
+        entityLabel="Vehicle"
+        entityName={vehicle.name || vehicle.vehicle_code}
+        mode={isInactive ? 'reactivate' : 'deactivate'}
+        warning={!isInactive && vehicle.assigned?.full_name
+          ? `⚠️ This vehicle is currently assigned to ${vehicle.assigned.full_name} and may impact active schedules.`
+          : null}
         loading={archiveLoading}
       />
     </div>

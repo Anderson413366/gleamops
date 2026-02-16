@@ -1,16 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { AlertTriangle, Archive, ArrowLeft, Pencil, Wrench } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, PauseCircle, Pencil, PlayCircle, Wrench } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { ArchiveDialog, Badge, Skeleton } from '@gleamops/ui';
+import { Badge, Skeleton } from '@gleamops/ui';
 import type { Equipment, StatusColor } from '@gleamops/shared';
 import { EQUIPMENT_CONDITION_COLORS } from '@gleamops/shared';
 import { EquipmentForm } from '@/components/forms/equipment-form';
 import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
+import { StatusToggleDialog } from '@/components/detail/status-toggle-dialog';
 import { toast } from 'sonner';
 
 interface EquipmentWithRelations extends Equipment {
@@ -30,7 +31,6 @@ function formatDate(d: string | null) {
 
 export default function EquipmentDetailPage() {
   const { code } = useParams<{ code: string }>();
-  const router = useRouter();
   const [equipment, setEquipment] = useState<EquipmentWithRelations | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
@@ -56,18 +56,18 @@ export default function EquipmentDetailPage() {
     fetchEquipment();
   }, [code]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleArchive = async (reason: string) => {
+  const handleStatusToggle = async () => {
     if (!equipment) return;
     setArchiveLoading(true);
     const supabase = getSupabaseBrowserClient();
+    const current = (equipment.condition ?? '').toUpperCase();
+    const isInactive = current === 'RETIRED' || current === 'OUT_OF_SERVICE';
+    const nextCondition = isInactive ? 'GOOD' : 'RETIRED';
     try {
-      const { data: authData } = await supabase.auth.getUser();
       const { error } = await supabase
         .from('equipment')
         .update({
-          archived_at: new Date().toISOString(),
-          archived_by: authData.user?.id ?? null,
-          archive_reason: reason,
+          condition: nextCondition,
         })
         .eq('id', equipment.id)
         .eq('version_etag', equipment.version_etag);
@@ -77,8 +77,8 @@ export default function EquipmentDetailPage() {
         return;
       }
 
-      toast.success('Equipment archived');
-      router.push('/assets?tab=equipment');
+      toast.success(`Successfully ${isInactive ? 'reactivated' : 'deactivated'} ${equipment.name || equipment.equipment_code}`);
+      await fetchEquipment();
     } finally {
       setArchiveLoading(false);
       setArchiveOpen(false);
@@ -121,6 +121,7 @@ export default function EquipmentDetailPage() {
     { key: 'next_maintenance', label: 'Next Maintenance Date', isComplete: isFieldComplete(equipment.next_maintenance_date), section: 'maintenance' },
     { key: 'notes', label: 'Notes', isComplete: isFieldComplete(equipment.notes), section: 'notes' },
   ];
+  const isInactive = ['RETIRED', 'OUT_OF_SERVICE'].includes((equipment.condition ?? '').toUpperCase());
 
   return (
     <div className="space-y-6">
@@ -160,10 +161,12 @@ export default function EquipmentDetailPage() {
           <button
             type="button"
             onClick={() => setArchiveOpen(true)}
-            className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950"
+            className={isInactive
+              ? 'inline-flex items-center gap-2 rounded-lg border border-green-300 px-3.5 py-2 text-sm font-medium text-green-700 hover:bg-green-50 transition-colors'
+              : 'inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3.5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors'}
           >
-            <Archive className="h-3.5 w-3.5" />
-            Archive
+            {isInactive ? <PlayCircle className="h-3.5 w-3.5" /> : <PauseCircle className="h-3.5 w-3.5" />}
+            {isInactive ? 'Reactivate' : 'Deactivate'}
           </button>
         </div>
       </div>
@@ -288,11 +291,16 @@ export default function EquipmentDetailPage() {
         focusSection={equipmentFormFocus}
       />
 
-      <ArchiveDialog
+      <StatusToggleDialog
         open={archiveOpen}
         onClose={() => setArchiveOpen(false)}
-        onConfirm={handleArchive}
-        entityName="Equipment"
+        onConfirm={handleStatusToggle}
+        entityLabel="Equipment"
+        entityName={equipment.name || equipment.equipment_code}
+        mode={isInactive ? 'reactivate' : 'deactivate'}
+        warning={!isInactive && (equipment.staff?.full_name || equipment.site?.name)
+          ? `⚠️ This equipment is currently assigned to ${equipment.staff?.full_name ?? 'a staff member'}${equipment.site?.name ? ` at ${equipment.site.name}` : ''}.`
+          : null}
         loading={archiveLoading}
       />
     </div>

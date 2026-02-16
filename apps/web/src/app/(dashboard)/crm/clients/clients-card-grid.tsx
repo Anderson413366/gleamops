@@ -14,6 +14,8 @@ export interface ClientCardMeta {
   monthlyRevenue: number;
   location: string | null;
   primaryContactName: string | null;
+  activeJobs?: number;
+  profilePercent?: number;
 }
 
 function getClientInitials(name: string): string {

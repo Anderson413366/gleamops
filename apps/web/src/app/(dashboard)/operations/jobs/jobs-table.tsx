@@ -41,6 +41,23 @@ function formatCurrency(n: number | null) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
 }
 
+const FREQUENCY_LABELS: Record<string, string> = {
+  DAILY: 'Daily',
+  WEEKLY: 'Weekly',
+  BIWEEKLY: 'Biweekly',
+  MONTHLY: 'Monthly',
+  '2X_WEEK': '2×/Week',
+  '3X_WEEK': '3×/Week',
+  '4X_WEEK': '4×/Week',
+  '5X_WEEK': '5×/Week',
+  '6X_WEEK': '6×/Week',
+};
+
+function humanFrequency(value: string | null | undefined) {
+  if (!value) return '\u2014';
+  return FREQUENCY_LABELS[value] ?? value.replace(/_/g, ' ');
+}
+
 export default function JobsTable({ search, openCreateToken }: JobsTableProps) {
   const router = useRouter();
   const [rows, setRows] = useState<JobWithRelations[]>([]);
@@ -120,7 +137,7 @@ export default function JobsTable({ search, openCreateToken }: JobsTableProps) {
       ? 'Create your first service plan to get started.'
       : 'All service plans are currently in other statuses.';
 
-  if (loading) return <TableSkeleton rows={6} cols={8} />;
+  if (loading) return <TableSkeleton rows={6} cols={7} />;
 
   return (
     <div>
@@ -131,13 +148,21 @@ export default function JobsTable({ search, openCreateToken }: JobsTableProps) {
         <div className="flex items-center gap-3">
           <ViewToggle view={view} onChange={setView} />
           <ExportButton
-            data={filtered as unknown as Record<string, unknown>[]}
+            data={filtered.map((row) => ({
+              ...row,
+              site_name: row.site?.name ?? 'Not Set',
+              client_name: row.site?.client?.name ?? 'Not Set',
+              frequency_display: humanFrequency(row.frequency),
+            })) as unknown as Record<string, unknown>[]}
             filename="jobs"
             columns={[
               { key: 'job_code', label: 'Code' },
               { key: 'job_name', label: 'Name' },
-              { key: 'frequency', label: 'Frequency' },
+              { key: 'site_name', label: 'Site' },
+              { key: 'client_name', label: 'Client' },
+              { key: 'frequency_display', label: 'Frequency' },
               { key: 'billing_amount', label: 'Billing' },
+              { key: 'priority_level', label: 'Priority' },
             ]}
             onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
           />
@@ -189,7 +214,6 @@ export default function JobsTable({ search, openCreateToken }: JobsTableProps) {
                 <TableHead>Name</TableHead>
                 <TableHead>Site</TableHead>
                 <TableHead>Client</TableHead>
-                <TableHead>Type</TableHead>
                 <TableHead>Frequency</TableHead>
                 <TableHead sortable sorted={sortKey === 'billing_amount' && sortDir} onSort={() => onSort('billing_amount')}>Billing</TableHead>
                 <TableHead>Priority</TableHead>
@@ -203,16 +227,29 @@ export default function JobsTable({ search, openCreateToken }: JobsTableProps) {
                   onClick={() => handleRowClick(row)}
                 >
                   <TableCell className="font-mono text-xs">
-                    <div className="flex items-center gap-2">
-                      <StatusDot status={row.status} />
-                      <span>{row.job_code}</span>
+                    <div className="inline-flex max-w-[132px] rounded-md bg-muted px-2 py-1">
+                      <span className="truncate" title={row.job_code}>{row.job_code}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="font-medium">{row.job_name ?? '\u2014'}</TableCell>
-                  <TableCell>{row.site?.name ?? '\u2014'}</TableCell>
-                  <TableCell className="text-muted-foreground">{row.site?.client?.name ?? '\u2014'}</TableCell>
-                  <TableCell className="text-muted-foreground">{row.job_type ?? '\u2014'}</TableCell>
-                  <TableCell className="text-muted-foreground">{row.frequency}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      <StatusDot status={row.status} />
+                      <span className="inline-block max-w-[220px] truncate" title={row.job_name ?? 'Not Set'}>
+                        {row.job_name ?? '\u2014'}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    <span className="inline-block max-w-[180px] truncate" title={row.site?.name ?? 'Not Set'}>
+                      {row.site?.name ?? '\u2014'}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    <span className="inline-block max-w-[180px] truncate" title={row.site?.client?.name ?? 'Not Set'}>
+                      {row.site?.client?.name ?? '\u2014'}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{humanFrequency(row.frequency)}</TableCell>
                   <TableCell className="text-right tabular-nums font-medium">{formatCurrency(row.billing_amount)}</TableCell>
                   <TableCell>
                     {row.priority_level ? (

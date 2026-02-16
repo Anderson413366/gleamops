@@ -42,9 +42,48 @@ interface ContactLite {
   is_primary: boolean | null;
 }
 
-function formatDate(d: string | null) {
-  if (!d) return '—';
-  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+function formatCurrency(amount: number) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+function formatPercent(value: number) {
+  return `${Math.max(0, Math.min(100, Math.round(value)))}%`;
+}
+
+function isFilled(value: unknown): boolean {
+  if (value == null) return false;
+  if (typeof value === 'string') return value.trim().length > 0;
+  if (typeof value === 'number') return true;
+  if (typeof value === 'boolean') return true;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === 'object') return Object.values(value as Record<string, unknown>).some(isFilled);
+  return false;
+}
+
+function clientProfilePercent(client: Client): number {
+  const trackedFields: unknown[] = [
+    client.name,
+    client.status,
+    client.client_type,
+    client.industry,
+    client.website,
+    client.primary_contact_id,
+    client.bill_to_name,
+    client.payment_terms,
+    client.invoice_frequency,
+    client.credit_limit,
+    client.tax_id,
+    client.contract_start_date,
+    client.contract_end_date,
+    client.billing_address?.city,
+    client.billing_address?.state,
+  ];
+  const completed = trackedFields.filter(isFilled).length;
+  return (completed / trackedFields.length) * 100;
 }
 
 export default function ClientsTable({ search }: ClientsTableProps) {
@@ -127,11 +166,13 @@ export default function ClientsTable({ search }: ClientsTableProps) {
     }
 
     const monthlyRevenueByClient = new Map<string, number>();
+    const activeJobsByClient = new Map<string, number>();
     for (const job of jobs) {
       if ((job.status ?? '').toUpperCase() !== 'ACTIVE') continue;
       const clientId = siteToClient.get(job.site_id);
       if (!clientId) continue;
       monthlyRevenueByClient.set(clientId, (monthlyRevenueByClient.get(clientId) ?? 0) + (job.billing_amount ?? 0));
+      activeJobsByClient.set(clientId, (activeJobsByClient.get(clientId) ?? 0) + 1);
     }
 
     const nextMeta: Record<string, ClientCardMeta> = {};
@@ -152,6 +193,8 @@ export default function ClientsTable({ search }: ClientsTableProps) {
         monthlyRevenue: monthlyRevenueByClient.get(client.id) ?? 0,
         location: billingLocation || siteLocation || null,
         primaryContactName: preferredContact?.name ?? null,
+        activeJobs: activeJobsByClient.get(client.id) ?? 0,
+        profilePercent: clientProfilePercent(client),
       };
     }
 
@@ -217,17 +260,22 @@ export default function ClientsTable({ search }: ClientsTableProps) {
         <ExportButton
           data={filtered.map((row) => ({
             ...row,
+            industry_display: row.industry ?? 'Not Set',
+            city_state: cardMetaByClientId[row.id]?.location ?? 'Not Set',
             active_sites: cardMetaByClientId[row.id]?.activeSites ?? 0,
+            active_jobs: cardMetaByClientId[row.id]?.activeJobs ?? 0,
+            monthly_revenue: cardMetaByClientId[row.id]?.monthlyRevenue ?? 0,
+            profile_percent: Math.round(cardMetaByClientId[row.id]?.profilePercent ?? clientProfilePercent(row)),
           })) as unknown as Record<string, unknown>[]}
           filename="clients"
           columns={[
             { key: 'client_code', label: 'Code' },
             { key: 'name', label: 'Name' },
-            { key: 'status', label: 'Status' },
-            { key: 'client_type', label: 'Type' },
-            { key: 'active_sites', label: 'Active Sites' },
-            { key: 'contract_start_date', label: 'Contract Start' },
-            { key: 'contract_end_date', label: 'Contract End' },
+            { key: 'industry_display', label: 'Industry' },
+            { key: 'city_state', label: 'City/State' },
+            { key: 'active_jobs', label: 'Active Jobs' },
+            { key: 'monthly_revenue', label: 'Monthly Revenue' },
+            { key: 'profile_percent', label: 'Profile %' },
           ]}
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
@@ -276,10 +324,11 @@ export default function ClientsTable({ search }: ClientsTableProps) {
               <tr>
                 <TableHead sortable sorted={sortKey === 'client_code' && sortDir} onSort={() => onSort('client_code')}>Code</TableHead>
                 <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Name</TableHead>
-                <TableHead sortable sorted={sortKey === 'client_type' && sortDir} onSort={() => onSort('client_type')}>Type</TableHead>
-                <TableHead>Address</TableHead>
-                <TableHead>Active Sites</TableHead>
-                <TableHead sortable sorted={sortKey === 'contract_end_date' && sortDir} onSort={() => onSort('contract_end_date')}>Contract End</TableHead>
+                <TableHead sortable sorted={sortKey === 'industry' && sortDir} onSort={() => onSort('industry')}>Industry</TableHead>
+                <TableHead>City/State</TableHead>
+                <TableHead>Active Jobs</TableHead>
+                <TableHead>Monthly Revenue</TableHead>
+                <TableHead>Profile %</TableHead>
               </tr>
             </TableHeader>
             <TableBody>
@@ -290,20 +339,35 @@ export default function ClientsTable({ search }: ClientsTableProps) {
                   className={cn('cursor-pointer', statusRowAccentClass(row.status))}
                 >
                   <TableCell>
-                    <div className="inline-flex items-center gap-2 rounded-md bg-muted px-2 py-1 font-mono text-xs text-foreground">
-                      <StatusDot status={row.status} />
-                      <span>{row.client_code}</span>
+                    <div className="inline-flex max-w-[132px] items-center gap-2 rounded-md bg-muted px-2 py-1 font-mono text-xs text-foreground">
+                      <span className="truncate" title={row.client_code}>{row.client_code}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="font-medium">{row.name}</TableCell>
-                  <TableCell className="text-muted-foreground">{row.client_type ?? '—'}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {row.billing_address
-                      ? [row.billing_address.city, row.billing_address.state].filter(Boolean).join(', ')
-                      : '—'}
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      <StatusDot status={row.status} />
+                      <span className="max-w-[240px] truncate" title={row.name}>{row.name}</span>
+                    </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{cardMetaByClientId[row.id]?.activeSites ?? 0}</TableCell>
-                  <TableCell className="text-muted-foreground">{formatDate(row.contract_end_date ?? null)}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    <span className="inline-block max-w-[220px] truncate" title={row.industry ?? 'Not Set'}>
+                      {row.industry ?? 'Not Set'}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    <span className="inline-block max-w-[200px] truncate" title={cardMetaByClientId[row.id]?.location ?? 'Not Set'}>
+                      {cardMetaByClientId[row.id]?.location ?? 'Not Set'}
+                    </span>
+                  </TableCell>
+                  <TableCell className="tabular-nums text-muted-foreground">
+                    {cardMetaByClientId[row.id]?.activeJobs ?? 0}
+                  </TableCell>
+                  <TableCell className="tabular-nums font-medium">
+                    {formatCurrency(cardMetaByClientId[row.id]?.monthlyRevenue ?? 0)}
+                  </TableCell>
+                  <TableCell className="tabular-nums text-muted-foreground">
+                    {formatPercent(cardMetaByClientId[row.id]?.profilePercent ?? clientProfilePercent(row))}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

@@ -15,13 +15,13 @@ import { usePagination } from '@/hooks/use-pagination';
 import { useViewPreference } from '@/hooks/use-view-preference';
 import { SitesCardGrid } from './sites-card-grid';
 
-const PRIORITY_COLORS: Record<string, 'red' | 'blue' | 'yellow' | 'gray'> = {
+const PRIORITY_COLORS: Record<string, 'red' | 'blue' | 'orange' | 'gray'> = {
   CRITICAL: 'red',
-  HIGH: 'blue',
-  MEDIUM: 'yellow',
+  HIGH: 'orange',
+  MEDIUM: 'blue',
   LOW: 'gray',
   NORMAL: 'gray',
-  STANDARD: 'gray',
+  STANDARD: 'blue',
 };
 
 // UX requirement: default to Active, show Active first, and move All to the end.
@@ -35,11 +35,27 @@ interface SitesTableProps {
   search: string;
 }
 
+interface SiteJobLite {
+  site_id: string;
+  status: string | null;
+  billing_amount: number | null;
+}
+
+function formatCurrency(amount: number) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
 export default function SitesTable({ search }: SitesTableProps) {
   const router = useRouter();
   const [rows, setRows] = useState<SiteWithClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('ACTIVE');
+  const [activeJobsBySite, setActiveJobsBySite] = useState<Record<string, number>>({});
+  const [monthlyRevenueBySite, setMonthlyRevenueBySite] = useState<Record<string, number>>({});
   const { view, setView } = useViewPreference('sites');
 
   const fetchData = useCallback(async () => {
@@ -50,7 +66,34 @@ export default function SitesTable({ search }: SitesTableProps) {
       .select('*, client:client_id(name, client_code)')
       .is('archived_at', null)
       .order('name');
-    if (!error && data) setRows(data as unknown as SiteWithClient[]);
+    if (!error && data) {
+      const siteRows = data as unknown as SiteWithClient[];
+      setRows(siteRows);
+
+      if (siteRows.length > 0) {
+        const siteIds = siteRows.map((row) => row.id);
+        const { data: jobsData } = await supabase
+          .from('site_jobs')
+          .select('site_id, status, billing_amount')
+          .is('archived_at', null)
+          .in('site_id', siteIds);
+
+        const activeCounts: Record<string, number> = {};
+        const revenueTotals: Record<string, number> = {};
+        for (const job of (jobsData ?? []) as unknown as SiteJobLite[]) {
+          const siteId = job.site_id;
+          const status = (job.status ?? '').toUpperCase();
+          if (status !== 'ACTIVE') continue;
+          activeCounts[siteId] = (activeCounts[siteId] ?? 0) + 1;
+          revenueTotals[siteId] = (revenueTotals[siteId] ?? 0) + (job.billing_amount ?? 0);
+        }
+        setActiveJobsBySite(activeCounts);
+        setMonthlyRevenueBySite(revenueTotals);
+      } else {
+        setActiveJobsBySite({});
+        setMonthlyRevenueBySite({});
+      }
+    }
     setLoading(false);
   }, []);
 
@@ -113,15 +156,23 @@ export default function SitesTable({ search }: SitesTableProps) {
       <div className="flex items-center justify-end gap-3 mb-4">
         <ViewToggle view={view} onChange={setView} />
         <ExportButton
-          data={filtered as unknown as Record<string, unknown>[]}
+          data={filtered.map((row) => ({
+            ...row,
+            client_name: row.client?.name ?? 'Not Set',
+            city_state: row.address ? [row.address.city, row.address.state].filter(Boolean).join(', ') : 'Not Set',
+            active_jobs: activeJobsBySite[row.id] ?? 0,
+            monthly_revenue: monthlyRevenueBySite[row.id] ?? 0,
+            priority_display: row.priority_level ?? 'Not Set',
+          })) as unknown as Record<string, unknown>[]}
           filename="sites"
           columns={[
             { key: 'site_code', label: 'Code' },
             { key: 'name', label: 'Name' },
-            { key: 'status', label: 'Status' },
-            { key: 'square_footage', label: 'Sq Ft' },
-            { key: 'number_of_floors', label: 'Floors' },
-            { key: 'priority_level', label: 'Priority' },
+            { key: 'client_name', label: 'Client' },
+            { key: 'city_state', label: 'City/State' },
+            { key: 'active_jobs', label: 'Active Jobs' },
+            { key: 'monthly_revenue', label: 'Monthly Revenue' },
+            { key: 'priority_display', label: 'Priority' },
           ]}
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
@@ -171,9 +222,9 @@ export default function SitesTable({ search }: SitesTableProps) {
                 <TableHead sortable sorted={sortKey === 'site_code' && sortDir} onSort={() => onSort('site_code')}>Code</TableHead>
                 <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Name</TableHead>
                 <TableHead>Client</TableHead>
-                <TableHead>Address</TableHead>
-                <TableHead sortable sorted={sortKey === 'square_footage' && sortDir} onSort={() => onSort('square_footage')}>Sq Ft</TableHead>
-                <TableHead>Floors</TableHead>
+                <TableHead>City/State</TableHead>
+                <TableHead>Active Jobs</TableHead>
+                <TableHead>Monthly Revenue</TableHead>
                 <TableHead>Priority</TableHead>
               </tr>
             </TableHeader>
@@ -185,26 +236,41 @@ export default function SitesTable({ search }: SitesTableProps) {
                   className={cn('cursor-pointer', statusRowAccentClass(row.status))}
                 >
                   <TableCell className="font-mono text-xs">
-                    <div className="flex items-center gap-2">
-                      <StatusDot status={row.status} />
-                      <span>{row.site_code}</span>
+                    <div className="inline-flex max-w-[132px] rounded-md bg-muted px-2 py-1">
+                      <span className="truncate" title={row.site_code}>{row.site_code}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="font-medium">{row.name}</TableCell>
-                  <TableCell className="text-muted-foreground">{row.client?.name ?? '---'}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      <StatusDot status={row.status} />
+                      <span className="inline-block max-w-[240px] truncate" title={row.name}>{row.name}</span>
+                    </div>
+                  </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {row.address
-                      ? [row.address.city, row.address.state].filter(Boolean).join(', ')
-                      : '---'}
+                    <span className="inline-block max-w-[200px] truncate" title={row.client?.name ?? 'Not Set'}>
+                      {row.client?.name ?? 'Not Set'}
+                    </span>
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {row.square_footage ? row.square_footage.toLocaleString() : '---'}
+                  <TableCell className="text-muted-foreground">
+                    <span
+                      className="inline-block max-w-[210px] truncate"
+                      title={row.address ? [row.address.city, row.address.state].filter(Boolean).join(', ') : 'Not Set'}
+                    >
+                      {row.address
+                        ? [row.address.city, row.address.state].filter(Boolean).join(', ')
+                        : 'Not Set'}
+                    </span>
                   </TableCell>
-                  <TableCell className="text-center">{row.number_of_floors ?? '---'}</TableCell>
+                  <TableCell className="tabular-nums text-muted-foreground">
+                    {activeJobsBySite[row.id] ?? 0}
+                  </TableCell>
+                  <TableCell className="tabular-nums font-medium">
+                    {formatCurrency(monthlyRevenueBySite[row.id] ?? 0)}
+                  </TableCell>
                   <TableCell>
                     {row.priority_level ? (
                       <Badge color={PRIORITY_COLORS[row.priority_level] ?? 'gray'}>{row.priority_level}</Badge>
-                    ) : '---'}
+                    ) : <span className="text-muted-foreground">Not Set</span>}
                   </TableCell>
                 </TableRow>
               ))}

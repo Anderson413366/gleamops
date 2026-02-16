@@ -34,6 +34,50 @@ interface StaffTableProps {
   onAutoCreateHandled?: () => void;
 }
 
+interface AssignmentLite {
+  staff_id: string;
+  end_date: string | null;
+  job: { status: string | null } | null;
+}
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return 'Not Set';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Not Set';
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function isFilled(value: unknown): boolean {
+  if (value == null) return false;
+  if (typeof value === 'string') return value.trim().length > 0;
+  if (typeof value === 'number') return true;
+  if (typeof value === 'boolean') return true;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === 'object') return Object.values(value as Record<string, unknown>).some(isFilled);
+  return false;
+}
+
+function profilePercent(staff: Staff): number {
+  const tracked: unknown[] = [
+    staff.full_name,
+    staff.role,
+    staff.staff_status,
+    staff.employment_type,
+    staff.hire_date,
+    staff.email,
+    staff.mobile_phone ?? staff.phone,
+    staff.pay_rate,
+    staff.schedule_type,
+    staff.address?.city,
+    staff.address?.state,
+    staff.emergency_contact_name,
+    staff.emergency_contact_phone,
+    staff.background_check_date,
+  ];
+  const complete = tracked.filter(isFilled).length;
+  return Math.round((complete / tracked.length) * 100);
+}
+
 export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: StaffTableProps) {
   const router = useRouter();
   const [rows, setRows] = useState<Staff[]>([]);
@@ -41,6 +85,7 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
   const [formOpen, setFormOpen] = useState(false);
   const [editItem, setEditItem] = useState<Staff | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('ACTIVE');
+  const [activeJobsByStaff, setActiveJobsByStaff] = useState<Record<string, number>>({});
 
   const { view, setView } = useViewPreference('staff');
   const handleAdd = () => { setEditItem(null); setFormOpen(true); };
@@ -68,7 +113,31 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
       .select('*')
       .is('archived_at', null)
       .order('full_name');
-    if (!error && data) setRows(data as unknown as Staff[]);
+    if (!error && data) {
+      const staffRows = data as unknown as Staff[];
+      setRows(staffRows);
+
+      if (staffRows.length > 0) {
+        const staffIds = staffRows.map((row) => row.id);
+        const { data: assignmentRows } = await supabase
+          .from('job_staff_assignments')
+          .select('staff_id, end_date, job:job_id(status)')
+          .is('archived_at', null)
+          .in('staff_id', staffIds);
+
+        const counts: Record<string, number> = {};
+        for (const assignment of (assignmentRows ?? []) as unknown as AssignmentLite[]) {
+          const status = (assignment.job?.status ?? '').toUpperCase();
+          const stillAssigned = !assignment.end_date;
+          const isActiveJob = status === 'ACTIVE' || status === 'IN_PROGRESS';
+          if (!stillAssigned || !isActiveJob) continue;
+          counts[assignment.staff_id] = (counts[assignment.staff_id] ?? 0) + 1;
+        }
+        setActiveJobsByStaff(counts);
+      } else {
+        setActiveJobsByStaff({});
+      }
+    }
     setLoading(false);
   }, []);
 
@@ -115,7 +184,7 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
   const sortedRows = sorted as unknown as Staff[];
   const pag = usePagination(sortedRows, 25);
 
-  if (loading) return <TableSkeleton rows={6} cols={6} />;
+  if (loading) return <TableSkeleton rows={6} cols={7} />;
 
   return (
     <div>
@@ -124,16 +193,20 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
         <ExportButton
           data={filtered.map((row) => ({
             ...row,
-            role_badge: row.role?.replace(/_/g, ' ') ?? '—',
-            mobile_phone_display: row.mobile_phone ?? row.phone ?? '—',
+            role_display: row.role?.replace(/_/g, ' ') ?? 'Not Set',
+            active_jobs: activeJobsByStaff[row.id] ?? 0,
+            hire_date_display: row.hire_date ?? 'Not Set',
+            profile_percent: profilePercent(row),
           })) as unknown as Record<string, unknown>[]}
           filename="staff"
           columns={[
             { key: 'staff_code', label: 'Code' },
             { key: 'full_name', label: 'Name' },
-            { key: 'role_badge', label: 'Role Badge' },
+            { key: 'role_display', label: 'Role' },
             { key: 'employment_type', label: 'Employment' },
-            { key: 'mobile_phone_display', label: 'Mobile Phone' },
+            { key: 'active_jobs', label: 'Active Jobs' },
+            { key: 'hire_date_display', label: 'Hire Date' },
+            { key: 'profile_percent', label: 'Profile %' },
           ]}
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
@@ -182,9 +255,11 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
               <tr>
                 <TableHead sortable sorted={sortKey === 'staff_code' && sortDir} onSort={() => onSort('staff_code')}>Code</TableHead>
                 <TableHead sortable sorted={sortKey === 'full_name' && sortDir} onSort={() => onSort('full_name')}>Name</TableHead>
-                <TableHead sortable sorted={sortKey === 'role' && sortDir} onSort={() => onSort('role')}>Role Badge</TableHead>
+                <TableHead sortable sorted={sortKey === 'role' && sortDir} onSort={() => onSort('role')}>Role</TableHead>
                 <TableHead>Employment</TableHead>
-                <TableHead>Mobile Phone</TableHead>
+                <TableHead>Active Jobs</TableHead>
+                <TableHead sortable sorted={sortKey === 'hire_date' && sortDir} onSort={() => onSort('hire_date')}>Hire Date</TableHead>
+                <TableHead>Profile %</TableHead>
               </tr>
             </TableHeader>
             <TableBody>
@@ -202,21 +277,29 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
                   )}
                 >
                   <TableCell>
-                    <div className="inline-flex items-center gap-2 rounded-md bg-muted px-2 py-1 font-mono text-xs text-foreground">
-                      <StatusDot status={rowStatus} />
-                      <span>{row.staff_code}</span>
+                    <div className="inline-flex max-w-[132px] rounded-md bg-muted px-2 py-1 font-mono text-xs text-foreground">
+                      <span className="truncate" title={row.staff_code}>{row.staff_code}</span>
                     </div>
                   </TableCell>
                   <TableCell className={cn('font-medium', isTerminated && 'line-through decoration-muted-foreground/70')}>
-                    {row.full_name}
+                    <div className="flex items-center gap-2">
+                      <StatusDot status={rowStatus} />
+                      <span className="inline-block max-w-[220px] truncate" title={row.full_name}>{row.full_name}</span>
+                    </div>
                   </TableCell>
                   <TableCell>
                     <Badge color={ROLE_COLORS[row.role] ?? 'gray'}>
                       {row.role.replace(/_/g, ' ')}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{row.employment_type ?? '---'}</TableCell>
-                  <TableCell className="text-muted-foreground">{row.mobile_phone ?? row.phone ?? '---'}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    <span className="inline-block max-w-[160px] truncate" title={row.employment_type ?? 'Not Set'}>
+                      {row.employment_type ?? 'Not Set'}
+                    </span>
+                  </TableCell>
+                  <TableCell className="tabular-nums text-muted-foreground">{activeJobsByStaff[row.id] ?? 0}</TableCell>
+                  <TableCell className="text-muted-foreground">{formatDate(row.hire_date)}</TableCell>
+                  <TableCell className="tabular-nums text-muted-foreground">{profilePercent(row)}%</TableCell>
                 </TableRow>
               );
               })}

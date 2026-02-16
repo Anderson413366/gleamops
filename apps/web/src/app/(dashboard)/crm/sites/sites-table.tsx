@@ -29,6 +29,7 @@ const PRIORITY_COLORS: Record<string, 'red' | 'blue' | 'orange' | 'gray'> = {
 const STATUS_OPTIONS = ['ACTIVE', 'INACTIVE', 'ON_HOLD', 'CANCELED', 'all'] as const;
 
 interface SiteWithClient extends Site {
+  priority?: string | null;
   client?: { name: string; client_code: string } | null;
 }
 
@@ -140,6 +141,7 @@ export default function SitesTable({ search }: SitesTableProps) {
     router.push(`/crm/sites/${row.site_code}`);
   };
   const handleAdd = () => setFormOpen(true);
+  const priorityValue = (row: SiteWithClient) => row.priority_level ?? row.priority ?? null;
   const selectedStatusLabel = statusFilter === 'all'
     ? 'all statuses'
     : statusFilter.toLowerCase().replace(/_/g, ' ');
@@ -170,7 +172,7 @@ export default function SitesTable({ search }: SitesTableProps) {
               city_state: row.address ? [row.address.city, row.address.state].filter(Boolean).join(', ') : 'Not Set',
               active_jobs: activeJobsBySite[row.id] ?? 0,
               monthly_revenue: monthlyRevenueBySite[row.id] ?? 0,
-              priority_display: row.priority_level ?? 'Not Set',
+              priority_display: priorityValue(row) ?? 'Not Set',
             })) as unknown as Record<string, unknown>[]}
             filename="sites"
             columns={[
@@ -287,8 +289,8 @@ export default function SitesTable({ search }: SitesTableProps) {
                     {formatCurrency(monthlyRevenueBySite[row.id] ?? 0)}
                   </TableCell>
                   <TableCell>
-                    {row.priority_level ? (
-                      <Badge color={PRIORITY_COLORS[row.priority_level] ?? 'gray'}>{row.priority_level}</Badge>
+                    {priorityValue(row) ? (
+                      <Badge color={PRIORITY_COLORS[priorityValue(row) ?? ''] ?? 'gray'}>{priorityValue(row)}</Badge>
                     ) : <span className="text-muted-foreground">Not Set</span>}
                   </TableCell>
                 </TableRow>

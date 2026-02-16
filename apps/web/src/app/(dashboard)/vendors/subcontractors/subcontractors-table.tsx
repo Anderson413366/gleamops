@@ -28,6 +28,11 @@ interface AssignmentSummaryLite {
   billing_rate: number | null;
 }
 
+function servicesText(row: Subcontractor): string {
+  const legacy = row as Subcontractor & { services?: string | null };
+  return row.services_provided ?? legacy.services ?? '';
+}
+
 function formatCurrency(n: number | null) {
   if (n == null) return '$0';
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(n);
@@ -126,7 +131,7 @@ export default function SubcontractorsTable({ search }: Props) {
         r.company_name.toLowerCase().includes(q) ||
         r.subcontractor_code.toLowerCase().includes(q) ||
         (r.contact_name ?? '').toLowerCase().includes(q) ||
-        (r.services_provided ?? '').toLowerCase().includes(q)
+        servicesText(r).toLowerCase().includes(q)
       );
     }
     return result;

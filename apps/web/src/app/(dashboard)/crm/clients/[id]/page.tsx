@@ -276,8 +276,16 @@ export default function ClientDetailPage() {
   }
 
   const addr = client.billing_address;
-  const contractHealth = getContractHealth(client.contract_start_date, client.contract_end_date);
-  const contractNeedsDates = !client.contract_start_date && !client.contract_end_date;
+  const legacyClient = client as Client & {
+    contract_start?: string | null;
+    contract_end?: string | null;
+    phone?: string | null;
+  };
+  const contractStartDate = client.contract_start_date ?? legacyClient.contract_start ?? null;
+  const contractEndDate = client.contract_end_date ?? legacyClient.contract_end ?? null;
+  const legacyCompanyPhone = legacyClient.phone ?? null;
+  const contractHealth = getContractHealth(contractStartDate, contractEndDate);
+  const contractNeedsDates = !contractStartDate && !contractEndDate;
   const isInactive = (client.status ?? '').toUpperCase() === 'INACTIVE';
   const clientColor = client.status === 'PROSPECT'
     ? 'yellow'
@@ -311,7 +319,7 @@ export default function ClientDetailPage() {
     {
       key: 'primary_phone',
       label: 'Primary Phone',
-      isComplete: isFieldComplete(primaryContact?.work_phone || primaryContact?.mobile_phone || primaryContact?.phone),
+      isComplete: isFieldComplete(primaryContact?.work_phone || primaryContact?.mobile_phone || primaryContact?.phone || legacyCompanyPhone),
       section: 'basics',
     },
     { key: 'primary_email', label: 'Primary Email', isComplete: isFieldComplete(primaryContact?.email), section: 'basics' },
@@ -320,8 +328,8 @@ export default function ClientDetailPage() {
     { key: 'invoice_frequency', label: 'Invoice Frequency', isComplete: isFieldComplete(client.invoice_frequency), section: 'billing' },
     { key: 'billing_address', label: 'Billing Address', isComplete: isFieldComplete(client.billing_address), section: 'billing' },
     { key: 'tax_id', label: 'Tax ID', isComplete: isFieldComplete(client.tax_id), section: 'billing' },
-    { key: 'contract_start', label: 'Contract Start Date', isComplete: isFieldComplete(client.contract_start_date), section: 'contract' },
-    { key: 'contract_end', label: 'Contract End Date', isComplete: isFieldComplete(client.contract_end_date), section: 'contract' },
+    { key: 'contract_start', label: 'Contract Start Date', isComplete: isFieldComplete(contractStartDate), section: 'contract' },
+    { key: 'contract_end', label: 'Contract End Date', isComplete: isFieldComplete(contractEndDate), section: 'contract' },
   ];
 
   return (
@@ -658,7 +666,7 @@ export default function ClientDetailPage() {
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <div className="flex items-center justify-between gap-3">
             <h3 className="text-sm font-semibold text-foreground">Contract Details</h3>
-            {(client.contract_start_date == null || client.contract_end_date == null) && (
+            {(contractStartDate == null || contractEndDate == null) && (
               <button
                 type="button"
                 onClick={() => { setClientFormFocus('contract'); setFormOpen(true); }}
@@ -672,8 +680,8 @@ export default function ClientDetailPage() {
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Start Date</dt>
               <dd className="font-medium">
-                {client.contract_start_date ? (
-                  formatDate(client.contract_start_date)
+                {contractStartDate ? (
+                  formatDate(contractStartDate)
                 ) : (
                   renderNotSet('required')
                 )}
@@ -682,8 +690,8 @@ export default function ClientDetailPage() {
             <div className="flex justify-between">
               <dt className="text-muted-foreground">End Date</dt>
               <dd className="font-medium">
-                {client.contract_end_date ? (
-                  formatDate(client.contract_end_date)
+                {contractEndDate ? (
+                  formatDate(contractEndDate)
                 ) : (
                   renderNotSet('required')
                 )}
@@ -711,6 +719,12 @@ export default function ClientDetailPage() {
                 )}
               </dd>
             </div>
+            {legacyCompanyPhone && (
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">Company Phone</dt>
+                <dd className="font-medium">{legacyCompanyPhone}</dd>
+              </div>
+            )}
           </dl>
         </div>
       </div>

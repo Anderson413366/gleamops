@@ -57,7 +57,7 @@ function formatUpdatedAgo(value: string | null | undefined): string {
 }
 
 function formatMoney(value: number | null | undefined): string {
-  if (value == null) return 'Not Set';
+  if (value == null) return '$0';
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
@@ -188,7 +188,10 @@ export default function SubcontractorDetailPage() {
     }
   };
 
-  const services = useMemo(() => splitServices(subcontractor?.services_provided), [subcontractor?.services_provided]);
+  const servicesSource = (subcontractor?.services_provided
+    ?? ((subcontractor as (Subcontractor & { services?: string | null }) | null)?.services)
+    ?? null);
+  const services = useMemo(() => splitServices(servicesSource), [servicesSource]);
   const totalRevenue = useMemo(
     () => jobs.reduce((sum, row) => sum + (row.billing_rate ?? 0), 0),
     [jobs]
@@ -247,7 +250,7 @@ export default function SubcontractorDetailPage() {
     { key: 'email', label: 'Email', isComplete: isFieldComplete(subcontractor.email) },
     { key: 'business_phone', label: 'Business Phone', isComplete: isFieldComplete(subcontractor.business_phone || subcontractor.phone) },
     { key: 'mobile_phone', label: 'Mobile Phone', isComplete: isFieldComplete(subcontractor.mobile_phone) },
-    { key: 'services_provided', label: 'Services Offered', isComplete: isFieldComplete(subcontractor.services_provided) },
+    { key: 'services_provided', label: 'Services Offered', isComplete: isFieldComplete(servicesSource) },
     { key: 'hourly_rate', label: 'Hourly Rate', isComplete: isFieldComplete(subcontractor.hourly_rate) },
     { key: 'w9_on_file', label: 'W-9 On File', isComplete: subcontractor.w9_on_file === true },
     { key: 'license_number', label: 'License Number', isComplete: isFieldComplete(subcontractor.license_number) },

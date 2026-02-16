@@ -96,7 +96,7 @@ interface AssignableEquipmentOption {
 }
 
 function formatDate(d: string | null) {
-  if (!d) return '\u2014';
+  if (!d) return 'Not Set';
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
@@ -111,7 +111,7 @@ function formatMoney(amount: number, opts?: { maxFractionDigits?: number }) {
 }
 
 function formatPayRate(payRate: number | null, payType: string | null) {
-  if (payRate == null) return '\u2014';
+  if (payRate == null) return 'Not Set';
 
   const t = (payType ?? '').toUpperCase();
   if (t === 'SALARY') return `${formatMoney(payRate, { maxFractionDigits: 0 })}/yr`;
@@ -174,7 +174,7 @@ function formatRelativeDateTime(dateStr: string): string {
 }
 
 function titleFromCode(value: string | null | undefined): string {
-  if (!value) return '\u2014';
+  if (!value) return 'Not Set';
   return value
     .split(/[_\s]+/g)
     .filter(Boolean)

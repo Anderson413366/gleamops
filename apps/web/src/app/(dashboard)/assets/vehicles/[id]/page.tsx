@@ -41,6 +41,10 @@ function getMaintenanceUrgency(nextServiceDate: string | null): { label: string;
   return { label: 'On Schedule', color: 'green' };
 }
 
+function notSet() {
+  return <span className="italic text-muted-foreground">Not Set</span>;
+}
+
 export default function VehicleDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [vehicle, setVehicle] = useState<VehicleWithAssigned | null>(null);
@@ -131,7 +135,7 @@ export default function VehicleDetailPage() {
     );
   }
 
-  const makeModel = [vehicle.make, vehicle.model].filter(Boolean).join(' ') || '\u2014';
+  const makeModel = [vehicle.make, vehicle.model].filter(Boolean).join(' ') || 'Not Set';
   const maintenanceUrgency = getMaintenanceUrgency(maintenance?.next_service_date ?? null);
   const isInactive = (vehicle.status ?? '').toUpperCase() === 'RETIRED';
   const vehicleCompletenessItems: CompletenessItem[] = [
@@ -219,7 +223,7 @@ export default function VehicleDetailPage() {
       {/* Stat Cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <p className="text-2xl font-bold text-foreground">{vehicle.year ?? '\u2014'}</p>
+          <p className="text-2xl font-bold text-foreground">{vehicle.year ?? 'Not Set'}</p>
           <p className="text-xs text-muted-foreground">Year</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
@@ -227,12 +231,12 @@ export default function VehicleDetailPage() {
           <p className="text-xs text-muted-foreground">Make / Model</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <p className="text-2xl font-bold text-foreground">{vehicle.license_plate ?? '\u2014'}</p>
+          <p className="text-2xl font-bold text-foreground">{vehicle.license_plate ?? 'Not Set'}</p>
           <p className="text-xs text-muted-foreground">License Plate</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <p className="text-2xl font-bold text-foreground">
-            {maintenance?.next_service_date ? new Date(maintenance.next_service_date).toLocaleDateString() : '\u2014'}
+            {maintenance?.next_service_date ? new Date(maintenance.next_service_date).toLocaleDateString() : 'Not Set'}
           </p>
           <p className="text-xs text-muted-foreground">Next Service</p>
         </div>
@@ -248,27 +252,27 @@ export default function VehicleDetailPage() {
           <dl className="space-y-3 text-sm">
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Make</dt>
-              <dd className="font-medium">{vehicle.make ?? '\u2014'}</dd>
+              <dd className="font-medium">{vehicle.make ?? notSet()}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Model</dt>
-              <dd className="font-medium">{vehicle.model ?? '\u2014'}</dd>
+              <dd className="font-medium">{vehicle.model ?? notSet()}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Year</dt>
-              <dd className="font-medium">{vehicle.year ?? '\u2014'}</dd>
+              <dd className="font-medium">{vehicle.year ?? notSet()}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Color</dt>
-              <dd className="font-medium">{vehicle.color ?? '\u2014'}</dd>
+              <dd className="font-medium">{vehicle.color ?? notSet()}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">VIN</dt>
-              <dd className="font-medium font-mono text-xs">{vehicle.vin ?? '\u2014'}</dd>
+              <dd className="font-medium font-mono text-xs">{vehicle.vin ?? notSet()}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">License Plate</dt>
-              <dd className="font-medium">{vehicle.license_plate ?? '\u2014'}</dd>
+              <dd className="font-medium">{vehicle.license_plate ?? notSet()}</dd>
             </div>
           </dl>
         </div>
@@ -281,7 +285,7 @@ export default function VehicleDetailPage() {
           <dl className="space-y-3 text-sm">
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Assigned To</dt>
-              <dd className="font-medium">{vehicle.assigned?.full_name ?? '\u2014'}</dd>
+              <dd className="font-medium">{vehicle.assigned?.full_name ?? notSet()}</dd>
             </div>
             {vehicle.assigned?.staff_code && (
               <div className="flex justify-between">

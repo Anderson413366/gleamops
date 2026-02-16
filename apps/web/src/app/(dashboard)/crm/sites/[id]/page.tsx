@@ -30,6 +30,26 @@ import { StatusToggleDialog } from '@/components/detail/status-toggle-dialog';
 import { toast } from 'sonner';
 
 interface SiteWithClient extends Site {
+  // Legacy/alias fields kept for older environments so detail pages still populate.
+  floors?: number | null;
+  priority?: string | null;
+  earliest_start?: string | null;
+  latest_start?: string | null;
+  janitorial_closet?: string | null;
+  supply_storage?: string | null;
+  water_source?: string | null;
+  dumpster?: string | null;
+  osha_compliance?: boolean | null;
+  background_check?: boolean | null;
+  primary_contact_name?: string | null;
+  primary_contact_email?: string | null;
+  primary_contact_phone?: string | null;
+  emergency_contact_name?: string | null;
+  emergency_contact_email?: string | null;
+  emergency_contact_phone?: string | null;
+  site_supervisor_name?: string | null;
+  site_supervisor_email?: string | null;
+  site_supervisor_phone?: string | null;
   client?: { name: string; client_code: string } | null;
   primary_contact?: Pick<Contact, 'name' | 'role' | 'role_title' | 'email' | 'phone' | 'mobile_phone' | 'work_phone' | 'preferred_contact_method' | 'photo_url'> | null;
   emergency_contact?: Pick<Contact, 'name' | 'role' | 'role_title' | 'email' | 'phone' | 'mobile_phone' | 'work_phone' | 'preferred_contact_method' | 'photo_url'> | null;
@@ -303,6 +323,25 @@ export default function SiteDetailPage() {
     site.geofence_radius_meters != null
       ? `${site.geofence_radius_meters} m`
       : (parsedLegacy.geofenceRadius ?? null);
+  const earliestStartTime = site.earliest_start_time ?? site.earliest_start ?? null;
+  const latestStartTime = site.latest_start_time ?? site.latest_start ?? null;
+  const janitorialCloset = site.janitorial_closet_location ?? site.janitorial_closet ?? null;
+  const supplyStorage = site.supply_storage_location ?? site.supply_storage ?? null;
+  const waterSource = site.water_source_location ?? site.water_source ?? null;
+  const dumpsterLocation = site.dumpster_location ?? site.dumpster ?? null;
+  const floors = site.number_of_floors ?? site.floors ?? null;
+  const priorityLevel = site.priority_level ?? site.priority ?? null;
+  const oshaComplianceRequired = site.osha_compliance_required || site.osha_compliance === true;
+  const backgroundCheckRequired = site.background_check_required || site.background_check === true;
+  const primaryContactName = site.primary_contact?.name ?? site.primary_contact_name ?? null;
+  const primaryContactEmail = site.primary_contact?.email ?? site.primary_contact_email ?? null;
+  const primaryContactPhone = site.primary_contact?.mobile_phone || site.primary_contact?.work_phone || site.primary_contact?.phone || site.primary_contact_phone || null;
+  const emergencyContactName = site.emergency_contact?.name ?? site.emergency_contact_name ?? null;
+  const emergencyContactEmail = site.emergency_contact?.email ?? site.emergency_contact_email ?? null;
+  const emergencyContactPhone = site.emergency_contact?.mobile_phone || site.emergency_contact?.work_phone || site.emergency_contact?.phone || site.emergency_contact_phone || null;
+  const supervisorName = site.supervisor?.full_name ?? site.site_supervisor_name ?? null;
+  const supervisorEmail = site.supervisor?.email ?? site.site_supervisor_email ?? null;
+  const supervisorPhone = site.supervisor?.mobile_phone || site.supervisor?.phone || site.site_supervisor_phone || null;
   const siteCompletenessItems: CompletenessItem[] = [
     { key: 'photo', label: 'Site Photo', isComplete: isFieldComplete(site.photo_url), section: 'basics' },
     { key: 'address', label: 'Address', isComplete: isFieldComplete(site.address), section: 'address' },
@@ -310,10 +349,10 @@ export default function SiteDetailPage() {
     { key: 'alarm_code', label: 'Alarm Code', isComplete: isFieldComplete(site.alarm_code), section: 'access' },
     { key: 'security_protocol', label: 'Security Protocol', isComplete: isFieldComplete(site.security_protocol), section: 'access' },
     { key: 'entry_instructions', label: 'Entry Instructions', isComplete: isFieldComplete(site.entry_instructions), section: 'access' },
-    { key: 'service_window', label: 'Service Time Window', isComplete: isFieldComplete(site.earliest_start_time) && isFieldComplete(site.latest_start_time), section: 'service' },
-    { key: 'janitorial_closet', label: 'Janitorial Closet Location', isComplete: isFieldComplete(site.janitorial_closet_location), section: 'facility' },
-    { key: 'dumpster', label: 'Dumpster Location', isComplete: isFieldComplete(site.dumpster_location), section: 'facility' },
-    { key: 'risk_priority', label: 'Risk & Priority', isComplete: isFieldComplete(site.risk_level) && isFieldComplete(site.priority_level), section: 'facility' },
+    { key: 'service_window', label: 'Service Time Window', isComplete: isFieldComplete(earliestStartTime) && isFieldComplete(latestStartTime), section: 'service' },
+    { key: 'janitorial_closet', label: 'Janitorial Closet Location', isComplete: isFieldComplete(janitorialCloset), section: 'facility' },
+    { key: 'dumpster', label: 'Dumpster Location', isComplete: isFieldComplete(dumpsterLocation), section: 'facility' },
+    { key: 'risk_priority', label: 'Risk & Priority', isComplete: isFieldComplete(site.risk_level) && isFieldComplete(priorityLevel), section: 'facility' },
   ];
 
   return (
@@ -491,11 +530,11 @@ export default function SiteDetailPage() {
             <div className="rounded-lg border border-border bg-muted/20 p-4">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Primary Contact</p>
               <div className="mt-2">
-                <p className="text-sm font-semibold text-foreground">{site.primary_contact?.name ?? 'Not Set'}</p>
+                <p className="text-sm font-semibold text-foreground">{primaryContactName ?? 'Not Set'}</p>
                 <p className="text-xs text-muted-foreground">{[site.primary_contact?.role_title, site.primary_contact?.role].filter(Boolean).join(' · ') || 'Not Set'}</p>
                 <div className="mt-2 space-y-1 text-xs text-muted-foreground">
-                  <p>Email: <span className="text-foreground">{site.primary_contact?.email ?? 'Not Set'}</span></p>
-                  <p>Phone: <span className="text-foreground">{site.primary_contact?.mobile_phone || site.primary_contact?.work_phone || site.primary_contact?.phone || 'Not Set'}</span></p>
+                  <p>Email: <span className="text-foreground">{primaryContactEmail ?? 'Not Set'}</span></p>
+                  <p>Phone: <span className="text-foreground">{primaryContactPhone ?? 'Not Set'}</span></p>
                   <p>Preferred: <span className="text-foreground">{site.primary_contact?.preferred_contact_method ?? 'Not Set'}</span></p>
                 </div>
               </div>
@@ -504,11 +543,11 @@ export default function SiteDetailPage() {
             <div className="rounded-lg border border-border bg-muted/20 p-4">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Emergency Contact</p>
               <div className="mt-2">
-                <p className="text-sm font-semibold text-foreground">{site.emergency_contact?.name ?? 'Not Set'}</p>
+                <p className="text-sm font-semibold text-foreground">{emergencyContactName ?? 'Not Set'}</p>
                 <p className="text-xs text-muted-foreground">{[site.emergency_contact?.role_title, site.emergency_contact?.role].filter(Boolean).join(' · ') || 'Not Set'}</p>
                 <div className="mt-2 space-y-1 text-xs text-muted-foreground">
-                  <p>Email: <span className="text-foreground">{site.emergency_contact?.email ?? 'Not Set'}</span></p>
-                  <p>Phone: <span className="text-foreground">{site.emergency_contact?.mobile_phone || site.emergency_contact?.work_phone || site.emergency_contact?.phone || 'Not Set'}</span></p>
+                  <p>Email: <span className="text-foreground">{emergencyContactEmail ?? 'Not Set'}</span></p>
+                  <p>Phone: <span className="text-foreground">{emergencyContactPhone ?? 'Not Set'}</span></p>
                 </div>
               </div>
             </div>
@@ -516,11 +555,11 @@ export default function SiteDetailPage() {
             <div className="rounded-lg border border-border bg-muted/20 p-4">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Site Supervisor</p>
               <div className="mt-2">
-                <p className="text-sm font-semibold text-foreground">{site.supervisor?.full_name ?? 'Not Set'}</p>
+                <p className="text-sm font-semibold text-foreground">{supervisorName ?? 'Not Set'}</p>
                 <p className="text-xs text-muted-foreground">{site.supervisor?.staff_code ? `Staff ${site.supervisor.staff_code}` : 'Not Set'}</p>
                 <div className="mt-2 space-y-1 text-xs text-muted-foreground">
-                  <p>Email: <span className="text-foreground">{site.supervisor?.email ?? 'Not Set'}</span></p>
-                  <p>Phone: <span className="text-foreground">{site.supervisor?.mobile_phone || site.supervisor?.phone || 'Not Set'}</span></p>
+                  <p>Email: <span className="text-foreground">{supervisorEmail ?? 'Not Set'}</span></p>
+                  <p>Phone: <span className="text-foreground">{supervisorPhone ?? 'Not Set'}</span></p>
                 </div>
               </div>
             </div>
@@ -538,11 +577,11 @@ export default function SiteDetailPage() {
           <dl className="space-y-3 text-sm">
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Earliest Start</dt>
-              <dd className="font-medium text-right">{formatTime(site.earliest_start_time)}</dd>
+              <dd className="font-medium text-right">{formatTime(earliestStartTime)}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Latest Start</dt>
-              <dd className="font-medium text-right">{formatTime(site.latest_start_time)}</dd>
+              <dd className="font-medium text-right">{formatTime(latestStartTime)}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Weekend Access</dt>
@@ -616,19 +655,19 @@ export default function SiteDetailPage() {
           <dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-muted-foreground">Janitorial Closet</dt>
-              <dd className="font-medium">{site.janitorial_closet_location ? site.janitorial_closet_location : <span className="text-muted-foreground">Not Set</span>}</dd>
+              <dd className="font-medium">{janitorialCloset ? janitorialCloset : <span className="text-muted-foreground">Not Set</span>}</dd>
             </div>
             <div>
               <dt className="text-muted-foreground">Supply Storage</dt>
-              <dd className="font-medium">{site.supply_storage_location ? site.supply_storage_location : <span className="text-muted-foreground">Not Set</span>}</dd>
+              <dd className="font-medium">{supplyStorage ? supplyStorage : <span className="text-muted-foreground">Not Set</span>}</dd>
             </div>
             <div>
               <dt className="text-muted-foreground">Water Source</dt>
-              <dd className="font-medium">{site.water_source_location ? site.water_source_location : <span className="text-muted-foreground">Not Set</span>}</dd>
+              <dd className="font-medium">{waterSource ? waterSource : <span className="text-muted-foreground">Not Set</span>}</dd>
             </div>
             <div>
               <dt className="text-muted-foreground">Dumpster</dt>
-              <dd className="font-medium">{site.dumpster_location ? site.dumpster_location : <span className="text-muted-foreground">Not Set</span>}</dd>
+              <dd className="font-medium">{dumpsterLocation ? dumpsterLocation : <span className="text-muted-foreground">Not Set</span>}</dd>
             </div>
           </dl>
         </div>
@@ -650,7 +689,7 @@ export default function SiteDetailPage() {
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Floors</dt>
-              <dd className="font-medium text-right">{site.number_of_floors ?? <span className="text-muted-foreground">Not Set</span>}</dd>
+              <dd className="font-medium text-right">{floors ?? <span className="text-muted-foreground">Not Set</span>}</dd>
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Employees On Site</dt>
@@ -658,11 +697,11 @@ export default function SiteDetailPage() {
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">OSHA Compliance</dt>
-              <dd className="font-medium text-right">{site.osha_compliance_required ? 'Required' : 'No'}</dd>
+              <dd className="font-medium text-right">{oshaComplianceRequired ? 'Required' : 'No'}</dd>
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Background Check</dt>
-              <dd className="font-medium text-right">{site.background_check_required ? 'Required' : 'No'}</dd>
+              <dd className="font-medium text-right">{backgroundCheckRequired ? 'Required' : 'No'}</dd>
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Service Start Date</dt>
@@ -702,9 +741,9 @@ export default function SiteDetailPage() {
             <div className="flex items-center justify-between gap-4">
               <dt className="text-muted-foreground">Priority Level</dt>
               <dd className="font-medium text-right">
-                {site.priority_level ? (
-                  <Badge color={PRIORITY_BADGE[site.priority_level] ?? 'gray'} dot={false} className="px-3 py-1">
-                    {site.priority_level}
+                {priorityLevel ? (
+                  <Badge color={PRIORITY_BADGE[priorityLevel] ?? 'gray'} dot={false} className="px-3 py-1">
+                    {priorityLevel}
                   </Badge>
                 ) : (
                   <span className="text-muted-foreground">Not Set</span>

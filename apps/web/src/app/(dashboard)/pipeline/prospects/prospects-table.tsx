@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Handshake, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -16,14 +17,13 @@ import { PipelineFlowHint } from '@/components/empty-states/pipeline-flow-hint';
 
 interface ProspectsTableProps {
   search: string;
-  onSelect?: (prospect: SalesProspect) => void;
 }
 
-export default function ProspectsTable({ search, onSelect }: ProspectsTableProps) {
+export default function ProspectsTable({ search }: ProspectsTableProps) {
+  const router = useRouter();
   const [rows, setRows] = useState<SalesProspect[]>([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
-  const [editItem, setEditItem] = useState<SalesProspect | null>(null);
   // UX requirement: default to Active when available; move "all" to the end.
   const [statusFilter, setStatusFilter] = useState<string>('ACTIVE');
 
@@ -78,22 +78,8 @@ export default function ProspectsTable({ search, onSelect }: ProspectsTableProps
   const sortedRows = sorted as unknown as SalesProspect[];
   const pag = usePagination(sortedRows, 25);
 
-  const handleEdit = (item: SalesProspect) => {
-    setEditItem(item);
-    setFormOpen(true);
-  };
-
   const handleAdd = () => {
-    setEditItem(null);
     setFormOpen(true);
-  };
-
-  const handleRowSelect = (item: SalesProspect) => {
-    if (onSelect) {
-      onSelect(item);
-      return;
-    }
-    handleEdit(item);
   };
 
   if (loading) return <TableSkeleton rows={6} cols={4} />;
@@ -168,7 +154,7 @@ export default function ProspectsTable({ search, onSelect }: ProspectsTableProps
               {pag.page.map((row) => (
                 <TableRow
                   key={row.id}
-                  onClick={() => handleRowSelect(row)}
+                  onClick={() => router.push(`/pipeline/prospects/${encodeURIComponent(row.prospect_code)}`)}
                   className={cn('cursor-pointer', statusRowAccentClass(row.prospect_status_code))}
                 >
                   <TableCell className="font-mono text-xs">
@@ -194,8 +180,7 @@ export default function ProspectsTable({ search, onSelect }: ProspectsTableProps
 
       <ProspectForm
         open={formOpen}
-        onClose={() => { setFormOpen(false); setEditItem(null); }}
-        initialData={editItem}
+        onClose={() => setFormOpen(false)}
         onSuccess={fetchData}
       />
     </div>

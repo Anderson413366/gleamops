@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Sparkles, Target } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -22,7 +23,6 @@ interface OpportunityWithProspect extends SalesOpportunity {
 
 interface OpportunitiesTableProps {
   search: string;
-  onSelect?: (opportunity: OpportunityWithProspect) => void;
 }
 
 function formatCurrency(n: number | null) {
@@ -35,11 +35,11 @@ function formatDate(d: string | null) {
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export default function OpportunitiesTable({ search, onSelect }: OpportunitiesTableProps) {
+export default function OpportunitiesTable({ search }: OpportunitiesTableProps) {
+  const router = useRouter();
   const [rows, setRows] = useState<OpportunityWithProspect[]>([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
-  const [editItem, setEditItem] = useState<SalesOpportunity | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -74,24 +74,33 @@ export default function OpportunitiesTable({ search, onSelect }: OpportunitiesTa
   const pag = usePagination(sortedRows, 25);
 
   const handleRowClick = (row: OpportunityWithProspect) => {
-    if (onSelect) {
-      onSelect(row);
-    } else {
-      setEditItem(row);
-      setFormOpen(true);
-    }
+    router.push(`/pipeline/opportunities/${encodeURIComponent(row.opportunity_code)}`);
   };
 
   const handleAdd = () => {
-    setEditItem(null);
     setFormOpen(true);
   };
 
   if (loading) return <TableSkeleton rows={6} cols={7} />;
 
-  if (filtered.length === 0) {
-    return (
-      <>
+  return (
+    <div>
+      <div className="flex justify-end mb-4">
+        <ExportButton
+          data={filtered as unknown as Record<string, unknown>[]}
+          filename="opportunities"
+          columns={[
+            { key: 'opportunity_code', label: 'Code' },
+            { key: 'name', label: 'Name' },
+            { key: 'stage_code', label: 'Stage' },
+            { key: 'estimated_monthly_value', label: 'Est. Monthly Value' },
+            { key: 'probability_pct', label: 'Probability (%)' },
+            { key: 'expected_close_date', label: 'Close Date' },
+          ]}
+          onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
+        />
+      </div>
+      {filtered.length === 0 ? (
         <EmptyState
           icon={(
             <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-300">
@@ -115,86 +124,62 @@ export default function OpportunitiesTable({ search, onSelect }: OpportunitiesTa
             </div>
           )}
         </EmptyState>
-        <OpportunityForm
-          open={formOpen}
-          onClose={() => { setFormOpen(false); setEditItem(null); }}
-          initialData={editItem}
-          onSuccess={fetchData}
-        />
-      </>
-    );
-  }
-
-  return (
-    <div>
-      <div className="flex justify-end mb-4">
-        <ExportButton
-          data={filtered as unknown as Record<string, unknown>[]}
-          filename="opportunities"
-          columns={[
-            { key: 'opportunity_code', label: 'Code' },
-            { key: 'name', label: 'Name' },
-            { key: 'stage_code', label: 'Stage' },
-            { key: 'estimated_monthly_value', label: 'Est. Monthly Value' },
-            { key: 'probability_pct', label: 'Probability (%)' },
-            { key: 'expected_close_date', label: 'Close Date' },
-          ]}
-          onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
-        />
-      </div>
-      <Table>
-        <TableHeader>
-          <tr>
-            <TableHead sortable sorted={sortKey === 'opportunity_code' && sortDir} onSort={() => onSort('opportunity_code')}>Code</TableHead>
-            <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Name</TableHead>
-            <TableHead>Prospect</TableHead>
-            <TableHead sortable sorted={sortKey === 'stage_code' && sortDir} onSort={() => onSort('stage_code')}>Stage</TableHead>
-            <TableHead sortable sorted={sortKey === 'estimated_monthly_value' && sortDir} onSort={() => onSort('estimated_monthly_value')}>Est. Value</TableHead>
-            <TableHead sortable sorted={sortKey === 'probability_pct' && sortDir} onSort={() => onSort('probability_pct')}>Probability</TableHead>
-            <TableHead sortable sorted={sortKey === 'expected_close_date' && sortDir} onSort={() => onSort('expected_close_date')}>Close Date</TableHead>
-          </tr>
-        </TableHeader>
-        <TableBody>
-          {pag.page.map((row) => (
-            <TableRow
-              key={row.id}
-              onClick={() => handleRowClick(row)}
-              className={cn('cursor-pointer', statusRowAccentClass(row.stage_code))}
-            >
-              <TableCell className="font-mono text-xs">
-                <div className="flex items-center gap-2">
-                  <StatusDot status={row.stage_code} />
-                  <span>{row.opportunity_code}</span>
-                </div>
-              </TableCell>
-              <TableCell className="font-medium">{row.name}</TableCell>
-              <TableCell className="text-muted-foreground">
-                {row.prospect ? `${row.prospect.company_name}` : '\u2014'}
-              </TableCell>
-              <TableCell>
-                <Badge color={OPPORTUNITY_STAGE_COLORS[row.stage_code] ?? 'gray'}>
-                  {row.stage_code.replace(/_/g, ' ')}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-muted-foreground">{formatCurrency(row.estimated_monthly_value)}</TableCell>
-              <TableCell className="text-muted-foreground">
-                {row.probability_pct != null ? `${row.probability_pct}%` : '\u2014'}
-              </TableCell>
-              <TableCell className="text-muted-foreground">{formatDate(row.expected_close_date)}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      <Pagination
-        currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
-        pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
-        onNext={pag.nextPage} onPrev={pag.prevPage}
-      />
+      ) : (
+        <>
+          <Table>
+            <TableHeader>
+              <tr>
+                <TableHead sortable sorted={sortKey === 'opportunity_code' && sortDir} onSort={() => onSort('opportunity_code')}>Code</TableHead>
+                <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Name</TableHead>
+                <TableHead>Prospect</TableHead>
+                <TableHead sortable sorted={sortKey === 'stage_code' && sortDir} onSort={() => onSort('stage_code')}>Stage</TableHead>
+                <TableHead sortable sorted={sortKey === 'estimated_monthly_value' && sortDir} onSort={() => onSort('estimated_monthly_value')}>Est. Value</TableHead>
+                <TableHead sortable sorted={sortKey === 'probability_pct' && sortDir} onSort={() => onSort('probability_pct')}>Probability</TableHead>
+                <TableHead sortable sorted={sortKey === 'expected_close_date' && sortDir} onSort={() => onSort('expected_close_date')}>Close Date</TableHead>
+              </tr>
+            </TableHeader>
+            <TableBody>
+              {pag.page.map((row) => (
+                <TableRow
+                  key={row.id}
+                  onClick={() => handleRowClick(row)}
+                  className={cn('cursor-pointer', statusRowAccentClass(row.stage_code))}
+                >
+                  <TableCell className="font-mono text-xs">
+                    <div className="flex items-center gap-2">
+                      <StatusDot status={row.stage_code} />
+                      <span>{row.opportunity_code}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-medium">{row.name}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {row.prospect ? `${row.prospect.company_name}` : '\u2014'}
+                  </TableCell>
+                  <TableCell>
+                    <Badge color={OPPORTUNITY_STAGE_COLORS[row.stage_code] ?? 'gray'}>
+                      {row.stage_code.replace(/_/g, ' ')}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{formatCurrency(row.estimated_monthly_value)}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {row.probability_pct != null ? `${row.probability_pct}%` : '\u2014'}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{formatDate(row.expected_close_date)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <Pagination
+            currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
+            pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
+            onNext={pag.nextPage} onPrev={pag.prevPage}
+          />
+        </>
+      )}
 
       <OpportunityForm
         open={formOpen}
-        onClose={() => { setFormOpen(false); setEditItem(null); }}
-        initialData={editItem}
+        onClose={() => setFormOpen(false)}
         onSuccess={fetchData}
       />
     </div>

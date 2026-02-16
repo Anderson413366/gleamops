@@ -392,20 +392,12 @@ export default function PipelinePageClient() {
         <ProspectsTable
           key={`prospects-${refreshKey}`}
           search={search}
-          onSelect={(p) => {
-            setEditProspect(p);
-            setProspectFormOpen(true);
-          }}
         />
       )}
       {tab === 'opportunities' && (
         <OpportunitiesTable
           key={`opportunities-${refreshKey}`}
           search={search}
-          onSelect={(o) => {
-            setEditOpportunity(o);
-            setOpportunityFormOpen(true);
-          }}
         />
       )}
       {tab === 'bids' && (

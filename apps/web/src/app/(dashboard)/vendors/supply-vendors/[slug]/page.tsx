@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { ArchiveDialog, Badge, Button, EmptyState, Input, Select, SlideOver, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Textarea } from '@gleamops/ui';
 import { SupplyVendorForm } from '@/components/forms/supply-vendor-form';
+import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
 import {
   findVendorProfileBySlug,
@@ -407,6 +408,19 @@ export default function SupplyVendorDetailPage() {
           Notes
         </h3>
         <p className="text-sm text-muted-foreground whitespace-pre-wrap">{profile.notes || 'No notes added yet.'}</p>
+      </div>
+
+      <ActivityHistorySection
+        entityType="supply_vendors"
+        entityId={profile.id}
+        entityCode={slug}
+        notes={profile.notes}
+        entityUpdatedAt={profile.updated_at}
+      />
+
+      <div className="text-xs text-muted-foreground space-y-1 pt-4 border-t border-border">
+        <p>Created: {formatDate(profile.created_at)}</p>
+        <p>Updated: {formatDate(profile.updated_at)}</p>
       </div>
 
       <SupplyVendorForm

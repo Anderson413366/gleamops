@@ -16,6 +16,7 @@ import { ArchiveDialog, Badge, Skeleton } from '@gleamops/ui';
 import type { KeyInventory } from '@gleamops/shared';
 import { KEY_STATUS_COLORS } from '@gleamops/shared';
 import { KeyForm } from '@/components/forms/key-form';
+import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
 import { toast } from 'sonner';
 
@@ -289,6 +290,14 @@ export default function KeyDetailPage() {
           </p>
         </div>
       )}
+
+      <ActivityHistorySection
+        entityType="key_inventory"
+        entityId={key.id}
+        entityCode={key.key_code}
+        notes={key.notes}
+        entityUpdatedAt={key.updated_at}
+      />
 
       {/* Metadata */}
       <div className="text-xs text-muted-foreground space-y-1 pt-4 border-t border-border">

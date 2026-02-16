@@ -5,6 +5,9 @@ export interface UiPreferences {
   celebration_effects: boolean;
   reading_ruler: boolean;
   dyslexia_font: boolean;
+  reduce_motion: boolean;
+  high_contrast: boolean;
+  large_text: boolean;
 }
 
 export const DEFAULT_UI_PREFERENCES: UiPreferences = {
@@ -14,4 +17,7 @@ export const DEFAULT_UI_PREFERENCES: UiPreferences = {
   celebration_effects: true,
   reading_ruler: false,
   dyslexia_font: false,
+  reduce_motion: false,
+  high_contrast: false,
+  large_text: false,
 };

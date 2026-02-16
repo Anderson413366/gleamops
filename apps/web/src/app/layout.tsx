@@ -55,6 +55,9 @@ export default function RootLayout({
                   const p = JSON.parse(rawPrefs) || {};
                   if (p.dyslexia_font) document.documentElement.classList.add('dyslexia-font');
                   if (p.reading_ruler) document.documentElement.classList.add('reading-ruler');
+                  if (p.reduce_motion) document.documentElement.classList.add('reduce-motion');
+                  if (p.high_contrast) document.documentElement.classList.add('high-contrast');
+                  if (p.large_text) document.documentElement.classList.add('large-text');
                   document.documentElement.dataset.focusMode = p.focus_mode ? 'true' : 'false';
                   document.documentElement.dataset.simpleView = p.simple_view ? 'true' : 'false';
                 }

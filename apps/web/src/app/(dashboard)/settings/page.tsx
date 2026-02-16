@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Save, Building2, Bell, Shield, Sun, Moon, Palette, Brain, Focus, Clock3, Sparkles, ScanLine, Type, Highlighter } from 'lucide-react';
+import { Save, Building2, Bell, Shield, Sun, Moon, Palette, Brain, Focus, Clock3, Sparkles, ScanLine, Type, Highlighter, Contrast, TextCursor, Rabbit } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardHeader, CardTitle, CardContent, Input, Button } from '@gleamops/ui';
 import { useAuth } from '@/hooks/use-auth';
@@ -62,6 +62,41 @@ export default function SettingsPage() {
       setSaving(false);
     }
   };
+
+  const PrefRow = ({
+    title,
+    description,
+    icon,
+    onClick,
+    enabled,
+  }: {
+    title: string;
+    description: string;
+    icon: React.ReactNode;
+    onClick: () => void;
+    enabled: boolean;
+  }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-start justify-between gap-4 rounded-xl border border-border p-3 text-left hover:border-module-accent/40 hover:bg-muted/30 transition-colors"
+    >
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-foreground inline-flex items-center gap-2">
+          <span className="text-module-accent">{icon}</span>
+          {title}
+        </p>
+        <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+      </div>
+      <span
+        className={`shrink-0 rounded-full px-2 py-1 text-xs font-medium ${
+          enabled ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-muted text-muted-foreground'
+        }`}
+      >
+        {enabled ? 'On' : 'Off'}
+      </span>
+    </button>
+  );
 
   return (
     <div className="space-y-6">
@@ -191,89 +226,88 @@ export default function SettingsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <button
-                type="button"
+              <PrefRow
+                title="Focus Mode"
+                description="Hide navigation chrome and keep one task at a time in view."
+                icon={<Focus className="h-4 w-4" />}
                 onClick={() => togglePreference('focus_mode')}
-                className="flex w-full items-center justify-between rounded-xl border border-border p-3 text-left hover:border-module-accent/40 hover:bg-muted/30 transition-colors"
-              >
-                <div>
-                  <p className="text-sm font-medium text-foreground inline-flex items-center gap-2"><Focus className="h-4 w-4 text-module-accent" />Focus Mode</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Hide non-essential panels and keep one task at a time in view.</p>
-                </div>
-                <span className={`rounded-full px-2 py-1 text-xs font-medium ${preferences.focus_mode ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-muted text-muted-foreground'}`}>
-                  {preferences.focus_mode ? 'On' : 'Off'}
-                </span>
-              </button>
+                enabled={preferences.focus_mode}
+              />
 
-              <button
-                type="button"
+              <PrefRow
+                title="Simple View (Low-Energy Mode)"
+                description="Show only the most important cards and actions on dense pages."
+                icon={<ScanLine className="h-4 w-4" />}
                 onClick={() => togglePreference('simple_view')}
-                className="flex w-full items-center justify-between rounded-xl border border-border p-3 text-left hover:border-module-accent/40 hover:bg-muted/30 transition-colors"
-              >
-                <div>
-                  <p className="text-sm font-medium text-foreground inline-flex items-center gap-2"><ScanLine className="h-4 w-4 text-module-accent" />Simple View (Low-Energy Mode)</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Show only the most important cards and actions on dense pages.</p>
-                </div>
-                <span className={`rounded-full px-2 py-1 text-xs font-medium ${preferences.simple_view ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-muted text-muted-foreground'}`}>
-                  {preferences.simple_view ? 'On' : 'Off'}
-                </span>
-              </button>
+                enabled={preferences.simple_view}
+              />
 
-              <button
-                type="button"
+              <PrefRow
+                title="Time Awareness"
+                description="Show subtle time context like refresh times and time-sensitive indicators."
+                icon={<Clock3 className="h-4 w-4" />}
                 onClick={() => togglePreference('time_awareness')}
-                className="flex w-full items-center justify-between rounded-xl border border-border p-3 text-left hover:border-module-accent/40 hover:bg-muted/30 transition-colors"
-              >
-                <div>
-                  <p className="text-sm font-medium text-foreground inline-flex items-center gap-2"><Clock3 className="h-4 w-4 text-module-accent" />Time Awareness</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Show subtle time context like last refresh and time-sensitive indicators.</p>
-                </div>
-                <span className={`rounded-full px-2 py-1 text-xs font-medium ${preferences.time_awareness ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-muted text-muted-foreground'}`}>
-                  {preferences.time_awareness ? 'On' : 'Off'}
-                </span>
-              </button>
+                enabled={preferences.time_awareness}
+              />
 
-              <button
-                type="button"
+              <PrefRow
+                title="Positive Completion Feedback"
+                description="Enable gentle success feedback after key actions complete."
+                icon={<Sparkles className="h-4 w-4" />}
                 onClick={() => togglePreference('celebration_effects')}
-                className="flex w-full items-center justify-between rounded-xl border border-border p-3 text-left hover:border-module-accent/40 hover:bg-muted/30 transition-colors"
-              >
-                <div>
-                  <p className="text-sm font-medium text-foreground inline-flex items-center gap-2"><Sparkles className="h-4 w-4 text-module-accent" />Positive Completion Feedback</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Enable gentle success feedback after key actions complete.</p>
-                </div>
-                <span className={`rounded-full px-2 py-1 text-xs font-medium ${preferences.celebration_effects ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-muted text-muted-foreground'}`}>
-                  {preferences.celebration_effects ? 'On' : 'Off'}
-                </span>
-              </button>
+                enabled={preferences.celebration_effects}
+              />
 
-              <button
-                type="button"
+              <PrefRow
+                title="Dyslexia Font Assist"
+                description="Use stronger letter shapes and spacing for easier reading (Atkinson Hyperlegible)."
+                icon={<Type className="h-4 w-4" />}
                 onClick={() => togglePreference('dyslexia_font')}
-                className="flex w-full items-center justify-between rounded-xl border border-border p-3 text-left hover:border-module-accent/40 hover:bg-muted/30 transition-colors"
-              >
-                <div>
-                  <p className="text-sm font-medium text-foreground inline-flex items-center gap-2"><Type className="h-4 w-4 text-module-accent" />Dyslexia Font Assist</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Use stronger letter shapes and spacing for easier reading.</p>
-                </div>
-                <span className={`rounded-full px-2 py-1 text-xs font-medium ${preferences.dyslexia_font ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-muted text-muted-foreground'}`}>
-                  {preferences.dyslexia_font ? 'On' : 'Off'}
-                </span>
-              </button>
+                enabled={preferences.dyslexia_font}
+              />
 
-              <button
-                type="button"
+              <PrefRow
+                title="Reading Ruler"
+                description="A subtle cursor-follow highlight to help keep your place while reading."
+                icon={<Highlighter className="h-4 w-4" />}
                 onClick={() => togglePreference('reading_ruler')}
-                className="flex w-full items-center justify-between rounded-xl border border-border p-3 text-left hover:border-module-accent/40 hover:bg-muted/30 transition-colors"
-              >
-                <div>
-                  <p className="text-sm font-medium text-foreground inline-flex items-center gap-2"><Highlighter className="h-4 w-4 text-module-accent" />Reading Ruler</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Highlight the line you’re reading as you move through lists and text.</p>
-                </div>
-                <span className={`rounded-full px-2 py-1 text-xs font-medium ${preferences.reading_ruler ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-muted text-muted-foreground'}`}>
-                  {preferences.reading_ruler ? 'On' : 'Off'}
-                </span>
-              </button>
+                enabled={preferences.reading_ruler}
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Accessibility */}
+        {prefMounted && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-primary" />
+                Accessibility
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <PrefRow
+                title="Reduce Motion"
+                description="Disable animations and transitions (in addition to your OS preference)."
+                icon={<Rabbit className="h-4 w-4" />}
+                onClick={() => togglePreference('reduce_motion')}
+                enabled={preferences.reduce_motion}
+              />
+              <PrefRow
+                title="High Contrast"
+                description="Increase contrast for muted text, borders, and inputs without changing module colors."
+                icon={<Contrast className="h-4 w-4" />}
+                onClick={() => togglePreference('high_contrast')}
+                enabled={preferences.high_contrast}
+              />
+              <PrefRow
+                title="Large Text"
+                description="Slightly increase base text size for easier scanning."
+                icon={<TextCursor className="h-4 w-4" />}
+                onClick={() => togglePreference('large_text')}
+                enabled={preferences.large_text}
+              />
             </CardContent>
           </Card>
         )}

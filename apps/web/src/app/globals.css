@@ -442,6 +442,50 @@ html.reading-ruler td:hover {
   background-image: linear-gradient(transparent 35%, rgba(59, 130, 246, 0.18) 35%, rgba(59, 130, 246, 0.18) 75%, transparent 75%);
 }
 
+/* Reading ruler overlay (cursor-follow) */
+html.reading-ruler body::before {
+  content: "";
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: calc(var(--reading-ruler-y, -9999px) - 0.95em);
+  height: 1.9em;
+  pointer-events: none;
+  z-index: 5;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    color-mix(in oklab, hsl(var(--module-accent)) 18%, transparent) 28%,
+    color-mix(in oklab, hsl(var(--module-accent)) 18%, transparent) 72%,
+    transparent 100%
+  );
+}
+
+/* Reduce motion (manual toggle) in addition to OS preference */
+html.reduce-motion * {
+  animation-duration: 0ms !important;
+  transition-duration: 0ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Large text (gentle bump, not a "zoom") */
+html.large-text {
+  font-size: 17px;
+}
+
+/* High contrast mode: increase border & muted text contrast without changing module colors */
+html.high-contrast {
+  --muted-foreground: 215.4 16.3% 34%;
+  --border: 34 21% 80%;
+  --input: 34 21% 80%;
+}
+
+html.dark.high-contrast {
+  --muted-foreground: 215 18% 74%;
+  --border: 215 14% 32%;
+  --input: 215 14% 32%;
+}
+
 /* ═══════════════════════════════════════════════════════
    FOCUS MODE — Hide shell chrome, keep one task in view
    Controlled by html[data-focus-mode="true"] (set by prefs)

@@ -48,6 +48,7 @@ import { toast } from 'sonner';
 import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
 import { StatusToggleDialog } from '@/components/detail/status-toggle-dialog';
+import { EntityLink } from '@/components/links/entity-link';
 
 const STATUS_COLORS: Record<string, 'green' | 'gray' | 'yellow' | 'red'> = {
   ACTIVE: 'green',
@@ -67,7 +68,7 @@ interface JobAssignment {
     status: string;
     frequency: string | null;
     schedule_days?: string | null;
-    site?: { name: string; client?: { name: string } | null } | null;
+    site?: { name: string; site_code?: string | null; client?: { name: string; client_code?: string | null } | null } | null;
   } | null;
 }
 
@@ -252,7 +253,7 @@ export default function StaffDetailPage() {
       Promise.all([
         supabase
           .from('job_staff_assignments')
-          .select('id, role, start_date, end_date, job:job_id(job_code, job_name, status, frequency, schedule_days, site:site_id(name, client:client_id(name)))')
+          .select('id, role, start_date, end_date, job:job_id(job_code, job_name, status, frequency, schedule_days, site:site_id(name, site_code, client:client_id(name, client_code)))')
           .eq('staff_id', data.id)
           .is('archived_at', null)
           .order('start_date', { ascending: false }),
@@ -825,9 +826,21 @@ export default function StaffDetailPage() {
                 <TableBody>
                   {jobs.map((j) => (
                     <TableRow key={j.id}>
-                      <TableCell className="font-medium">{j.job?.job_name ?? j.job?.job_code ?? '\u2014'}</TableCell>
-                      <TableCell className="text-muted-foreground">{j.job?.site?.name ?? '\u2014'}</TableCell>
-                      <TableCell className="text-muted-foreground">{j.job?.site?.client?.name ?? '\u2014'}</TableCell>
+                      <TableCell className="font-medium">
+                        {j.job?.job_code ? (
+                          <EntityLink entityType="job" code={j.job.job_code} name={j.job.job_name ?? j.job.job_code} showCode={false} />
+                        ) : '\u2014'}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {j.job?.site?.site_code
+                          ? <EntityLink entityType="site" code={j.job.site.site_code} name={j.job.site.name} showCode={false} />
+                          : (j.job?.site?.name ?? '\u2014')}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {j.job?.site?.client?.client_code
+                          ? <EntityLink entityType="client" code={j.job.site.client.client_code} name={j.job.site.client.name ?? j.job.site.client.client_code} showCode={false} />
+                          : (j.job?.site?.client?.name ?? '\u2014')}
+                      </TableCell>
                       <TableCell className="text-muted-foreground">{titleFromCode(j.job?.frequency ?? null)}</TableCell>
                       <TableCell className="text-muted-foreground">
                         {parseScheduleDays(j.job?.schedule_days).length
@@ -884,9 +897,17 @@ export default function StaffDetailPage() {
                 <TableBody>
                   {equipment.map((e) => (
                     <TableRow key={e.id}>
-                      <TableCell className="font-medium">{e.equipment?.name ?? '\u2014'}</TableCell>
+                      <TableCell className="font-medium">
+                        {e.equipment?.equipment_code
+                          ? <EntityLink entityType="equipment" code={e.equipment.equipment_code} name={e.equipment.name ?? e.equipment.equipment_code} showCode={false} />
+                          : (e.equipment?.name ?? '\u2014')}
+                      </TableCell>
                       <TableCell className="text-muted-foreground">{titleFromCode(e.equipment?.equipment_type)}</TableCell>
-                      <TableCell className="font-mono text-xs">{e.equipment?.equipment_code ?? '\u2014'}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {e.equipment?.equipment_code
+                          ? <EntityLink entityType="equipment" code={e.equipment.equipment_code} name={e.equipment.equipment_code} showCode={false} />
+                          : '\u2014'}
+                      </TableCell>
                       <TableCell>
                         <Badge color={statusBadgeColor(e.equipment?.condition)}>
                           {titleFromCode(e.equipment?.condition)}

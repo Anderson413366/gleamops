@@ -17,16 +17,17 @@ import { usePagination } from '@/hooks/use-pagination';
 import { useViewPreference } from '@/hooks/use-view-preference';
 import { EquipmentCardGrid } from './equipment-card-grid';
 import { EquipmentForm } from '@/components/forms/equipment-form';
+import { EntityLink } from '@/components/links/entity-link';
 
 interface EquipmentRow extends Equipment {
-  staff?: { full_name: string } | null;
+  staff?: { full_name: string; staff_code?: string } | null;
   site?: { name: string; site_code: string } | null;
 }
 
 interface EquipmentAssignmentLite {
   equipment_id: string;
   assigned_date: string;
-  staff?: { full_name: string } | null;
+  staff?: { full_name: string; staff_code?: string } | null;
   site?: { name: string; site_code: string } | null;
 }
 
@@ -53,7 +54,7 @@ export default function EquipmentTable({ search, onSelect, formOpen, onFormClose
     const supabase = getSupabaseBrowserClient();
     const { data, error } = await supabase
       .from('equipment')
-      .select('*, staff:assigned_to(full_name), site:site_id(name, site_code)')
+      .select('*, staff:assigned_to(full_name, staff_code), site:site_id(name, site_code)')
       .is('archived_at', null)
       .order('name');
     if (!error && data) {
@@ -67,7 +68,7 @@ export default function EquipmentTable({ search, onSelect, formOpen, onFormClose
       const ids = equipmentRows.map((row) => row.id);
       const { data: assignmentRows } = await supabase
         .from('equipment_assignments')
-        .select('equipment_id, assigned_date, staff:staff_id(full_name), site:site_id(name, site_code)')
+        .select('equipment_id, assigned_date, staff:staff_id(full_name, staff_code), site:site_id(name, site_code)')
         .in('equipment_id', ids)
         .is('archived_at', null)
         .is('returned_date', null)
@@ -260,14 +261,36 @@ export default function EquipmentTable({ search, onSelect, formOpen, onFormClose
                 </span>
               </TableCell>
               <TableCell>
-                <span className="inline-block max-w-[170px] truncate text-muted-foreground" title={row.staff?.full_name ?? 'Not Set'}>
-                  {row.staff?.full_name ?? 'Not Set'}
-                </span>
+                {row.staff?.staff_code ? (
+                  <EntityLink
+                    entityType="staff"
+                    code={row.staff.staff_code}
+                    name={row.staff.full_name ?? row.staff.staff_code}
+                    showCode={false}
+                    stopPropagation
+                    className="inline-block max-w-[170px] truncate text-muted-foreground align-middle"
+                  />
+                ) : (
+                  <span className="inline-block max-w-[170px] truncate text-muted-foreground" title={row.staff?.full_name ?? 'Not Set'}>
+                    {row.staff?.full_name ?? 'Not Set'}
+                  </span>
+                )}
               </TableCell>
               <TableCell>
-                <span className="inline-block max-w-[170px] truncate text-muted-foreground" title={row.site?.name ?? 'Not Set'}>
-                  {row.site?.name ?? 'Not Set'}
-                </span>
+                {row.site?.site_code ? (
+                  <EntityLink
+                    entityType="site"
+                    code={row.site.site_code}
+                    name={row.site.name ?? row.site.site_code}
+                    showCode={false}
+                    stopPropagation
+                    className="inline-block max-w-[170px] truncate text-muted-foreground align-middle"
+                  />
+                ) : (
+                  <span className="inline-block max-w-[170px] truncate text-muted-foreground" title={row.site?.name ?? 'Not Set'}>
+                    {row.site?.name ?? 'Not Set'}
+                  </span>
+                )}
               </TableCell>
               <TableCell>
                 <Badge color={(EQUIPMENT_CONDITION_COLORS[row.condition ?? ''] as StatusColor) ?? 'gray'}>

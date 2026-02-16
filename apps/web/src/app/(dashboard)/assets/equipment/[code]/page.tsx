@@ -12,6 +12,7 @@ import { EquipmentForm } from '@/components/forms/equipment-form';
 import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
 import { StatusToggleDialog } from '@/components/detail/status-toggle-dialog';
+import { EntityLink } from '@/components/links/entity-link';
 import { toast } from 'sonner';
 
 interface EquipmentWithRelations extends Equipment {
@@ -347,7 +348,11 @@ export default function EquipmentDetailPage() {
           <dl className="space-y-3 text-sm">
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Assigned To</dt>
-              <dd className="font-medium">{equipment.staff?.full_name ?? notSet()}</dd>
+              <dd className="font-medium">
+                {equipment.staff?.staff_code
+                  ? <EntityLink entityType="staff" code={equipment.staff.staff_code} name={equipment.staff.full_name ?? equipment.staff.staff_code} showCode={false} />
+                  : (equipment.staff?.full_name ?? notSet())}
+              </dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Staff Code</dt>
@@ -355,7 +360,11 @@ export default function EquipmentDetailPage() {
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Site</dt>
-              <dd className="font-medium">{equipment.site?.name ?? notSet()}</dd>
+              <dd className="font-medium">
+                {equipment.site?.site_code
+                  ? <EntityLink entityType="site" code={equipment.site.site_code} name={equipment.site.name ?? equipment.site.site_code} showCode={false} />
+                  : (equipment.site?.name ?? notSet())}
+              </dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Site Code</dt>
@@ -437,8 +446,16 @@ export default function EquipmentDetailPage() {
                   <tr key={row.id} className="border-b border-border/50">
                     <td className="py-2 pr-3">{formatDate(row.assigned_date)}</td>
                     <td className="py-2 pr-3">{formatDate(row.returned_date)}</td>
-                    <td className="py-2 pr-3 text-muted-foreground">{row.staff?.full_name ?? 'Not Set'}</td>
-                    <td className="py-2 pr-3 text-muted-foreground">{row.site?.name ?? 'Not Set'}</td>
+                    <td className="py-2 pr-3 text-muted-foreground">
+                      {row.staff?.staff_code
+                        ? <EntityLink entityType="staff" code={row.staff.staff_code} name={row.staff.full_name ?? row.staff.staff_code} showCode={false} />
+                        : (row.staff?.full_name ?? 'Not Set')}
+                    </td>
+                    <td className="py-2 pr-3 text-muted-foreground">
+                      {row.site?.site_code
+                        ? <EntityLink entityType="site" code={row.site.site_code} name={row.site.name ?? row.site.site_code} showCode={false} />
+                        : (row.site?.name ?? 'Not Set')}
+                    </td>
                     <td className="py-2 text-muted-foreground">{row.notes ?? 'Not Set'}</td>
                   </tr>
                 ))}

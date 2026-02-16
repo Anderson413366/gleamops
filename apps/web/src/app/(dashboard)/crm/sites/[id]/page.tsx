@@ -27,6 +27,7 @@ import { SiteForm } from '@/components/forms/site-form';
 import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
 import { StatusToggleDialog } from '@/components/detail/status-toggle-dialog';
+import { EntityLink } from '@/components/links/entity-link';
 import { toast } from 'sonner';
 
 interface SiteWithClient extends Site {
@@ -72,7 +73,7 @@ interface RelatedEquipmentRow {
   name: string;
   equipment_type: string | null;
   condition: string | null;
-  staff?: { full_name: string } | null;
+  staff?: { full_name: string; staff_code: string } | null;
 }
 
 function formatCurrency(n: number | null) {
@@ -217,7 +218,7 @@ export default function SiteDetailPage() {
           .order('job_code'),
         supabase
           .from('equipment')
-          .select('id, equipment_code, name, equipment_type, condition, staff:assigned_to(full_name)')
+          .select('id, equipment_code, name, equipment_type, condition, staff:assigned_to(full_name, staff_code)')
           .eq('site_id', s.id)
           .is('archived_at', null),
         supabase
@@ -413,7 +414,7 @@ export default function SiteDetailPage() {
               {site.client?.name && (
                 <span className="inline-flex items-center gap-1.5">
                   <Building2 className="h-4 w-4" />
-                  {site.client.name}
+                  <EntityLink entityType="client" code={site.client.client_code} name={site.client.name} showCode={false} />
                 </span>
               )}
             </div>
@@ -810,8 +811,12 @@ export default function SiteDetailPage() {
                 <tbody>
                   {relatedJobs.slice(0, 8).map((job) => (
                     <tr key={job.id} className="border-b border-border/50">
-                      <td className="py-2 pr-3 font-mono text-xs">{job.job_code}</td>
-                      <td className="py-2 pr-3 font-medium">{job.job_name ?? 'Not Set'}</td>
+                      <td className="py-2 pr-3 font-mono text-xs">
+                        <EntityLink entityType="job" code={job.job_code} name={job.job_code} showCode={false} />
+                      </td>
+                      <td className="py-2 pr-3 font-medium">
+                        <EntityLink entityType="job" code={job.job_code} name={job.job_name ?? job.job_code} showCode={false} />
+                      </td>
                       <td className="py-2 pr-3">
                         <Badge color={SITE_STATUS_COLORS[job.status] ?? 'gray'}>{job.status}</Badge>
                       </td>
@@ -849,10 +854,18 @@ export default function SiteDetailPage() {
                 <tbody>
                   {relatedEquipment.slice(0, 8).map((equip) => (
                     <tr key={equip.id} className="border-b border-border/50">
-                      <td className="py-2 pr-3 font-mono text-xs">{equip.equipment_code}</td>
-                      <td className="py-2 pr-3 font-medium">{equip.name}</td>
+                      <td className="py-2 pr-3 font-mono text-xs">
+                        <EntityLink entityType="equipment" code={equip.equipment_code} name={equip.equipment_code} showCode={false} />
+                      </td>
+                      <td className="py-2 pr-3 font-medium">
+                        <EntityLink entityType="equipment" code={equip.equipment_code} name={equip.name} showCode={false} />
+                      </td>
                       <td className="py-2 pr-3 text-muted-foreground">{equip.equipment_type ?? 'Not Set'}</td>
-                      <td className="py-2 pr-3 text-muted-foreground">{equip.staff?.full_name ?? 'Not Set'}</td>
+                      <td className="py-2 pr-3 text-muted-foreground">
+                        {equip.staff?.staff_code
+                          ? <EntityLink entityType="staff" code={equip.staff.staff_code} name={equip.staff.full_name} showCode={false} />
+                          : (equip.staff?.full_name ?? 'Not Set')}
+                      </td>
                       <td className="py-2">
                         {equip.condition ? <Badge color="gray">{equip.condition.replace(/_/g, ' ')}</Badge> : <span className="italic text-muted-foreground">Not Set</span>}
                       </td>

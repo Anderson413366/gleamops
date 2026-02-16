@@ -29,6 +29,7 @@ import { ActivityHistorySection } from '@/components/activity/activity-history-s
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
 import { StatusToggleDialog } from '@/components/detail/status-toggle-dialog';
 import { SubcontractorForm } from '@/components/forms/subcontractor-form';
+import { EntityLink } from '@/components/links/entity-link';
 import { Badge, Button, EmptyState, Skeleton, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@gleamops/ui';
 
 function formatDate(value: string | null | undefined): string {
@@ -590,12 +591,20 @@ export default function SubcontractorDetailPage() {
                 <TableRow key={job.id}>
                   <TableCell>
                     <div>
-                      <p className="font-mono text-xs">{job.job_code}</p>
-                      <p className="text-xs text-muted-foreground">{job.job_name ?? 'Not Set'}</p>
+                      <p className="font-mono text-xs">
+                        <EntityLink entityType="job" code={job.job_code} name={job.job_code} showCode={false} />
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        <EntityLink entityType="job" code={job.job_code} name={job.job_name ?? job.job_code} showCode={false} />
+                      </p>
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{job.site_name}</TableCell>
-                  <TableCell className="text-muted-foreground">{job.client_name}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    <EntityLink entityType="site" code={job.site_code} name={job.site_name} showCode={false} />
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    <EntityLink entityType="client" code={job.client_code} name={job.client_name} showCode={false} />
+                  </TableCell>
                   <TableCell>
                     <Badge color={statusTone(job.status)}>{titleCase(job.status)}</Badge>
                   </TableCell>

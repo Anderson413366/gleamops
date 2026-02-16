@@ -15,6 +15,7 @@ import { usePagination } from '@/hooks/use-pagination';
 import { useViewPreference } from '@/hooks/use-view-preference';
 import { SitesCardGrid } from './sites-card-grid';
 import { SiteForm } from '@/components/forms/site-form';
+import { EntityLink } from '@/components/links/entity-link';
 
 const PRIORITY_COLORS: Record<string, 'red' | 'blue' | 'orange' | 'gray'> = {
   CRITICAL: 'red',
@@ -268,9 +269,20 @@ export default function SitesTable({ search }: SitesTableProps) {
                     </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    <span className="inline-block max-w-[200px] truncate" title={row.client?.name ?? 'Not Set'}>
-                      {row.client?.name ?? 'Not Set'}
-                    </span>
+                    {row.client?.client_code ? (
+                      <EntityLink
+                        entityType="client"
+                        code={row.client.client_code}
+                        name={row.client.name ?? row.client.client_code}
+                        showCode={false}
+                        stopPropagation
+                        className="inline-block max-w-[200px] truncate align-middle"
+                      />
+                    ) : (
+                      <span className="inline-block max-w-[200px] truncate" title={row.client?.name ?? 'Not Set'}>
+                        {row.client?.name ?? 'Not Set'}
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     <span

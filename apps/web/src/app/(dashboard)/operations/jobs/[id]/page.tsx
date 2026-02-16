@@ -29,6 +29,7 @@ import {
 import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
 import { StatusToggleDialog } from '@/components/detail/status-toggle-dialog';
+import { EntityLink } from '@/components/links/entity-link';
 
 interface JobWithRelations extends SiteJob {
   site?: {
@@ -536,23 +537,17 @@ export default function JobDetailPage() {
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Site</dt>
               <dd className="font-medium">
-                {job.site?.name ?? notSet(true)}
-                {job.site?.site_code && (
-                  <span className="ml-1 text-xs text-muted-foreground font-mono">
-                    ({job.site.site_code})
-                  </span>
-                )}
+                {job.site?.site_code
+                  ? <EntityLink entityType="site" code={job.site.site_code} name={job.site.name ?? job.site.site_code} />
+                  : notSet(true)}
               </dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Client</dt>
               <dd className="font-medium">
-                {job.site?.client?.name ?? notSet(true)}
-                {job.site?.client?.client_code && (
-                  <span className="ml-1 text-xs text-muted-foreground font-mono">
-                    ({job.site.client.client_code})
-                  </span>
-                )}
+                {job.site?.client?.client_code
+                  ? <EntityLink entityType="client" code={job.site.client.client_code} name={job.site.client.name ?? job.site.client.client_code} />
+                  : notSet(true)}
               </dd>
             </div>
             <div className="flex justify-between">
@@ -739,12 +734,9 @@ export default function JobDetailPage() {
                 <li key={assignment.id} className="py-3 flex items-center justify-between gap-4">
                   <div>
                     <p className="text-sm font-medium">
-                      {assignment.staff?.full_name ?? 'Unknown staff'}
-                      {assignment.staff?.staff_code ? (
-                        <span className="ml-1 text-xs text-muted-foreground font-mono">
-                          ({assignment.staff.staff_code})
-                        </span>
-                      ) : null}
+                      {assignment.staff?.staff_code
+                        ? <EntityLink entityType="staff" code={assignment.staff.staff_code} name={assignment.staff.full_name ?? assignment.staff.staff_code} />
+                        : (assignment.staff?.full_name ?? 'Unknown staff')}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {assignment.role ?? 'Assigned'} • Start {formatDateSafe(assignment.start_date)}

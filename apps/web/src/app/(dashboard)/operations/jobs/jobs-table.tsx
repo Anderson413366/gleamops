@@ -15,6 +15,7 @@ import { usePagination } from '@/hooks/use-pagination';
 import { useViewPreference } from '@/hooks/use-view-preference';
 import { JobForm } from '@/components/forms/job-form';
 import { JobsCardGrid } from './jobs-card-grid';
+import { EntityLink } from '@/components/links/entity-link';
 
 const PRIORITY_COLORS: Record<string, 'red' | 'blue' | 'orange' | 'gray'> = {
   CRITICAL: 'red',
@@ -28,7 +29,7 @@ const PRIORITY_COLORS: Record<string, 'red' | 'blue' | 'orange' | 'gray'> = {
 const STATUS_OPTIONS = ['ACTIVE', 'ON_HOLD', 'COMPLETED', 'CANCELED', 'all'] as const;
 
 interface JobWithRelations extends SiteJob {
-  site?: { site_code: string; name: string; client?: { name: string } | null } | null;
+  site?: { site_code: string; name: string; client?: { name: string; client_code?: string | null } | null } | null;
 }
 
 interface JobsTableProps {
@@ -74,7 +75,7 @@ export default function JobsTable({ search, openCreateToken }: JobsTableProps) {
       .from('site_jobs')
       .select(`
         *,
-        site:site_id(site_code, name, client:client_id(name))
+        site:site_id(site_code, name, client:client_id(name, client_code))
       `)
       .is('archived_at', null)
       .order('created_at', { ascending: false });
@@ -251,14 +252,36 @@ export default function JobsTable({ search, openCreateToken }: JobsTableProps) {
                     </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    <span className="inline-block max-w-[180px] truncate" title={row.site?.name ?? 'Not Set'}>
-                      {row.site?.name ?? 'Not Set'}
-                    </span>
+                    {row.site?.site_code ? (
+                      <EntityLink
+                        entityType="site"
+                        code={row.site.site_code}
+                        name={row.site.name ?? row.site.site_code}
+                        showCode={false}
+                        stopPropagation
+                        className="inline-block max-w-[180px] truncate align-middle"
+                      />
+                    ) : (
+                      <span className="inline-block max-w-[180px] truncate" title={row.site?.name ?? 'Not Set'}>
+                        {row.site?.name ?? 'Not Set'}
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    <span className="inline-block max-w-[180px] truncate" title={row.site?.client?.name ?? 'Not Set'}>
-                      {row.site?.client?.name ?? 'Not Set'}
-                    </span>
+                    {row.site?.client?.client_code ? (
+                      <EntityLink
+                        entityType="client"
+                        code={row.site.client.client_code}
+                        name={row.site.client.name ?? row.site.client.client_code}
+                        showCode={false}
+                        stopPropagation
+                        className="inline-block max-w-[180px] truncate align-middle"
+                      />
+                    ) : (
+                      <span className="inline-block max-w-[180px] truncate" title={row.site?.client?.name ?? 'Not Set'}>
+                        {row.site?.client?.name ?? 'Not Set'}
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="text-muted-foreground">{humanFrequency(row.frequency)}</TableCell>
                   <TableCell className="text-right tabular-nums font-medium">{formatCurrency(row.billing_amount)}</TableCell>

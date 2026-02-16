@@ -26,6 +26,7 @@ import { ContactForm } from '@/components/forms/contact-form';
 import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
 import { StatusToggleDialog } from '@/components/detail/status-toggle-dialog';
+import { EntityLink } from '@/components/links/entity-link';
 import { toast } from 'sonner';
 
 function formatCurrency(n: number | null) {
@@ -749,8 +750,12 @@ export default function ClientDetailPage() {
                 <tbody>
                   {relatedSites.slice(0, 8).map((site) => (
                     <tr key={site.id} className="border-b border-border/50">
-                      <td className="py-2 pr-3 font-mono text-xs">{site.site_code}</td>
-                      <td className="py-2 pr-3 font-medium">{site.name}</td>
+                      <td className="py-2 pr-3 font-mono text-xs">
+                        <EntityLink entityType="site" code={site.site_code} name={site.site_code} showCode={false} />
+                      </td>
+                      <td className="py-2 pr-3 font-medium">
+                        <EntityLink entityType="site" code={site.site_code} name={site.name} showCode={false} />
+                      </td>
                       <td className="py-2 pr-3 text-muted-foreground">
                         {[site.address?.city, site.address?.state].filter(Boolean).join(', ') || 'Not Set'}
                       </td>
@@ -785,9 +790,17 @@ export default function ClientDetailPage() {
                 <tbody>
                   {relatedJobs.slice(0, 8).map((job) => (
                     <tr key={job.id} className="border-b border-border/50">
-                      <td className="py-2 pr-3 font-mono text-xs">{job.job_code}</td>
-                      <td className="py-2 pr-3 font-medium">{job.job_name || 'Not Set'}</td>
-                      <td className="py-2 pr-3 text-muted-foreground">{job.site?.name ?? 'Not Set'}</td>
+                      <td className="py-2 pr-3 font-mono text-xs">
+                        <EntityLink entityType="job" code={job.job_code} name={job.job_code} showCode={false} />
+                      </td>
+                      <td className="py-2 pr-3 font-medium">
+                        <EntityLink entityType="job" code={job.job_code} name={job.job_name ?? job.job_code} showCode={false} />
+                      </td>
+                      <td className="py-2 pr-3 text-muted-foreground">
+                        {job.site?.site_code
+                          ? <EntityLink entityType="site" code={job.site.site_code} name={job.site.name} showCode={false} />
+                          : 'Not Set'}
+                      </td>
                       <td className="py-2 pr-3">
                         <Badge color={job.status === 'ACTIVE' ? 'green' : job.status === 'ON_HOLD' ? 'yellow' : 'gray'}>
                           {job.status}

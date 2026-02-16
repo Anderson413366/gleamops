@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 const REDIRECT_CASES = [
+  { from: '/', to: '/home' },
   { from: '/customers', to: '/crm' },
   { from: '/team', to: '/workforce' },
   { from: '/people', to: '/workforce' },
@@ -19,6 +20,11 @@ test.describe('Redirect navigation hygiene', () => {
   }
 
   test('redirects preserve query strings', async ({ page }) => {
+    await page.goto('/?src=test');
+    const root = new URL(page.url());
+    expect(root.pathname).toBe('/home');
+    expect(root.searchParams.get('src')).toBe('test');
+
     await page.goto('/schedule?tab=tickets');
     const u1 = new URL(page.url());
     expect(u1.pathname).toBe('/operations');

@@ -78,6 +78,7 @@ export function ServiceForm({ open, onClose, initialData, onSuccess }: ServiceFo
       onClose={handleClose}
       title={isEdit ? 'Edit Service' : 'New Service'}
       subtitle={isEdit ? initialData?.service_code : undefined}
+      wide
     >
       <form onSubmit={handleSubmit} className="space-y-8">
         <FormSection title="Service Details" icon={<Sparkles className="h-4 w-4" />} description="Name and description used across jobs and proposals.">

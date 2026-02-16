@@ -126,6 +126,7 @@ export function KeyForm({ open, onClose, initialData, onSuccess, focusSection }:
       onClose={handleClose}
       title={isEdit ? 'Edit Key' : 'New Key'}
       subtitle={isEdit ? initialData?.key_code : undefined}
+      wide
     >
       <form onSubmit={handleSubmit} className="space-y-8">
         <div data-key-form-section="details" tabIndex={-1}>

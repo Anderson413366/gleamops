@@ -86,6 +86,7 @@ export function MaintenanceForm({ open, onClose, vehicleId, initialData, onSucce
       open={open}
       onClose={handleClose}
       title={isEdit ? 'Edit Service Record' : 'New Service Record'}
+      wide
     >
       <form onSubmit={handleSubmit} className="space-y-8">
         <FormSection title="Service Record" icon={<CalendarDays className="h-4 w-4" />} description="When the service happened and what was done.">

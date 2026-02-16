@@ -150,6 +150,7 @@ export function OpportunityForm({ open, onClose, initialData, onSuccess }: Oppor
       onClose={handleClose}
       title={isEdit ? 'Edit Opportunity' : 'New Opportunity'}
       subtitle={isEdit ? initialData?.opportunity_code : undefined}
+      wide
     >
       <form onSubmit={handleSubmit} className="space-y-8">
         <FormSection title="Opportunity Details" icon={<TrendingUp className="h-4 w-4" />} description="Prospect, stage, value, and target close date.">

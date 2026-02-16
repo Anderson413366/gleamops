@@ -105,6 +105,7 @@ export function SubcontractorForm({ open, onClose, initialData, onSuccess }: Sub
       onClose={handleClose}
       title={isEdit ? 'Edit Subcontractor' : 'New Subcontractor'}
       subtitle={isEdit ? initialData?.subcontractor_code : undefined}
+      wide
     >
       <form onSubmit={handleSubmit} className="space-y-8">
         <FormSection title="Basic Info" icon={<ClipboardList className="h-4 w-4" />} description="Company identity and current status.">

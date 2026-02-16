@@ -83,6 +83,7 @@ export function InventoryCountForm({ open, onClose, initialData, onSuccess }: In
       onClose={handleClose}
       title={isEdit ? 'Edit Count' : 'New Inventory Count'}
       subtitle={isEdit ? initialData?.count_code : undefined}
+      wide
     >
       <form onSubmit={handleSubmit} className="space-y-8">
         <FormSection title="Count Details" icon={<ClipboardList className="h-4 w-4" />} description="Code, date, and current status for this count.">

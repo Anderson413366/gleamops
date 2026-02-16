@@ -77,6 +77,7 @@ export function PositionForm({ open, onClose, initialData, onSuccess }: Position
       onClose={handleClose}
       title={isEdit ? 'Edit Position' : 'New Position'}
       subtitle={isEdit ? initialData?.position_code : undefined}
+      wide
     >
       <form onSubmit={handleSubmit} className="space-y-8">
         <FormSection title="Position Details" icon={<Briefcase className="h-4 w-4" />} description="Title, department, and pay grade.">

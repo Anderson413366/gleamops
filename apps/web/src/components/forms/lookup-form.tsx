@@ -81,6 +81,7 @@ export function LookupForm({ open, onClose, initialData, onSuccess }: LookupForm
       open={open}
       onClose={handleClose}
       title={isEdit ? 'Edit Lookup' : 'New Lookup'}
+      wide
     >
       <form onSubmit={handleSubmit} className="space-y-8">
         <FormSection title="Lookup Details" icon={<ListChecks className="h-4 w-4" />} description="Category, code, label, sort order, and activation status.">

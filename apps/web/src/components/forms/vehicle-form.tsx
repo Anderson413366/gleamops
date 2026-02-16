@@ -109,6 +109,7 @@ export function VehicleForm({ open, onClose, initialData, onSuccess, focusSectio
       onClose={handleClose}
       title={isEdit ? 'Edit Vehicle' : 'New Vehicle'}
       subtitle={isEdit ? initialData?.vehicle_code : undefined}
+      wide
     >
       <form onSubmit={handleSubmit} className="space-y-8">
         <div data-vehicle-form-section="basics" tabIndex={-1}>

@@ -148,6 +148,7 @@ export function EquipmentForm({ open, onClose, initialData, onSuccess, focusSect
       onClose={handleClose}
       title={isEdit ? 'Edit Equipment' : 'New Equipment'}
       subtitle={isEdit ? initialData?.equipment_code : undefined}
+      wide
     >
       <form onSubmit={handleSubmit} className="space-y-8">
         <div data-equipment-form-section="basics" tabIndex={-1}>

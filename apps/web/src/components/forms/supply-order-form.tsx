@@ -88,6 +88,7 @@ export function SupplyOrderForm({ open, onClose, initialData, onSuccess }: Suppl
       onClose={handleClose}
       title={isEdit ? 'Edit Order' : 'New Supply Order'}
       subtitle={isEdit ? initialData?.order_code : undefined}
+      wide
     >
       <form onSubmit={handleSubmit} className="space-y-8">
         <FormSection title="Order Details" icon={<ShoppingCart className="h-4 w-4" />} description="Code, supplier, and current order status.">

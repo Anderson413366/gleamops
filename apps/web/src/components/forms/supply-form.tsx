@@ -92,6 +92,7 @@ export function SupplyForm({ open, onClose, initialData, onSuccess, focusSection
       onClose={handleClose}
       title={isEdit ? 'Edit Supply' : 'New Supply'}
       subtitle={isEdit ? initialData?.code : undefined}
+      wide
     >
       <form onSubmit={handleSubmit} className="space-y-8">
         <div data-supply-form-section="details" tabIndex={-1}>

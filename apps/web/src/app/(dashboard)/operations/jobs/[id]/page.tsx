@@ -332,12 +332,12 @@ export default function JobDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-4">
         <AlertTriangle className="h-12 w-12 text-muted-foreground" />
-        <p className="text-lg text-muted-foreground">Job not found.</p>
+        <p className="text-lg text-muted-foreground">Service plan not found.</p>
         <Link
-          href="/operations"
+          href="/operations?tab=jobs"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
-          <ArrowLeft className="h-4 w-4" /> Back to Operations
+          <ArrowLeft className="h-4 w-4" /> Back to Service Plans
         </Link>
       </div>
     );
@@ -367,11 +367,11 @@ export default function JobDetailPage() {
     <div className="space-y-6">
       {/* Back Link */}
       <Link
-        href="/operations"
+        href="/operations?tab=jobs"
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to Operations
+        Back to Service Plans
       </Link>
 
       {/* Header */}
@@ -382,7 +382,7 @@ export default function JobDetailPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground">
-              {job.job_name ?? job.job_code}
+              {job.job_name ? `Service Plan — ${job.job_name}` : `Service Plan ${job.job_code}`}
             </h1>
             <div className="flex items-center gap-2 mt-1">
               <span className="text-sm text-muted-foreground font-mono">
@@ -426,7 +426,7 @@ export default function JobDetailPage() {
       </div>
 
       <ProfileCompletenessCard
-        title="Job Profile"
+        title="Service Plan Profile"
         items={jobCompletenessItems}
         onNavigateToMissing={(item) => {
           setJobFormFocus((item.section as 'assignment' | 'schedule' | 'tasks' | undefined) ?? 'assignment');

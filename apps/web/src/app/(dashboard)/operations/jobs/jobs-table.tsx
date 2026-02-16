@@ -129,13 +129,14 @@ export default function JobsTable({ search, openCreateToken }: JobsTableProps) {
     ? 'all statuses'
     : statusFilter.toLowerCase().replace(/_/g, ' ');
   const emptyTitle = statusFilter === 'all'
-    ? 'No service plans found'
-    : `No ${selectedStatusLabel} service plans found`;
+    ? 'No service plans yet'
+    : `No ${selectedStatusLabel} service plans`;
   const emptyDescription = search
     ? 'Try a different search term.'
     : statusFilter === 'all'
-      ? 'Create your first service plan to get started.'
-      : 'All service plans are currently in other statuses.';
+      ? 'Plan recurring work, billing, and staffing from one place.'
+      : `There are currently no service plans with ${selectedStatusLabel} status.`;
+  const showGuidedEmptyState = !search && statusFilter === 'all';
 
   if (loading) return <TableSkeleton rows={6} cols={7} />;
 
@@ -143,7 +144,7 @@ export default function JobsTable({ search, openCreateToken }: JobsTableProps) {
     <div>
       <div className="flex justify-between mb-4">
         <Button size="sm" onClick={() => { setEditItem(null); setFormOpen(true); }}>
-          <Plus className="h-4 w-4" /> New Job
+          <Plus className="h-4 w-4" /> New Service Plan
         </Button>
         <div className="flex items-center gap-3">
           <ViewToggle view={view} onChange={setView} />
@@ -201,7 +202,17 @@ export default function JobsTable({ search, openCreateToken }: JobsTableProps) {
             icon={<Briefcase className="h-12 w-12" />}
             title={emptyTitle}
             description={emptyDescription}
-          />
+            actionLabel={showGuidedEmptyState ? '+ Add Your First Service Plan' : undefined}
+            onAction={showGuidedEmptyState ? () => { setEditItem(null); setFormOpen(true); } : undefined}
+          >
+            {showGuidedEmptyState && (
+              <ul className="mx-auto max-w-lg list-disc space-y-1.5 pl-5 text-left text-sm text-muted-foreground">
+                <li>Assign each plan to a client and site with clear frequency.</li>
+                <li>Track billing and priority from the operations directory.</li>
+                <li>Open detail pages to manage staffing and tasks quickly.</li>
+              </ul>
+            )}
+          </EmptyState>
         ) : (
           <JobsCardGrid rows={pag.page} onSelect={handleRowClick} />
         )
@@ -268,7 +279,17 @@ export default function JobsTable({ search, openCreateToken }: JobsTableProps) {
                 icon={<Briefcase className="h-12 w-12" />}
                 title={emptyTitle}
                 description={emptyDescription}
-              />
+                actionLabel={showGuidedEmptyState ? '+ Add Your First Service Plan' : undefined}
+                onAction={showGuidedEmptyState ? () => { setEditItem(null); setFormOpen(true); } : undefined}
+              >
+                {showGuidedEmptyState && (
+                  <ul className="mx-auto max-w-lg list-disc space-y-1.5 pl-5 text-left text-sm text-muted-foreground">
+                    <li>Assign each plan to a client and site with clear frequency.</li>
+                    <li>Track billing and priority from the operations directory.</li>
+                    <li>Open detail pages to manage staffing and tasks quickly.</li>
+                  </ul>
+                )}
+              </EmptyState>
             </div>
           )}
         </>

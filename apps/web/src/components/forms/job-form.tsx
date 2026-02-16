@@ -678,14 +678,14 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
   }
 
   return (
-    <SlideOver open={open} onClose={handleClose} title="New Job" wide>
+    <SlideOver open={open} onClose={handleClose} title="New Service Plan" wide>
       <FormWizard
         steps={WIZARD_STEPS}
         currentStep={wizard.currentStep}
         onStepChange={wizard.goToStep}
         onSubmit={handleSubmit}
         onCancel={handleClose}
-        submitLabel="Create Job"
+        submitLabel="Create Service Plan"
         loading={loading}
         validateStep={validateStep}
       >

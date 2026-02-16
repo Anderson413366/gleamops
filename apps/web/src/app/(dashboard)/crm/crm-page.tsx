@@ -6,6 +6,7 @@ import { Building2, MapPin, Users, Plus } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import type { Contact } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { useSyncedTab } from '@/hooks/use-synced-tab';
 
 import ClientsTable from './clients/clients-table';
 import SitesTable from './sites/sites-table';
@@ -22,9 +23,11 @@ const TABS = [
 
 export default function CRMPageClient() {
   const searchParams = useSearchParams();
-  const initialTab = searchParams.get('tab');
   const action = searchParams.get('action');
-  const [tab, setTab] = useState(TABS.some(t => t.key === initialTab) ? initialTab! : TABS[0].key);
+  const [tab, setTab] = useSyncedTab({
+    tabKeys: TABS.map((entry) => entry.key),
+    defaultTab: 'clients',
+  });
   const [search, setSearch] = useState('');
   const [kpis, setKpis] = useState({
     clients: 0,
@@ -66,12 +69,6 @@ export default function CRMPageClient() {
   useEffect(() => {
     fetchKpis();
   }, [fetchKpis, refreshKey]);
-
-  useEffect(() => {
-    if (initialTab && TABS.some((t) => t.key === initialTab)) {
-      setTab(initialTab);
-    }
-  }, [initialTab]);
 
   const openQuickCreate = useCallback((actionName: string | null | undefined) => {
     if (actionName === 'create-client') {

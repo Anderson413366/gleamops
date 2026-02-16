@@ -25,6 +25,7 @@ import { SendProposalForm } from './proposals/send-proposal-form';
 import PipelineAnalytics from './analytics/pipeline-analytics';
 import { ProspectForm } from '@/components/forms/prospect-form';
 import { OpportunityForm } from '@/components/forms/opportunity-form';
+import { useSyncedTab } from '@/hooks/use-synced-tab';
 
 // Extended types with joined relations
 interface BidWithClient extends SalesBid {
@@ -60,9 +61,11 @@ const TABS = [
 
 export default function PipelinePageClient() {
   const searchParams = useSearchParams();
-  const initialTab = searchParams.get('tab');
   const action = searchParams.get('action');
-  const [tab, setTab] = useState(TABS.some(t => t.key === initialTab) ? initialTab! : TABS[0].key);
+  const [tab, setTab] = useSyncedTab({
+    tabKeys: TABS.map((entry) => entry.key),
+    defaultTab: 'prospects',
+  });
   const [search, setSearch] = useState('');
 
   // Detail drawer state
@@ -171,12 +174,6 @@ export default function PipelinePageClient() {
 
     fetchStats();
   }, [refreshKey]);
-
-  useEffect(() => {
-    if (initialTab && TABS.some((t) => t.key === initialTab)) {
-      setTab(initialTab);
-    }
-  }, [initialTab]);
 
   const openQuickCreate = useCallback((actionName: string | null | undefined) => {
     if (actionName === 'create-prospect') {

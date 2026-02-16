@@ -245,13 +245,14 @@ export default function ClientsTable({ search }: ClientsTableProps) {
     ? 'all statuses'
     : statusFilter.toLowerCase().replace(/_/g, ' ');
   const emptyTitle = statusFilter === 'all'
-    ? 'No clients found'
-    : `No ${selectedStatusLabel} clients found`;
+    ? 'No clients yet'
+    : `No ${selectedStatusLabel} clients`;
   const emptyDescription = search
     ? 'Try a different search term.'
     : statusFilter === 'all'
-      ? 'Create your first client to get started.'
-      : 'All your clients are currently in other statuses.';
+      ? 'Track every account, contract, and contact in one place.'
+      : `There are currently no clients with ${selectedStatusLabel} status.`;
+  const showGuidedEmptyState = !search && statusFilter === 'all';
 
   return (
     <div>
@@ -313,7 +314,17 @@ export default function ClientsTable({ search }: ClientsTableProps) {
             icon={<Building2 className="h-12 w-12" />}
             title={emptyTitle}
             description={emptyDescription}
-          />
+            actionLabel={showGuidedEmptyState ? '+ Add Your First Client' : undefined}
+            onAction={showGuidedEmptyState ? () => router.push('/crm?tab=clients&action=create-client') : undefined}
+          >
+            {showGuidedEmptyState && (
+              <ul className="mx-auto max-w-lg list-disc space-y-1.5 pl-5 text-left text-sm text-muted-foreground">
+                <li>Centralize billing, contract, and service records by client.</li>
+                <li>See active sites and monthly revenue at a glance.</li>
+                <li>Move faster with one-click drill-down to detail pages.</li>
+              </ul>
+            )}
+          </EmptyState>
         ) : (
           <ClientsCardGrid rows={pag.page} onSelect={handleRowClick} metaByClientId={cardMetaByClientId} />
         )
@@ -379,7 +390,17 @@ export default function ClientsTable({ search }: ClientsTableProps) {
                 icon={<Building2 className="h-12 w-12" />}
                 title={emptyTitle}
                 description={emptyDescription}
-              />
+                actionLabel={showGuidedEmptyState ? '+ Add Your First Client' : undefined}
+                onAction={showGuidedEmptyState ? () => router.push('/crm?tab=clients&action=create-client') : undefined}
+              >
+                {showGuidedEmptyState && (
+                  <ul className="mx-auto max-w-lg list-disc space-y-1.5 pl-5 text-left text-sm text-muted-foreground">
+                    <li>Centralize billing, contract, and service records by client.</li>
+                    <li>See active sites and monthly revenue at a glance.</li>
+                    <li>Move faster with one-click drill-down to detail pages.</li>
+                  </ul>
+                )}
+              </EmptyState>
             </div>
           )}
         </>

@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { Users, Clock, FileText, AlertTriangle, BriefcaseBusiness, DollarSign, Plus, MessageSquare } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import { useFeatureFlag } from '@/hooks/use-feature-flag';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { useSyncedTab } from '@/hooks/use-synced-tab';
 
 // Import existing tables from /people/ subdirectories
 import StaffTable from '../people/staff/staff-table';
@@ -26,8 +26,6 @@ const BASE_TABS = [
 ];
 
 export default function WorkforcePageClient() {
-  const searchParams = useSearchParams();
-  const initialTab = searchParams.get('tab');
   const messagingEnabled = useFeatureFlag('messaging_v1');
 
   const TABS = useMemo(() => {
@@ -38,7 +36,10 @@ export default function WorkforcePageClient() {
     return tabs;
   }, [messagingEnabled]);
 
-  const [tab, setTab] = useState(TABS.some(t => t.key === initialTab) ? initialTab! : TABS[0].key);
+  const [tab, setTab] = useSyncedTab({
+    tabKeys: TABS.map((entry) => entry.key),
+    defaultTab: 'staff',
+  });
   const [search, setSearch] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
   const [autoCreateStaff, setAutoCreateStaff] = useState(false);

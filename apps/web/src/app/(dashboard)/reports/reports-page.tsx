@@ -15,13 +15,18 @@ import InventoryDashboard from './inventory/inventory-dashboard';
 import { MetricCard } from './_components/report-components';
 
 const TABS = [
-  { key: 'ops', label: 'Operations', icon: <BarChart3 className="h-4 w-4" /> },
+  { key: 'ops', label: 'Operational', icon: <BarChart3 className="h-4 w-4" /> },
   { key: 'sales', label: 'Sales', icon: <TrendingUp className="h-4 w-4" /> },
   { key: 'financial', label: 'Financial', icon: <DollarSign className="h-4 w-4" /> },
-  { key: 'quality', label: 'Quality', icon: <Shield className="h-4 w-4" /> },
+  { key: 'quality', label: 'Compliance', icon: <Shield className="h-4 w-4" /> },
   { key: 'workforce', label: 'Workforce', icon: <Users className="h-4 w-4" /> },
   { key: 'inventory', label: 'Inventory', icon: <Package className="h-4 w-4" /> },
 ];
+
+const TAB_ALIASES: Record<string, string> = {
+  operational: 'ops',
+  compliance: 'quality',
+};
 
 const RANGE_OPTIONS = [
   { key: '7', label: '7d', days: 7 },
@@ -35,7 +40,8 @@ export default function ReportsPageClient() {
   const router = useRouter();
   const pathname = usePathname();
   const initialTab = searchParams.get('tab');
-  const [tab, setTab] = useState(TABS.some(t => t.key === initialTab) ? initialTab! : TABS[0].key);
+  const normalizedInitialTab = initialTab ? (TAB_ALIASES[initialTab] ?? initialTab) : null;
+  const [tab, setTab] = useState(TABS.some(t => t.key === normalizedInitialTab) ? normalizedInitialTab! : TABS[0].key);
   const initialRange = searchParams.get('range');
   const [rangeDays, setRangeDays] = useState<number>(() => {
     const match = RANGE_OPTIONS.find((o) => o.key === initialRange);

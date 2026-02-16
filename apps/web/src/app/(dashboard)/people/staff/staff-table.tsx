@@ -97,13 +97,14 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
     ? 'all statuses'
     : statusFilter.toLowerCase().replace(/_/g, ' ');
   const emptyTitle = statusFilter === 'all'
-    ? 'No staff found'
-    : `No ${selectedStatusLabel} staff found`;
+    ? 'No staff yet'
+    : `No ${selectedStatusLabel} staff`;
   const emptyDescription = search
     ? 'Try a different search term.'
     : statusFilter === 'all'
-      ? 'Add your first staff member.'
-      : 'All staff are currently in other statuses.';
+      ? 'Manage crew assignments, availability, and staffing performance.'
+      : `There are currently no staff with ${selectedStatusLabel} status.`;
+  const showGuidedEmptyState = !search && statusFilter === 'all';
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -244,7 +245,17 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
             icon={<Users className="h-12 w-12" />}
             title={emptyTitle}
             description={emptyDescription}
-          />
+            actionLabel={showGuidedEmptyState ? '+ Add Your First Staff Member' : undefined}
+            onAction={showGuidedEmptyState ? handleAdd : undefined}
+          >
+            {showGuidedEmptyState && (
+              <ul className="mx-auto max-w-lg list-disc space-y-1.5 pl-5 text-left text-sm text-muted-foreground">
+                <li>Track staffing levels and active assignment load.</li>
+                <li>Keep emergency contacts and HR details up to date.</li>
+                <li>Spot profile gaps quickly with completion indicators.</li>
+              </ul>
+            )}
+          </EmptyState>
         ) : (
           <StaffCardGrid rows={pag.page} onSelect={handleRowClick} />
         )
@@ -311,7 +322,17 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
                 icon={<Users className="h-12 w-12" />}
                 title={emptyTitle}
                 description={emptyDescription}
-              />
+                actionLabel={showGuidedEmptyState ? '+ Add Your First Staff Member' : undefined}
+                onAction={showGuidedEmptyState ? handleAdd : undefined}
+              >
+                {showGuidedEmptyState && (
+                  <ul className="mx-auto max-w-lg list-disc space-y-1.5 pl-5 text-left text-sm text-muted-foreground">
+                    <li>Track staffing levels and active assignment load.</li>
+                    <li>Keep emergency contacts and HR details up to date.</li>
+                    <li>Spot profile gaps quickly with completion indicators.</li>
+                  </ul>
+                )}
+              </EmptyState>
             </div>
           )}
         </>

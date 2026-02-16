@@ -153,7 +153,7 @@ const SHORTCUT_ROWS: ShortcutRow[] = [
   { keys: '?', description: 'Open keyboard shortcuts help' },
   { keys: 'Cmd/Ctrl + Shift + C', description: 'New Client' },
   { keys: 'Cmd/Ctrl + Shift + S', description: 'New Site' },
-  { keys: 'Cmd/Ctrl + Shift + J', description: 'New Job' },
+  { keys: 'Cmd/Ctrl + Shift + J', description: 'New Service Plan' },
   { keys: 'Cmd/Ctrl + Shift + P', description: 'New Prospect' },
   { keys: 'G then H', description: 'Go to Home' },
   { keys: 'G then C', description: 'Go to CRM' },
@@ -492,7 +492,7 @@ export function Header() {
       },
       {
         id: 'quick-create-job',
-        label: 'New Job',
+        label: 'New Service Plan',
         sublabel: 'Create a new service plan',
         category: 'Quick Actions',
         icon: <Briefcase className="h-4 w-4" />,

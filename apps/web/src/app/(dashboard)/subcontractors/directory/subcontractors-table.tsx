@@ -138,13 +138,14 @@ export default function SubcontractorsTable({ search }: Props) {
     ? 'all statuses'
     : statusFilter.toLowerCase().replace(/_/g, ' ');
   const emptyTitle = statusFilter === 'all'
-    ? 'No subcontractors found'
-    : `No ${selectedStatusLabel} subcontractors found`;
+    ? 'No subcontractors yet'
+    : `No ${selectedStatusLabel} subcontractors`;
   const emptyDescription = search
     ? 'Try a different search term.'
     : statusFilter === 'all'
-      ? 'Add a subcontractor to get started.'
-      : 'All subcontractors are currently in other statuses.';
+      ? 'Manage partner crews, compliance, and rates in one directory.'
+      : `There are currently no subcontractors with ${selectedStatusLabel} status.`;
+  const showGuidedEmptyState = !search && statusFilter === 'all';
 
   const openDetail = useCallback((row: Subcontractor) => {
     router.push(`/vendors/subcontractors/${encodeURIComponent(row.subcontractor_code)}`);
@@ -210,7 +211,17 @@ export default function SubcontractorsTable({ search }: Props) {
             icon={<HardHat className="h-10 w-10" />}
             title={emptyTitle}
             description={emptyDescription}
-          />
+            actionLabel={showGuidedEmptyState ? '+ Add Your First Subcontractor' : undefined}
+            onAction={showGuidedEmptyState ? () => router.push('/vendors?tab=subcontractors') : undefined}
+          >
+            {showGuidedEmptyState && (
+              <ul className="mx-auto max-w-lg list-disc space-y-1.5 pl-5 text-left text-sm text-muted-foreground">
+                <li>Track compliance status across W-9, insurance, and license dates.</li>
+                <li>See active assignment load and billing rate at a glance.</li>
+                <li>Open details quickly to manage contacts and documentation.</li>
+              </ul>
+            )}
+          </EmptyState>
         ) : (
           <SubcontractorsCardGrid rows={pag.page} onSelect={openDetail} />
         )
@@ -275,7 +286,17 @@ export default function SubcontractorsTable({ search }: Props) {
                 icon={<HardHat className="h-10 w-10" />}
                 title={emptyTitle}
                 description={emptyDescription}
-              />
+                actionLabel={showGuidedEmptyState ? '+ Add Your First Subcontractor' : undefined}
+                onAction={showGuidedEmptyState ? () => router.push('/vendors?tab=subcontractors') : undefined}
+              >
+                {showGuidedEmptyState && (
+                  <ul className="mx-auto max-w-lg list-disc space-y-1.5 pl-5 text-left text-sm text-muted-foreground">
+                    <li>Track compliance status across W-9, insurance, and license dates.</li>
+                    <li>See active assignment load and billing rate at a glance.</li>
+                    <li>Open details quickly to manage contacts and documentation.</li>
+                  </ul>
+                )}
+              </EmptyState>
             </div>
           )}
         </>

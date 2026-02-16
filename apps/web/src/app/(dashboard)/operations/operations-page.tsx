@@ -6,6 +6,7 @@ import { Calendar, ClipboardList, Briefcase, ClipboardCheck, FileText, MapPin, A
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import type { WorkTicket, Inspection, Geofence } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { useSyncedTab } from '@/hooks/use-synced-tab';
 
 import TicketsTable from './tickets/tickets-table';
 import { TicketDetail } from './tickets/ticket-detail';
@@ -57,14 +58,12 @@ const TABS = [
 
 export default function OperationsPageClient() {
   const searchParams = useSearchParams();
-  const initialTab = searchParams.get('tab');
   const initialTicketId = searchParams.get('ticket');
   const action = searchParams.get('action');
-  const [tab, setTab] = useState(
-    TABS.some((t) => t.key === initialTab)
-      ? initialTab!
-      : (initialTicketId ? 'tickets' : TABS[0].key)
-  );
+  const [tab, setTab] = useSyncedTab({
+    tabKeys: TABS.map((entry) => entry.key),
+    defaultTab: initialTicketId ? 'tickets' : 'calendar',
+  });
   const [search, setSearch] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedTicket, setSelectedTicket] = useState<TicketWithRelations | null>(null);
@@ -104,12 +103,6 @@ export default function OperationsPageClient() {
     }
     fetchKpis();
   }, [refreshKey]);
-
-  useEffect(() => {
-    if (initialTab && TABS.some((t) => t.key === initialTab)) {
-      setTab(initialTab);
-    }
-  }, [initialTab]);
 
   const openQuickCreate = useCallback((actionName: string | null | undefined) => {
     if (actionName === 'create-job') {
@@ -189,14 +182,18 @@ export default function OperationsPageClient() {
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Tickets Today</p><p className="text-xl font-semibold">{kpis.todayTickets}</p></CardContent></Card>
           <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Open Tickets</p><p className="text-xl font-semibold">{kpis.openTickets}</p></CardContent></Card>
-          <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Jobs</p><p className="text-xl font-semibold">{kpis.activeJobs}</p></CardContent></Card>
+          <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Service Plans</p><p className="text-xl font-semibold">{kpis.activeJobs}</p></CardContent></Card>
           <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Open Alerts</p><p className="text-xl font-semibold text-warning">{kpis.openAlerts}</p></CardContent></Card>
         </div>
       )}
 
       <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
       {tab !== 'calendar' && (
-        <SearchInput value={search} onChange={setSearch} placeholder={`Search ${tab}...`} />
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder={tab === 'jobs' ? 'Search service plans...' : `Search ${tab}...`}
+        />
       )}
 
       {tab === 'calendar' && (

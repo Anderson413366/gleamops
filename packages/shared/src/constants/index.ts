@@ -15,7 +15,8 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'inventory', label: 'Inventory', href: '/inventory', icon: 'Package' },
   { id: 'assets', label: 'Assets', href: '/assets', icon: 'Wrench' },
   { id: 'vendors', label: 'Vendors', href: '/vendors', icon: 'Truck' },
-  { id: 'safety', label: 'Safety', href: '/safety', icon: 'ShieldCheck' },
+  { id: 'safety', label: 'Safety & Compliance', href: '/safety', icon: 'ShieldCheck' },
+  { id: 'reports', label: 'Reports', href: '/reports', icon: 'BarChart3' },
   { id: 'admin', label: 'Admin', href: '/admin', icon: 'Settings' },
 ];
 

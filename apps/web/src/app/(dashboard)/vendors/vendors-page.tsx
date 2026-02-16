@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { HardHat, Briefcase, Store, Plus } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import type { Subcontractor } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { useSyncedTab } from '@/hooks/use-synced-tab';
 
 import SubcontractorsTable from '../subcontractors/directory/subcontractors-table';
 import { SubcontractorForm } from '@/components/forms/subcontractor-form';
@@ -24,9 +24,14 @@ const ADD_LABELS: Record<string, string> = {
 };
 
 export default function VendorsPageClient() {
-  const searchParams = useSearchParams();
-  const initialTab = searchParams.get('tab');
-  const [tab, setTab] = useState(TABS.some(t => t.key === initialTab) ? initialTab! : TABS[0].key);
+  const [tab, setTab] = useSyncedTab({
+    tabKeys: TABS.map((entry) => entry.key),
+    defaultTab: 'subcontractors',
+    aliases: {
+      'job-details': 'jobs',
+      'supply-vendors': 'vendors',
+    },
+  });
   const [search, setSearch] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
   const [formOpen, setFormOpen] = useState(false);

@@ -98,13 +98,14 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
     ? 'all statuses'
     : statusFilter.toLowerCase().replace(/_/g, ' ');
   const emptyTitle = statusFilter === 'all'
-    ? 'No staff found'
-    : `No ${selectedStatusLabel} staff found`;
+    ? 'No staff yet'
+    : `No ${selectedStatusLabel} staff`;
   const emptyDescription = search
     ? 'Try a different search term.'
     : statusFilter === 'all'
-      ? 'Add your first staff member.'
-      : 'All staff are currently in other statuses.';
+      ? 'Manage crew assignments, availability, and workforce coverage.'
+      : `There are currently no staff with ${selectedStatusLabel} status.`;
+  const showGuidedEmptyState = !search && statusFilter === 'all';
 
   if (loading) return <TableSkeleton rows={6} cols={8} />;
 
@@ -187,7 +188,17 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
             icon={<Users className="h-12 w-12" />}
             title={emptyTitle}
             description={emptyDescription}
-          />
+            actionLabel={showGuidedEmptyState ? '+ Add Your First Staff Member' : undefined}
+            onAction={showGuidedEmptyState ? handleAdd : undefined}
+          >
+            {showGuidedEmptyState && (
+              <ul className="mx-auto max-w-lg list-disc space-y-1.5 pl-5 text-left text-sm text-muted-foreground">
+                <li>See active, leave, and terminated statuses in one place.</li>
+                <li>Organize role coverage and staffing decisions faster.</li>
+                <li>Open any staff row for full HR and assignment details.</li>
+              </ul>
+            )}
+          </EmptyState>
         </div>
       )}
       {filtered.length > 0 && (

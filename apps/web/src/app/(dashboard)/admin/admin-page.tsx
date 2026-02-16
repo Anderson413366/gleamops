@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { BookOpen, Hash, GitBranch, Upload, ClipboardList, Layers, Link2, Plus } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { useSyncedTab } from '@/hooks/use-synced-tab';
 
 // Existing admin tabs
 import LookupsTable from './lookups/lookups-table';
@@ -28,9 +28,10 @@ const TABS = [
 ];
 
 export default function AdminPageClient() {
-  const searchParams = useSearchParams();
-  const initialTab = searchParams.get('tab');
-  const [tab, setTab] = useState(TABS.some(t => t.key === initialTab) ? initialTab! : TABS[0].key);
+  const [tab, setTab] = useSyncedTab({
+    tabKeys: TABS.map((entry) => entry.key),
+    defaultTab: 'tasks',
+  });
   const [search, setSearch] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
   const [autoCreate, setAutoCreate] = useState(false);

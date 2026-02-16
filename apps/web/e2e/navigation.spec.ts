@@ -13,7 +13,8 @@ const SIDEBAR_ROUTES = [
   { label: 'Inventory', href: '/inventory' },
   { label: 'Assets', href: '/assets' },
   { label: 'Vendors', href: '/vendors' },
-  { label: 'Safety', href: '/safety' },
+  { label: 'Safety & Compliance', href: '/safety' },
+  { label: 'Reports', href: '/reports' },
   { label: 'Admin', href: '/admin' },
 ];
 
@@ -155,6 +156,39 @@ test.describe('Tab navigation (no route change)', () => {
       }
     }
   });
+});
+
+// ---------------------------------------------------------------------------
+// Direct tab URL sync — opening module routes with ?tab= should render
+// matching tab content (including legacy alias values).
+// ---------------------------------------------------------------------------
+
+test.describe('Direct tab URL sync', () => {
+  const CASES = [
+    { url: '/assets?tab=vehicles', expectedSearchPlaceholder: 'Search vehicles...', canonicalTab: 'vehicles' },
+    { url: '/assets?tab=keys', expectedSearchPlaceholder: 'Search keys...', canonicalTab: 'keys' },
+    { url: '/assets?tab=maintenance', expectedSearchPlaceholder: 'Search maintenance...', canonicalTab: 'maintenance' },
+    { url: '/crm?tab=sites', expectedSearchPlaceholder: 'Search sites...', canonicalTab: 'sites' },
+    { url: '/crm?tab=contacts', expectedSearchPlaceholder: 'Search contacts...', canonicalTab: 'contacts' },
+    { url: '/workforce?tab=positions', expectedSearchPlaceholder: 'Search positions...', canonicalTab: 'positions' },
+    { url: '/workforce?tab=timekeeping', expectedSearchPlaceholder: 'Search timekeeping...', canonicalTab: 'timekeeping' },
+    { url: '/operations?tab=inspections', expectedSearchPlaceholder: 'Search inspections...', canonicalTab: 'inspections' },
+    { url: '/operations?tab=templates', expectedSearchPlaceholder: 'Search templates...', canonicalTab: 'templates' },
+    { url: '/vendors?tab=job-details', expectedSearchPlaceholder: 'Search jobs...', canonicalTab: 'jobs' },
+    { url: '/vendors?tab=supply-vendors', expectedSearchPlaceholder: 'Search vendors...', canonicalTab: 'vendors' },
+    { url: '/safety?tab=training-courses', expectedSearchPlaceholder: 'Search courses...', canonicalTab: 'courses' },
+  ] as const;
+
+  for (const c of CASES) {
+    test(`loads correct tab for ${c.url}`, async ({ page }) => {
+      await page.goto(c.url);
+
+      await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByPlaceholder(c.expectedSearchPlaceholder)).toBeVisible({ timeout: 10_000 });
+
+      await expect(page).toHaveURL(new RegExp(`[?&]tab=${c.canonicalTab}(&|$)`));
+    });
+  }
 });
 
 // ---------------------------------------------------------------------------

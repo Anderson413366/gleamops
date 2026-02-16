@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
 import {
   Package, Box, MapPin, ClipboardList, ShoppingCart,
   Plus, Sparkles,
 } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { useSyncedTab } from '@/hooks/use-synced-tab';
 
 import SuppliesTable from './supplies/supplies-table';
 import KitsTable from './kits/kits-table';
@@ -31,14 +31,15 @@ const ADD_LABELS: Record<string, string> = {
 };
 
 export default function InventoryPageClient() {
-  const searchParams = useSearchParams();
-  const initialTab = searchParams.get('tab');
   const [simpleView, setSimpleView] = useState(false);
   const visibleTabs = useMemo(() => {
     if (!simpleView) return TABS;
     return TABS.filter((tabOption) => ['supplies', 'orders', 'counts'].includes(tabOption.key));
   }, [simpleView]);
-  const [tab, setTab] = useState(TABS.some(t => t.key === initialTab) ? initialTab! : TABS[0].key);
+  const [tab, setTab] = useSyncedTab({
+    tabKeys: visibleTabs.map((tabOption) => tabOption.key),
+    defaultTab: 'supplies',
+  });
   const [search, setSearch] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
@@ -62,11 +63,6 @@ export default function InventoryPageClient() {
   useEffect(() => {
     localStorage.setItem('gleamops-inventory-simple-view', String(simpleView));
   }, [simpleView]);
-
-  useEffect(() => {
-    if (visibleTabs.some((tabOption) => tabOption.key === tab)) return;
-    setTab(visibleTabs[0]?.key ?? 'supplies');
-  }, [tab, visibleTabs]);
 
   useEffect(() => {
     async function fetchKpis() {

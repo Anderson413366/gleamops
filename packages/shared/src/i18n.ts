@@ -122,7 +122,7 @@ const en: Translations = {
   'nav.inventory': 'Inventory',
   'nav.assets': 'Assets',
   'nav.vendors': 'Vendors',
-  'nav.safety': 'Safety',
+  'nav.safety': 'Safety & Compliance',
   'nav.admin': 'Admin',
   'nav.reports': 'Reports',
   'nav.schedule': 'Schedule',
@@ -220,7 +220,7 @@ const en: Translations = {
   'assets.condition.POOR': 'Poor',
 
   // -- Safety --
-  'safety.title': 'Safety',
+  'safety.title': 'Safety & Compliance',
   'safety.incidents': 'Incidents',
   'safety.training': 'Training',
   'safety.certifications': 'Certifications',
@@ -366,7 +366,7 @@ const es: Translations = {
   'nav.inventory': 'Inventario',
   'nav.assets': 'Activos',
   'nav.vendors': 'Proveedores',
-  'nav.safety': 'Seguridad',
+  'nav.safety': 'Seguridad y Cumplimiento',
   'nav.admin': 'Administración',
   'nav.reports': 'Reportes',
   'nav.schedule': 'Horarios',
@@ -464,7 +464,7 @@ const es: Translations = {
   'assets.condition.POOR': 'Malo',
 
   // -- Safety --
-  'safety.title': 'Seguridad',
+  'safety.title': 'Seguridad y Cumplimiento',
   'safety.incidents': 'Incidentes',
   'safety.training': 'Capacitación',
   'safety.certifications': 'Certificaciones',
@@ -610,7 +610,7 @@ const fr: Translations = {
   'nav.inventory': 'Inventaire',
   'nav.assets': 'Actifs',
   'nav.vendors': 'Fournisseurs',
-  'nav.safety': 'Sécurité',
+  'nav.safety': 'Sécurité et conformité',
   'nav.admin': 'Administration',
   'nav.reports': 'Rapports',
   'nav.schedule': 'Horaires',
@@ -708,7 +708,7 @@ const fr: Translations = {
   'assets.condition.POOR': 'Mauvais',
 
   // -- Safety --
-  'safety.title': 'Sécurité',
+  'safety.title': 'Sécurité et conformité',
   'safety.incidents': 'Incidents',
   'safety.training': 'Formation',
   'safety.certifications': 'Certifications',

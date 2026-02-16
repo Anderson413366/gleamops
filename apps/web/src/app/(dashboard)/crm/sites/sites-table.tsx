@@ -141,13 +141,14 @@ export default function SitesTable({ search }: SitesTableProps) {
     ? 'all statuses'
     : statusFilter.toLowerCase().replace(/_/g, ' ');
   const emptyTitle = statusFilter === 'all'
-    ? 'No sites found'
-    : `No ${selectedStatusLabel} sites found`;
+    ? 'No sites yet'
+    : `No ${selectedStatusLabel} sites`;
   const emptyDescription = search
     ? 'Try a different search term.'
     : statusFilter === 'all'
-      ? 'Create your first site to get started.'
-      : 'All your sites are currently in other statuses.';
+      ? 'Track each location, access details, and active service plans.'
+      : `There are currently no sites with ${selectedStatusLabel} status.`;
+  const showGuidedEmptyState = !search && statusFilter === 'all';
 
   if (loading) return <TableSkeleton rows={8} cols={7} />;
 
@@ -210,7 +211,17 @@ export default function SitesTable({ search }: SitesTableProps) {
             icon={<MapPin className="h-12 w-12" />}
             title={emptyTitle}
             description={emptyDescription}
-          />
+            actionLabel={showGuidedEmptyState ? '+ Add Your First Site' : undefined}
+            onAction={showGuidedEmptyState ? () => router.push('/crm?tab=sites&action=create-site') : undefined}
+          >
+            {showGuidedEmptyState && (
+              <ul className="mx-auto max-w-lg list-disc space-y-1.5 pl-5 text-left text-sm text-muted-foreground">
+                <li>Capture access instructions and security requirements per location.</li>
+                <li>Track active service plans and monthly revenue by site.</li>
+                <li>Keep field teams aligned with location-specific details.</li>
+              </ul>
+            )}
+          </EmptyState>
         ) : (
           <SitesCardGrid rows={pag.page} onSelect={handleRowClick} />
         )
@@ -282,7 +293,17 @@ export default function SitesTable({ search }: SitesTableProps) {
                 icon={<MapPin className="h-12 w-12" />}
                 title={emptyTitle}
                 description={emptyDescription}
-              />
+                actionLabel={showGuidedEmptyState ? '+ Add Your First Site' : undefined}
+                onAction={showGuidedEmptyState ? () => router.push('/crm?tab=sites&action=create-site') : undefined}
+              >
+                {showGuidedEmptyState && (
+                  <ul className="mx-auto max-w-lg list-disc space-y-1.5 pl-5 text-left text-sm text-muted-foreground">
+                    <li>Capture access instructions and security requirements per location.</li>
+                    <li>Track active service plans and monthly revenue by site.</li>
+                    <li>Keep field teams aligned with location-specific details.</li>
+                  </ul>
+                )}
+              </EmptyState>
             </div>
           )}
         </>

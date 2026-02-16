@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Users, Clock, AlertTriangle, UserCheck } from 'lucide-react';
+import { Users, Clock, AlertTriangle, UserCheck, ClipboardCheck, TrendingUp, ArrowRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle, Skeleton, Badge } from '@gleamops/ui';
+import { Skeleton, Badge, Button } from '@gleamops/ui';
 import { EXCEPTION_SEVERITY_COLORS, TIMESHEET_STATUS_COLORS } from '@gleamops/shared';
-import { MetricCard, BreakdownRow } from '../_components/report-components';
+import { MetricCard, BreakdownRow, MiniBars, ChartCard } from '../_components/report-components';
 
 interface WorkforceStats {
   totalStaff: number;
@@ -24,7 +25,25 @@ interface TimesheetBreakdown {
   [status: string]: number;
 }
 
-export default function WorkforceDashboard() {
+function dateKey(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function buildDailyLabels(days: number) {
+  const out: { key: string; label: string }[] = [];
+  const start = new Date();
+  start.setDate(start.getDate() - (days - 1));
+  start.setHours(0, 0, 0, 0);
+  for (let i = 0; i < days; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    out.push({ key: dateKey(d), label: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) });
+  }
+  return out;
+}
+
+export default function WorkforceDashboard(props: { rangeDays: number; refreshKey: number }) {
+  const router = useRouter();
   const [stats, setStats] = useState<WorkforceStats>({
     totalStaff: 0,
     activeStaff: 0,
@@ -37,11 +56,13 @@ export default function WorkforceDashboard() {
     bySeverity: {},
   });
   const [timesheets, setTimesheets] = useState<TimesheetBreakdown>({});
+  const [hoursSeries, setHoursSeries] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
+    const rangeStart = new Date(Date.now() - props.rangeDays * 86400000).toISOString();
 
     // Calculate this week's Monday
     const now = new Date();
@@ -50,7 +71,7 @@ export default function WorkforceDashboard() {
     monday.setHours(0, 0, 0, 0);
     const mondayISO = monday.toISOString();
 
-    const [staffRes, clockedInRes, timeRes, exceptionsRes, timesheetsRes] = await Promise.all([
+    const [staffRes, clockedInRes, timeRes, timeRangeRes, exceptionsRes, timesheetsRes] = await Promise.all([
       supabase
         .from('staff')
         .select('id, staff_status')
@@ -66,13 +87,19 @@ export default function WorkforceDashboard() {
         .gte('start_at', mondayISO)
         .is('archived_at', null),
       supabase
+        .from('time_entries')
+        .select('start_at, duration_minutes')
+        .gte('start_at', rangeStart)
+        .is('archived_at', null),
+      supabase
         .from('time_exceptions')
         .select('id, severity, resolved_at')
         .is('archived_at', null),
       supabase
         .from('timesheets')
         .select('id, status')
-        .is('archived_at', null),
+        .is('archived_at', null)
+        .gte('created_at', rangeStart),
     ]);
 
     // Staff
@@ -117,10 +144,21 @@ export default function WorkforceDashboard() {
       setTimesheets(byStatus);
     }
 
+    if (timeRangeRes.data) {
+      const minsByDay: Record<string, number> = {};
+      for (const e of timeRangeRes.data) {
+        const key = dateKey(new Date(e.start_at as string));
+        minsByDay[key] = (minsByDay[key] || 0) + ((e.duration_minutes as number | null) || 0);
+      }
+      const labels = buildDailyLabels(Math.min(14, Math.max(7, props.rangeDays)));
+      setHoursSeries(labels.map((d) => Math.round(((minsByDay[d.key] || 0) / 60) * 10) / 10));
+    }
+
     setLoading(false);
-  }, []);
+  }, [props.rangeDays]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => { fetchData(); }, [props.refreshKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {
     return (
@@ -135,7 +173,7 @@ export default function WorkforceDashboard() {
   return (
     <div className="space-y-6">
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
         <MetricCard
           icon={<Users className="h-5 w-5" />}
           tone="primary"
@@ -162,15 +200,39 @@ export default function WorkforceDashboard() {
           value={exceptions.unresolved}
           helper={`${exceptions.total} total`}
         />
+        <MetricCard
+          icon={<ClipboardCheck className="h-5 w-5" />}
+          tone="primary"
+          label={`Timesheets (${props.rangeDays}d)`}
+          value={Object.values(timesheets).reduce((a, b) => a + b, 0)}
+          helper={`${timesheets.SUBMITTED || 0} submitted`}
+        />
+        <MetricCard
+          icon={<TrendingUp className="h-5 w-5" />}
+          tone="accent"
+          label="Approval Rate"
+          value={
+            (() => {
+              const total = Object.values(timesheets).reduce((a, b) => a + b, 0);
+              const approved = timesheets.APPROVED || 0;
+              return total > 0 ? `${Math.round((approved / total) * 100)}%` : '\u2014';
+            })()
+          }
+          helper="Approved / total"
+        />
       </div>
 
       {/* Timesheets + Exceptions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Timesheets by Status</CardTitle>
-          </CardHeader>
-          <CardContent>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <ChartCard
+          title="Timesheets by Status"
+          subtitle={`Status breakdown (last ${props.rangeDays} days)`}
+          action={
+            <Button size="sm" variant="secondary" onClick={() => router.push('/workforce')}>
+              View Workforce <ArrowRight className="h-4 w-4" />
+            </Button>
+          }
+        >
             {Object.keys(timesheets).length === 0 ? (
               <p className="text-sm text-muted-foreground">No timesheets recorded yet.</p>
             ) : (
@@ -188,14 +250,25 @@ export default function WorkforceDashboard() {
                 })()}
               </div>
             )}
-          </CardContent>
-        </Card>
+        </ChartCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Unresolved Exceptions</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <ChartCard title="Hours Trend" subtitle={`Hours per day (last ${Math.min(14, Math.max(7, props.rangeDays))} days)`}>
+          {hoursSeries.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No time entry activity in this range.</p>
+          ) : (
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-2xl font-semibold tabular-nums">
+                  {Math.round(hoursSeries.reduce((a, b) => a + b, 0) * 10) / 10}
+                </p>
+                <p className="text-xs text-muted-foreground">Total hours in range</p>
+              </div>
+              <MiniBars values={hoursSeries} ariaLabel="Hours per day" />
+            </div>
+          )}
+        </ChartCard>
+
+        <ChartCard title="Unresolved Exceptions" subtitle="Open exceptions grouped by severity.">
             {exceptions.unresolved === 0 ? (
               <p className="text-sm text-muted-foreground">No open exceptions. All clear!</p>
             ) : (
@@ -213,8 +286,7 @@ export default function WorkforceDashboard() {
                   ))}
               </div>
             )}
-          </CardContent>
-        </Card>
+        </ChartCard>
       </div>
     </div>
   );

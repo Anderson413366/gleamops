@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Package, Boxes, Truck, AlertTriangle } from 'lucide-react';
+import { Package, Boxes, Truck, AlertTriangle, DollarSign, ShoppingCart, ArrowRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle, Skeleton } from '@gleamops/ui';
-import { MetricCard, BreakdownRow } from '../_components/report-components';
+import { Skeleton, Button } from '@gleamops/ui';
+import { MetricCard, BreakdownRow, MiniBars, ChartCard } from '../_components/report-components';
 
 interface InventoryStats {
   catalogItems: number;
@@ -22,7 +23,8 @@ function formatCurrency(n: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(n);
 }
 
-export default function InventoryDashboard() {
+export default function InventoryDashboard(props: { rangeDays: number; refreshKey: number }) {
+  const router = useRouter();
   const [stats, setStats] = useState<InventoryStats>({
     catalogItems: 0,
     activeSupplies: 0,
@@ -32,13 +34,29 @@ export default function InventoryDashboard() {
   });
   const [categories, setCategories] = useState<CategoryBreakdown>({});
   const [topSupplies, setTopSupplies] = useState<{ name: string; unit_cost: number; category: string }[]>([]);
+  const [orderSpendSeries, setOrderSpendSeries] = useState<number[]>([]);
+  const [orderStats, setOrderStats] = useState<{ totalOrders: number; inTransit: number; spend: number }>({ totalOrders: 0, inTransit: 0, spend: 0 });
   const [loading, setLoading] = useState(true);
+
+  const buildDailyLabels = (days: number) => {
+    const out: { key: string; label: string }[] = [];
+    const start = new Date();
+    start.setDate(start.getDate() - (days - 1));
+    start.setHours(0, 0, 0, 0);
+    for (let i = 0; i < days; i++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      out.push({ key: d.toISOString().slice(0, 10), label: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) });
+    }
+    return out;
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
+    const rangeStart = new Date(Date.now() - props.rangeDays * 86400000).toISOString().slice(0, 10);
 
-    const [catalogRes, kitsRes, vehiclesRes, siteSuppliesRes] = await Promise.all([
+    const [catalogRes, kitsRes, vehiclesRes, siteSuppliesRes, ordersRes] = await Promise.all([
       supabase
         .from('supply_catalog')
         .select('id, name, category, unit_cost, supply_status')
@@ -54,6 +72,11 @@ export default function InventoryDashboard() {
       supabase
         .from('site_supplies')
         .select('id', { count: 'exact', head: true })
+        .is('archived_at', null),
+      supabase
+        .from('supply_orders')
+        .select('order_date, status, total_amount')
+        .gte('order_date', rangeStart)
         .is('archived_at', null),
     ]);
 
@@ -83,10 +106,29 @@ export default function InventoryDashboard() {
       setTopSupplies(sorted);
     }
 
+    if (ordersRes.data) {
+      const byDay: Record<string, number> = {};
+      let totalOrders = 0;
+      let inTransit = 0;
+      let spend = 0;
+      for (const o of ordersRes.data as unknown as { order_date: string; status: string; total_amount: number | null }[]) {
+        totalOrders++;
+        if (o.status === 'ORDERED' || o.status === 'SHIPPED') inTransit++;
+        const amt = o.total_amount || 0;
+        spend += amt;
+        const key = o.order_date;
+        byDay[key] = (byDay[key] || 0) + amt;
+      }
+      const labels = buildDailyLabels(Math.min(14, Math.max(7, props.rangeDays)));
+      setOrderSpendSeries(labels.map((d) => Math.round((byDay[d.key] || 0) * 100) / 100));
+      setOrderStats({ totalOrders, inTransit, spend });
+    }
+
     setLoading(false);
-  }, []);
+  }, [props.rangeDays]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => { fetchData(); }, [props.refreshKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {
     return (
@@ -101,7 +143,7 @@ export default function InventoryDashboard() {
   return (
     <div className="space-y-6">
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
         <MetricCard
           icon={<Package className="h-5 w-5" />}
           tone="primary"
@@ -127,15 +169,32 @@ export default function InventoryDashboard() {
           label="Site Supply Records"
           value={stats.siteSupplyAssignments}
         />
+        <MetricCard
+          icon={<ShoppingCart className="h-5 w-5" />}
+          tone="primary"
+          label={`Orders (${props.rangeDays}d)`}
+          value={orderStats.totalOrders}
+          helper={`${orderStats.inTransit} in transit`}
+        />
+        <MetricCard
+          icon={<DollarSign className="h-5 w-5" />}
+          tone="accent"
+          label={`Supply Spend (${props.rangeDays}d)`}
+          value={formatCurrency(orderStats.spend)}
+        />
       </div>
 
       {/* Categories + Top Items */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Items by Category</CardTitle>
-          </CardHeader>
-          <CardContent>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <ChartCard
+          title="Items by Category"
+          subtitle="Catalog items grouped by category."
+          action={
+            <Button size="sm" variant="secondary" onClick={() => router.push('/inventory')}>
+              View Inventory <ArrowRight className="h-4 w-4" />
+            </Button>
+          }
+        >
             {Object.keys(categories).length === 0 ? (
               <p className="text-sm text-muted-foreground">No catalog items yet.</p>
             ) : (
@@ -152,14 +211,9 @@ export default function InventoryDashboard() {
                   ))}
               </div>
             )}
-          </CardContent>
-        </Card>
+        </ChartCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Highest Cost Items</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <ChartCard title="Highest Cost Items" subtitle="Most expensive items by unit cost.">
             {topSupplies.length === 0 ? (
               <p className="text-sm text-muted-foreground">No supply cost data yet.</p>
             ) : (
@@ -178,8 +232,21 @@ export default function InventoryDashboard() {
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
+        </ChartCard>
+
+        <ChartCard title="Supply Spend Trend" subtitle={`Order spend by day (last ${Math.min(14, Math.max(7, props.rangeDays))} days)`}>
+          {orderSpendSeries.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No orders recorded in this range.</p>
+          ) : (
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-2xl font-semibold tabular-nums">{formatCurrency(orderStats.spend)}</p>
+                <p className="text-xs text-muted-foreground">Total spend in range</p>
+              </div>
+              <MiniBars values={orderSpendSeries} barClassName="fill-success/60" ariaLabel="Supply order spend per day" />
+            </div>
+          )}
+        </ChartCard>
       </div>
     </div>
   );

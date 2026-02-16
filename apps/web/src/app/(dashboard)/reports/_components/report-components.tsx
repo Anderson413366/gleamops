@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { Card, CardContent } from '@gleamops/ui';
+import { Card, CardContent, CardHeader, CardTitle, cn } from '@gleamops/ui';
 
 type Tone = 'primary' | 'success' | 'warning' | 'destructive' | 'accent' | 'muted';
 
@@ -27,7 +27,7 @@ export function MetricCard(props: {
 
   return (
     <Card>
-      <CardContent className="pt-4">
+      <CardContent className="p-5">
         <div className="flex items-center gap-3">
           <div className={`p-2 rounded-lg ${styles.wrap}`}>
             <div className={styles.icon}>{props.icon}</div>
@@ -40,6 +40,129 @@ export function MetricCard(props: {
           </div>
         </div>
       </CardContent>
+    </Card>
+  );
+}
+
+function normalizeSeries(values: number[]) {
+  const finite = values.filter((v) => Number.isFinite(v));
+  const min = finite.length ? Math.min(...finite) : 0;
+  const max = finite.length ? Math.max(...finite) : 0;
+  const range = max - min || 1;
+  return values.map((v) => (Number.isFinite(v) ? (v - min) / range : 0));
+}
+
+export function Sparkline(props: {
+  values: number[];
+  width?: number;
+  height?: number;
+  className?: string;
+  strokeClassName?: string;
+  ariaLabel?: string;
+}) {
+  const width = props.width ?? 140;
+  const height = props.height ?? 36;
+  const vals = props.values.length ? props.values : [0];
+  const n = vals.length;
+  const norm = normalizeSeries(vals);
+  const pad = 2;
+  const innerW = Math.max(1, width - pad * 2);
+  const innerH = Math.max(1, height - pad * 2);
+  const points = norm
+    .map((v, i) => {
+      const x = pad + (n === 1 ? innerW / 2 : (i / (n - 1)) * innerW);
+      const y = pad + (1 - v) * innerH;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(' ');
+
+  return (
+    <svg
+      role="img"
+      aria-label={props.ariaLabel ?? 'Trend'}
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      className={cn('shrink-0', props.className)}
+    >
+      <polyline
+        points={points}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={props.strokeClassName ?? 'text-primary'}
+      />
+    </svg>
+  );
+}
+
+export function MiniBars(props: {
+  values: number[];
+  width?: number;
+  height?: number;
+  className?: string;
+  barClassName?: string;
+  ariaLabel?: string;
+}) {
+  const width = props.width ?? 180;
+  const height = props.height ?? 44;
+  const vals = props.values.length ? props.values : [0];
+  const norm = normalizeSeries(vals);
+  const pad = 2;
+  const innerW = Math.max(1, width - pad * 2);
+  const innerH = Math.max(1, height - pad * 2);
+  const gap = 2;
+  const barW = Math.max(1, innerW / vals.length - gap);
+
+  return (
+    <svg
+      role="img"
+      aria-label={props.ariaLabel ?? 'Bar chart'}
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      className={cn('shrink-0', props.className)}
+    >
+      {norm.map((v, i) => {
+        const h = Math.max(1, v * innerH);
+        const x = pad + i * (barW + gap);
+        const y = pad + (innerH - h);
+        return (
+          <rect
+            key={i}
+            x={x}
+            y={y}
+            width={barW}
+            height={h}
+            rx="2"
+            className={props.barClassName ?? 'fill-primary/60'}
+          />
+        );
+      })}
+    </svg>
+  );
+}
+
+export function ChartCard(props: {
+  title: string;
+  subtitle?: ReactNode;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <CardTitle className="text-base">{props.title}</CardTitle>
+            {props.subtitle ? <p className="mt-1 text-xs text-muted-foreground">{props.subtitle}</p> : null}
+          </div>
+          {props.action ? <div className="shrink-0">{props.action}</div> : null}
+        </div>
+      </CardHeader>
+      <CardContent className="pt-2">{props.children}</CardContent>
     </Card>
   );
 }

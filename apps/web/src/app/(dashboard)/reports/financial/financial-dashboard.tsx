@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { DollarSign, TrendingUp, Building2, Briefcase } from 'lucide-react';
+import { DollarSign, TrendingUp, Building2, Briefcase, PieChart, ArrowRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle, Skeleton, Badge } from '@gleamops/ui';
-import { MetricCard } from '../_components/report-components';
+import { Skeleton, Badge, Button } from '@gleamops/ui';
+import { MetricCard, BreakdownRow, ChartCard } from '../_components/report-components';
 
 interface RevenueStats {
   totalMonthlyRevenue: number;
@@ -21,7 +22,8 @@ function formatCurrency(n: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(n);
 }
 
-export default function FinancialDashboard() {
+export default function FinancialDashboard(props: { rangeDays: number; refreshKey: number }) {
+  const router = useRouter();
   const [stats, setStats] = useState<RevenueStats>({
     totalMonthlyRevenue: 0,
     activeJobsCount: 0,
@@ -88,6 +90,8 @@ export default function FinancialDashboard() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  useEffect(() => { fetchData(); }, [props.refreshKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -98,10 +102,17 @@ export default function FinancialDashboard() {
     );
   }
 
+  const topClientShare = stats.totalMonthlyRevenue > 0 && stats.topClients.length > 0
+    ? Math.round((stats.topClients[0].revenue / stats.totalMonthlyRevenue) * 100)
+    : 0;
+  const top3Share = stats.totalMonthlyRevenue > 0
+    ? Math.round((stats.topClients.slice(0, 3).reduce((s, c) => s + c.revenue, 0) / stats.totalMonthlyRevenue) * 100)
+    : 0;
+
   return (
     <div className="space-y-6">
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
         <MetricCard
           icon={<DollarSign className="h-5 w-5" />}
           tone="success"
@@ -127,38 +138,51 @@ export default function FinancialDashboard() {
           label="Annual Projection"
           value={formatCurrency(stats.totalMonthlyRevenue * 12)}
         />
+        <MetricCard
+          icon={<PieChart className="h-5 w-5" />}
+          tone="primary"
+          label="Top Client Share"
+          value={`${topClientShare}%`}
+          helper="Monthly revenue concentration"
+        />
+        <MetricCard
+          icon={<PieChart className="h-5 w-5" />}
+          tone="accent"
+          label="Top 3 Share"
+          value={`${top3Share}%`}
+          helper="Monthly revenue concentration"
+        />
       </div>
 
       {/* Top Clients + Frequency Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Top Clients by Revenue</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <ChartCard
+          title="Top Clients by Revenue"
+          subtitle="Monthly revenue per client based on active jobs."
+          action={
+            <Button size="sm" variant="secondary" onClick={() => router.push('/crm')}>
+              View CRM <ArrowRight className="h-4 w-4" />
+            </Button>
+          }
+        >
             {stats.topClients.length === 0 ? (
               <p className="text-sm text-muted-foreground">No revenue data yet.</p>
             ) : (
               <div className="space-y-3">
-                {stats.topClients.map((client, i) => (
-                  <div key={client.name} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono text-muted-foreground w-4">{i + 1}</span>
-                      <span className="text-sm font-medium truncate max-w-[200px]">{client.name}</span>
-                    </div>
-                    <span className="text-sm font-medium tabular-nums">{formatCurrency(client.revenue)}/mo</span>
-                  </div>
+                {stats.topClients.map((client) => (
+                  <BreakdownRow
+                    key={client.name}
+                    left={<span className="text-sm font-medium truncate max-w-[240px]">{client.name}</span>}
+                    right={<span className="tabular-nums">{formatCurrency(client.revenue)}/mo</span>}
+                    pct={stats.totalMonthlyRevenue > 0 ? client.revenue / stats.totalMonthlyRevenue : 0}
+                    rightWidthClassName="w-24"
+                  />
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
+        </ChartCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Revenue by Frequency</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <ChartCard title="Revenue by Frequency" subtitle="How monthly revenue breaks down by visit frequency.">
             {Object.keys(freqBreakdown).length === 0 ? (
               <p className="text-sm text-muted-foreground">No job data yet.</p>
             ) : (
@@ -166,18 +190,22 @@ export default function FinancialDashboard() {
                 {Object.entries(freqBreakdown)
                   .sort((a, b) => b[1].revenue - a[1].revenue)
                   .map(([freq, { count, revenue }]) => (
-                    <div key={freq} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Badge color="blue">{freq}</Badge>
-                        <span className="text-xs text-muted-foreground">{count} jobs</span>
-                      </div>
-                      <span className="text-sm font-medium tabular-nums">{formatCurrency(revenue)}/mo</span>
-                    </div>
+                    <BreakdownRow
+                      key={freq}
+                      left={
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Badge color="blue">{freq}</Badge>
+                          <span className="text-xs text-muted-foreground">{count} jobs</span>
+                        </div>
+                      }
+                      right={<span className="tabular-nums">{formatCurrency(revenue)}/mo</span>}
+                      pct={stats.totalMonthlyRevenue > 0 ? revenue / stats.totalMonthlyRevenue : 0}
+                      rightWidthClassName="w-24"
+                    />
                   ))}
               </div>
             )}
-          </CardContent>
-        </Card>
+        </ChartCard>
       </div>
     </div>
   );

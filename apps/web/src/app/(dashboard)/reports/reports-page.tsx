@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { BarChart3, TrendingUp, DollarSign, Shield, Users, Package, RefreshCw } from 'lucide-react';
-import { ChipTabs, Button, Badge } from '@gleamops/ui';
+import { BarChart3, TrendingUp, DollarSign, Shield, Users, Package, RefreshCw, CalendarDays } from 'lucide-react';
+import { ChipTabs, Button, Badge, cn } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 import OpsDashboard from './ops/ops-dashboard';
@@ -23,10 +23,23 @@ const TABS = [
   { key: 'inventory', label: 'Inventory', icon: <Package className="h-4 w-4" /> },
 ];
 
+const RANGE_OPTIONS = [
+  { key: '7', label: '7d', days: 7 },
+  { key: '30', label: '30d', days: 30 },
+  { key: '90', label: '90d', days: 90 },
+  { key: '365', label: '1y', days: 365 },
+] as const;
+
 export default function ReportsPageClient() {
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab');
   const [tab, setTab] = useState(TABS.some(t => t.key === initialTab) ? initialTab! : TABS[0].key);
+  const initialRange = searchParams.get('range');
+  const [rangeDays, setRangeDays] = useState<number>(() => {
+    const match = RANGE_OPTIONS.find((o) => o.key === initialRange);
+    return match?.days ?? 30;
+  });
+  const [refreshKey, setRefreshKey] = useState(0);
   const [snapshot, setSnapshot] = useState({
     openTickets: 0,
     pipelineValue: 0,
@@ -39,17 +52,22 @@ export default function ReportsPageClient() {
 
   const fetchSnapshot = useCallback(async () => {
     const supabase = getSupabaseBrowserClient();
+    const start = new Date();
+    start.setDate(start.getDate() - rangeDays);
+    const startISO = start.toISOString();
     const [ticketsRes, oppsRes, jobsRes, inspectionsRes, staffRes, suppliesRes] = await Promise.all([
       supabase.from('work_tickets').select('id', { count: 'exact', head: true }).is('archived_at', null).in('status', ['OPEN', 'IN_PROGRESS']),
-      supabase.from('sales_opportunities').select('estimated_monthly_value').is('archived_at', null),
+      supabase.from('sales_opportunities').select('estimated_monthly_value, stage_code, created_at').is('archived_at', null).gte('created_at', startISO),
       supabase.from('site_jobs').select('billing_amount').is('archived_at', null).eq('status', 'ACTIVE'),
       // inspections table uses boolean `passed` (no `pass_fail`)
-      supabase.from('inspections').select('status, passed').is('archived_at', null),
+      supabase.from('inspections').select('status, passed, created_at').is('archived_at', null).gte('created_at', startISO),
       supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('staff_status', 'ACTIVE'),
       supabase.from('supply_catalog').select('id', { count: 'exact', head: true }).is('archived_at', null).neq('supply_status', 'DISCONTINUED'),
     ]);
 
-    const pipelineValue = (oppsRes.data ?? []).reduce((sum, row) => sum + (row.estimated_monthly_value ?? 0), 0);
+    const pipelineValue = (oppsRes.data ?? [])
+      .filter((row) => row.stage_code !== 'WON' && row.stage_code !== 'LOST')
+      .reduce((sum, row) => sum + (row.estimated_monthly_value ?? 0), 0);
     const monthlyRevenue = (jobsRes.data ?? []).reduce((sum, row) => sum + (row.billing_amount ?? 0), 0);
     const completedInspections = (inspectionsRes.data ?? []).filter((row) => row.status === 'COMPLETED' || row.status === 'SUBMITTED');
     const passCount = completedInspections.filter((row) => row.passed === true).length;
@@ -64,7 +82,7 @@ export default function ReportsPageClient() {
       activeSupplies: suppliesRes.count ?? 0,
     });
     setUpdatedAt(new Date().toLocaleTimeString());
-  }, []);
+  }, [rangeDays]);
 
   useEffect(() => {
     fetchSnapshot();
@@ -78,18 +96,51 @@ export default function ReportsPageClient() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Reports</h1>
-          <p className="text-sm text-muted-foreground mt-1">Operations, Sales, Financial, Quality, Workforce & Inventory Dashboards</p>
+          <p className="text-sm text-muted-foreground mt-1">Operations, Sales, Financial, Quality, Workforce and Inventory dashboards</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
           {updatedAt && <Badge color="gray">{`Updated ${updatedAt}`}</Badge>}
-          <Button variant="secondary" onClick={fetchSnapshot}>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              fetchSnapshot();
+              setRefreshKey((k) => k + 1);
+            }}
+          >
             <RefreshCw className="h-4 w-4" />
-            Refresh Snapshot
+            Refresh
           </Button>
         </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+            <CalendarDays className="h-3.5 w-3.5" />
+            Time range
+          </span>
+          <div className="flex items-center gap-2">
+            {RANGE_OPTIONS.map((opt) => (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => setRangeDays(opt.days)}
+                className={cn(
+                  'inline-flex items-center rounded-full px-3 py-1 text-xs font-medium transition-colors',
+                  rangeDays === opt.days
+                    ? 'bg-module-accent text-module-accent-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <Badge color="gray">{`Snapshot: last ${rangeDays} days (where applicable)`}</Badge>
       </div>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
@@ -134,12 +185,12 @@ export default function ReportsPageClient() {
 
       <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
 
-      {tab === 'ops' && <OpsDashboard />}
-      {tab === 'sales' && <SalesDashboard />}
-      {tab === 'financial' && <FinancialDashboard />}
-      {tab === 'quality' && <QualityDashboard />}
-      {tab === 'workforce' && <WorkforceDashboard />}
-      {tab === 'inventory' && <InventoryDashboard />}
+      {tab === 'ops' && <OpsDashboard rangeDays={rangeDays} refreshKey={refreshKey} />}
+      {tab === 'sales' && <SalesDashboard rangeDays={rangeDays} refreshKey={refreshKey} />}
+      {tab === 'financial' && <FinancialDashboard rangeDays={rangeDays} refreshKey={refreshKey} />}
+      {tab === 'quality' && <QualityDashboard rangeDays={rangeDays} refreshKey={refreshKey} />}
+      {tab === 'workforce' && <WorkforceDashboard rangeDays={rangeDays} refreshKey={refreshKey} />}
+      {tab === 'inventory' && <InventoryDashboard rangeDays={rangeDays} refreshKey={refreshKey} />}
     </div>
   );
 }

@@ -16,7 +16,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'assets', label: 'Assets', href: '/assets', icon: 'Wrench' },
   { id: 'vendors', label: 'Vendors', href: '/vendors', icon: 'Truck' },
   { id: 'safety', label: 'Safety', href: '/safety', icon: 'ShieldCheck' },
-  { id: 'admin', label: 'Admin', href: '/admin', icon: 'Wrench' },
+  { id: 'admin', label: 'Admin', href: '/admin', icon: 'Settings' },
 ];
 
 // ---------------------------------------------------------------------------

@@ -45,6 +45,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Package,
   Truck,
   Wrench,
+  Settings,
   Layers,
   HardHat,
   ShieldCheck,

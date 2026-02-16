@@ -345,6 +345,25 @@ export const inventoryCountSchema = z.object({
 export type InventoryCountFormData = z.infer<typeof inventoryCountSchema>;
 
 // ---------------------------------------------------------------------------
+// Supply Vendors
+// ---------------------------------------------------------------------------
+export const supplyVendorSchema = z.object({
+  company_name: z.string().min(1, 'Company name is required').max(200),
+  account_number: z.string().max(120).nullable().default(null),
+  contact_person: z.string().max(200).nullable().default(null),
+  phone: z.string().max(50).nullable().default(null),
+  email: z.string().email().nullable().default(null),
+  website: z.string().max(255).nullable().default(null),
+  payment_terms: z.string().max(120).nullable().default(null),
+  order_minimum: z.number().nonnegative().nullable().default(null),
+  delivery_schedule: z.string().max(255).nullable().default(null),
+  categories_supplied: z.array(z.string().min(1).max(120)).default([]),
+  account_status: z.enum(['ACTIVE', 'INACTIVE']).default('ACTIVE'),
+  notes: z.string().nullable().default(null),
+});
+export type SupplyVendorFormData = z.infer<typeof supplyVendorSchema>;
+
+// ---------------------------------------------------------------------------
 // Subcontractors
 // ---------------------------------------------------------------------------
 export const subcontractorSchema = z.object({

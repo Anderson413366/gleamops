@@ -481,11 +481,8 @@ export default function SupplyVendorDetailPage() {
         }}
         initialData={profile}
         focusSection={vendorFormFocus}
-        onSave={(payload) => {
-          const saved = upsertSupplyVendorProfile(payload);
-          setProfile(saved);
+        onSuccess={() => {
           setVendorFormOpen(false);
-          toast.success('Supply vendor saved.');
           fetchData();
         }}
       />

@@ -17,7 +17,6 @@ import {
   getSupplyVendorProfiles,
   slugifyVendorName,
   type SupplyVendorProfile,
-  upsertSupplyVendorProfile,
 } from '@/lib/vendors/supply-vendor-profiles';
 
 interface SupplyRow {
@@ -289,12 +288,10 @@ export default function VendorsTable({ search, formOpen, onFormClose, onRefresh 
           open={vendorFormOpen}
           onClose={() => setVendorFormOpen(false)}
           initialData={editProfile}
-          onSave={(payload) => {
-            upsertSupplyVendorProfile(payload);
+          onSuccess={() => {
             setVendorFormOpen(false);
             fetchData();
             onRefresh?.();
-            toast.success(editProfile ? 'Supply vendor updated.' : 'Supply vendor created.');
           }}
         />
       </>
@@ -397,12 +394,10 @@ export default function VendorsTable({ search, formOpen, onFormClose, onRefresh 
         open={vendorFormOpen}
         onClose={() => setVendorFormOpen(false)}
         initialData={editProfile}
-        onSave={(payload) => {
-          upsertSupplyVendorProfile(payload);
+        onSuccess={() => {
           setVendorFormOpen(false);
           fetchData();
           onRefresh?.();
-          toast.success(editProfile ? 'Supply vendor updated.' : 'Supply vendor created.');
         }}
       />
 

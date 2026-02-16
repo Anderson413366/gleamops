@@ -204,6 +204,12 @@ export default function EquipmentDetailPage() {
         <span className="font-mono">{equipment.equipment_code}</span>
       </div>
 
+      {isInactive && (
+        <div className="rounded-xl border-2 border-red-300 bg-red-50 px-4 py-3 text-center text-base font-semibold tracking-wide text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+          INACTIVE
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           {equipment.photo_url ? (

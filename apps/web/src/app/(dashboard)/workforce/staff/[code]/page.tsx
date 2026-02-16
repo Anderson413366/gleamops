@@ -424,7 +424,7 @@ export default function StaffDetailPage() {
     setArchiveLoading(true);
     const supabase = getSupabaseBrowserClient();
     const isInactive = (staff.staff_status ?? '').toUpperCase() === 'INACTIVE' || (staff.staff_status ?? '').toUpperCase() === 'TERMINATED';
-    const nextStatus = isInactive ? 'ACTIVE' : 'TERMINATED';
+    const nextStatus = isInactive ? 'ACTIVE' : 'INACTIVE';
     try {
       const { error } = await supabase
         .from('staff')

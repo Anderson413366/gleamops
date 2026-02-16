@@ -336,6 +336,12 @@ export default function SiteDetailPage() {
         <span className="font-mono">{site.site_code}</span>
       </div>
 
+      {isInactive && (
+        <div className="rounded-xl border-2 border-red-300 bg-red-50 px-4 py-3 text-center text-base font-semibold tracking-wide text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+          INACTIVE
+        </div>
+      )}
+
       {/* Hero */}
       <div className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
         {site.photo_url ? (

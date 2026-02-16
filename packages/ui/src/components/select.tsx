@@ -26,9 +26,9 @@ export function Select({
   const selectId = id || label?.toLowerCase().replace(/\s+/g, '-');
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1.5 px-1">
       {label && (
-        <label htmlFor={selectId} className="block text-sm font-medium text-foreground">
+        <label htmlFor={selectId} className="block text-xs font-semibold uppercase tracking-wider text-foreground">
           {label}
           {props.required && <span className="text-destructive ml-0.5">*</span>}
         </label>
@@ -36,8 +36,8 @@ export function Select({
       <select
         id={selectId}
         className={cn(
-          'block w-full rounded-lg border px-3.5 py-2.5 text-sm transition-all duration-200 ease-in-out appearance-none',
-          'bg-card text-foreground',
+          'box-border block h-11 w-full min-w-0 rounded-[var(--radius-input)] border px-3.5 text-sm leading-5 transition-colors duration-200 appearance-none',
+          'bg-background text-foreground',
           'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background',
           error
             ? 'border-destructive/50 focus:border-destructive focus:ring-destructive/40'

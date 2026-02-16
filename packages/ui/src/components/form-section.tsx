@@ -51,8 +51,7 @@ export function FormSection({
         {action ? <div className="shrink-0">{action}</div> : null}
       </header>
       <div className="mt-4 h-px w-full bg-border" />
-      <div className={cn('mt-4 space-y-4', contentClassName)}>{children}</div>
+      <div className={cn('mt-4 space-y-6', contentClassName)}>{children}</div>
     </section>
   );
 }
-

@@ -3,7 +3,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -74,7 +74,6 @@ function getContractHealth(start: string | null, end: string | null): { label: s
 
 export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
@@ -169,12 +168,10 @@ export default function ClientDetailPage() {
     setArchiveLoading(true);
     const supabase = getSupabaseBrowserClient();
     try {
-      const { data: authData } = await supabase.auth.getUser();
       const { error } = await supabase
         .from('clients')
         .update({
-          archived_at: new Date().toISOString(),
-          archived_by: authData.user?.id ?? null,
+          status: 'INACTIVE',
           archive_reason: reason,
         })
         .eq('id', client.id)
@@ -185,8 +182,8 @@ export default function ClientDetailPage() {
         return;
       }
 
-      toast.success('Client archived');
-      router.push('/crm');
+      toast.success('Client set to inactive');
+      await fetchClient();
     } finally {
       setArchiveLoading(false);
       setArchiveOpen(false);
@@ -220,6 +217,16 @@ export default function ClientDetailPage() {
   const addr = client.billing_address;
   const contractHealth = getContractHealth(client.contract_start_date, client.contract_end_date);
   const contractNeedsDates = !client.contract_start_date && !client.contract_end_date;
+  const clientColor = client.status === 'PROSPECT'
+    ? 'yellow'
+    : (CLIENT_STATUS_COLORS[client.status] ?? 'gray');
+  const clientHeaderTint = clientColor === 'green'
+    ? 'bg-green-50/70 border-green-200 dark:bg-green-950/20 dark:border-green-900/50'
+    : clientColor === 'yellow'
+      ? 'bg-amber-50/80 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/50'
+      : clientColor === 'red'
+        ? 'bg-red-50/70 border-red-200 dark:bg-red-950/20 dark:border-red-900/50'
+        : 'bg-muted/40 border-border';
 
   const primaryContact =
     contacts.find((c) => c.id === client.primary_contact_id) ??
@@ -265,8 +272,14 @@ export default function ClientDetailPage() {
         Back to CRM
       </Link>
 
+      {client.status === 'INACTIVE' && (
+        <div className="rounded-xl border-2 border-red-300 bg-red-50 px-4 py-3 text-center text-base font-semibold tracking-wide text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+          INACTIVE
+        </div>
+      )}
+
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className={`flex items-center justify-between rounded-xl border p-4 shadow-sm ${clientHeaderTint}`}>
         <div className="flex items-center gap-4">
           {client.website ? (
             <img
@@ -307,10 +320,11 @@ export default function ClientDetailPage() {
           <button
             type="button"
             onClick={() => setArchiveOpen(true)}
+            disabled={client.status === 'INACTIVE'}
             className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950"
           >
             <Archive className="h-3.5 w-3.5" />
-            Archive
+            Set Inactive
           </button>
         </div>
       </div>
@@ -639,14 +653,16 @@ export default function ClientDetailPage() {
                 {client.insurance_required ? 'Yes' : 'No'}
               </dd>
             </div>
-            {client.insurance_expiry && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Insurance Expiry</dt>
-                <dd className="font-medium">
-                  {formatDate(client.insurance_expiry)}
-                </dd>
-              </div>
-            )}
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Insurance Expiry</dt>
+              <dd className="font-medium">
+                {client.insurance_expiry ? (
+                  formatDate(client.insurance_expiry)
+                ) : (
+                  <span className="text-muted-foreground">Not Set</span>
+                )}
+              </dd>
+            </div>
             {client.client_since && (
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Client Since</dt>
@@ -791,6 +807,9 @@ export default function ClientDetailPage() {
         onClose={() => setArchiveOpen(false)}
         onConfirm={handleArchive}
         entityName="Client"
+        title="Set Client Inactive"
+        description="Are you sure? This will hide this client from active lists, but the data will never be deleted."
+        confirmLabel="Set Inactive"
         loading={archiveLoading}
       />
     </div>

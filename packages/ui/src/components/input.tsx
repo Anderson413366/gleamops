@@ -10,9 +10,9 @@ export function Input({ label, error, hint, className, id, ...props }: InputProp
   const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
 
   return (
-    <div className="space-y-1.5 min-w-0">
+    <div className="space-y-1.5 min-w-0 px-1">
       {label && (
-        <label htmlFor={inputId} className="block text-sm font-medium text-foreground">
+        <label htmlFor={inputId} className="block text-xs font-semibold uppercase tracking-wider text-foreground">
           {label}
           {props.required && <span className="text-destructive ml-0.5">*</span>}
         </label>

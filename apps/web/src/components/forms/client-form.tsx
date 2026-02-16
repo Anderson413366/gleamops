@@ -330,7 +330,7 @@ export function ClientForm({ open, onClose, initialData, onSuccess, focusSection
               <Input label="Client Code" value={values.client_code} readOnly disabled />
               <Input label="Name" value={values.name} onChange={(e) => setValue('name', e.target.value)} onBlur={() => onBlur('name')} error={errors.name} required />
               <Select label="Status" value={values.status} onChange={(e) => setValue('status', e.target.value)} options={STATUS_OPTIONS} />
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <div>
                   <Select
                     label="Client Type"
@@ -410,16 +410,16 @@ export function ClientForm({ open, onClose, initialData, onSuccess, focusSection
             <FormSection title="Billing" icon={<CreditCard className="h-4 w-4" />}>
               <Input label="Bill To Name" value={values.bill_to_name ?? ''} onChange={(e) => setValue('bill_to_name', e.target.value || null)} />
               <Input label="Street" value={values.billing_address?.street ?? ''} onChange={(e) => setValue('billing_address', { ...values.billing_address, street: e.target.value })} />
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <Input label="City" value={values.billing_address?.city ?? ''} onChange={(e) => setValue('billing_address', { ...values.billing_address, city: e.target.value })} />
                 <Input label="State" value={values.billing_address?.state ?? ''} onChange={(e) => setValue('billing_address', { ...values.billing_address, state: e.target.value })} />
                 <Input label="ZIP" value={values.billing_address?.zip ?? ''} onChange={(e) => setValue('billing_address', { ...values.billing_address, zip: e.target.value })} />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <Select label="Payment Terms" value={values.payment_terms ?? ''} onChange={(e) => setValue('payment_terms', e.target.value || null)} options={PAYMENT_TERMS_OPTIONS} />
                 <Select label="Invoice Frequency" value={values.invoice_frequency ?? ''} onChange={(e) => setValue('invoice_frequency', e.target.value || null)} options={INVOICE_FREQ_OPTIONS} />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <Input label="Credit Limit" type="number" value={values.credit_limit ?? ''} onChange={(e) => setValue('credit_limit', e.target.value ? Number(e.target.value) : null)} />
                 <Input label="Tax ID" value={values.tax_id ?? ''} onChange={(e) => setValue('tax_id', e.target.value || null)} />
               </div>
@@ -429,7 +429,7 @@ export function ClientForm({ open, onClose, initialData, onSuccess, focusSection
           {/* Contract */}
           <div data-client-form-section="contract" tabIndex={-1}>
             <FormSection title="Contract & Insurance" icon={<FileText className="h-4 w-4" />}>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <Input label="Contract Start" type="date" value={values.contract_start_date ?? ''} onChange={(e) => setValue('contract_start_date', e.target.value || null)} />
                 <Input label="Contract End" type="date" value={values.contract_end_date ?? ''} onChange={(e) => setValue('contract_end_date', e.target.value || null)} />
               </div>
@@ -472,7 +472,7 @@ export function ClientForm({ open, onClose, initialData, onSuccess, focusSection
             <Input label="Client Code" value={values.client_code} readOnly disabled hint="Auto-generated" />
             <Input label="Name" value={values.name} onChange={(e) => setValue('name', e.target.value)} onBlur={() => onBlur('name')} error={errors.name} required />
             <Select label="Status" value={values.status} onChange={(e) => setValue('status', e.target.value)} options={STATUS_OPTIONS} />
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <div>
                 <Select
                   label="Client Type"
@@ -545,16 +545,16 @@ export function ClientForm({ open, onClose, initialData, onSuccess, focusSection
           <FormSection title="Billing" icon={<CreditCard className="h-4 w-4" />} description="Invoice and payment settings for this client.">
             <Input label="Bill To Name" value={values.bill_to_name ?? ''} onChange={(e) => setValue('bill_to_name', e.target.value || null)} />
             <Input label="Street" value={values.billing_address?.street ?? ''} onChange={(e) => setValue('billing_address', { ...values.billing_address, street: e.target.value })} />
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <Input label="City" value={values.billing_address?.city ?? ''} onChange={(e) => setValue('billing_address', { ...values.billing_address, city: e.target.value })} />
               <Input label="State" value={values.billing_address?.state ?? ''} onChange={(e) => setValue('billing_address', { ...values.billing_address, state: e.target.value })} />
               <Input label="ZIP" value={values.billing_address?.zip ?? ''} onChange={(e) => setValue('billing_address', { ...values.billing_address, zip: e.target.value })} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <Select label="Payment Terms" value={values.payment_terms ?? ''} onChange={(e) => setValue('payment_terms', e.target.value || null)} options={PAYMENT_TERMS_OPTIONS} />
               <Select label="Invoice Frequency" value={values.invoice_frequency ?? ''} onChange={(e) => setValue('invoice_frequency', e.target.value || null)} options={INVOICE_FREQ_OPTIONS} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <Input label="Credit Limit" type="number" value={values.credit_limit ?? ''} onChange={(e) => setValue('credit_limit', e.target.value ? Number(e.target.value) : null)} />
               <Input label="Tax ID" value={values.tax_id ?? ''} onChange={(e) => setValue('tax_id', e.target.value || null)} />
             </div>
@@ -565,7 +565,7 @@ export function ClientForm({ open, onClose, initialData, onSuccess, focusSection
         {/* Step 2: Contract & Insurance */}
         {wizard.currentStep === 2 && (
           <FormSection title="Contract & Insurance" icon={<FileText className="h-4 w-4" />} description="Contract dates, renewal, and insurance requirements.">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <Input label="Contract Start" type="date" value={values.contract_start_date ?? ''} onChange={(e) => setValue('contract_start_date', e.target.value || null)} />
               <Input label="Contract End" type="date" value={values.contract_end_date ?? ''} onChange={(e) => setValue('contract_end_date', e.target.value || null)} />
             </div>

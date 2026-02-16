@@ -34,11 +34,6 @@ interface StaffTableProps {
   onAutoCreateHandled?: () => void;
 }
 
-function formatDate(d: string | null) {
-  if (!d) return '---';
-  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
 export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: StaffTableProps) {
   const router = useRouter();
   const [rows, setRows] = useState<Staff[]>([]);
@@ -109,23 +104,25 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
   const sortedRows = sorted as unknown as Staff[];
   const pag = usePagination(sortedRows, 25);
 
-  if (loading) return <TableSkeleton rows={6} cols={7} />;
+  if (loading) return <TableSkeleton rows={6} cols={6} />;
 
   return (
     <div>
       <div className="flex items-center justify-end gap-3 mb-4">
         <ViewToggle view={view} onChange={setView} />
         <ExportButton
-          data={filtered as unknown as Record<string, unknown>[]}
+          data={filtered.map((row) => ({
+            ...row,
+            role_badge: row.role?.replace(/_/g, ' ') ?? '—',
+            mobile_phone_display: row.mobile_phone ?? row.phone ?? '—',
+          })) as unknown as Record<string, unknown>[]}
           filename="staff"
           columns={[
             { key: 'staff_code', label: 'Code' },
             { key: 'full_name', label: 'Name' },
-            { key: 'role', label: 'Role' },
+            { key: 'role_badge', label: 'Role Badge' },
             { key: 'employment_type', label: 'Employment' },
-            { key: 'email', label: 'Email' },
-            { key: 'phone', label: 'Phone' },
-            { key: 'hire_date', label: 'Hire Date' },
+            { key: 'mobile_phone_display', label: 'Mobile Phone' },
           ]}
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
@@ -173,11 +170,9 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
               <tr>
                 <TableHead sortable sorted={sortKey === 'staff_code' && sortDir} onSort={() => onSort('staff_code')}>Code</TableHead>
                 <TableHead sortable sorted={sortKey === 'full_name' && sortDir} onSort={() => onSort('full_name')}>Name</TableHead>
-                <TableHead sortable sorted={sortKey === 'role' && sortDir} onSort={() => onSort('role')}>Role</TableHead>
+                <TableHead sortable sorted={sortKey === 'role' && sortDir} onSort={() => onSort('role')}>Role Badge</TableHead>
                 <TableHead>Employment</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead sortable sorted={sortKey === 'hire_date' && sortDir} onSort={() => onSort('hire_date')}>Hire Date</TableHead>
+                <TableHead>Mobile Phone</TableHead>
               </tr>
             </TableHeader>
             <TableBody>
@@ -194,8 +189,8 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
                     isTerminated && 'opacity-65'
                   )}
                 >
-                  <TableCell className="font-mono text-xs">
-                    <div className="flex items-center gap-2">
+                  <TableCell>
+                    <div className="inline-flex items-center gap-2 rounded-md bg-muted px-2 py-1 font-mono text-xs text-foreground">
                       <StatusDot status={rowStatus} />
                       <span>{row.staff_code}</span>
                     </div>
@@ -209,9 +204,7 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">{row.employment_type ?? '---'}</TableCell>
-                  <TableCell className="text-muted-foreground">{row.email ?? '---'}</TableCell>
                   <TableCell className="text-muted-foreground">{row.mobile_phone ?? row.phone ?? '---'}</TableCell>
-                  <TableCell className="text-muted-foreground">{formatDate(row.hire_date ?? null)}</TableCell>
                 </TableRow>
               );
               })}

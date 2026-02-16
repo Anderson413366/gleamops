@@ -9,6 +9,9 @@ interface ArchiveDialogProps {
   entityName: string;
   cascadeWarning?: string;
   loading?: boolean;
+  title?: string;
+  description?: string;
+  confirmLabel?: string;
 }
 
 /**
@@ -22,6 +25,9 @@ export function ArchiveDialog({
   entityName,
   cascadeWarning,
   loading,
+  title,
+  description,
+  confirmLabel,
 }: ArchiveDialogProps) {
   const [reason, setReason] = useState('');
 
@@ -54,9 +60,9 @@ export function ArchiveDialog({
 
       {/* Dialog */}
       <div className="relative z-10 w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl">
-        <h2 className="text-lg font-semibold text-foreground">Archive {entityName}</h2>
+        <h2 className="text-lg font-semibold text-foreground">{title ?? `Archive ${entityName}`}</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          This will soft-delete this {entityName.toLowerCase()} and remove it from active views. It can be restored later.
+          {description ?? `This will soft-delete this ${entityName.toLowerCase()} and remove it from active views. It can be restored later.`}
         </p>
 
         {cascadeWarning && (
@@ -94,7 +100,7 @@ export function ArchiveDialog({
             disabled={loading}
             className="rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50 transition-all duration-200 ease-in-out"
           >
-            {loading ? 'Archiving...' : 'Archive'}
+            {loading ? 'Saving...' : (confirmLabel ?? 'Archive')}
           </button>
         </div>
       </div>

@@ -282,12 +282,12 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
           <div data-site-form-section="address" tabIndex={-1}>
             <FormSection title="Address & Facility" icon={<MapPin className="h-4 w-4" />} description="Location and facility sizing details used for planning.">
             <Input label="Street" value={values.address?.street ?? ''} onChange={(e) => setValue('address', { ...values.address, street: e.target.value })} />
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <Input label="City" value={values.address?.city ?? ''} onChange={(e) => setValue('address', { ...values.address, city: e.target.value })} />
               <Input label="State" value={values.address?.state ?? ''} onChange={(e) => setValue('address', { ...values.address, state: e.target.value })} />
               <Input label="ZIP" value={values.address?.zip ?? ''} onChange={(e) => setValue('address', { ...values.address, zip: e.target.value })} />
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <Input label="Square Footage" type="number" value={values.square_footage ?? ''} onChange={(e) => setValue('square_footage', e.target.value ? Number(e.target.value) : null)} />
               <Input label="Floors" type="number" value={values.number_of_floors ?? ''} onChange={(e) => setValue('number_of_floors', e.target.value ? Number(e.target.value) : null)} />
               <Input label="Employees On Site" type="number" value={values.employees_on_site ?? ''} onChange={(e) => setValue('employees_on_site', e.target.value ? Number(e.target.value) : null)} />
@@ -297,7 +297,7 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
 
           <div data-site-form-section="access" tabIndex={-1}>
             <FormSection title="Access & Security" icon={<Shield className="h-4 w-4" />} description="How your team gets in, where to park, and security protocols.">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <Input label="Alarm Code" value={values.alarm_code ?? ''} onChange={(e) => setValue('alarm_code', e.target.value || null)} />
               <Input label="Alarm System" value={values.alarm_system ?? ''} onChange={(e) => setValue('alarm_system', e.target.value || null)} />
             </div>
@@ -310,7 +310,7 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
 
           <div data-site-form-section="service" tabIndex={-1}>
             <FormSection title="Service & Compliance" icon={<CheckCircle2 className="h-4 w-4" />} description="Service window and compliance requirements.">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <Input label="Earliest Start Time" type="time" value={values.earliest_start_time ?? ''} onChange={(e) => setValue('earliest_start_time', e.target.value || null)} />
               <Input label="Latest Start Time" type="time" value={values.latest_start_time ?? ''} onChange={(e) => setValue('latest_start_time', e.target.value || null)} />
             </div>
@@ -322,15 +322,15 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
 
           <div data-site-form-section="facility" tabIndex={-1}>
             <FormSection title="Facility Details" icon={<Warehouse className="h-4 w-4" />} description="Storage locations, risk, and priority indicators.">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <Input label="Janitorial Closet" value={values.janitorial_closet_location ?? ''} onChange={(e) => setValue('janitorial_closet_location', e.target.value || null)} />
               <Input label="Supply Storage" value={values.supply_storage_location ?? ''} onChange={(e) => setValue('supply_storage_location', e.target.value || null)} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <Input label="Water Source" value={values.water_source_location ?? ''} onChange={(e) => setValue('water_source_location', e.target.value || null)} />
               <Input label="Dumpster Location" value={values.dumpster_location ?? ''} onChange={(e) => setValue('dumpster_location', e.target.value || null)} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <Select label="Risk Level" value={values.risk_level ?? ''} onChange={(e) => setValue('risk_level', e.target.value || null)} options={RISK_OPTIONS} />
               <Select label="Priority Level" value={values.priority_level ?? ''} onChange={(e) => setValue('priority_level', e.target.value || null)} options={PRIORITY_OPTIONS} />
             </div>
@@ -407,12 +407,12 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
         {wizard.currentStep === 1 && (
           <FormSection title="Address & Facility" icon={<MapPin className="h-4 w-4" />} description="Location and facility sizing details used for planning.">
             <Input label="Street" value={values.address?.street ?? ''} onChange={(e) => setValue('address', { ...values.address, street: e.target.value })} />
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <Input label="City" value={values.address?.city ?? ''} onChange={(e) => setValue('address', { ...values.address, city: e.target.value })} />
               <Input label="State" value={values.address?.state ?? ''} onChange={(e) => setValue('address', { ...values.address, state: e.target.value })} />
               <Input label="ZIP" value={values.address?.zip ?? ''} onChange={(e) => setValue('address', { ...values.address, zip: e.target.value })} />
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <Input label="Square Footage" type="number" value={values.square_footage ?? ''} onChange={(e) => setValue('square_footage', e.target.value ? Number(e.target.value) : null)} />
               <Input label="Floors" type="number" value={values.number_of_floors ?? ''} onChange={(e) => setValue('number_of_floors', e.target.value ? Number(e.target.value) : null)} />
               <Input label="Employees On Site" type="number" value={values.employees_on_site ?? ''} onChange={(e) => setValue('employees_on_site', e.target.value ? Number(e.target.value) : null)} />
@@ -423,7 +423,7 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
         {/* Step 2: Access & Security */}
         {wizard.currentStep === 2 && (
           <FormSection title="Access & Security" icon={<Shield className="h-4 w-4" />} description="How your team gets in, where to park, and security protocols.">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <Input label="Alarm Code" value={values.alarm_code ?? ''} onChange={(e) => setValue('alarm_code', e.target.value || null)} />
               <Input label="Alarm System" value={values.alarm_system ?? ''} onChange={(e) => setValue('alarm_system', e.target.value || null)} placeholder="e.g., ADT, SimpliSafe" />
             </div>
@@ -437,7 +437,7 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
         {/* Step 3: Service Window & Compliance */}
         {wizard.currentStep === 3 && (
           <FormSection title="Service & Compliance" icon={<CheckCircle2 className="h-4 w-4" />} description="Service window and compliance requirements.">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <Input label="Earliest Start Time" type="time" value={values.earliest_start_time ?? ''} onChange={(e) => setValue('earliest_start_time', e.target.value || null)} />
               <Input label="Latest Start Time" type="time" value={values.latest_start_time ?? ''} onChange={(e) => setValue('latest_start_time', e.target.value || null)} />
             </div>
@@ -450,15 +450,15 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
         {/* Step 4: Facility Details & Notes */}
         {wizard.currentStep === 4 && (
           <FormSection title="Facility Details & Notes" icon={<Warehouse className="h-4 w-4" />} description="Storage locations, risk, priority, and internal notes.">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <Input label="Janitorial Closet" value={values.janitorial_closet_location ?? ''} onChange={(e) => setValue('janitorial_closet_location', e.target.value || null)} placeholder="e.g., Room 101" />
               <Input label="Supply Storage" value={values.supply_storage_location ?? ''} onChange={(e) => setValue('supply_storage_location', e.target.value || null)} placeholder="e.g., Basement B1" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <Input label="Water Source" value={values.water_source_location ?? ''} onChange={(e) => setValue('water_source_location', e.target.value || null)} />
               <Input label="Dumpster Location" value={values.dumpster_location ?? ''} onChange={(e) => setValue('dumpster_location', e.target.value || null)} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <Select label="Risk Level" value={values.risk_level ?? ''} onChange={(e) => setValue('risk_level', e.target.value || null)} options={RISK_OPTIONS} />
               <Select label="Priority Level" value={values.priority_level ?? ''} onChange={(e) => setValue('priority_level', e.target.value || null)} options={PRIORITY_OPTIONS} />
             </div>

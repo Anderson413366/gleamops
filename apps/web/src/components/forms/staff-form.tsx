@@ -254,7 +254,7 @@ export function StaffForm({ open, onClose, initialData, onSuccess, focusSection 
             <FormSection title="Personal Info" icon={<UserRound className="h-4 w-4" />} description="Identity, role, status, and photo.">
             <Input label="Staff Code" value={values.staff_code} readOnly disabled />
             <Input label="Full Name" value={values.full_name} onChange={(e) => setValue('full_name', e.target.value)} onBlur={() => onBlur('full_name')} error={errors.full_name} required />
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <Input label="First Name" value={values.first_name ?? ''} onChange={(e) => setValue('first_name', e.target.value || null)} />
               <Input label="Last Name" value={values.last_name ?? ''} onChange={(e) => setValue('last_name', e.target.value || null)} />
               <Input label="Preferred Name" value={values.preferred_name ?? ''} onChange={(e) => setValue('preferred_name', e.target.value || null)} />
@@ -271,15 +271,15 @@ export function StaffForm({ open, onClose, initialData, onSuccess, focusSection 
           {/* Employment */}
           <div data-staff-form-section="employment" tabIndex={-1}>
             <FormSection title="Employment" icon={<Briefcase className="h-4 w-4" />} description="Hire details, pay, schedule, and supervisor.">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <Select label="Employment Type" value={values.employment_type ?? ''} onChange={(e) => setValue('employment_type', e.target.value || null)} options={EMPLOYMENT_TYPE_OPTIONS} />
               <Input label="Hire Date" type="date" value={values.hire_date ?? ''} onChange={(e) => setValue('hire_date', e.target.value || null)} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <Input label="Pay Rate" type="number" value={values.pay_rate ?? ''} onChange={(e) => setValue('pay_rate', e.target.value ? Number(e.target.value) : null)} />
               <Select label="Pay Type" value={values.pay_type ?? ''} onChange={(e) => setValue('pay_type', e.target.value || null)} options={PAY_TYPE_OPTIONS} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <Select label="Schedule Type" value={values.schedule_type ?? ''} onChange={(e) => setValue('schedule_type', e.target.value || null)} options={SCHEDULE_TYPE_OPTIONS} />
               <Select label="Supervisor" value={values.supervisor_id ?? ''} onChange={(e) => setValue('supervisor_id', e.target.value || null)} options={[{ value: '', label: 'None' }, ...supervisors]} />
             </div>
@@ -290,12 +290,12 @@ export function StaffForm({ open, onClose, initialData, onSuccess, focusSection 
           <div data-staff-form-section="contact" tabIndex={-1}>
             <FormSection title="Contact" icon={<Phone className="h-4 w-4" />} description="Email, phone, and mailing address.">
             <Input label="Email" type="email" value={values.email ?? ''} onChange={(e) => setValue('email', e.target.value || null)} onBlur={() => onBlur('email')} error={errors.email} />
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <Input label="Phone" value={values.phone ?? ''} onChange={(e) => setValue('phone', e.target.value || null)} />
               <Input label="Mobile" value={values.mobile_phone ?? ''} onChange={(e) => setValue('mobile_phone', e.target.value || null)} />
             </div>
             <Input label="Street" value={values.address?.street ?? ''} onChange={(e) => setValue('address', { ...values.address, street: e.target.value })} />
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <Input label="City" value={values.address?.city ?? ''} onChange={(e) => setValue('address', { ...values.address, city: e.target.value })} />
               <Input label="State" value={values.address?.state ?? ''} onChange={(e) => setValue('address', { ...values.address, state: e.target.value })} />
               <Input label="ZIP" value={values.address?.zip ?? ''} onChange={(e) => setValue('address', { ...values.address, zip: e.target.value })} />
@@ -305,7 +305,7 @@ export function StaffForm({ open, onClose, initialData, onSuccess, focusSection 
           {/* Emergency & Notes */}
           <div data-staff-form-section="hr" tabIndex={-1}>
             <FormSection title="Emergency & HR" icon={<Siren className="h-4 w-4" />} description="Emergency contact, certifications, background checks, and notes.">
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <Input label="Emergency Name" value={values.emergency_contact_name ?? ''} onChange={(e) => setValue('emergency_contact_name', e.target.value || null)} />
               <Input label="Emergency Phone" value={values.emergency_contact_phone ?? ''} onChange={(e) => setValue('emergency_contact_phone', e.target.value || null)} />
               <Input label="Relationship" value={values.emergency_contact_relationship ?? ''} onChange={(e) => setValue('emergency_contact_relationship', e.target.value || null)} />
@@ -342,7 +342,7 @@ export function StaffForm({ open, onClose, initialData, onSuccess, focusSection 
           <FormSection title="Personal Info" icon={<UserRound className="h-4 w-4" />} description="Identity, role, status, and photo.">
             <Input label="Staff Code" value={values.staff_code} readOnly disabled hint="Auto-generated" />
             <Input label="Full Name" value={values.full_name} onChange={(e) => setValue('full_name', e.target.value)} onBlur={() => onBlur('full_name')} error={errors.full_name} required />
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <Input label="First Name" value={values.first_name ?? ''} onChange={(e) => setValue('first_name', e.target.value || null)} />
               <Input label="Last Name" value={values.last_name ?? ''} onChange={(e) => setValue('last_name', e.target.value || null)} />
               <Input label="Preferred Name" value={values.preferred_name ?? ''} onChange={(e) => setValue('preferred_name', e.target.value || null)} />
@@ -360,15 +360,15 @@ export function StaffForm({ open, onClose, initialData, onSuccess, focusSection 
         {wizard.currentStep === 1 && (
           <div className="space-y-8">
             <FormSection title="Employment" icon={<Briefcase className="h-4 w-4" />} description="Hire details, pay, schedule, and supervisor.">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <Select label="Employment Type" value={values.employment_type ?? ''} onChange={(e) => setValue('employment_type', e.target.value || null)} options={EMPLOYMENT_TYPE_OPTIONS} />
                 <Input label="Hire Date" type="date" value={values.hire_date ?? ''} onChange={(e) => setValue('hire_date', e.target.value || null)} />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <Input label="Pay Rate ($/hr)" type="number" value={values.pay_rate ?? ''} onChange={(e) => setValue('pay_rate', e.target.value ? Number(e.target.value) : null)} />
                 <Select label="Pay Type" value={values.pay_type ?? ''} onChange={(e) => setValue('pay_type', e.target.value || null)} options={PAY_TYPE_OPTIONS} />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <Select label="Schedule Type" value={values.schedule_type ?? ''} onChange={(e) => setValue('schedule_type', e.target.value || null)} options={SCHEDULE_TYPE_OPTIONS} />
                 <Select label="Supervisor" value={values.supervisor_id ?? ''} onChange={(e) => setValue('supervisor_id', e.target.value || null)} options={[{ value: '', label: 'None' }, ...supervisors]} />
               </div>
@@ -380,7 +380,7 @@ export function StaffForm({ open, onClose, initialData, onSuccess, focusSection 
 
             <FormSection title="Contact" icon={<Phone className="h-4 w-4" />} description="Email and phone numbers for quick reach.">
               <Input label="Email" type="email" value={values.email ?? ''} onChange={(e) => setValue('email', e.target.value || null)} />
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <Input label="Phone" value={values.phone ?? ''} onChange={(e) => setValue('phone', e.target.value || null)} />
                 <Input label="Mobile" value={values.mobile_phone ?? ''} onChange={(e) => setValue('mobile_phone', e.target.value || null)} />
               </div>
@@ -392,7 +392,7 @@ export function StaffForm({ open, onClose, initialData, onSuccess, focusSection 
         {wizard.currentStep === 2 && (
           <div className="space-y-8">
             <FormSection title="Emergency Contact" icon={<Siren className="h-4 w-4" />} description="Who to contact if something happens on-site.">
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <Input label="Name" value={values.emergency_contact_name ?? ''} onChange={(e) => setValue('emergency_contact_name', e.target.value || null)} />
                 <Input label="Phone" value={values.emergency_contact_phone ?? ''} onChange={(e) => setValue('emergency_contact_phone', e.target.value || null)} />
                 <Input label="Relationship" value={values.emergency_contact_relationship ?? ''} onChange={(e) => setValue('emergency_contact_relationship', e.target.value || null)} />
@@ -401,7 +401,7 @@ export function StaffForm({ open, onClose, initialData, onSuccess, focusSection 
 
             <FormSection title="Address" icon={<MapPin className="h-4 w-4" />} description="Mailing address for this staff member.">
               <Input label="Street" value={values.address?.street ?? ''} onChange={(e) => setValue('address', { ...values.address, street: e.target.value })} />
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <Input label="City" value={values.address?.city ?? ''} onChange={(e) => setValue('address', { ...values.address, city: e.target.value })} />
                 <Input label="State" value={values.address?.state ?? ''} onChange={(e) => setValue('address', { ...values.address, state: e.target.value })} />
                 <Input label="ZIP" value={values.address?.zip ?? ''} onChange={(e) => setValue('address', { ...values.address, zip: e.target.value })} />

@@ -193,7 +193,7 @@ export default function ClientsTable({ search }: ClientsTableProps) {
   const sortedRows = sorted as unknown as Client[];
   const pag = usePagination(sortedRows, 25);
 
-  if (loading) return <TableSkeleton rows={8} cols={7} />;
+  if (loading) return <TableSkeleton rows={8} cols={6} />;
 
   const handleRowClick = (row: Client) => {
     router.push(`/crm/clients/${row.client_code}`);
@@ -204,15 +204,17 @@ export default function ClientsTable({ search }: ClientsTableProps) {
       <div className="flex items-center justify-end gap-3 mb-4">
         <ViewToggle view={view} onChange={setView} />
         <ExportButton
-          data={filtered as unknown as Record<string, unknown>[]}
+          data={filtered.map((row) => ({
+            ...row,
+            active_sites: cardMetaByClientId[row.id]?.activeSites ?? 0,
+          })) as unknown as Record<string, unknown>[]}
           filename="clients"
           columns={[
             { key: 'client_code', label: 'Code' },
             { key: 'name', label: 'Name' },
             { key: 'status', label: 'Status' },
             { key: 'client_type', label: 'Type' },
-            { key: 'industry', label: 'Industry' },
-            { key: 'payment_terms', label: 'Payment Terms' },
+            { key: 'active_sites', label: 'Active Sites' },
             { key: 'contract_start_date', label: 'Contract Start' },
             { key: 'contract_end_date', label: 'Contract End' },
           ]}
@@ -263,9 +265,8 @@ export default function ClientsTable({ search }: ClientsTableProps) {
                 <TableHead sortable sorted={sortKey === 'client_code' && sortDir} onSort={() => onSort('client_code')}>Code</TableHead>
                 <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Name</TableHead>
                 <TableHead sortable sorted={sortKey === 'client_type' && sortDir} onSort={() => onSort('client_type')}>Type</TableHead>
-                <TableHead>Industry</TableHead>
                 <TableHead>Address</TableHead>
-                <TableHead>Payment Terms</TableHead>
+                <TableHead>Active Sites</TableHead>
                 <TableHead sortable sorted={sortKey === 'contract_end_date' && sortDir} onSort={() => onSort('contract_end_date')}>Contract End</TableHead>
               </tr>
             </TableHeader>
@@ -276,21 +277,20 @@ export default function ClientsTable({ search }: ClientsTableProps) {
                   onClick={() => handleRowClick(row)}
                   className={cn('cursor-pointer', statusRowAccentClass(row.status))}
                 >
-                  <TableCell className="font-mono text-xs">
-                    <div className="flex items-center gap-2">
+                  <TableCell>
+                    <div className="inline-flex items-center gap-2 rounded-md bg-muted px-2 py-1 font-mono text-xs text-foreground">
                       <StatusDot status={row.status} />
                       <span>{row.client_code}</span>
                     </div>
                   </TableCell>
                   <TableCell className="font-medium">{row.name}</TableCell>
                   <TableCell className="text-muted-foreground">{row.client_type ?? '—'}</TableCell>
-                  <TableCell className="text-muted-foreground">{row.industry ?? '—'}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {row.billing_address
                       ? [row.billing_address.city, row.billing_address.state].filter(Boolean).join(', ')
                       : '—'}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{row.payment_terms ?? '—'}</TableCell>
+                  <TableCell className="text-muted-foreground">{cardMetaByClientId[row.id]?.activeSites ?? 0}</TableCell>
                   <TableCell className="text-muted-foreground">{formatDate(row.contract_end_date ?? null)}</TableCell>
                 </TableRow>
               ))}

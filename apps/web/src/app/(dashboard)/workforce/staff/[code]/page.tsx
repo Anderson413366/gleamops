@@ -3,7 +3,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   User,
@@ -204,7 +204,6 @@ const TABS = [
 
 export default function StaffDetailPage() {
   const { code } = useParams<{ code: string }>();
-  const router = useRouter();
   const [staff, setStaff] = useState<Staff | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('overview');
@@ -424,12 +423,10 @@ export default function StaffDetailPage() {
     setArchiveLoading(true);
     const supabase = getSupabaseBrowserClient();
     try {
-      const { data: authData } = await supabase.auth.getUser();
       const { error } = await supabase
         .from('staff')
         .update({
-          archived_at: new Date().toISOString(),
-          archived_by: authData.user?.id ?? null,
+          staff_status: 'TERMINATED',
           archive_reason: reason,
         })
         .eq('id', staff.id)
@@ -440,8 +437,8 @@ export default function StaffDetailPage() {
         return;
       }
 
-      toast.success('Staff archived');
-      router.push('/workforce');
+      toast.success('Staff set to inactive');
+      await fetchStaff();
     } finally {
       setArchiveLoading(false);
       setArchiveOpen(false);
@@ -478,6 +475,7 @@ export default function StaffDetailPage() {
   }
 
   const activeJobCount = jobs.filter((j) => j.job?.status === 'ACTIVE').length;
+  const isInactive = (staff.staff_status ?? '').toUpperCase() === 'INACTIVE' || (staff.staff_status ?? '').toUpperCase() === 'TERMINATED';
   const updatedAgo = formatRelativeDateTime(staff.updated_at);
   const bg = bgCheckBadge(staff.background_check_date ?? null);
 
@@ -511,6 +509,12 @@ export default function StaffDetailPage() {
 
   return (
     <div className="space-y-6">
+      {isInactive && (
+        <div className="rounded-xl border-2 border-red-300 bg-red-50 px-4 py-3 text-center text-base font-semibold tracking-wide text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+          INACTIVE
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link
@@ -543,10 +547,11 @@ export default function StaffDetailPage() {
           <button
             type="button"
             onClick={() => setArchiveOpen(true)}
+            disabled={isInactive}
             className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950"
           >
             <Archive className="h-3.5 w-3.5" />
-            Archive
+            Set Inactive
           </button>
         </div>
       </div>
@@ -1005,6 +1010,9 @@ export default function StaffDetailPage() {
         onClose={() => setArchiveOpen(false)}
         onConfirm={handleArchive}
         entityName="Staff"
+        title="Set Staff Inactive"
+        description="Are you sure? This will hide this staff member from active lists, but the data will never be deleted."
+        confirmLabel="Set Inactive"
         loading={archiveLoading}
       />
     </div>

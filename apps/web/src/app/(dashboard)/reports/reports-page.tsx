@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { BarChart3, TrendingUp, DollarSign, Shield, Users, Package, RefreshCw, CalendarDays } from 'lucide-react';
 import { ChipTabs, Button, Badge, cn } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -32,6 +32,8 @@ const RANGE_OPTIONS = [
 
 export default function ReportsPageClient() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const initialTab = searchParams.get('tab');
   const [tab, setTab] = useState(TABS.some(t => t.key === initialTab) ? initialTab! : TABS[0].key);
   const initialRange = searchParams.get('range');
@@ -50,13 +52,29 @@ export default function ReportsPageClient() {
   });
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
 
+  const syncUrl = useCallback((next: { tab?: string; rangeDays?: number }) => {
+    const sp = new URLSearchParams(searchParams.toString());
+    const nextTab = next.tab ?? tab;
+    const nextRangeDays = next.rangeDays ?? rangeDays;
+    sp.set('tab', nextTab);
+    sp.set('range', String(nextRangeDays));
+    router.replace(`${pathname}?${sp.toString()}`);
+  }, [pathname, rangeDays, router, searchParams, tab]);
+
+  useEffect(() => {
+    // On first load, if params are missing, write them once for shareable URLs.
+    if (!searchParams.get('tab') || !searchParams.get('range')) {
+      syncUrl({});
+    }
+  }, [searchParams, syncUrl]);
+
   const fetchSnapshot = useCallback(async () => {
     const supabase = getSupabaseBrowserClient();
     const start = new Date();
     start.setDate(start.getDate() - rangeDays);
     const startISO = start.toISOString();
     const [ticketsRes, oppsRes, jobsRes, inspectionsRes, staffRes, suppliesRes] = await Promise.all([
-      supabase.from('work_tickets').select('id', { count: 'exact', head: true }).is('archived_at', null).in('status', ['OPEN', 'IN_PROGRESS']),
+      supabase.from('work_tickets').select('id', { count: 'exact', head: true }).is('archived_at', null).in('status', ['SCHEDULED', 'IN_PROGRESS']),
       supabase.from('sales_opportunities').select('estimated_monthly_value, stage_code, created_at').is('archived_at', null).gte('created_at', startISO),
       supabase.from('site_jobs').select('billing_amount').is('archived_at', null).eq('status', 'ACTIVE'),
       // inspections table uses boolean `passed` (no `pass_fail`)
@@ -127,7 +145,10 @@ export default function ReportsPageClient() {
               <button
                 key={opt.key}
                 type="button"
-                onClick={() => setRangeDays(opt.days)}
+                onClick={() => {
+                  setRangeDays(opt.days);
+                  syncUrl({ rangeDays: opt.days });
+                }}
                 className={cn(
                   'inline-flex items-center rounded-full px-3 py-1 text-xs font-medium transition-colors',
                   rangeDays === opt.days
@@ -183,7 +204,14 @@ export default function ReportsPageClient() {
         />
       </div>
 
-      <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
+      <ChipTabs
+        tabs={TABS}
+        active={tab}
+        onChange={(next) => {
+          setTab(next);
+          syncUrl({ tab: next });
+        }}
+      />
 
       {tab === 'ops' && <OpsDashboard rangeDays={rangeDays} refreshKey={refreshKey} />}
       {tab === 'sales' && <SalesDashboard rangeDays={rangeDays} refreshKey={refreshKey} />}

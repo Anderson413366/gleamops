@@ -78,6 +78,11 @@ test.describe('Detail page navigation', () => {
     if (await firstRow.isVisible()) {
       await firstRow.click();
       await page.waitForTimeout(1000);
+
+      // Assert key detail content renders (HR card should not be empty)
+      await expect(page.locator('text=HR Details').first()).toBeVisible({ timeout: 10_000 });
+      await expect(page.locator('text=Emergency Contact').first()).toBeVisible({ timeout: 10_000 });
+      await expect(page.locator('text=Background Check').first()).toBeVisible({ timeout: 10_000 });
     }
   });
 

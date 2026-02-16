@@ -26,6 +26,7 @@ import {
   type JobFinancialResult,
 } from '@/lib/utils/job-financials';
 import { formatDate } from '@/lib/utils/date';
+import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 
 interface JobWithRelations extends SiteJob {
   site?: {
@@ -690,6 +691,16 @@ export default function JobDetailPage() {
         <p>Created: {new Date(job.created_at).toLocaleDateString()}</p>
         <p>Updated: {new Date(job.updated_at).toLocaleDateString()}</p>
       </div>
+
+      <ActivityHistorySection
+        entityType="site_jobs"
+        entityId={job.id}
+        entityCode={job.job_code}
+        notes={job.notes}
+        entityUpdatedAt={job.updated_at}
+        ticketScope={{ jobIds: [job.id] }}
+        inspectionScope={{ jobIds: [job.id] }}
+      />
 
       {/* Edit Form */}
       <JobForm

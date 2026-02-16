@@ -9,6 +9,7 @@ import { Badge, Skeleton } from '@gleamops/ui';
 import type { Equipment, StatusColor } from '@gleamops/shared';
 import { EQUIPMENT_CONDITION_COLORS } from '@gleamops/shared';
 import { EquipmentForm } from '@/components/forms/equipment-form';
+import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 
 interface EquipmentWithRelations extends Equipment {
   staff?: { full_name: string; staff_code: string } | null;
@@ -200,6 +201,14 @@ export default function EquipmentDetailPage() {
         <p>Updated: {formatDate(equipment.updated_at)}</p>
       </div>
 
+      <ActivityHistorySection
+        entityType="equipment"
+        entityId={equipment.id}
+        entityCode={equipment.equipment_code}
+        notes={equipment.notes}
+        entityUpdatedAt={equipment.updated_at}
+      />
+
       <EquipmentForm
         open={formOpen}
         onClose={() => setFormOpen(false)}
@@ -212,4 +221,3 @@ export default function EquipmentDetailPage() {
     </div>
   );
 }
-

@@ -42,6 +42,7 @@ import {
 import type { Staff, StaffCertification, WorkTicket } from '@gleamops/shared';
 import { StaffForm } from '@/components/forms/staff-form';
 import { toast } from 'sonner';
+import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 
 const STATUS_COLORS: Record<string, 'green' | 'gray' | 'yellow' | 'red'> = {
   ACTIVE: 'green',
@@ -902,6 +903,16 @@ export default function StaffDetailPage() {
           </div>
         </form>
       </SlideOver>
+
+      <ActivityHistorySection
+        entityType="staff"
+        entityId={staff.id}
+        entityCode={staff.staff_code}
+        notes={staff.notes}
+        entityUpdatedAt={staff.updated_at}
+        ticketScope={{ staffId: staff.id }}
+        inspectionScope={{ staffId: staff.id }}
+      />
 
       {/* Edit Form */}
       <StaffForm

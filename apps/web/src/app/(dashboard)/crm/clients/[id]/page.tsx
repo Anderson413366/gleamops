@@ -22,6 +22,7 @@ import type { Client, Contact } from '@gleamops/shared';
 import { CLIENT_STATUS_COLORS } from '@gleamops/shared';
 import { ClientForm } from '@/components/forms/client-form';
 import { ContactForm } from '@/components/forms/contact-form';
+import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 
 function formatCurrency(n: number | null) {
   if (n == null) return '\u2014';
@@ -84,6 +85,7 @@ export default function ClientDetailPage() {
   const [siteCount, setSiteCount] = useState(0);
   const [activeJobCount, setActiveJobCount] = useState(0);
   const [monthlyRevenue, setMonthlyRevenue] = useState(0);
+  const [siteIds, setSiteIds] = useState<string[]>([]);
 
   const fetchClient = async () => {
     setLoading(true);
@@ -122,6 +124,7 @@ export default function ClientDetailPage() {
 
       const sites = sitesRes.data ?? [];
       setSiteCount(sites.length);
+      setSiteIds(sites.map((s: { id: string }) => s.id));
 
       if (sites.length > 0) {
         const siteIds = sites.map((s: { id: string }) => s.id);
@@ -146,6 +149,7 @@ export default function ClientDetailPage() {
       } else {
         setActiveJobCount(0);
         setMonthlyRevenue(0);
+        setSiteIds([]);
       }
     }
     setLoading(false);
@@ -686,6 +690,16 @@ export default function ClientDetailPage() {
         <p>Created: {new Date(client.created_at).toLocaleDateString()}</p>
         <p>Updated: {new Date(client.updated_at).toLocaleDateString()}</p>
       </div>
+
+      <ActivityHistorySection
+        entityType="clients"
+        entityId={client.id}
+        entityCode={client.client_code}
+        notes={client.notes}
+        entityUpdatedAt={client.updated_at}
+        ticketScope={siteIds.length ? { siteIds } : undefined}
+        inspectionScope={siteIds.length ? { siteIds } : undefined}
+      />
 
       {/* Edit Form */}
       <ClientForm

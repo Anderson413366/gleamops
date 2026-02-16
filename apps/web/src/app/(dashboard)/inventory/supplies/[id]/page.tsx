@@ -25,6 +25,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Badge, Skeleton } from '@gleamops/ui';
 import type { SupplyCatalog } from '@gleamops/shared';
 import { SupplyForm } from '@/components/forms/supply-form';
+import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 import { toast } from 'sonner';
 
 function formatCurrency(n: number | null) {
@@ -494,6 +495,14 @@ export default function SupplyDetailPage() {
         </div>
       </div>
       )}
+
+      <ActivityHistorySection
+        entityType="supply_catalog"
+        entityId={supply.id}
+        entityCode={supply.code}
+        notes={supply.notes}
+        entityUpdatedAt={supply.updated_at}
+      />
 
       {/* Metadata */}
       <div className="text-xs text-muted-foreground space-y-1 pt-4 border-t border-border">

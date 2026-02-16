@@ -23,6 +23,7 @@ import { Badge, Skeleton } from '@gleamops/ui';
 import type { Site, Contact, Staff, KeyInventory } from '@gleamops/shared';
 import { SITE_STATUS_COLORS } from '@gleamops/shared';
 import { SiteForm } from '@/components/forms/site-form';
+import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 
 interface SiteWithClient extends Site {
   client?: { name: string; client_code: string } | null;
@@ -572,6 +573,16 @@ export default function SiteDetailPage() {
         <p>Created: {new Date(site.created_at).toLocaleDateString()}</p>
         <p>Updated: {new Date(site.updated_at).toLocaleDateString()}</p>
       </div>
+
+      <ActivityHistorySection
+        entityType="sites"
+        entityId={site.id}
+        entityCode={site.site_code}
+        notes={site.notes}
+        entityUpdatedAt={site.updated_at}
+        ticketScope={{ siteIds: [site.id] }}
+        inspectionScope={{ siteIds: [site.id] }}
+      />
 
       {/* Edit Form */}
       <SiteForm

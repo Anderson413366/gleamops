@@ -91,7 +91,7 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
   const handleAdd = () => { setEditItem(null); setFormOpen(true); };
 
   const handleRowClick = (row: Staff) => {
-    router.push(`/workforce/staff/${row.staff_code}`);
+    router.push(`/workforce/staff/${encodeURIComponent(row.staff_code)}`);
   };
   const selectedStatusLabel = statusFilter === 'all'
     ? 'all statuses'

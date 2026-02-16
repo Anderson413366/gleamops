@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -32,6 +33,7 @@ interface StaffTableProps {
 }
 
 export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: StaffTableProps) {
+  const router = useRouter();
   const [rows, setRows] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
@@ -39,7 +41,9 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
   const [statusFilter, setStatusFilter] = useState<string>('ACTIVE');
 
   const handleAdd = () => { setEditItem(null); setFormOpen(true); };
-  const handleEdit = (item: Staff) => { setEditItem(item); setFormOpen(true); };
+  const handleRowClick = (item: Staff) => {
+    router.push(`/workforce/staff/${encodeURIComponent(item.staff_code)}`);
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -167,7 +171,7 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id} onClick={() => handleEdit(row)} className="cursor-pointer">
+            <TableRow key={row.id} onClick={() => handleRowClick(row)} className="cursor-pointer">
               <TableCell className="font-mono text-xs">{row.staff_code}</TableCell>
               <TableCell className="font-medium">{row.full_name}</TableCell>
               <TableCell>

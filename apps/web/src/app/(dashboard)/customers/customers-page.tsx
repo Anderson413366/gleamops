@@ -77,21 +77,18 @@ export default function CustomersPageClient() {
         <ClientsTable
           key={`clients-${refreshKey}`}
           search={search}
-          onSelect={(c) => setSelectedClient(c)}
         />
       )}
       {tab === 'sites' && (
         <SitesTable
           key={`sites-${refreshKey}`}
           search={search}
-          onSelect={(s) => setSelectedSite(s)}
         />
       )}
       {tab === 'contacts' && (
         <ContactsTable
           key={`contacts-${refreshKey}`}
           search={search}
-          onSelect={(c) => setSelectedContact(c)}
         />
       )}
 

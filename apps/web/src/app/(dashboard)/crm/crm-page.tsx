@@ -173,10 +173,6 @@ export default function CRMPageClient() {
         <ContactsTable
           key={`contacts-${refreshKey}`}
           search={search}
-          onSelect={(c) => {
-            setEditContact(c);
-            setContactFormOpen(true);
-          }}
         />
       )}
 

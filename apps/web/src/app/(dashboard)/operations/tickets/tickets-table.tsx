@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Building2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -20,13 +21,18 @@ interface TicketWithRelations extends WorkTicket {
 
 interface TicketsTableProps {
   search: string;
-  onSelect?: (ticket: TicketWithRelations) => void;
   onGoToServicePlans?: () => void;
 }
 
-export default function TicketsTable({ search, onSelect, onGoToServicePlans }: TicketsTableProps) {
+export default function TicketsTable({ search, onGoToServicePlans }: TicketsTableProps) {
+  const router = useRouter();
   const [rows, setRows] = useState<TicketWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const handleRowClick = useCallback((row: TicketWithRelations) => {
+    // TODO: Create dedicated detail page route at /operations/tickets/[ticket_code].
+    router.push(`/operations?tab=tickets&ticket=${encodeURIComponent(row.id)}`);
+  }, [router]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -118,8 +124,8 @@ export default function TicketsTable({ search, onSelect, onGoToServicePlans }: T
           {pag.page.map((row) => (
             <TableRow
               key={row.id}
-              onClick={() => onSelect?.(row)}
-              className={cn(statusRowAccentClass(row.status))}
+              onClick={() => handleRowClick(row)}
+              className={cn('cursor-pointer', statusRowAccentClass(row.status))}
             >
               <TableCell className="font-mono text-xs">
                 <div className="flex items-center gap-2">

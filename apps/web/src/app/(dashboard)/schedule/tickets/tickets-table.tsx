@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { ClipboardList } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -21,12 +22,17 @@ interface TicketWithRelations extends WorkTicket {
 
 interface TicketsTableProps {
   search: string;
-  onSelect?: (ticket: TicketWithRelations) => void;
 }
 
-export default function TicketsTable({ search, onSelect }: TicketsTableProps) {
+export default function TicketsTable({ search }: TicketsTableProps) {
+  const router = useRouter();
   const [rows, setRows] = useState<TicketWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const handleRowClick = useCallback((row: TicketWithRelations) => {
+    // TODO: Create dedicated detail page route at /operations/tickets/[ticket_code].
+    router.push(`/operations?tab=tickets&ticket=${encodeURIComponent(row.id)}`);
+  }, [router]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -104,7 +110,7 @@ export default function TicketsTable({ search, onSelect }: TicketsTableProps) {
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id} onClick={() => onSelect?.(row)}>
+            <TableRow key={row.id} onClick={() => handleRowClick(row)} className="cursor-pointer">
               <TableCell className="font-mono text-xs">{row.ticket_code}</TableCell>
               <TableCell className="font-mono text-xs text-muted-foreground">{row.job?.job_code ?? '—'}</TableCell>
               <TableCell className="font-medium">{row.site?.name ?? '—'}</TableCell>

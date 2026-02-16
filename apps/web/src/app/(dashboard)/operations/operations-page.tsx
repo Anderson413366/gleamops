@@ -206,7 +206,6 @@ export default function OperationsPageClient() {
         <TicketsTable
           key={`t-${refreshKey}`}
           search={search}
-          onSelect={(t) => setSelectedTicket(t as TicketWithRelations)}
           onGoToServicePlans={() => setTab('jobs')}
         />
       )}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Users, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -27,12 +28,17 @@ interface ContactWithParent extends Contact {
 
 interface ContactsTableProps {
   search: string;
-  onSelect?: (contact: ContactWithParent) => void;
 }
 
-export default function ContactsTable({ search, onSelect }: ContactsTableProps) {
+export default function ContactsTable({ search }: ContactsTableProps) {
+  const router = useRouter();
   const [rows, setRows] = useState<ContactWithParent[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const handleRowClick = useCallback((row: ContactWithParent) => {
+    // TODO: Create detail page for contacts at /crm/contacts/[contact_code].
+    router.push(`/crm?tab=contacts&contact=${encodeURIComponent(row.contact_code)}`);
+  }, [router]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -117,7 +123,7 @@ export default function ContactsTable({ search, onSelect }: ContactsTableProps) 
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id} onClick={() => onSelect?.(row)} className="cursor-pointer">
+            <TableRow key={row.id} onClick={() => handleRowClick(row)} className="cursor-pointer">
               <TableCell className="font-mono text-xs">{row.contact_code}</TableCell>
               <TableCell>
                 <span className="font-medium">{row.name}</span>

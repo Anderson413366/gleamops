@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -29,12 +30,16 @@ const STATUS_COLORS: Record<string, 'green' | 'gray' | 'orange'> = {
 
 interface ClientsTableProps {
   search: string;
-  onSelect?: (client: Client) => void;
 }
 
-export default function ClientsTable({ search, onSelect }: ClientsTableProps) {
+export default function ClientsTable({ search }: ClientsTableProps) {
+  const router = useRouter();
   const [rows, setRows] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const handleRowClick = useCallback((row: Client) => {
+    router.push(`/crm/clients/${encodeURIComponent(row.client_code)}`);
+  }, [router]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -116,7 +121,8 @@ export default function ClientsTable({ search, onSelect }: ClientsTableProps) {
           {pag.page.map((row) => (
             <TableRow
               key={row.id}
-              onClick={() => onSelect?.(row)}
+              onClick={() => handleRowClick(row)}
+              className="cursor-pointer"
             >
               <TableCell className="font-mono text-xs">{row.client_code}</TableCell>
               <TableCell className="font-medium">{row.name}</TableCell>

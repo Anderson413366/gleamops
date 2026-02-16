@@ -73,7 +73,6 @@ export default function SchedulePageClient() {
         <TicketsTable
           key={`t-${refreshKey}`}
           search={search}
-          onSelect={(t) => setSelectedTicket(t as TicketWithRelations)}
         />
       )}
       {tab === 'jobs' && <JobsTable key={`j-${refreshKey}`} search={search} />}

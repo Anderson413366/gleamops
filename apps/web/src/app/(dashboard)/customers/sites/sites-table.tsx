@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -28,16 +29,20 @@ interface SiteWithClient extends Site {
 
 interface SitesTableProps {
   search: string;
-  onSelect?: (site: SiteWithClient) => void;
 }
 
 // UX requirement: default to Active, show Active first, and move All to the end.
 const STATUS_OPTIONS = ['ACTIVE', 'INACTIVE', 'ON_HOLD', 'CANCELED', 'all'] as const;
 
-export default function SitesTable({ search, onSelect }: SitesTableProps) {
+export default function SitesTable({ search }: SitesTableProps) {
+  const router = useRouter();
   const [rows, setRows] = useState<SiteWithClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('ACTIVE');
+
+  const handleRowClick = useCallback((row: SiteWithClient) => {
+    router.push(`/crm/sites/${encodeURIComponent(row.site_code)}`);
+  }, [router]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -159,7 +164,7 @@ export default function SitesTable({ search, onSelect }: SitesTableProps) {
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id} onClick={() => onSelect?.(row)}>
+            <TableRow key={row.id} onClick={() => handleRowClick(row)} className="cursor-pointer">
               <TableCell className="font-mono text-xs">{row.site_code}</TableCell>
               <TableCell className="font-medium">{row.name}</TableCell>
               <TableCell className="text-muted-foreground">{row.client?.name ?? '—'}</TableCell>

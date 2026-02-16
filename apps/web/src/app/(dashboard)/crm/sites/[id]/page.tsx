@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -13,15 +13,22 @@ import {
   Building2,
   Shield,
   AlertTriangle,
+  KeyRound,
+  Warehouse,
+  Users,
+  ExternalLink,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Badge, Skeleton } from '@gleamops/ui';
-import type { Site } from '@gleamops/shared';
+import type { Site, Contact, Staff, KeyInventory } from '@gleamops/shared';
 import { SITE_STATUS_COLORS } from '@gleamops/shared';
 import { SiteForm } from '@/components/forms/site-form';
 
 interface SiteWithClient extends Site {
   client?: { name: string; client_code: string } | null;
+  primary_contact?: Pick<Contact, 'name' | 'role' | 'role_title' | 'email' | 'phone' | 'mobile_phone' | 'work_phone' | 'preferred_contact_method' | 'photo_url'> | null;
+  emergency_contact?: Pick<Contact, 'name' | 'role' | 'role_title' | 'email' | 'phone' | 'mobile_phone' | 'work_phone' | 'preferred_contact_method' | 'photo_url'> | null;
+  supervisor?: Pick<Staff, 'full_name' | 'staff_code' | 'email' | 'phone' | 'mobile_phone' | 'photo_url'> | null;
 }
 
 function formatCurrency(n: number | null) {
@@ -33,6 +40,52 @@ function formatCurrency(n: number | null) {
   }).format(n);
 }
 
+function formatTime(t: string | null): string {
+  if (!t) return 'Not Set';
+  const parts = t.split(':');
+  const h = Number.parseInt(parts[0] ?? '0', 10);
+  const m = parts[1] ?? '00';
+  if (!Number.isFinite(h)) return t;
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${h12}:${m} ${ampm}`;
+}
+
+function notSet(v: unknown): ReactNode {
+  if (v == null) return <span className="text-muted-foreground">Not Set</span>;
+  if (typeof v === 'string' && v.trim() === '') return <span className="text-muted-foreground">Not Set</span>;
+  return String(v);
+}
+
+function mapsSearchUrl(addr: { street?: string; city?: string; state?: string; zip?: string; country?: string } | null): string | null {
+  if (!addr) return null;
+  const q = [addr.street, addr.city, addr.state, addr.zip, addr.country].filter(Boolean).join(', ');
+  if (!q) return null;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+}
+
+function osmStaticMapUrl(lat: number | null, lng: number | null): string | null {
+  if (lat == null || lng == null) return null;
+  // Free static map service; used only as a fallback when there is no photo_url.
+  const center = `${lat},${lng}`;
+  return `https://staticmap.openstreetmap.de/staticmap.php?center=${center}&zoom=16&size=960x420&maptype=mapnik&markers=${center},red-pushpin`;
+}
+
+const PRIORITY_BADGE: Record<string, 'red' | 'orange' | 'blue' | 'gray' | 'yellow'> = {
+  CRITICAL: 'red',
+  HIGH: 'orange',
+  MEDIUM: 'blue',
+  STANDARD: 'blue',
+  LOW: 'gray',
+};
+
+const RISK_BADGE: Record<string, 'red' | 'orange' | 'blue' | 'gray' | 'yellow'> = {
+  HIGH: 'orange',
+  MEDIUM: 'blue',
+  LOW: 'gray',
+  CRITICAL: 'red',
+};
+
 export default function SiteDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [site, setSite] = useState<SiteWithClient | null>(null);
@@ -43,13 +96,20 @@ export default function SiteDetailPage() {
   const [activeJobCount, setActiveJobCount] = useState(0);
   const [monthlyRevenue, setMonthlyRevenue] = useState(0);
   const [equipmentCount, setEquipmentCount] = useState(0);
+  const [keys, setKeys] = useState<KeyInventory[]>([]);
 
   const fetchSite = async () => {
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
     const { data } = await supabase
       .from('sites')
-      .select('*, client:client_id(name, client_code)')
+      .select(`
+        *,
+        client:client_id(name, client_code),
+        primary_contact:primary_contact_id(name, role, role_title, email, phone, mobile_phone, work_phone, preferred_contact_method, photo_url),
+        emergency_contact:emergency_contact_id(name, role, role_title, email, phone, mobile_phone, work_phone, preferred_contact_method, photo_url),
+        supervisor:supervisor_id(full_name, staff_code, email, phone, mobile_phone, photo_url)
+      `)
       .eq('site_code', id)
       .is('archived_at', null)
       .single();
@@ -59,7 +119,7 @@ export default function SiteDetailPage() {
       setSite(s);
 
       // Fetch related data in parallel
-      const [jobsRes, equipRes] = await Promise.all([
+      const [jobsRes, equipRes, keysRes] = await Promise.all([
         supabase
           .from('site_jobs')
           .select('id, status, billing_amount')
@@ -70,6 +130,12 @@ export default function SiteDetailPage() {
           .select('id')
           .eq('site_id', s.id)
           .is('archived_at', null),
+        supabase
+          .from('key_inventory')
+          .select('id, key_code, site_id, key_type, label, total_count, assigned_to, status, notes, tenant_id, created_at, updated_at, archived_at, archived_by, archive_reason, version_etag')
+          .eq('site_id', s.id)
+          .is('archived_at', null)
+          .order('key_code'),
       ]);
 
       const jobs = jobsRes.data ?? [];
@@ -85,6 +151,7 @@ export default function SiteDetailPage() {
         )
       );
       setEquipmentCount(equipRes.data?.length ?? 0);
+      setKeys((keysRes.data as unknown as KeyInventory[]) ?? []);
     }
     setLoading(false);
   };
@@ -118,6 +185,8 @@ export default function SiteDetailPage() {
   }
 
   const addr = site.address;
+  const mapsUrl = mapsSearchUrl(addr);
+  const heroMapUrl = site.photo_url ? null : osmStaticMapUrl(site.geofence_center_lat, site.geofence_center_lng);
 
   return (
     <div className="space-y-6">
@@ -130,47 +199,64 @@ export default function SiteDetailPage() {
         Back to CRM
       </Link>
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          {site.photo_url ? (
-            <img
-              src={site.photo_url}
-              alt={site.name}
-              className="h-16 w-16 rounded-full border border-border object-cover"
-            />
-          ) : (
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-module-accent/15 text-module-accent">
-              <MapPin className="h-7 w-7" />
-            </div>
-          )}
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">{site.name}</h1>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-sm text-muted-foreground font-mono">
-                {site.site_code}
-              </span>
+      {/* Hero */}
+      <div className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        {site.photo_url ? (
+          <img
+            src={site.photo_url}
+            alt={`${site.name} photo`}
+            className="h-44 w-full object-cover sm:h-56"
+          />
+        ) : heroMapUrl ? (
+          <img
+            src={heroMapUrl}
+            alt={`${site.name} map`}
+            className="h-44 w-full object-cover sm:h-56"
+          />
+        ) : (
+          <div className="h-44 w-full sm:h-56 bg-gradient-to-br from-muted via-muted/60 to-background" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/20 to-transparent" />
+        <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-bold text-foreground truncate">{site.name}</h1>
               <Badge color={SITE_STATUS_COLORS[site.status ?? ''] ?? 'gray'}>
                 {site.status ?? 'N/A'}
               </Badge>
             </div>
+            <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+              <span className="font-mono">{site.site_code}</span>
+              {site.client?.name && (
+                <span className="inline-flex items-center gap-1.5">
+                  <Building2 className="h-4 w-4" />
+                  {site.client.name}
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setFormOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background/80 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              Edit
+            </button>
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-background/80 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Deactivate
+            </button>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setFormOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-            Edit
-          </button>
-          <button type="button" className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950">
-            <Trash2 className="h-3.5 w-3.5" />
-            Deactivate
-          </button>
-        </div>
       </div>
+
+      {/* Header */}
+      {/* (Header moved into hero) */}
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -200,146 +286,108 @@ export default function SiteDetailPage() {
 
       {/* Section Cards */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Address & Access */}
+        {/* Address */}
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <h3 className="mb-4 text-sm font-semibold text-foreground">
-            <span className="inline-flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-              Address & Access
-            </span>
-          </h3>
-          <dl className="space-y-3 text-sm">
-            {addr?.street && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Street</dt>
-                <dd className="font-medium">{addr.street}</dd>
-              </div>
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="text-sm font-semibold text-foreground">
+              <span className="inline-flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+                Address
+              </span>
+            </h3>
+            {mapsUrl && (
+              <a
+                href={mapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                Open in Maps
+              </a>
             )}
-            {addr?.city && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">City</dt>
-                <dd className="font-medium">{addr.city}</dd>
-              </div>
-            )}
-            {(addr?.state || addr?.zip) && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">State / ZIP</dt>
-                <dd className="font-medium">
-                  {[addr?.state, addr?.zip].filter(Boolean).join(' ')}
-                </dd>
-              </div>
-            )}
-            {site.alarm_code && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Alarm Code</dt>
-                <dd className="font-medium font-mono">{site.alarm_code}</dd>
-              </div>
-            )}
-            {site.alarm_system && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Alarm System</dt>
-                <dd className="font-medium">{site.alarm_system}</dd>
-              </div>
-            )}
-            {site.entry_instructions && (
-              <div>
-                <dt className="text-muted-foreground">Entry Instructions</dt>
-                <dd className="font-medium mt-1">{site.entry_instructions}</dd>
-              </div>
-            )}
-            {site.parking_instructions && (
-              <div>
-                <dt className="text-muted-foreground">Parking</dt>
-                <dd className="font-medium mt-1">
-                  {site.parking_instructions}
-                </dd>
-              </div>
-            )}
-            {!addr?.street && !addr?.city && !site.alarm_code && (
-              <p className="text-muted-foreground">No address on file.</p>
-            )}
+          </div>
+          <dl className="mt-4 space-y-3 text-sm">
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Street</dt>
+              <dd className="font-medium text-right">{notSet(addr?.street)}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">City</dt>
+              <dd className="font-medium text-right">{notSet(addr?.city)}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">State / ZIP</dt>
+              <dd className="font-medium text-right">{notSet([addr?.state, addr?.zip].filter(Boolean).join(' '))}</dd>
+            </div>
           </dl>
         </div>
 
-        {/* Client Info */}
+        {/* Contacts */}
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <h3 className="mb-4 text-sm font-semibold text-foreground">
             <span className="inline-flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-              Client Info
+              <Users className="h-4 w-4 text-muted-foreground" />
+              Contact
             </span>
           </h3>
-          <dl className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-muted-foreground">Client</dt>
-              <dd className="font-medium">
-                {site.client?.name ?? '\u2014'}
-              </dd>
+          <div className="space-y-4 text-sm">
+            <div className="rounded-lg border border-border bg-muted/20 p-4">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Primary Contact</p>
+              <div className="mt-2">
+                <p className="text-sm font-semibold text-foreground">{site.primary_contact?.name ?? 'Not Set'}</p>
+                <p className="text-xs text-muted-foreground">{[site.primary_contact?.role_title, site.primary_contact?.role].filter(Boolean).join(' · ') || '\u2014'}</p>
+                <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                  <p>Email: <span className="text-foreground">{site.primary_contact?.email ?? 'Not Set'}</span></p>
+                  <p>Phone: <span className="text-foreground">{site.primary_contact?.mobile_phone || site.primary_contact?.work_phone || site.primary_contact?.phone || 'Not Set'}</span></p>
+                  <p>Preferred: <span className="text-foreground">{site.primary_contact?.preferred_contact_method ?? 'Not Set'}</span></p>
+                </div>
+              </div>
             </div>
-            {site.client?.client_code && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Client Code</dt>
-                <dd className="font-medium font-mono">
-                  {site.client.client_code}
-                </dd>
+
+            <div className="rounded-lg border border-border bg-muted/20 p-4">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Emergency Contact</p>
+              <div className="mt-2">
+                <p className="text-sm font-semibold text-foreground">{site.emergency_contact?.name ?? 'Not Set'}</p>
+                <p className="text-xs text-muted-foreground">{[site.emergency_contact?.role_title, site.emergency_contact?.role].filter(Boolean).join(' · ') || '\u2014'}</p>
+                <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                  <p>Email: <span className="text-foreground">{site.emergency_contact?.email ?? 'Not Set'}</span></p>
+                  <p>Phone: <span className="text-foreground">{site.emergency_contact?.mobile_phone || site.emergency_contact?.work_phone || site.emergency_contact?.phone || 'Not Set'}</span></p>
+                </div>
               </div>
-            )}
-            {site.risk_level && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Risk Level</dt>
-                <dd className="font-medium">{site.risk_level}</dd>
+            </div>
+
+            <div className="rounded-lg border border-border bg-muted/20 p-4">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Site Supervisor</p>
+              <div className="mt-2">
+                <p className="text-sm font-semibold text-foreground">{site.supervisor?.full_name ?? 'Not Set'}</p>
+                <p className="text-xs text-muted-foreground">{site.supervisor?.staff_code ? `Staff ${site.supervisor.staff_code}` : '\u2014'}</p>
+                <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                  <p>Email: <span className="text-foreground">{site.supervisor?.email ?? 'Not Set'}</span></p>
+                  <p>Phone: <span className="text-foreground">{site.supervisor?.mobile_phone || site.supervisor?.phone || 'Not Set'}</span></p>
+                </div>
               </div>
-            )}
-            {site.priority_level && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Priority</dt>
-                <dd className="font-medium">{site.priority_level}</dd>
-              </div>
-            )}
-          </dl>
+            </div>
+          </div>
         </div>
 
-        {/* Service Details */}
+        {/* Access & Security */}
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <h3 className="mb-4 text-sm font-semibold text-foreground">
             <span className="inline-flex items-center gap-2">
-              <Shield className="h-4 w-4 text-muted-foreground" />
-              Service Details
+              <KeyRound className="h-4 w-4 text-muted-foreground" />
+              Access & Security
             </span>
           </h3>
           <dl className="space-y-3 text-sm">
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">Square Footage</dt>
-              <dd className="font-medium">
-                {site.square_footage
-                  ? `${site.square_footage.toLocaleString()} sq ft`
-                  : '\u2014'}
-              </dd>
+              <dt className="text-muted-foreground">Earliest Start</dt>
+              <dd className="font-medium text-right">{formatTime(site.earliest_start_time)}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">Floors</dt>
-              <dd className="font-medium">
-                {site.number_of_floors ?? '\u2014'}
-              </dd>
+              <dt className="text-muted-foreground">Latest Start</dt>
+              <dd className="font-medium text-right">{formatTime(site.latest_start_time)}</dd>
             </div>
-            <div className="flex justify-between">
-              <dt className="text-muted-foreground">Employees On Site</dt>
-              <dd className="font-medium">
-                {site.employees_on_site ?? '\u2014'}
-              </dd>
-            </div>
-            {site.earliest_start_time && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Earliest Start</dt>
-                <dd className="font-medium">{site.earliest_start_time}</dd>
-              </div>
-            )}
-            {site.latest_start_time && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Latest Start</dt>
-                <dd className="font-medium">{site.latest_start_time}</dd>
-              </div>
-            )}
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Weekend Access</dt>
               <dd className="font-medium">
@@ -347,92 +395,177 @@ export default function SiteDetailPage() {
               </dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">OSHA Compliance</dt>
-              <dd className="font-medium">
-                {site.osha_compliance_required ? 'Required' : 'No'}
-              </dd>
+              <dt className="text-muted-foreground">Alarm System</dt>
+              <dd className="font-medium text-right">{notSet(site.alarm_system)}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">Background Check</dt>
-              <dd className="font-medium">
-                {site.background_check_required ? 'Required' : 'No'}
-              </dd>
+              <dt className="text-muted-foreground">Alarm Code</dt>
+              <dd className="font-medium font-mono text-right">{site.alarm_code ? site.alarm_code : <span className="text-muted-foreground">Not Set</span>}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Security Protocol</dt>
+              <dd className="font-medium text-right">{notSet(site.security_protocol)}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Entry Instructions</dt>
+              <dd className="mt-1 font-medium">{site.entry_instructions ? site.entry_instructions : <span className="text-muted-foreground">Not Set</span>}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Parking Instructions</dt>
+              <dd className="mt-1 font-medium">{site.parking_instructions ? site.parking_instructions : <span className="text-muted-foreground">Not Set</span>}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Access Notes</dt>
+              <dd className="mt-1 font-medium">{site.access_notes ? site.access_notes : <span className="text-muted-foreground">Not Set</span>}</dd>
+            </div>
+
+            <div className="pt-3 border-t border-border">
+              <dt className="text-muted-foreground">Keys On File</dt>
+              {keys.length === 0 ? (
+                <dd className="mt-1 text-muted-foreground">No keys linked to this site.</dd>
+              ) : (
+                <dd className="mt-2 space-y-2">
+                  {keys.slice(0, 5).map((k) => (
+                    <div key={k.id} className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{k.label || k.key_code}</p>
+                        <p className="text-xs text-muted-foreground font-mono">{k.key_code}</p>
+                      </div>
+                      <Badge color={k.status === 'LOST' ? 'red' : k.status === 'ASSIGNED' ? 'orange' : 'blue'}>
+                        {k.status}
+                      </Badge>
+                    </div>
+                  ))}
+                  {keys.length > 5 && (
+                    <p className="text-xs text-muted-foreground">+{keys.length - 5} more</p>
+                  )}
+                </dd>
+              )}
             </div>
           </dl>
         </div>
 
-        {/* Notes */}
+        {/* Facility Details */}
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <h3 className="mb-4 text-sm font-semibold text-foreground">Notes</h3>
-          <dl className="space-y-3 text-sm">
-            {site.notes ? (
-              <p className="text-muted-foreground whitespace-pre-wrap">
-                {site.notes}
-              </p>
-            ) : (
-              <p className="text-muted-foreground">No notes.</p>
-            )}
-            {site.access_notes && (
-              <div>
-                <dt className="text-muted-foreground font-medium">
-                  Access Notes
-                </dt>
-                <dd className="mt-1">{site.access_notes}</dd>
-              </div>
-            )}
-            {site.security_protocol && (
-              <div>
-                <dt className="text-muted-foreground font-medium">
-                  Security Protocol
-                </dt>
-                <dd className="mt-1">{site.security_protocol}</dd>
-              </div>
-            )}
+          <h3 className="mb-4 text-sm font-semibold text-foreground">
+            <span className="inline-flex items-center gap-2">
+              <Warehouse className="h-4 w-4 text-muted-foreground" />
+              Facility Details
+            </span>
+          </h3>
+          <dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
+            <div>
+              <dt className="text-muted-foreground">Janitorial Closet</dt>
+              <dd className="font-medium">{site.janitorial_closet_location ? site.janitorial_closet_location : <span className="text-muted-foreground">Not Set</span>}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Supply Storage</dt>
+              <dd className="font-medium">{site.supply_storage_location ? site.supply_storage_location : <span className="text-muted-foreground">Not Set</span>}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Water Source</dt>
+              <dd className="font-medium">{site.water_source_location ? site.water_source_location : <span className="text-muted-foreground">Not Set</span>}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Dumpster</dt>
+              <dd className="font-medium">{site.dumpster_location ? site.dumpster_location : <span className="text-muted-foreground">Not Set</span>}</dd>
+            </div>
           </dl>
         </div>
       </div>
 
-      {/* Facility Locations */}
-      {(site.janitorial_closet_location ||
-        site.supply_storage_location ||
-        site.water_source_location ||
-        site.dumpster_location) && (
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+      {/* Service / Compliance + Risk / Priority + Notes */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm lg:col-span-1">
           <h3 className="mb-4 text-sm font-semibold text-foreground">
-            Facility Locations
+            <span className="inline-flex items-center gap-2">
+              <Shield className="h-4 w-4 text-muted-foreground" />
+              Service & Compliance
+            </span>
           </h3>
-          <dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
-            {site.janitorial_closet_location && (
-              <div>
-                <dt className="text-muted-foreground">Janitorial Closet</dt>
-                <dd className="font-medium">
-                  {site.janitorial_closet_location}
-                </dd>
-              </div>
-            )}
-            {site.supply_storage_location && (
-              <div>
-                <dt className="text-muted-foreground">Supply Storage</dt>
-                <dd className="font-medium">
-                  {site.supply_storage_location}
-                </dd>
-              </div>
-            )}
-            {site.water_source_location && (
-              <div>
-                <dt className="text-muted-foreground">Water Source</dt>
-                <dd className="font-medium">{site.water_source_location}</dd>
-              </div>
-            )}
-            {site.dumpster_location && (
-              <div>
-                <dt className="text-muted-foreground">Dumpster</dt>
-                <dd className="font-medium">{site.dumpster_location}</dd>
-              </div>
-            )}
+          <dl className="space-y-3 text-sm">
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted-foreground">Square Footage</dt>
+              <dd className="font-medium text-right">{site.square_footage ? `${site.square_footage.toLocaleString()} sq ft` : <span className="text-muted-foreground">Not Set</span>}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted-foreground">Floors</dt>
+              <dd className="font-medium text-right">{site.number_of_floors ?? <span className="text-muted-foreground">Not Set</span>}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted-foreground">Employees On Site</dt>
+              <dd className="font-medium text-right">{site.employees_on_site ?? <span className="text-muted-foreground">Not Set</span>}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted-foreground">OSHA Compliance</dt>
+              <dd className="font-medium text-right">{site.osha_compliance_required ? 'Required' : 'No'}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted-foreground">Background Check</dt>
+              <dd className="font-medium text-right">{site.background_check_required ? 'Required' : 'No'}</dd>
+            </div>
           </dl>
         </div>
-      )}
+
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm lg:col-span-1">
+          <h3 className="mb-4 text-sm font-semibold text-foreground">
+            <span className="inline-flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+              Risk & Priority
+            </span>
+          </h3>
+          <dl className="space-y-4 text-sm">
+            <div className="flex items-center justify-between gap-4">
+              <dt className="text-muted-foreground">Risk Level</dt>
+              <dd className="font-medium text-right">
+                {site.risk_level ? (
+                  <Badge color={RISK_BADGE[site.risk_level] ?? 'gray'} dot={false} className="px-3 py-1">
+                    {site.risk_level}
+                  </Badge>
+                ) : (
+                  <span className="text-muted-foreground">Not Set</span>
+                )}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <dt className="text-muted-foreground">Priority Level</dt>
+              <dd className="font-medium text-right">
+                {site.priority_level ? (
+                  <Badge color={PRIORITY_BADGE[site.priority_level] ?? 'gray'} dot={false} className="px-3 py-1">
+                    {site.priority_level}
+                  </Badge>
+                ) : (
+                  <span className="text-muted-foreground">Not Set</span>
+                )}
+              </dd>
+            </div>
+            <div className="pt-3 border-t border-border">
+              <p className="text-xs text-muted-foreground">
+                Critical = Red, High = Orange, Standard/Medium = Blue, Low = Gray
+              </p>
+            </div>
+          </dl>
+        </div>
+
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm lg:col-span-1">
+          <h3 className="mb-4 text-sm font-semibold text-foreground">Notes</h3>
+          <div className="text-sm">
+            {site.notes ? (
+              <p className="text-muted-foreground whitespace-pre-wrap">{site.notes}</p>
+            ) : (
+              <p className="text-muted-foreground">No notes.</p>
+            )}
+          </div>
+          <div className="mt-4 pt-4 border-t border-border text-xs text-muted-foreground space-y-2">
+            <p>
+              Geofence center: <span className="font-mono">{site.geofence_center_lat ?? '—'}</span>, <span className="font-mono">{site.geofence_center_lng ?? '—'}</span>
+            </p>
+            <p>
+              Geofence radius: <span className="font-mono">{site.geofence_radius_meters ?? 50}</span> m
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* Metadata */}
       <div className="text-xs text-muted-foreground space-y-1 pt-4 border-t border-border">

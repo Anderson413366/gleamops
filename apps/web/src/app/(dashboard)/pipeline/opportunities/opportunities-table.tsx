@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, ExportButton,
+  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, StatusDot, statusRowAccentClass, cn,
 } from '@gleamops/ui';
 import { OPPORTUNITY_STAGE_COLORS } from '@gleamops/shared';
 import type { SalesOpportunity } from '@gleamops/shared';
@@ -130,8 +130,17 @@ export default function OpportunitiesTable({ search, onSelect }: OpportunitiesTa
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id} onClick={() => handleRowClick(row)} className="cursor-pointer">
-              <TableCell className="font-mono text-xs">{row.opportunity_code}</TableCell>
+            <TableRow
+              key={row.id}
+              onClick={() => handleRowClick(row)}
+              className={cn('cursor-pointer', statusRowAccentClass(row.stage_code))}
+            >
+              <TableCell className="font-mono text-xs">
+                <div className="flex items-center gap-2">
+                  <StatusDot status={row.stage_code} />
+                  <span>{row.opportunity_code}</span>
+                </div>
+              </TableCell>
               <TableCell className="font-medium">{row.name}</TableCell>
               <TableCell className="text-muted-foreground">
                 {row.prospect ? `${row.prospect.company_name}` : '\u2014'}

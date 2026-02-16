@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Pagination, TableSkeleton, Button, ExportButton,
+  EmptyState, Pagination, TableSkeleton, Button, ExportButton, StatusDot, statusRowAccentClass, cn,
 } from '@gleamops/ui';
 import type { Inspection } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
@@ -111,8 +111,17 @@ export default function InspectionsTable({ search, onSelect, onCreateNew }: Insp
             </TableHeader>
             <TableBody>
               {pag.page.map((row) => (
-                <TableRow key={row.id} onClick={() => onSelect?.(row)}>
-                  <TableCell className="font-mono text-xs">{row.inspection_code}</TableCell>
+                <TableRow
+                  key={row.id}
+                  onClick={() => onSelect?.(row)}
+                  className={cn(statusRowAccentClass(row.status))}
+                >
+                  <TableCell className="font-mono text-xs">
+                    <div className="flex items-center gap-2">
+                      <StatusDot status={row.status} />
+                      <span>{row.inspection_code}</span>
+                    </div>
+                  </TableCell>
                   <TableCell className="text-sm">{row.template?.name ?? '—'}</TableCell>
                   <TableCell className="font-medium">{row.site?.name ?? '—'}</TableCell>
                   <TableCell className="text-muted-foreground">{row.inspector?.full_name ?? '—'}</TableCell>

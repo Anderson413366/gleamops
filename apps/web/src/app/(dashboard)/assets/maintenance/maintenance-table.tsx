@@ -7,6 +7,7 @@ import type { VehicleMaintenance } from '@gleamops/shared';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
   EmptyState, Pagination, TableSkeleton, Badge,
+  StatusDot, statusRowAccentClass, cn,
 } from '@gleamops/ui';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
@@ -136,9 +137,14 @@ export default function MaintenanceTable({ search, formOpen, onFormClose, onRefr
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id} onClick={() => handleRowClick(row)} className="cursor-pointer">
+            <TableRow
+              key={row.id}
+              onClick={() => handleRowClick(row)}
+              className={cn('cursor-pointer', statusRowAccentClass(getUrgency(row.next_service_date).label))}
+            >
               <TableCell>
-                <div>
+                <div className="flex items-center gap-2">
+                  <StatusDot status={getUrgency(row.next_service_date).label} />
                   <span className="font-medium">{row.vehicle?.name ?? '—'}</span>
                   {row.vehicle?.vehicle_code && (
                     <span className="text-xs text-muted-foreground ml-2">{row.vehicle.vehicle_code}</span>

@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Pagination, TableSkeleton, ExportButton, cn,
+  EmptyState, Pagination, TableSkeleton, ExportButton, StatusDot, statusRowAccentClass, cn,
 } from '@gleamops/ui';
 import type { SalesProposal } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
@@ -152,8 +152,17 @@ export default function ProposalsTable({ search, onSelect }: ProposalsTableProps
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id} onClick={() => onSelect?.(row)} className="cursor-pointer">
-              <TableCell className="font-mono text-xs">{row.proposal_code}</TableCell>
+            <TableRow
+              key={row.id}
+              onClick={() => onSelect?.(row)}
+              className={cn('cursor-pointer', statusRowAccentClass(row.status))}
+            >
+              <TableCell className="font-mono text-xs">
+                <div className="flex items-center gap-2">
+                  <StatusDot status={row.status} />
+                  <span>{row.proposal_code}</span>
+                </div>
+              </TableCell>
               <TableCell className="font-mono text-xs text-muted-foreground">
                 {row.bid_version?.bid?.bid_code ?? '—'}
               </TableCell>

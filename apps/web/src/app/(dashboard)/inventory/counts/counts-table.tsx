@@ -7,6 +7,7 @@ import type { InventoryCount } from '@gleamops/shared';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
   EmptyState, Pagination, TableSkeleton,
+  StatusDot, statusRowAccentClass, cn,
 } from '@gleamops/ui';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
@@ -124,8 +125,17 @@ export default function CountsTable({ search, formOpen, onFormClose, onRefresh }
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id} onClick={() => handleRowClick(row)} className="cursor-pointer">
-              <TableCell className="font-mono text-xs">{row.count_code}</TableCell>
+            <TableRow
+              key={row.id}
+              onClick={() => handleRowClick(row)}
+              className={cn('cursor-pointer', statusRowAccentClass(row.status))}
+            >
+              <TableCell className="font-mono text-xs">
+                <div className="flex items-center gap-2">
+                  <StatusDot status={row.status} />
+                  <span>{row.count_code}</span>
+                </div>
+              </TableCell>
               <TableCell>{row.site?.name ?? '—'}</TableCell>
               <TableCell>{dateFmt.format(toSafeDate(row.count_date))}</TableCell>
               <TableCell>{row.counter?.full_name ?? '—'}</TableCell>

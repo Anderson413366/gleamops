@@ -22,6 +22,8 @@ import {
   Button,
   ExportButton,
   ViewToggle,
+  StatusDot,
+  statusRowAccentClass,
   cn,
 } from '@gleamops/ui';
 import type { SupplyCatalog } from '@gleamops/shared';
@@ -397,8 +399,14 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
             <TableRow
               key={row.id}
               onClick={() => handleRowClick(row)}
+              className={statusRowAccentClass(row.supply_status ?? 'ACTIVE')}
             >
-              <TableCell className="font-mono text-xs">{row.code}</TableCell>
+              <TableCell className="font-mono text-xs">
+                <div className="flex items-center gap-2">
+                  <StatusDot status={row.supply_status ?? 'ACTIVE'} />
+                  <span>{row.code}</span>
+                </div>
+              </TableCell>
               <TableCell className="font-medium">{row.name}</TableCell>
               <TableCell className="text-muted-foreground">{row.category ?? '—'}</TableCell>
               <TableCell className="text-muted-foreground">{row.brand ?? '—'}</TableCell>

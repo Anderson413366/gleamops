@@ -10,7 +10,7 @@ import { EQUIPMENT_CONDITION_COLORS } from '@gleamops/shared';
 import type { StatusColor } from '@gleamops/shared';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, ViewToggle,
+  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, ViewToggle, StatusDot, statusRowAccentClassByColor, cn,
 } from '@gleamops/ui';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
@@ -161,9 +161,17 @@ export default function EquipmentTable({ search, onSelect, formOpen, onFormClose
             <TableRow
               key={row.id}
               onClick={() => handleRowClick(row)}
-              className="cursor-pointer"
+              className={cn(
+                'cursor-pointer',
+                statusRowAccentClassByColor((EQUIPMENT_CONDITION_COLORS[row.condition ?? ''] as StatusColor) ?? 'gray')
+              )}
             >
-              <TableCell className="font-mono text-xs">{row.equipment_code}</TableCell>
+              <TableCell className="font-mono text-xs">
+                <div className="flex items-center gap-2">
+                  <StatusDot color={(EQUIPMENT_CONDITION_COLORS[row.condition ?? ''] as StatusColor) ?? 'gray'} />
+                  <span>{row.equipment_code}</span>
+                </div>
+              </TableCell>
               <TableCell className="font-medium">{row.name}</TableCell>
               <TableCell className="text-muted-foreground">{row.equipment_type ?? '—'}</TableCell>
               <TableCell className="text-muted-foreground">{row.manufacturer ?? '—'}</TableCell>

@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, ViewToggle, cn,
+  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, ViewToggle, StatusDot, statusRowAccentClass, cn,
 } from '@gleamops/ui';
 import type { Staff } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
@@ -191,10 +191,28 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
           </tr>
         </TableHeader>
         <TableBody>
-          {pag.page.map((row) => (
-            <TableRow key={row.id} onClick={() => handleRowClick(row)} className="cursor-pointer">
-              <TableCell className="font-mono text-xs">{row.staff_code}</TableCell>
-              <TableCell className="font-medium">{row.full_name}</TableCell>
+          {pag.page.map((row) => {
+            const rowStatus = row.staff_status ?? 'ACTIVE';
+            const isTerminated = rowStatus === 'TERMINATED';
+            return (
+            <TableRow
+              key={row.id}
+              onClick={() => handleRowClick(row)}
+              className={cn(
+                'cursor-pointer',
+                statusRowAccentClass(rowStatus),
+                isTerminated && 'opacity-65'
+              )}
+            >
+              <TableCell className="font-mono text-xs">
+                <div className="flex items-center gap-2">
+                  <StatusDot status={rowStatus} />
+                  <span>{row.staff_code}</span>
+                </div>
+              </TableCell>
+              <TableCell className={cn('font-medium', isTerminated && 'line-through decoration-muted-foreground/70')}>
+                {row.full_name}
+              </TableCell>
               <TableCell>
                 <Badge color={ROLE_COLORS[row.role] ?? 'gray'}>
                   {row.role.replace(/_/g, ' ')}
@@ -205,7 +223,8 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
               <TableCell className="text-muted-foreground">{row.mobile_phone ?? row.phone ?? '---'}</TableCell>
               <TableCell className="text-muted-foreground">{formatDate(row.hire_date ?? null)}</TableCell>
             </TableRow>
-          ))}
+          );
+          })}
         </TableBody>
       </Table>
       )}

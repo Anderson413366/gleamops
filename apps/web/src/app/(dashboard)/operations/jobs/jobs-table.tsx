@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, Button, ViewToggle, cn,
+  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, Button, ViewToggle, StatusDot, priorityRowAccentClass, cn,
 } from '@gleamops/ui';
 import type { SiteJob } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
@@ -193,8 +193,17 @@ export default function JobsTable({ search }: JobsTableProps) {
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id} className="cursor-pointer" onClick={() => handleRowClick(row)}>
-              <TableCell className="font-mono text-xs">{row.job_code}</TableCell>
+            <TableRow
+              key={row.id}
+              className={cn('cursor-pointer', priorityRowAccentClass(row.priority_level))}
+              onClick={() => handleRowClick(row)}
+            >
+              <TableCell className="font-mono text-xs">
+                <div className="flex items-center gap-2">
+                  <StatusDot status={row.status} />
+                  <span>{row.job_code}</span>
+                </div>
+              </TableCell>
               <TableCell className="font-medium">{row.job_name ?? '\u2014'}</TableCell>
               <TableCell>{row.site?.name ?? '\u2014'}</TableCell>
               <TableCell className="text-muted-foreground">{row.site?.client?.name ?? '\u2014'}</TableCell>

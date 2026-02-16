@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Pagination, TableSkeleton, ExportButton, cn,
+  EmptyState, Pagination, TableSkeleton, ExportButton, StatusDot, statusRowAccentClass, cn,
 } from '@gleamops/ui';
 import type { SalesProspect } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
@@ -152,8 +152,17 @@ export default function ProspectsTable({ search, onSelect }: ProspectsTableProps
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id} onClick={() => handleRowSelect(row)} className="cursor-pointer">
-              <TableCell className="font-mono text-xs">{row.prospect_code}</TableCell>
+            <TableRow
+              key={row.id}
+              onClick={() => handleRowSelect(row)}
+              className={cn('cursor-pointer', statusRowAccentClass(row.prospect_status_code))}
+            >
+              <TableCell className="font-mono text-xs">
+                <div className="flex items-center gap-2">
+                  <StatusDot status={row.prospect_status_code} />
+                  <span>{row.prospect_code}</span>
+                </div>
+              </TableCell>
               <TableCell className="font-medium">{row.company_name}</TableCell>
               <TableCell className="text-muted-foreground">{row.source ?? '—'}</TableCell>
               <TableCell className="text-muted-foreground">{new Date(row.created_at).toLocaleDateString()}</TableCell>

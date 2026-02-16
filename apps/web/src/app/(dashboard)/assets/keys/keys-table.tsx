@@ -8,7 +8,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
   EmptyState, Badge, Pagination, TableSkeleton,
-  ExportButton,
+  ExportButton, StatusDot, statusRowAccentClass, cn,
 } from '@gleamops/ui';
 import type { KeyInventory } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
@@ -135,8 +135,17 @@ export default function KeysTable({ search, formOpen, onFormClose, onRefresh }: 
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id} onClick={() => handleRowClick(row)}>
-              <TableCell className="font-mono text-xs">{row.key_code}</TableCell>
+            <TableRow
+              key={row.id}
+              onClick={() => handleRowClick(row)}
+              className={cn(statusRowAccentClass(row.status))}
+            >
+              <TableCell className="font-mono text-xs">
+                <div className="flex items-center gap-2">
+                  <StatusDot status={row.status} />
+                  <span>{row.key_code}</span>
+                </div>
+              </TableCell>
               <TableCell className="font-medium">{row.label ?? '—'}</TableCell>
               <TableCell>
                 <Badge color="blue">{row.key_type}</Badge>

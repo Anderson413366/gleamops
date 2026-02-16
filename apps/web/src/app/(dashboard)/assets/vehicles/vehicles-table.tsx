@@ -8,7 +8,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
   EmptyState, Pagination, TableSkeleton,
-  ExportButton, ViewToggle,
+  ExportButton, ViewToggle, StatusDot, statusRowAccentClass, cn,
 } from '@gleamops/ui';
 import type { Vehicle } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
@@ -144,8 +144,17 @@ export default function VehiclesTable({ search, formOpen, onFormClose, onRefresh
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id} onClick={() => handleRowClick(row)}>
-              <TableCell className="font-mono text-xs">{row.vehicle_code}</TableCell>
+            <TableRow
+              key={row.id}
+              onClick={() => handleRowClick(row)}
+              className={cn(statusRowAccentClass(row.status))}
+            >
+              <TableCell className="font-mono text-xs">
+                <div className="flex items-center gap-2">
+                  <StatusDot status={row.status} />
+                  <span>{row.vehicle_code}</span>
+                </div>
+              </TableCell>
               <TableCell className="font-medium">{row.name ?? '—'}</TableCell>
               <TableCell className="text-muted-foreground">
                 {[row.make, row.model].filter(Boolean).join(' ') || '—'}

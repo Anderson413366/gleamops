@@ -7,6 +7,7 @@ import type { SupplyOrder } from '@gleamops/shared';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
   EmptyState, Pagination, TableSkeleton,
+  StatusDot, statusRowAccentClass, cn,
 } from '@gleamops/ui';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
@@ -120,8 +121,17 @@ export default function OrdersTable({ search, formOpen, onFormClose, onRefresh }
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id} onClick={() => handleRowClick(row)} className="cursor-pointer">
-              <TableCell className="font-mono text-xs">{row.order_code}</TableCell>
+            <TableRow
+              key={row.id}
+              onClick={() => handleRowClick(row)}
+              className={cn('cursor-pointer', statusRowAccentClass(row.status))}
+            >
+              <TableCell className="font-mono text-xs">
+                <div className="flex items-center gap-2">
+                  <StatusDot status={row.status} />
+                  <span>{row.order_code}</span>
+                </div>
+              </TableCell>
               <TableCell className="font-medium">{row.supplier ?? '—'}</TableCell>
               <TableCell>{dateFmt.format(toSafeDate(row.order_date))}</TableCell>
               <TableCell className="font-mono text-xs">

@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Pagination, TableSkeleton, ExportButton, ViewToggle, cn,
+  EmptyState, Pagination, TableSkeleton, ExportButton, ViewToggle, StatusDot, statusRowAccentClass, cn,
 } from '@gleamops/ui';
 import type { Client } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
@@ -160,8 +160,17 @@ export default function ClientsTable({ search }: ClientsTableProps) {
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id} onClick={() => handleRowClick(row)} className="cursor-pointer">
-              <TableCell className="font-mono text-xs">{row.client_code}</TableCell>
+            <TableRow
+              key={row.id}
+              onClick={() => handleRowClick(row)}
+              className={cn('cursor-pointer', statusRowAccentClass(row.status))}
+            >
+              <TableCell className="font-mono text-xs">
+                <div className="flex items-center gap-2">
+                  <StatusDot status={row.status} />
+                  <span>{row.client_code}</span>
+                </div>
+              </TableCell>
               <TableCell className="font-medium">{row.name}</TableCell>
               <TableCell className="text-muted-foreground">{row.client_type ?? '—'}</TableCell>
               <TableCell className="text-muted-foreground">{row.industry ?? '—'}</TableCell>

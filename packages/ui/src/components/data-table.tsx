@@ -37,7 +37,7 @@ export function TableRow({ className, onClick, ...props }: React.HTMLAttributes<
   return (
     <tr
       className={cn(
-        'bg-card transition-colors hover:bg-muted/50',
+        'bg-card transition-colors hover:bg-muted/70',
         onClick && 'cursor-pointer',
         className
       )}

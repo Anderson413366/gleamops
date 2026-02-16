@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Pagination, TableSkeleton, ExportButton,
+  EmptyState, Pagination, TableSkeleton, ExportButton, StatusDot, statusRowAccentClass, cn,
 } from '@gleamops/ui';
 import type { WorkTicket } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
@@ -100,8 +100,17 @@ export default function TicketsTable({ search, onSelect }: TicketsTableProps) {
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id} onClick={() => onSelect?.(row)}>
-              <TableCell className="font-mono text-xs">{row.ticket_code}</TableCell>
+            <TableRow
+              key={row.id}
+              onClick={() => onSelect?.(row)}
+              className={cn(statusRowAccentClass(row.status))}
+            >
+              <TableCell className="font-mono text-xs">
+                <div className="flex items-center gap-2">
+                  <StatusDot status={row.status} />
+                  <span>{row.ticket_code}</span>
+                </div>
+              </TableCell>
               <TableCell className="font-mono text-xs text-muted-foreground">{row.job?.job_code ?? '—'}</TableCell>
               <TableCell className="font-medium">{row.site?.name ?? '—'}</TableCell>
               <TableCell className="text-muted-foreground">{row.site?.client?.name ?? '—'}</TableCell>

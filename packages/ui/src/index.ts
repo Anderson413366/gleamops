@@ -48,3 +48,11 @@ export { ViewToggle } from './components/view-toggle';
 export { DensityToggle } from './components/density-toggle';
 export { FileDropzone } from './components/file-dropzone';
 export type { FileDropzoneProps } from './components/file-dropzone';
+export {
+  StatusDot,
+  resolveStatusColor,
+  resolvePriorityColor,
+  statusRowAccentClass,
+  statusRowAccentClassByColor,
+  priorityRowAccentClass,
+} from './components/table-row-visuals';

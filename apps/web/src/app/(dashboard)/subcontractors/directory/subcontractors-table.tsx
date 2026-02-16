@@ -80,6 +80,17 @@ export default function SubcontractorsTable({ search, onSelect }: Props) {
   const { sorted, sortKey, sortDir, onSort } = useTableSort(filtered as unknown as Record<string, unknown>[], 'company_name', 'asc');
   const sortedRows = sorted as unknown as Subcontractor[];
   const pag = usePagination(sortedRows, 25);
+  const selectedStatusLabel = statusFilter === 'all'
+    ? 'all statuses'
+    : statusFilter.toLowerCase().replace(/_/g, ' ');
+  const emptyTitle = statusFilter === 'all'
+    ? 'No subcontractors found'
+    : `No ${selectedStatusLabel} subcontractors found`;
+  const emptyDescription = search
+    ? 'Try a different search term.'
+    : statusFilter === 'all'
+      ? 'Add a subcontractor to get started.'
+      : 'All subcontractors are currently in other statuses.';
 
   if (loading) return <TableSkeleton rows={8} cols={8} />;
 
@@ -129,17 +140,18 @@ export default function SubcontractorsTable({ search, onSelect }: Props) {
           </button>
         ))}
       </div>
-      {filtered.length === 0 ? (
-        <EmptyState
-          icon={<HardHat className="h-10 w-10" />}
-          title="No subcontractors found"
-          description={search ? 'Try a different search term.' : 'Add a subcontractor to get started.'}
-        />
+      {view === 'card' ? (
+        filtered.length === 0 ? (
+          <EmptyState
+            icon={<HardHat className="h-10 w-10" />}
+            title={emptyTitle}
+            description={emptyDescription}
+          />
+        ) : (
+          <SubcontractorsCardGrid rows={pag.page} onSelect={(item) => onSelect?.(item)} />
+        )
       ) : (
         <>
-          {view === 'card' ? (
-            <SubcontractorsCardGrid rows={pag.page} onSelect={(item) => onSelect?.(item)} />
-          ) : (
           <Table>
             <TableHeader>
               <tr>
@@ -174,13 +186,23 @@ export default function SubcontractorsTable({ search, onSelect }: Props) {
               ))}
             </TableBody>
           </Table>
+          {filtered.length === 0 && (
+            <div className="mt-4">
+              <EmptyState
+                icon={<HardHat className="h-10 w-10" />}
+                title={emptyTitle}
+                description={emptyDescription}
+              />
+            </div>
           )}
-          <Pagination
-            currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
-            pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
-            onNext={pag.nextPage} onPrev={pag.prevPage}
-          />
         </>
+      )}
+      {filtered.length > 0 && (
+        <Pagination
+          currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
+          pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
+          onNext={pag.nextPage} onPrev={pag.prevPage}
+        />
       )}
     </div>
   );

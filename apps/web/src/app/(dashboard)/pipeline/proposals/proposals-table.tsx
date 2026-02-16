@@ -99,6 +99,17 @@ export default function ProposalsTable({ search, onSelect, onGoToBids }: Proposa
   );
   const sortedRows = sorted as unknown as ProposalWithRelations[];
   const pag = usePagination(sortedRows, 25);
+  const selectedStatusLabel = effectiveStatusFilter === 'all'
+    ? 'all statuses'
+    : effectiveStatusFilter.toLowerCase().replace(/_/g, ' ');
+  const emptyTitle = effectiveStatusFilter === 'all'
+    ? 'No proposals'
+    : `No ${selectedStatusLabel} proposals found`;
+  const emptyDescription = search
+    ? 'Try a different search term.'
+    : effectiveStatusFilter === 'all'
+      ? 'Generate polished proposals from approved bids and send for signature.'
+      : 'All proposals are currently in other statuses.';
 
   if (loading) return <TableSkeleton rows={6} cols={5} />;
 
@@ -132,77 +143,78 @@ export default function ProposalsTable({ search, onSelect, onGoToBids }: Proposa
           </button>
         ))}
       </div>
-      {filtered.length === 0 ? (
-        <EmptyState
-          icon={(
-            <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-300">
-              <FileCheck className="h-10 w-10" />
-              <Sparkles className="absolute -right-1 -top-1 h-4 w-4" />
-            </div>
-          )}
-          title="No proposals"
-          description={search ? 'Try a different search term.' : 'Generate polished proposals from approved bids and send for signature.'}
-          actionLabel={search ? undefined : '+ Go To Bids'}
-          onAction={search ? undefined : onGoToBids}
-        >
-          {!search && (
-            <div className="space-y-4 text-left">
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>Turn finalized pricing into client-ready documents.</li>
-                <li>Track sent, viewed, and signed states from one queue.</li>
-                <li>Keep deal momentum with clear follow-up visibility.</li>
-              </ul>
-              <PipelineFlowHint />
-            </div>
-          )}
-        </EmptyState>
-      ) : (
-        <>
-          <Table>
-            <TableHeader>
-              <tr>
-                <TableHead sortable sorted={sortKey === 'proposal_code' && sortDir} onSort={() => onSort('proposal_code')}>Code</TableHead>
-                <TableHead>Bid</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead sortable sorted={sortKey === 'created_at' && sortDir} onSort={() => onSort('created_at')}>Created</TableHead>
-                <TableHead>Sent</TableHead>
-              </tr>
-            </TableHeader>
-            <TableBody>
-              {pag.page.map((row) => (
-                <TableRow
-                  key={row.id}
-                  onClick={() => onSelect?.(row)}
-                  className={cn('cursor-pointer', statusRowAccentClass(row.status))}
-                >
-                  <TableCell className="font-mono text-xs">
-                    <div className="flex items-center gap-2">
-                      <StatusDot status={row.status} />
-                      <span>{row.proposal_code}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">
-                    {row.bid_version?.bid?.bid_code ?? '—'}
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    {row.bid_version?.bid?.client?.name ?? '—'}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {new Date(row.created_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {row.pdf_generated_at ? new Date(row.pdf_generated_at).toLocaleDateString() : '—'}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <Pagination
-            currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
-            pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
-            onNext={pag.nextPage} onPrev={pag.prevPage}
-          />
-        </>
+      <Table>
+        <TableHeader>
+          <tr>
+            <TableHead sortable sorted={sortKey === 'proposal_code' && sortDir} onSort={() => onSort('proposal_code')}>Code</TableHead>
+            <TableHead>Bid</TableHead>
+            <TableHead>Client</TableHead>
+            <TableHead sortable sorted={sortKey === 'created_at' && sortDir} onSort={() => onSort('created_at')}>Created</TableHead>
+            <TableHead>Sent</TableHead>
+          </tr>
+        </TableHeader>
+        <TableBody>
+          {pag.page.map((row) => (
+            <TableRow
+              key={row.id}
+              onClick={() => onSelect?.(row)}
+              className={cn('cursor-pointer', statusRowAccentClass(row.status))}
+            >
+              <TableCell className="font-mono text-xs">
+                <div className="flex items-center gap-2">
+                  <StatusDot status={row.status} />
+                  <span>{row.proposal_code}</span>
+                </div>
+              </TableCell>
+              <TableCell className="font-mono text-xs text-muted-foreground">
+                {row.bid_version?.bid?.bid_code ?? '—'}
+              </TableCell>
+              <TableCell className="font-medium">
+                {row.bid_version?.bid?.client?.name ?? '—'}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {new Date(row.created_at).toLocaleDateString()}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {row.pdf_generated_at ? new Date(row.pdf_generated_at).toLocaleDateString() : '—'}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      {filtered.length === 0 && (
+        <div className="mt-4">
+          <EmptyState
+            icon={(
+              <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-300">
+                <FileCheck className="h-10 w-10" />
+                <Sparkles className="absolute -right-1 -top-1 h-4 w-4" />
+              </div>
+            )}
+            title={emptyTitle}
+            description={emptyDescription}
+            actionLabel={search ? undefined : '+ Go To Bids'}
+            onAction={search ? undefined : onGoToBids}
+          >
+            {!search && (
+              <div className="space-y-4 text-left">
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li>Turn finalized pricing into client-ready documents.</li>
+                  <li>Track sent, viewed, and signed states from one queue.</li>
+                  <li>Keep deal momentum with clear follow-up visibility.</li>
+                </ul>
+                <PipelineFlowHint />
+              </div>
+            )}
+          </EmptyState>
+        </div>
+      )}
+      {filtered.length > 0 && (
+        <Pagination
+          currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
+          pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
+          onNext={pag.nextPage} onPrev={pag.prevPage}
+        />
       )}
     </div>
   );

@@ -198,6 +198,17 @@ export default function ClientsTable({ search }: ClientsTableProps) {
   const handleRowClick = (row: Client) => {
     router.push(`/crm/clients/${row.client_code}`);
   };
+  const selectedStatusLabel = statusFilter === 'all'
+    ? 'all statuses'
+    : statusFilter.toLowerCase().replace(/_/g, ' ');
+  const emptyTitle = statusFilter === 'all'
+    ? 'No clients found'
+    : `No ${selectedStatusLabel} clients found`;
+  const emptyDescription = search
+    ? 'Try a different search term.'
+    : statusFilter === 'all'
+      ? 'Create your first client to get started.'
+      : 'All your clients are currently in other statuses.';
 
   return (
     <div>
@@ -248,17 +259,18 @@ export default function ClientsTable({ search }: ClientsTableProps) {
           </button>
         ))}
       </div>
-      {filtered.length === 0 ? (
-        <EmptyState
-          icon={<Building2 className="h-12 w-12" />}
-          title="No clients found"
-          description={search ? 'Try a different search term.' : 'Create your first client to get started.'}
-        />
+      {view === 'card' ? (
+        filtered.length === 0 ? (
+          <EmptyState
+            icon={<Building2 className="h-12 w-12" />}
+            title={emptyTitle}
+            description={emptyDescription}
+          />
+        ) : (
+          <ClientsCardGrid rows={pag.page} onSelect={handleRowClick} metaByClientId={cardMetaByClientId} />
+        )
       ) : (
         <>
-          {view === 'card' ? (
-            <ClientsCardGrid rows={pag.page} onSelect={handleRowClick} metaByClientId={cardMetaByClientId} />
-          ) : (
           <Table>
             <TableHeader>
               <tr>
@@ -296,13 +308,24 @@ export default function ClientsTable({ search }: ClientsTableProps) {
               ))}
             </TableBody>
           </Table>
+
+          {filtered.length === 0 && (
+            <div className="mt-4">
+              <EmptyState
+                icon={<Building2 className="h-12 w-12" />}
+                title={emptyTitle}
+                description={emptyDescription}
+              />
+            </div>
           )}
-          <Pagination
-            currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
-            pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
-            onNext={pag.nextPage} onPrev={pag.prevPage}
-          />
         </>
+      )}
+      {filtered.length > 0 && (
+        <Pagination
+          currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
+          pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
+          onNext={pag.nextPage} onPrev={pag.prevPage}
+        />
       )}
     </div>
   );

@@ -94,6 +94,17 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
   );
   const sortedRows = sorted as unknown as Staff[];
   const pag = usePagination(sortedRows, 25);
+  const selectedStatusLabel = statusFilter === 'all'
+    ? 'all statuses'
+    : statusFilter.toLowerCase().replace(/_/g, ' ');
+  const emptyTitle = statusFilter === 'all'
+    ? 'No staff found'
+    : `No ${selectedStatusLabel} staff found`;
+  const emptyDescription = search
+    ? 'Try a different search term.'
+    : statusFilter === 'all'
+      ? 'Add your first staff member.'
+      : 'All staff are currently in other statuses.';
 
   if (loading) return <TableSkeleton rows={6} cols={8} />;
 
@@ -142,48 +153,49 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
           </button>
         ))}
       </div>
-      {filtered.length === 0 ? (
-        <EmptyState
-          icon={<Users className="h-12 w-12" />}
-          title="No staff found"
-          description={search ? 'Try a different search term.' : 'Add your first staff member.'}
-        />
-      ) : (
-        <>
-          <Table>
-            <TableHeader>
-              <tr>
-                <TableHead sortable sorted={sortKey === 'staff_code' && sortDir} onSort={() => onSort('staff_code')}>Code</TableHead>
-                <TableHead sortable sorted={sortKey === 'full_name' && sortDir} onSort={() => onSort('full_name')}>Name</TableHead>
-                <TableHead sortable sorted={sortKey === 'role' && sortDir} onSort={() => onSort('role')}>Role</TableHead>
-                <TableHead>Employment</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Phone</TableHead>
-              </tr>
-            </TableHeader>
-            <TableBody>
-              {pag.page.map((row) => (
-                <TableRow key={row.id} onClick={() => handleEdit(row)} className="cursor-pointer">
-                  <TableCell className="font-mono text-xs">{row.staff_code}</TableCell>
-                  <TableCell className="font-medium">{row.full_name}</TableCell>
-                  <TableCell>
-                    <Badge color={ROLE_COLORS[row.role] ?? 'gray'}>
-                      {row.role.replace(/_/g, ' ')}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{row.employment_type ?? '—'}</TableCell>
-                  <TableCell className="text-muted-foreground">{row.email ?? '—'}</TableCell>
-                  <TableCell className="text-muted-foreground">{row.mobile_phone ?? row.phone ?? '—'}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <Pagination
-            currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
-            pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
-            onNext={pag.nextPage} onPrev={pag.prevPage}
+      <Table>
+        <TableHeader>
+          <tr>
+            <TableHead sortable sorted={sortKey === 'staff_code' && sortDir} onSort={() => onSort('staff_code')}>Code</TableHead>
+            <TableHead sortable sorted={sortKey === 'full_name' && sortDir} onSort={() => onSort('full_name')}>Name</TableHead>
+            <TableHead sortable sorted={sortKey === 'role' && sortDir} onSort={() => onSort('role')}>Role</TableHead>
+            <TableHead>Employment</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Phone</TableHead>
+          </tr>
+        </TableHeader>
+        <TableBody>
+          {pag.page.map((row) => (
+            <TableRow key={row.id} onClick={() => handleEdit(row)} className="cursor-pointer">
+              <TableCell className="font-mono text-xs">{row.staff_code}</TableCell>
+              <TableCell className="font-medium">{row.full_name}</TableCell>
+              <TableCell>
+                <Badge color={ROLE_COLORS[row.role] ?? 'gray'}>
+                  {row.role.replace(/_/g, ' ')}
+                </Badge>
+              </TableCell>
+              <TableCell className="text-muted-foreground">{row.employment_type ?? '—'}</TableCell>
+              <TableCell className="text-muted-foreground">{row.email ?? '—'}</TableCell>
+              <TableCell className="text-muted-foreground">{row.mobile_phone ?? row.phone ?? '—'}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      {filtered.length === 0 && (
+        <div className="mt-4">
+          <EmptyState
+            icon={<Users className="h-12 w-12" />}
+            title={emptyTitle}
+            description={emptyDescription}
           />
-        </>
+        </div>
+      )}
+      {filtered.length > 0 && (
+        <Pagination
+          currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
+          pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
+          onNext={pag.nextPage} onPrev={pag.prevPage}
+        />
       )}
 
       <StaffForm

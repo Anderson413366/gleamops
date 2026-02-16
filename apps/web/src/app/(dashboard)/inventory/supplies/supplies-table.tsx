@@ -363,17 +363,24 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
           </button>
         ))}
       </div>
-      {filtered.length === 0 ? (
-        <EmptyState
-          icon={<Package className="h-12 w-12" />}
-          title="No supplies found"
-          description={search ? 'Try a different search term.' : 'Add your first supply to get started.'}
-        />
+      {view === 'card' ? (
+        filtered.length === 0 ? (
+          <EmptyState
+            icon={<Package className="h-12 w-12" />}
+            title={statusFilter === 'all' ? 'No supplies found' : `No ${statusFilter.toLowerCase().replace(/_/g, ' ')} supplies found`}
+            description={
+              search
+                ? 'Try a different search term.'
+                : statusFilter === 'all'
+                  ? 'Add your first supply to get started.'
+                  : 'All supplies are currently in other statuses.'
+            }
+          />
+        ) : (
+          <SuppliesCardGrid rows={pag.page} onSelect={handleRowClick} />
+        )
       ) : (
         <>
-          {view === 'card' ? (
-            <SuppliesCardGrid rows={pag.page} onSelect={handleRowClick} />
-          ) : (
           <Table>
             <TableHeader>
               <tr>
@@ -428,18 +435,34 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
               ))}
             </TableBody>
           </Table>
+          {filtered.length === 0 && (
+            <div className="mt-4">
+              <EmptyState
+                icon={<Package className="h-12 w-12" />}
+                title={statusFilter === 'all' ? 'No supplies found' : `No ${statusFilter.toLowerCase().replace(/_/g, ' ')} supplies found`}
+                description={
+                  search
+                    ? 'Try a different search term.'
+                    : statusFilter === 'all'
+                      ? 'Add your first supply to get started.'
+                      : 'All supplies are currently in other statuses.'
+                }
+              />
+            </div>
           )}
-          <Pagination
-            currentPage={pag.currentPage}
-            totalPages={pag.totalPages}
-            totalItems={pag.totalItems}
-            pageSize={pag.pageSize}
-            hasNext={pag.hasNext}
-            hasPrev={pag.hasPrev}
-            onNext={pag.nextPage}
-            onPrev={pag.prevPage}
-          />
         </>
+      )}
+      {filtered.length > 0 && (
+        <Pagination
+          currentPage={pag.currentPage}
+          totalPages={pag.totalPages}
+          totalItems={pag.totalItems}
+          pageSize={pag.pageSize}
+          hasNext={pag.hasNext}
+          hasPrev={pag.hasPrev}
+          onNext={pag.nextPage}
+          onPrev={pag.prevPage}
+        />
       )}
 
       <SlideOver open={formOpen} onClose={handleClose} title="New Supply">

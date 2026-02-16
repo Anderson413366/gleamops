@@ -48,6 +48,17 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
   const handleRowClick = (row: Staff) => {
     router.push(`/workforce/staff/${row.staff_code}`);
   };
+  const selectedStatusLabel = statusFilter === 'all'
+    ? 'all statuses'
+    : statusFilter.toLowerCase().replace(/_/g, ' ');
+  const emptyTitle = statusFilter === 'all'
+    ? 'No staff found'
+    : `No ${selectedStatusLabel} staff found`;
+  const emptyDescription = search
+    ? 'Try a different search term.'
+    : statusFilter === 'all'
+      ? 'Add your first staff member.'
+      : 'All staff are currently in other statuses.';
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -154,17 +165,18 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
           </button>
         ))}
       </div>
-      {filtered.length === 0 ? (
-        <EmptyState
-          icon={<Users className="h-12 w-12" />}
-          title="No staff found"
-          description={search ? 'Try a different search term.' : 'Add your first staff member.'}
-        />
+      {view === 'card' ? (
+        filtered.length === 0 ? (
+          <EmptyState
+            icon={<Users className="h-12 w-12" />}
+            title={emptyTitle}
+            description={emptyDescription}
+          />
+        ) : (
+          <StaffCardGrid rows={pag.page} onSelect={handleRowClick} />
+        )
       ) : (
         <>
-          {view === 'card' ? (
-            <StaffCardGrid rows={pag.page} onSelect={handleRowClick} />
-          ) : (
           <Table>
             <TableHeader>
               <tr>
@@ -210,13 +222,23 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
               })}
             </TableBody>
           </Table>
+          {filtered.length === 0 && (
+            <div className="mt-4">
+              <EmptyState
+                icon={<Users className="h-12 w-12" />}
+                title={emptyTitle}
+                description={emptyDescription}
+              />
+            </div>
           )}
-          <Pagination
-            currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
-            pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
-            onNext={pag.nextPage} onPrev={pag.prevPage}
-          />
         </>
+      )}
+      {filtered.length > 0 && (
+        <Pagination
+          currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
+          pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
+          onNext={pag.nextPage} onPrev={pag.prevPage}
+        />
       )}
 
       <StaffForm

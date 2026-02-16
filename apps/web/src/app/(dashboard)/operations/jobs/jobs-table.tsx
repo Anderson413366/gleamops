@@ -108,6 +108,17 @@ export default function JobsTable({ search, openCreateToken }: JobsTableProps) {
   const handleRowClick = (row: JobWithRelations) => {
     router.push(`/operations/jobs/${row.job_code}`);
   };
+  const selectedStatusLabel = statusFilter === 'all'
+    ? 'all statuses'
+    : statusFilter.toLowerCase().replace(/_/g, ' ');
+  const emptyTitle = statusFilter === 'all'
+    ? 'No service plans found'
+    : `No ${selectedStatusLabel} service plans found`;
+  const emptyDescription = search
+    ? 'Try a different search term.'
+    : statusFilter === 'all'
+      ? 'Create your first service plan to get started.'
+      : 'All service plans are currently in other statuses.';
 
   if (loading) return <TableSkeleton rows={6} cols={8} />;
 
@@ -159,17 +170,18 @@ export default function JobsTable({ search, openCreateToken }: JobsTableProps) {
           </button>
         ))}
       </div>
-      {filtered.length === 0 ? (
-        <EmptyState
-          icon={<Briefcase className="h-12 w-12" />}
-          title="No jobs"
-          description={search ? 'Try a different search term.' : 'Create your first job to get started.'}
-        />
+      {view === 'card' ? (
+        filtered.length === 0 ? (
+          <EmptyState
+            icon={<Briefcase className="h-12 w-12" />}
+            title={emptyTitle}
+            description={emptyDescription}
+          />
+        ) : (
+          <JobsCardGrid rows={pag.page} onSelect={handleRowClick} />
+        )
       ) : (
         <>
-          {view === 'card' ? (
-            <JobsCardGrid rows={pag.page} onSelect={handleRowClick} />
-          ) : (
           <Table>
             <TableHeader>
               <tr>
@@ -211,13 +223,23 @@ export default function JobsTable({ search, openCreateToken }: JobsTableProps) {
               ))}
             </TableBody>
           </Table>
+          {filtered.length === 0 && (
+            <div className="mt-4">
+              <EmptyState
+                icon={<Briefcase className="h-12 w-12" />}
+                title={emptyTitle}
+                description={emptyDescription}
+              />
+            </div>
           )}
-          <Pagination
-            currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
-            pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
-            onNext={pag.nextPage} onPrev={pag.prevPage}
-          />
         </>
+      )}
+      {filtered.length > 0 && (
+        <Pagination
+          currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
+          pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
+          onNext={pag.nextPage} onPrev={pag.prevPage}
+        />
       )}
 
       <JobForm

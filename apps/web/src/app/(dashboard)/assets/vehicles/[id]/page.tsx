@@ -16,6 +16,7 @@ import { Badge, Skeleton } from '@gleamops/ui';
 import type { Vehicle } from '@gleamops/shared';
 import { VEHICLE_STATUS_COLORS } from '@gleamops/shared';
 import { VehicleForm } from '@/components/forms/vehicle-form';
+import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
 
 interface VehicleWithAssigned extends Vehicle {
   assigned?: { full_name: string; staff_code: string } | null;
@@ -41,6 +42,7 @@ export default function VehicleDetailPage() {
   const [vehicle, setVehicle] = useState<VehicleWithAssigned | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
+  const [vehicleFormFocus, setVehicleFormFocus] = useState<'basics' | 'details' | 'notes' | undefined>(undefined);
   const [maintenance, setMaintenance] = useState<VehicleMaintenanceSummary | null>(null);
 
   const fetchVehicle = async () => {
@@ -97,6 +99,16 @@ export default function VehicleDetailPage() {
 
   const makeModel = [vehicle.make, vehicle.model].filter(Boolean).join(' ') || '\u2014';
   const maintenanceUrgency = getMaintenanceUrgency(maintenance?.next_service_date ?? null);
+  const vehicleCompletenessItems: CompletenessItem[] = [
+    { key: 'name', label: 'Vehicle Name', isComplete: isFieldComplete(vehicle.name), section: 'basics' },
+    { key: 'status', label: 'Vehicle Status', isComplete: isFieldComplete(vehicle.status), section: 'basics' },
+    { key: 'make_model', label: 'Make & Model', isComplete: isFieldComplete(vehicle.make) && isFieldComplete(vehicle.model), section: 'details' },
+    { key: 'year', label: 'Year', isComplete: isFieldComplete(vehicle.year), section: 'details' },
+    { key: 'license_plate', label: 'License Plate', isComplete: isFieldComplete(vehicle.license_plate), section: 'details' },
+    { key: 'vin', label: 'VIN', isComplete: isFieldComplete(vehicle.vin), section: 'details' },
+    { key: 'assigned_to', label: 'Assigned Staff', isComplete: isFieldComplete(vehicle.assigned_to), section: 'details' },
+    { key: 'notes', label: 'Notes', isComplete: isFieldComplete(vehicle.notes), section: 'notes' },
+  ];
 
   return (
     <div className="space-y-6">
@@ -147,6 +159,15 @@ export default function VehicleDetailPage() {
           </button>
         </div>
       </div>
+
+      <ProfileCompletenessCard
+        title="Vehicle Profile"
+        items={vehicleCompletenessItems}
+        onNavigateToMissing={(item) => {
+          setVehicleFormFocus((item.section as 'basics' | 'details' | 'notes' | undefined) ?? 'basics');
+          setFormOpen(true);
+        }}
+      />
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -264,9 +285,13 @@ export default function VehicleDetailPage() {
       {/* Edit Form */}
       <VehicleForm
         open={formOpen}
-        onClose={() => setFormOpen(false)}
+        onClose={() => {
+          setFormOpen(false);
+          setVehicleFormFocus(undefined);
+        }}
         initialData={vehicle}
         onSuccess={fetchVehicle}
+        focusSection={vehicleFormFocus}
       />
     </div>
   );

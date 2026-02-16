@@ -23,6 +23,7 @@ import { CLIENT_STATUS_COLORS } from '@gleamops/shared';
 import { ClientForm } from '@/components/forms/client-form';
 import { ContactForm } from '@/components/forms/contact-form';
 import { ActivityHistorySection } from '@/components/activity/activity-history-section';
+import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
 
 function formatCurrency(n: number | null) {
   if (n == null) return '\u2014';
@@ -202,6 +203,24 @@ export default function ClientDetailPage() {
     setContactFormOpen(true);
   };
 
+  const clientCompletenessItems: CompletenessItem[] = [
+    { key: 'primary_contact', label: 'Primary Contact', isComplete: isFieldComplete(primaryContact?.name), section: 'basics' },
+    {
+      key: 'primary_phone',
+      label: 'Primary Phone',
+      isComplete: isFieldComplete(primaryContact?.work_phone || primaryContact?.mobile_phone || primaryContact?.phone),
+      section: 'basics',
+    },
+    { key: 'primary_email', label: 'Primary Email', isComplete: isFieldComplete(primaryContact?.email), section: 'basics' },
+    { key: 'bill_to', label: 'Bill To Name', isComplete: isFieldComplete(client.bill_to_name), section: 'billing' },
+    { key: 'payment_terms', label: 'Payment Terms', isComplete: isFieldComplete(client.payment_terms), section: 'billing' },
+    { key: 'invoice_frequency', label: 'Invoice Frequency', isComplete: isFieldComplete(client.invoice_frequency), section: 'billing' },
+    { key: 'billing_address', label: 'Billing Address', isComplete: isFieldComplete(client.billing_address), section: 'billing' },
+    { key: 'tax_id', label: 'Tax ID', isComplete: isFieldComplete(client.tax_id), section: 'billing' },
+    { key: 'contract_start', label: 'Contract Start Date', isComplete: isFieldComplete(client.contract_start_date), section: 'contract' },
+    { key: 'contract_end', label: 'Contract End Date', isComplete: isFieldComplete(client.contract_end_date), section: 'contract' },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Back Link */}
@@ -258,6 +277,15 @@ export default function ClientDetailPage() {
           </button>
         </div>
       </div>
+
+      <ProfileCompletenessCard
+        title="Client Profile"
+        items={clientCompletenessItems}
+        onNavigateToMissing={(item) => {
+          setClientFormFocus((item.section as 'basics' | 'billing' | 'contract' | 'notes' | undefined) ?? 'basics');
+          setFormOpen(true);
+        }}
+      />
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

@@ -9,6 +9,7 @@ interface SupplyVendorFormProps {
   open: boolean;
   onClose: () => void;
   initialData?: SupplyVendorProfile | null;
+  focusSection?: 'profile' | 'ordering' | 'scope';
   onSave: (data: {
     id?: string | null;
     company_name: string;
@@ -37,7 +38,7 @@ function categoriesFromText(value: string): string[] {
     .filter(Boolean);
 }
 
-export function SupplyVendorForm({ open, onClose, initialData, onSave }: SupplyVendorFormProps) {
+export function SupplyVendorForm({ open, onClose, initialData, focusSection, onSave }: SupplyVendorFormProps) {
   const isEdit = !!initialData;
   const [companyName, setCompanyName] = React.useState(initialData?.company_name ?? '');
   const [accountNumber, setAccountNumber] = React.useState(initialData?.account_number ?? '');
@@ -71,6 +72,16 @@ export function SupplyVendorForm({ open, onClose, initialData, onSave }: SupplyV
     setNotes(initialData?.notes ?? '');
     setError(null);
   }, [open, initialData]);
+
+  React.useEffect(() => {
+    if (!open || !focusSection) return;
+    window.setTimeout(() => {
+      const section = document.querySelector<HTMLElement>(`[data-supply-vendor-form-section="${focusSection}"]`);
+      if (!section) return;
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      section.focus?.();
+    }, 60);
+  }, [open, focusSection]);
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -106,16 +117,19 @@ export function SupplyVendorForm({ open, onClose, initialData, onSave }: SupplyV
       subtitle={isEdit ? initialData?.company_name : 'Create a vendor profile for supply purchasing'}
     >
       <form className="space-y-8" onSubmit={submit}>
-        <FormSection title="Vendor Profile" icon={<Building2 className="h-4 w-4" />} description="Core company and contact details.">
+        <div data-supply-vendor-form-section="profile" tabIndex={-1}>
+          <FormSection title="Vendor Profile" icon={<Building2 className="h-4 w-4" />} description="Core company and contact details.">
           <Input label="Company Name" value={companyName} onChange={(e) => setCompanyName(e.target.value)} required />
           <Input label="Account Number" value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} />
           <Input label="Contact Person" value={contactPerson} onChange={(e) => setContactPerson(e.target.value)} />
           <Input label="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
           <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
           <Input label="Website" value={website} onChange={(e) => setWebsite(e.target.value)} />
-        </FormSection>
+          </FormSection>
+        </div>
 
-        <FormSection title="Ordering" icon={<CreditCard className="h-4 w-4" />} description="Payment and ordering defaults.">
+        <div data-supply-vendor-form-section="ordering" tabIndex={-1}>
+          <FormSection title="Ordering" icon={<CreditCard className="h-4 w-4" />} description="Payment and ordering defaults.">
           <Input label="Payment Terms" value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)} />
           <Input
             label="Order Minimum ($)"
@@ -135,17 +149,20 @@ export function SupplyVendorForm({ open, onClose, initialData, onSave }: SupplyV
               { value: 'INACTIVE', label: 'Inactive' },
             ]}
           />
-        </FormSection>
+          </FormSection>
+        </div>
 
-        <FormSection title="Supply Scope" icon={<Truck className="h-4 w-4" />} description="Categories and account notes.">
-          <Input
-            label="Categories Supplied"
-            value={categoriesSuppliedText}
-            onChange={(e) => setCategoriesSuppliedText(e.target.value)}
-            hint="Comma-separated categories, e.g. Liners & Bags, Chemicals, Safety & PPE"
-          />
-          <Textarea label="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
-        </FormSection>
+        <div data-supply-vendor-form-section="scope" tabIndex={-1}>
+          <FormSection title="Supply Scope" icon={<Truck className="h-4 w-4" />} description="Categories and account notes.">
+            <Input
+              label="Categories Supplied"
+              value={categoriesSuppliedText}
+              onChange={(e) => setCategoriesSuppliedText(e.target.value)}
+              hint="Comma-separated categories, e.g. Liners & Bags, Chemicals, Safety & PPE"
+            />
+            <Textarea label="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </FormSection>
+        </div>
 
         {error && (
           <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">

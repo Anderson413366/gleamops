@@ -43,6 +43,7 @@ import type { Staff, StaffCertification, WorkTicket } from '@gleamops/shared';
 import { StaffForm } from '@/components/forms/staff-form';
 import { toast } from 'sonner';
 import { ActivityHistorySection } from '@/components/activity/activity-history-section';
+import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
 
 const STATUS_COLORS: Record<string, 'green' | 'gray' | 'yellow' | 'red'> = {
   ACTIVE: 'green',
@@ -209,6 +210,7 @@ export default function StaffDetailPage() {
   const [certifications, setCertifications] = useState<StaffCertification[]>([]);
   const [ticketAssignments, setTicketAssignments] = useState<TicketAssignmentRow[]>([]);
   const [formOpen, setFormOpen] = useState(false);
+  const [staffFormFocus, setStaffFormFocus] = useState<'personal' | 'employment' | 'contact' | 'hr' | undefined>(undefined);
   const [supervisedTeamCount, setSupervisedTeamCount] = useState(0);
   const [assignJobOpen, setAssignJobOpen] = useState(false);
   const [assignEquipmentOpen, setAssignEquipmentOpen] = useState(false);
@@ -454,6 +456,20 @@ export default function StaffDetailPage() {
     .filter(Boolean)
     .map((d) => new Date(d!))
     .sort((a, b) => a.getTime() - b.getTime())[0];
+  const staffCompletenessItems: CompletenessItem[] = [
+    { key: 'photo', label: 'Profile Photo', isComplete: isFieldComplete(staff.photo_url), section: 'personal' },
+    { key: 'full_name', label: 'Full Name', isComplete: isFieldComplete(staff.full_name), section: 'personal' },
+    { key: 'role', label: 'Role', isComplete: isFieldComplete(staff.role), section: 'personal' },
+    { key: 'email', label: 'Email', isComplete: isFieldComplete(staff.email), section: 'contact' },
+    { key: 'phone', label: 'Phone', isComplete: isFieldComplete(staff.phone || staff.mobile_phone), section: 'contact' },
+    { key: 'address', label: 'Address', isComplete: isFieldComplete(staff.address), section: 'contact' },
+    { key: 'employment_type', label: 'Employment Type', isComplete: isFieldComplete(staff.employment_type), section: 'employment' },
+    { key: 'hire_date', label: 'Hire Date', isComplete: isFieldComplete(staff.hire_date), section: 'employment' },
+    { key: 'pay_details', label: 'Pay Details', isComplete: isFieldComplete(staff.pay_rate) && isFieldComplete(staff.pay_type), section: 'employment' },
+    { key: 'emergency_contact', label: 'Emergency Contact', isComplete: isFieldComplete(staff.emergency_contact_name) && isFieldComplete(staff.emergency_contact_phone), section: 'hr' },
+    { key: 'background_check', label: 'Background Check Date', isComplete: isFieldComplete(staff.background_check_date), section: 'hr' },
+    { key: 'certifications', label: 'Certifications', isComplete: isFieldComplete(staff.certifications) || certifications.length > 0, section: 'hr' },
+  ];
 
   return (
     <div className="space-y-6">
@@ -485,6 +501,15 @@ export default function StaffDetailPage() {
           </Button>
         </div>
       </div>
+
+      <ProfileCompletenessCard
+        title="Staff Profile"
+        items={staffCompletenessItems}
+        onNavigateToMissing={(item) => {
+          setStaffFormFocus((item.section as 'personal' | 'employment' | 'contact' | 'hr' | undefined) ?? 'personal');
+          setFormOpen(true);
+        }}
+      />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Assigned Jobs</p><p className="text-xl font-semibold">{jobs.length}</p></CardContent></Card>
@@ -917,9 +942,13 @@ export default function StaffDetailPage() {
       {/* Edit Form */}
       <StaffForm
         open={formOpen}
-        onClose={() => setFormOpen(false)}
+        onClose={() => {
+          setFormOpen(false);
+          setStaffFormFocus(undefined);
+        }}
         initialData={staff}
         onSuccess={fetchStaff}
+        focusSection={staffFormFocus}
       />
     </div>
   );

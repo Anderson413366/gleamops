@@ -24,6 +24,7 @@ import type { Site, Contact, Staff, KeyInventory } from '@gleamops/shared';
 import { SITE_STATUS_COLORS } from '@gleamops/shared';
 import { SiteForm } from '@/components/forms/site-form';
 import { ActivityHistorySection } from '@/components/activity/activity-history-section';
+import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
 
 interface SiteWithClient extends Site {
   client?: { name: string; client_code: string } | null;
@@ -92,6 +93,7 @@ export default function SiteDetailPage() {
   const [site, setSite] = useState<SiteWithClient | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
+  const [siteFormFocus, setSiteFormFocus] = useState<'basics' | 'address' | 'access' | 'service' | 'facility' | 'notes' | undefined>(undefined);
 
   // Related data
   const [activeJobCount, setActiveJobCount] = useState(0);
@@ -188,6 +190,18 @@ export default function SiteDetailPage() {
   const addr = site.address;
   const mapsUrl = mapsSearchUrl(addr);
   const heroMapUrl = site.photo_url ? null : osmStaticMapUrl(site.geofence_center_lat, site.geofence_center_lng);
+  const siteCompletenessItems: CompletenessItem[] = [
+    { key: 'photo', label: 'Site Photo', isComplete: isFieldComplete(site.photo_url), section: 'basics' },
+    { key: 'address', label: 'Address', isComplete: isFieldComplete(site.address), section: 'address' },
+    { key: 'square_footage', label: 'Square Footage', isComplete: isFieldComplete(site.square_footage), section: 'address' },
+    { key: 'alarm_code', label: 'Alarm Code', isComplete: isFieldComplete(site.alarm_code), section: 'access' },
+    { key: 'security_protocol', label: 'Security Protocol', isComplete: isFieldComplete(site.security_protocol), section: 'access' },
+    { key: 'entry_instructions', label: 'Entry Instructions', isComplete: isFieldComplete(site.entry_instructions), section: 'access' },
+    { key: 'service_window', label: 'Service Time Window', isComplete: isFieldComplete(site.earliest_start_time) && isFieldComplete(site.latest_start_time), section: 'service' },
+    { key: 'janitorial_closet', label: 'Janitorial Closet Location', isComplete: isFieldComplete(site.janitorial_closet_location), section: 'facility' },
+    { key: 'dumpster', label: 'Dumpster Location', isComplete: isFieldComplete(site.dumpster_location), section: 'facility' },
+    { key: 'risk_priority', label: 'Risk & Priority', isComplete: isFieldComplete(site.risk_level) && isFieldComplete(site.priority_level), section: 'facility' },
+  ];
 
   return (
     <div className="space-y-6">
@@ -258,6 +272,15 @@ export default function SiteDetailPage() {
 
       {/* Header */}
       {/* (Header moved into hero) */}
+
+      <ProfileCompletenessCard
+        title="Site Profile"
+        items={siteCompletenessItems}
+        onNavigateToMissing={(item) => {
+          setSiteFormFocus((item.section as 'basics' | 'address' | 'access' | 'service' | 'facility' | 'notes' | undefined) ?? 'basics');
+          setFormOpen(true);
+        }}
+      />
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -587,9 +610,13 @@ export default function SiteDetailPage() {
       {/* Edit Form */}
       <SiteForm
         open={formOpen}
-        onClose={() => setFormOpen(false)}
+        onClose={() => {
+          setFormOpen(false);
+          setSiteFormFocus(undefined);
+        }}
         initialData={site}
         onSuccess={fetchSite}
+        focusSection={siteFormFocus}
       />
     </div>
   );

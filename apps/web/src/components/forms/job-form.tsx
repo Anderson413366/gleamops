@@ -143,6 +143,7 @@ interface JobFormProps {
   initialData?: SiteJob | null;
   onSuccess?: () => void;
   preselectedSiteId?: string;
+  focusSection?: 'assignment' | 'schedule' | 'tasks';
 }
 
 interface SiteOption {
@@ -210,7 +211,7 @@ function formatCurrency(n: number) {
   }).format(n);
 }
 
-export function JobForm({ open, onClose, initialData, onSuccess, preselectedSiteId }: JobFormProps) {
+export function JobForm({ open, onClose, initialData, onSuccess, preselectedSiteId, focusSection }: JobFormProps) {
   const isEdit = !!initialData?.id;
   const supabase = getSupabaseBrowserClient();
   const wizard = useWizardSteps(WIZARD_STEPS.length);
@@ -413,6 +414,16 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
   }, [open, isEdit, values.job_code, setValue, supabase]);
 
   useEffect(() => {
+    if (!open || !focusSection) return;
+    window.setTimeout(() => {
+      const section = document.querySelector<HTMLElement>(`[data-job-form-section="${focusSection}"]`);
+      if (!section) return;
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      section.focus?.();
+    }, 60);
+  }, [open, focusSection]);
+
+  useEffect(() => {
     if (!open || !sites.length) return;
     if (values.site_id) {
       const selectedSite = sites.find((s) => s.value === values.site_id);
@@ -570,7 +581,8 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
     return (
       <SlideOver open={open} onClose={handleClose} title="Edit Job" subtitle={initialData?.job_code} wide>
         <form onSubmit={handleSubmit} className="space-y-8">
-          <FormSection title="Assignment" icon={<ClipboardList className="h-4 w-4" />}>
+          <div data-job-form-section="assignment" tabIndex={-1}>
+            <FormSection title="Assignment" icon={<ClipboardList className="h-4 w-4" />}>
             <Input label="Job Code" value={values.job_code} readOnly disabled />
             <Input
               label="Job Name"
@@ -604,9 +616,11 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
               onChange={(e) => setValue('job_assigned_to', e.target.value || null)}
               options={assignmentOptions}
             />
-          </FormSection>
+            </FormSection>
+          </div>
 
-          <FormSection title="Schedule & Billing" icon={<CalendarClock className="h-4 w-4" />}>
+          <div data-job-form-section="schedule" tabIndex={-1}>
+            <FormSection title="Schedule & Billing" icon={<CalendarClock className="h-4 w-4" />}>
             <Select
               label="Frequency"
               value={values.frequency}
@@ -637,9 +651,11 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
               value={values.invoice_description ?? ''}
               onChange={(e) => setValue('invoice_description', e.target.value || null)}
             />
-          </FormSection>
+            </FormSection>
+          </div>
 
-          <FormSection title="Tasks & Details" icon={<FileText className="h-4 w-4" />}>
+          <div data-job-form-section="tasks" tabIndex={-1}>
+            <FormSection title="Tasks & Details" icon={<FileText className="h-4 w-4" />}>
             <Select
               label="Service Template"
               value={values.service_id ?? ''}
@@ -649,7 +665,8 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
             <Textarea label="Special Requirements" value={values.special_requirements ?? ''} onChange={(e) => setValue('special_requirements', e.target.value || null)} />
             <Textarea label="Specifications" value={values.specifications ?? ''} onChange={(e) => setValue('specifications', e.target.value || null)} />
             <Textarea label="Notes" value={values.notes ?? ''} onChange={(e) => setValue('notes', e.target.value || null)} />
-          </FormSection>
+            </FormSection>
+          </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-border">
             <Button variant="secondary" type="button" onClick={handleClose}>Cancel</Button>

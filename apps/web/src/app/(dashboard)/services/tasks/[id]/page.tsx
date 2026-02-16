@@ -18,6 +18,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Badge, Skeleton } from '@gleamops/ui';
 import type { Task } from '@gleamops/shared';
 import { TaskForm } from '@/components/forms/task-form';
+import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
 
 const CATEGORY_COLORS: Record<string, 'green' | 'blue' | 'yellow' | 'purple' | 'orange' | 'gray'> = {
   RESTROOM: 'blue',
@@ -64,6 +65,7 @@ export default function TaskDetailPage() {
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
+  const [taskFormFocus, setTaskFormFocus] = useState<'basics' | 'classification' | 'production' | 'descriptions' | 'status' | undefined>(undefined);
   const [serviceCount, setServiceCount] = useState(0);
 
   const fetchTask = async () => {
@@ -134,6 +136,19 @@ export default function TaskDetailPage() {
     );
   }
 
+  const taskCompletenessItems: CompletenessItem[] = [
+    { key: 'name', label: 'Task Name', isComplete: isFieldComplete(task.name), section: 'basics' },
+    { key: 'unit_code', label: 'Unit', isComplete: isFieldComplete(task.unit_code), section: 'basics' },
+    { key: 'category', label: 'Category', isComplete: isFieldComplete(task.category), section: 'classification' },
+    { key: 'priority', label: 'Priority Level', isComplete: isFieldComplete(task.priority_level), section: 'classification' },
+    { key: 'production_rate', label: 'Production Rate', isComplete: isFieldComplete(task.production_rate_sqft_per_hour), section: 'production' },
+    { key: 'default_minutes', label: 'Default Minutes', isComplete: isFieldComplete(task.default_minutes), section: 'production' },
+    { key: 'spec_description', label: 'Spec Description', isComplete: isFieldComplete(task.spec_description), section: 'descriptions' },
+    { key: 'work_description', label: 'Work Description', isComplete: isFieldComplete(task.work_description), section: 'descriptions' },
+    { key: 'tools_materials', label: 'Tools & Materials', isComplete: isFieldComplete(task.tools_materials), section: 'descriptions' },
+    { key: 'notes', label: 'Notes', isComplete: isFieldComplete(task.notes), section: 'status' },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Back Link */}
@@ -195,6 +210,15 @@ export default function TaskDetailPage() {
           )}
         </div>
       </div>
+
+      <ProfileCompletenessCard
+        title="Task Profile"
+        items={taskCompletenessItems}
+        onNavigateToMissing={(item) => {
+          setTaskFormFocus((item.section as 'basics' | 'classification' | 'production' | 'descriptions' | 'status' | undefined) ?? 'basics');
+          setFormOpen(true);
+        }}
+      />
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -358,9 +382,13 @@ export default function TaskDetailPage() {
       {/* Edit Form */}
       <TaskForm
         open={formOpen}
-        onClose={() => setFormOpen(false)}
+        onClose={() => {
+          setFormOpen(false);
+          setTaskFormFocus(undefined);
+        }}
         initialData={task}
         onSuccess={fetchTask}
+        focusSection={taskFormFocus}
       />
     </div>
   );

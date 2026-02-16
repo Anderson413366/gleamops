@@ -27,6 +27,7 @@ import {
 } from '@/lib/utils/job-financials';
 import { formatDate } from '@/lib/utils/date';
 import { ActivityHistorySection } from '@/components/activity/activity-history-section';
+import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
 
 interface JobWithRelations extends SiteJob {
   site?: {
@@ -111,6 +112,7 @@ export default function JobDetailPage() {
   const [job, setJob] = useState<JobWithRelations | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
+  const [jobFormFocus, setJobFormFocus] = useState<'assignment' | 'schedule' | 'tasks' | undefined>(undefined);
 
   // Related data
   const [taskCount, setTaskCount] = useState(0);
@@ -273,6 +275,19 @@ export default function JobDetailPage() {
     : '\u2014';
   const startsIn = formatRelativeDate(job.start_date);
   const updatedAgo = formatRelativeDateTime(job.updated_at);
+  const jobCompletenessItems: CompletenessItem[] = [
+    { key: 'job_name', label: 'Job Name', isComplete: isFieldComplete(job.job_name), section: 'assignment' },
+    { key: 'site', label: 'Site Assignment', isComplete: isFieldComplete(job.site_id), section: 'assignment' },
+    { key: 'job_type', label: 'Job Type', isComplete: isFieldComplete(job.job_type), section: 'assignment' },
+    { key: 'priority', label: 'Priority Level', isComplete: isFieldComplete(job.priority_level), section: 'assignment' },
+    { key: 'frequency', label: 'Frequency', isComplete: isFieldComplete(job.frequency), section: 'schedule' },
+    { key: 'schedule_days', label: 'Schedule Days', isComplete: isFieldComplete(job.schedule_days), section: 'schedule' },
+    { key: 'time_window', label: 'Service Time Window', isComplete: isFieldComplete(job.start_time) && isFieldComplete(job.end_time), section: 'schedule' },
+    { key: 'billing_amount', label: 'Billing Amount', isComplete: isFieldComplete(job.billing_amount), section: 'schedule' },
+    { key: 'billing_period', label: 'Billing Period', isComplete: isFieldComplete(job.billing_uom), section: 'schedule' },
+    { key: 'special_requirements', label: 'Special Requirements', isComplete: isFieldComplete(job.special_requirements), section: 'tasks' },
+    { key: 'specifications', label: 'Specifications', isComplete: isFieldComplete(job.specifications), section: 'tasks' },
+  ];
 
   return (
     <div className="space-y-6">
@@ -329,6 +344,15 @@ export default function JobDetailPage() {
           </button>
         </div>
       </div>
+
+      <ProfileCompletenessCard
+        title="Job Profile"
+        items={jobCompletenessItems}
+        onNavigateToMissing={(item) => {
+          setJobFormFocus((item.section as 'assignment' | 'schedule' | 'tasks' | undefined) ?? 'assignment');
+          setFormOpen(true);
+        }}
+      />
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -705,9 +729,13 @@ export default function JobDetailPage() {
       {/* Edit Form */}
       <JobForm
         open={formOpen}
-        onClose={() => setFormOpen(false)}
+        onClose={() => {
+          setFormOpen(false);
+          setJobFormFocus(undefined);
+        }}
         initialData={job}
         onSuccess={fetchJob}
+        focusSection={jobFormFocus}
       />
     </div>
   );

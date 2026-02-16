@@ -44,9 +44,10 @@ interface TaskFormProps {
   onClose: () => void;
   initialData?: Task | null;
   onSuccess?: () => void;
+  focusSection?: 'basics' | 'classification' | 'production' | 'descriptions' | 'status';
 }
 
-export function TaskForm({ open, onClose, initialData, onSuccess }: TaskFormProps) {
+export function TaskForm({ open, onClose, initialData, onSuccess, focusSection }: TaskFormProps) {
   const isEdit = !!initialData?.id;
   const supabase = getSupabaseBrowserClient();
 
@@ -104,6 +105,16 @@ export function TaskForm({ open, onClose, initialData, onSuccess }: TaskFormProp
     }
   }, [open, isEdit]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (!open || !focusSection) return;
+    window.setTimeout(() => {
+      const section = document.querySelector<HTMLElement>(`[data-task-form-section="${focusSection}"]`);
+      if (!section) return;
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      section.focus?.();
+    }, 60);
+  }, [open, focusSection]);
+
   const handleClose = () => {
     reset();
     onClose();
@@ -118,7 +129,8 @@ export function TaskForm({ open, onClose, initialData, onSuccess }: TaskFormProp
       wide
     >
       <form onSubmit={handleSubmit} className="space-y-8">
-        <FormSection title="Basic Info" icon={<ClipboardList className="h-4 w-4" />} description="Identity, unit, and categorization for this task.">
+        <div data-task-form-section="basics" tabIndex={-1}>
+          <FormSection title="Basic Info" icon={<ClipboardList className="h-4 w-4" />} description="Identity, unit, and categorization for this task.">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               label="Task Code"
@@ -154,9 +166,11 @@ export function TaskForm({ open, onClose, initialData, onSuccess }: TaskFormProp
               onChange={(e) => setValue('subcategory', e.target.value || null)}
             />
           </div>
-        </FormSection>
+          </FormSection>
+        </div>
 
-        <FormSection title="Classification" icon={<Layers className="h-4 w-4" />} description="Optional attributes used for scoping and filtering.">
+        <div data-task-form-section="classification" tabIndex={-1}>
+          <FormSection title="Classification" icon={<Layers className="h-4 w-4" />} description="Optional attributes used for scoping and filtering.">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Input
               label="Area Type"
@@ -177,9 +191,11 @@ export function TaskForm({ open, onClose, initialData, onSuccess }: TaskFormProp
               options={PRIORITY_OPTIONS}
             />
           </div>
-        </FormSection>
+          </FormSection>
+        </div>
 
-        <FormSection title="Production & Time" icon={<Timer className="h-4 w-4" />} description="Defaults used for estimating labor and schedules.">
+        <div data-task-form-section="production" tabIndex={-1}>
+          <FormSection title="Production & Time" icon={<Timer className="h-4 w-4" />} description="Defaults used for estimating labor and schedules.">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               label="Production Rate (sq ft / hour)"
@@ -194,9 +210,11 @@ export function TaskForm({ open, onClose, initialData, onSuccess }: TaskFormProp
               onChange={(e) => setValue('default_minutes', e.target.value ? Number(e.target.value) : null)}
             />
           </div>
-        </FormSection>
+          </FormSection>
+        </div>
 
-        <FormSection title="Descriptions" icon={<FileText className="h-4 w-4" />} description="What clients see vs. internal instructions for staff.">
+        <div data-task-form-section="descriptions" tabIndex={-1}>
+          <FormSection title="Descriptions" icon={<FileText className="h-4 w-4" />} description="What clients see vs. internal instructions for staff.">
           <Textarea
             label="Spec Description"
             value={values.spec_description ?? ''}
@@ -217,25 +235,28 @@ export function TaskForm({ open, onClose, initialData, onSuccess }: TaskFormProp
             onChange={(e) => setValue('tools_materials', e.target.value || null)}
             placeholder="e.g., Mop, Bucket, All-purpose cleaner"
           />
-        </FormSection>
+          </FormSection>
+        </div>
 
-        <FormSection title="Status & Notes" icon={<ShieldCheck className="h-4 w-4" />} description="Enable/disable this task and capture any internal notes.">
-          <label className="flex items-center gap-2 text-sm text-foreground">
-            <input
-              type="checkbox"
-              checked={values.is_active}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue('is_active', e.target.checked)}
-              className="rounded border-border"
+        <div data-task-form-section="status" tabIndex={-1}>
+          <FormSection title="Status & Notes" icon={<ShieldCheck className="h-4 w-4" />} description="Enable/disable this task and capture any internal notes.">
+            <label className="flex items-center gap-2 text-sm text-foreground">
+              <input
+                type="checkbox"
+                checked={values.is_active}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue('is_active', e.target.checked)}
+                className="rounded border-border"
+              />
+              Active
+            </label>
+            <Textarea
+              label="Notes"
+              value={values.notes ?? ''}
+              onChange={(e) => setValue('notes', e.target.value || null)}
+              rows={2}
             />
-            Active
-          </label>
-          <Textarea
-            label="Notes"
-            value={values.notes ?? ''}
-            onChange={(e) => setValue('notes', e.target.value || null)}
-            rows={2}
-          />
-        </FormSection>
+          </FormSection>
+        </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <Button variant="secondary" type="button" onClick={handleClose}>

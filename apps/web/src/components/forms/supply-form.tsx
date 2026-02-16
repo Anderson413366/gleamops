@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { Package } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
@@ -22,9 +23,10 @@ interface SupplyFormProps {
   onClose: () => void;
   initialData?: SupplyCatalog | null;
   onSuccess?: () => void;
+  focusSection?: 'details';
 }
 
-export function SupplyForm({ open, onClose, initialData, onSuccess }: SupplyFormProps) {
+export function SupplyForm({ open, onClose, initialData, onSuccess, focusSection }: SupplyFormProps) {
   const isEdit = !!initialData?.id;
   const supabase = getSupabaseBrowserClient();
 
@@ -69,6 +71,16 @@ export function SupplyForm({ open, onClose, initialData, onSuccess }: SupplyForm
     },
   });
 
+  useEffect(() => {
+    if (!open || !focusSection) return;
+    window.setTimeout(() => {
+      const section = document.querySelector<HTMLElement>('[data-supply-form-section="details"]');
+      if (!section) return;
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      section.focus?.();
+    }, 60);
+  }, [open, focusSection]);
+
   const handleClose = () => {
     reset();
     onClose();
@@ -82,7 +94,8 @@ export function SupplyForm({ open, onClose, initialData, onSuccess }: SupplyForm
       subtitle={isEdit ? initialData?.code : undefined}
     >
       <form onSubmit={handleSubmit} className="space-y-8">
-        <FormSection title="Supply Details" icon={<Package className="h-4 w-4" />} description="Catalog info, unit pricing, and safety links.">
+        <div data-supply-form-section="details" tabIndex={-1}>
+          <FormSection title="Supply Details" icon={<Package className="h-4 w-4" />} description="Catalog info, unit pricing, and safety links.">
           <Input
             label="Code"
             value={values.code}
@@ -133,7 +146,8 @@ export function SupplyForm({ open, onClose, initialData, onSuccess }: SupplyForm
             value={values.notes ?? ''}
             onChange={(e) => setValue('notes', e.target.value || null)}
           />
-        </FormSection>
+          </FormSection>
+        </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <Button variant="secondary" type="button" onClick={handleClose}>

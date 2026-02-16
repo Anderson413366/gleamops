@@ -26,6 +26,7 @@ import { Badge, Skeleton } from '@gleamops/ui';
 import type { SupplyCatalog } from '@gleamops/shared';
 import { SupplyForm } from '@/components/forms/supply-form';
 import { ActivityHistorySection } from '@/components/activity/activity-history-section';
+import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
 import { toast } from 'sonner';
 
 function formatCurrency(n: number | null) {
@@ -79,6 +80,7 @@ export default function SupplyDetailPage() {
   const [supply, setSupply] = useState<SupplyCatalog | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
+  const [supplyFormFocus, setSupplyFormFocus] = useState<'details' | undefined>(undefined);
   const [simpleView, setSimpleView] = useState(false);
   const [imageLoadError, setImageLoadError] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
@@ -205,6 +207,17 @@ export default function SupplyDetailPage() {
     );
   }
 
+  const supplyCompletenessItems: CompletenessItem[] = [
+    { key: 'category', label: 'Category', isComplete: isFieldComplete(supply.category), section: 'details' },
+    { key: 'unit', label: 'Unit of Measure', isComplete: isFieldComplete(supply.unit), section: 'details' },
+    { key: 'unit_cost', label: 'Unit Cost', isComplete: isFieldComplete(supply.unit_cost), section: 'details' },
+    { key: 'min_stock', label: 'Minimum Stock Level', isComplete: isFieldComplete(supply.min_stock_level), section: 'details' },
+    { key: 'preferred_vendor', label: 'Preferred Vendor', isComplete: isFieldComplete(supply.preferred_vendor), section: 'details' },
+    { key: 'sds_url', label: 'Safety Data Sheet URL', isComplete: isFieldComplete(supply.sds_url), section: 'details' },
+    { key: 'image', label: 'Product Image', isComplete: isFieldComplete(supply.image_url), section: 'details' },
+    { key: 'notes', label: 'Notes', isComplete: isFieldComplete(supply.notes), section: 'details' },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Back Link */}
@@ -292,6 +305,15 @@ export default function SupplyDetailPage() {
       {imageUploadError && (
         <p className="text-xs font-medium text-red-600 dark:text-red-400">{imageUploadError}</p>
       )}
+
+      <ProfileCompletenessCard
+        title="Supply Profile"
+        items={supplyCompletenessItems}
+        onNavigateToMissing={() => {
+          setSupplyFormFocus('details');
+          setFormOpen(true);
+        }}
+      />
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -513,9 +535,13 @@ export default function SupplyDetailPage() {
       {/* Edit Form */}
       <SupplyForm
         open={formOpen}
-        onClose={() => setFormOpen(false)}
+        onClose={() => {
+          setFormOpen(false);
+          setSupplyFormFocus(undefined);
+        }}
         initialData={supply}
         onSuccess={fetchSupply}
+        focusSection={supplyFormFocus}
       />
     </div>
   );

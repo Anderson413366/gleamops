@@ -16,6 +16,7 @@ import { Badge, Skeleton } from '@gleamops/ui';
 import type { KeyInventory } from '@gleamops/shared';
 import { KEY_STATUS_COLORS } from '@gleamops/shared';
 import { KeyForm } from '@/components/forms/key-form';
+import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
 
 interface KeyWithRelations extends KeyInventory {
   site?: { name: string; site_code: string } | null;
@@ -35,6 +36,7 @@ export default function KeyDetailPage() {
   const [key, setKey] = useState<KeyWithRelations | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
+  const [keyFormFocus, setKeyFormFocus] = useState<'details' | undefined>(undefined);
 
   const fetchKey = async () => {
     setLoading(true);
@@ -81,6 +83,14 @@ export default function KeyDetailPage() {
   }
 
   const keyRisk = getKeyRisk(key.status);
+  const keyCompletenessItems: CompletenessItem[] = [
+    { key: 'label', label: 'Key Label', isComplete: isFieldComplete(key.label), section: 'details' },
+    { key: 'key_type', label: 'Key Type', isComplete: isFieldComplete(key.key_type), section: 'details' },
+    { key: 'site', label: 'Linked Site', isComplete: isFieldComplete(key.site_id), section: 'details' },
+    { key: 'total_count', label: 'Total Count', isComplete: isFieldComplete(key.total_count), section: 'details' },
+    { key: 'status', label: 'Status', isComplete: isFieldComplete(key.status), section: 'details' },
+    { key: 'notes', label: 'Notes', isComplete: isFieldComplete(key.notes), section: 'details' },
+  ];
 
   return (
     <div className="space-y-6">
@@ -131,6 +141,15 @@ export default function KeyDetailPage() {
           </button>
         </div>
       </div>
+
+      <ProfileCompletenessCard
+        title="Key Profile"
+        items={keyCompletenessItems}
+        onNavigateToMissing={() => {
+          setKeyFormFocus('details');
+          setFormOpen(true);
+        }}
+      />
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -243,9 +262,13 @@ export default function KeyDetailPage() {
       {/* Edit Form */}
       <KeyForm
         open={formOpen}
-        onClose={() => setFormOpen(false)}
+        onClose={() => {
+          setFormOpen(false);
+          setKeyFormFocus(undefined);
+        }}
         initialData={key}
         onSuccess={fetchKey}
+        focusSection={keyFormFocus}
       />
     </div>
   );

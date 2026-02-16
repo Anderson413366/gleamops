@@ -82,9 +82,10 @@ interface SiteFormProps {
   initialData?: Site | null;
   onSuccess?: () => void;
   preselectedClientId?: string;
+  focusSection?: 'basics' | 'address' | 'access' | 'service' | 'facility' | 'notes';
 }
 
-export function SiteForm({ open, onClose, initialData, onSuccess, preselectedClientId }: SiteFormProps) {
+export function SiteForm({ open, onClose, initialData, onSuccess, preselectedClientId, focusSection }: SiteFormProps) {
   const isEdit = !!initialData?.id;
   const supabase = getSupabaseBrowserClient();
   const wizard = useWizardSteps(WIZARD_STEPS.length);
@@ -208,6 +209,16 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
     return () => URL.revokeObjectURL(url);
   }, [photoFile]);
 
+  useEffect(() => {
+    if (!open || !focusSection) return;
+    window.setTimeout(() => {
+      const section = document.querySelector<HTMLElement>(`[data-site-form-section="${focusSection}"]`);
+      if (!section) return;
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      section.focus?.();
+    }, 60);
+  }, [open, focusSection]);
+
   const handleClose = () => {
     reset();
     wizard.reset();
@@ -238,7 +249,8 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
     return (
       <SlideOver open={open} onClose={handleClose} title="Edit Site" subtitle={initialData?.site_code} wide>
         <form onSubmit={handleSubmit} className="space-y-8">
-          <FormSection title="Basic Info" icon={<Building2 className="h-4 w-4" />} description="Core identity, client association, and photo.">
+          <div data-site-form-section="basics" tabIndex={-1}>
+            <FormSection title="Basic Info" icon={<Building2 className="h-4 w-4" />} description="Core identity, client association, and photo.">
             <Input label="Site Code" value={values.site_code} readOnly disabled />
             <Input label="Name" value={values.name} onChange={(e) => setValue('name', e.target.value)} onBlur={() => onBlur('name')} error={errors.name} required />
             <Select label="Client" value={values.client_id} onChange={(e) => setValue('client_id', e.target.value)} options={clients} required />
@@ -264,9 +276,11 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
                 <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoPick} className="hidden" />
               </label>
             </div>
-          </FormSection>
+            </FormSection>
+          </div>
 
-          <FormSection title="Address & Facility" icon={<MapPin className="h-4 w-4" />} description="Location and facility sizing details used for planning.">
+          <div data-site-form-section="address" tabIndex={-1}>
+            <FormSection title="Address & Facility" icon={<MapPin className="h-4 w-4" />} description="Location and facility sizing details used for planning.">
             <Input label="Street" value={values.address?.street ?? ''} onChange={(e) => setValue('address', { ...values.address, street: e.target.value })} />
             <div className="grid grid-cols-3 gap-3">
               <Input label="City" value={values.address?.city ?? ''} onChange={(e) => setValue('address', { ...values.address, city: e.target.value })} />
@@ -278,9 +292,11 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
               <Input label="Floors" type="number" value={values.number_of_floors ?? ''} onChange={(e) => setValue('number_of_floors', e.target.value ? Number(e.target.value) : null)} />
               <Input label="Employees On Site" type="number" value={values.employees_on_site ?? ''} onChange={(e) => setValue('employees_on_site', e.target.value ? Number(e.target.value) : null)} />
             </div>
-          </FormSection>
+            </FormSection>
+          </div>
 
-          <FormSection title="Access & Security" icon={<Shield className="h-4 w-4" />} description="How your team gets in, where to park, and security protocols.">
+          <div data-site-form-section="access" tabIndex={-1}>
+            <FormSection title="Access & Security" icon={<Shield className="h-4 w-4" />} description="How your team gets in, where to park, and security protocols.">
             <div className="grid grid-cols-2 gap-3">
               <Input label="Alarm Code" value={values.alarm_code ?? ''} onChange={(e) => setValue('alarm_code', e.target.value || null)} />
               <Input label="Alarm System" value={values.alarm_system ?? ''} onChange={(e) => setValue('alarm_system', e.target.value || null)} />
@@ -289,9 +305,11 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
             <Textarea label="Entry Instructions" value={values.entry_instructions ?? ''} onChange={(e) => setValue('entry_instructions', e.target.value || null)} rows={2} />
             <Textarea label="Parking Instructions" value={values.parking_instructions ?? ''} onChange={(e) => setValue('parking_instructions', e.target.value || null)} rows={2} />
             <Textarea label="Access Notes" value={values.access_notes ?? ''} onChange={(e) => setValue('access_notes', e.target.value || null)} rows={2} />
-          </FormSection>
+            </FormSection>
+          </div>
 
-          <FormSection title="Service & Compliance" icon={<CheckCircle2 className="h-4 w-4" />} description="Service window and compliance requirements.">
+          <div data-site-form-section="service" tabIndex={-1}>
+            <FormSection title="Service & Compliance" icon={<CheckCircle2 className="h-4 w-4" />} description="Service window and compliance requirements.">
             <div className="grid grid-cols-2 gap-3">
               <Input label="Earliest Start Time" type="time" value={values.earliest_start_time ?? ''} onChange={(e) => setValue('earliest_start_time', e.target.value || null)} />
               <Input label="Latest Start Time" type="time" value={values.latest_start_time ?? ''} onChange={(e) => setValue('latest_start_time', e.target.value || null)} />
@@ -299,9 +317,11 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={values.weekend_access} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue('weekend_access', e.target.checked)} className="rounded border-border" /> Weekend Access</label>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={values.osha_compliance_required} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue('osha_compliance_required', e.target.checked)} className="rounded border-border" /> OSHA Compliance Required</label>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={values.background_check_required} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue('background_check_required', e.target.checked)} className="rounded border-border" /> Background Check Required</label>
-          </FormSection>
+            </FormSection>
+          </div>
 
-          <FormSection title="Facility Details" icon={<Warehouse className="h-4 w-4" />} description="Storage locations, risk, and priority indicators.">
+          <div data-site-form-section="facility" tabIndex={-1}>
+            <FormSection title="Facility Details" icon={<Warehouse className="h-4 w-4" />} description="Storage locations, risk, and priority indicators.">
             <div className="grid grid-cols-2 gap-3">
               <Input label="Janitorial Closet" value={values.janitorial_closet_location ?? ''} onChange={(e) => setValue('janitorial_closet_location', e.target.value || null)} />
               <Input label="Supply Storage" value={values.supply_storage_location ?? ''} onChange={(e) => setValue('supply_storage_location', e.target.value || null)} />
@@ -314,11 +334,14 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
               <Select label="Risk Level" value={values.risk_level ?? ''} onChange={(e) => setValue('risk_level', e.target.value || null)} options={RISK_OPTIONS} />
               <Select label="Priority Level" value={values.priority_level ?? ''} onChange={(e) => setValue('priority_level', e.target.value || null)} options={PRIORITY_OPTIONS} />
             </div>
-          </FormSection>
+            </FormSection>
+          </div>
 
-          <FormSection title="Notes" icon={<FileText className="h-4 w-4" />} description="Optional context your team will appreciate later.">
-            <Textarea label="Notes" value={values.notes ?? ''} onChange={(e) => setValue('notes', e.target.value || null)} rows={3} />
-          </FormSection>
+          <div data-site-form-section="notes" tabIndex={-1}>
+            <FormSection title="Notes" icon={<FileText className="h-4 w-4" />} description="Optional context your team will appreciate later.">
+              <Textarea label="Notes" value={values.notes ?? ''} onChange={(e) => setValue('notes', e.target.value || null)} rows={3} />
+            </FormSection>
+          </div>
           <div className="flex justify-end gap-3 pt-4 border-t border-border">
             <Button variant="secondary" type="button" onClick={handleClose}>Cancel</Button>
             <Button type="submit" loading={loading}>Save Changes</Button>

@@ -41,6 +41,7 @@ interface EquipmentFormProps {
   onClose: () => void;
   initialData?: Equipment | null;
   onSuccess?: () => void;
+  focusSection?: 'basics' | 'model' | 'purchase' | 'maintenance' | 'notes';
 }
 
 function normalizeDate(d: string | null): string | null {
@@ -49,7 +50,7 @@ function normalizeDate(d: string | null): string | null {
   return d.length >= 10 ? d.slice(0, 10) : d;
 }
 
-export function EquipmentForm({ open, onClose, initialData, onSuccess }: EquipmentFormProps) {
+export function EquipmentForm({ open, onClose, initialData, onSuccess, focusSection }: EquipmentFormProps) {
   const isEdit = !!initialData?.id;
   const supabase = getSupabaseBrowserClient();
 
@@ -126,6 +127,16 @@ export function EquipmentForm({ open, onClose, initialData, onSuccess }: Equipme
     reset(initialValues);
   }, [open, reset, initialValues]);
 
+  useEffect(() => {
+    if (!open || !focusSection) return;
+    window.setTimeout(() => {
+      const section = document.querySelector<HTMLElement>(`[data-equipment-form-section="${focusSection}"]`);
+      if (!section) return;
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      section.focus?.();
+    }, 60);
+  }, [open, focusSection]);
+
   const handleClose = () => {
     reset();
     onClose();
@@ -139,7 +150,8 @@ export function EquipmentForm({ open, onClose, initialData, onSuccess }: Equipme
       subtitle={isEdit ? initialData?.equipment_code : undefined}
     >
       <form onSubmit={handleSubmit} className="space-y-8">
-        <FormSection title="Basic Info" icon={<ClipboardList className="h-4 w-4" />} description="Identity, classification, and current condition.">
+        <div data-equipment-form-section="basics" tabIndex={-1}>
+          <FormSection title="Basic Info" icon={<ClipboardList className="h-4 w-4" />} description="Identity, classification, and current condition.">
           <Input
             label="Equipment Code"
             value={values.equipment_code}
@@ -176,9 +188,11 @@ export function EquipmentForm({ open, onClose, initialData, onSuccess }: Equipme
             onChange={(e) => setValue('condition', e.target.value as 'GOOD' | 'FAIR' | 'POOR' | 'OUT_OF_SERVICE')}
             options={CONDITION_OPTIONS}
           />
-        </FormSection>
+          </FormSection>
+        </div>
 
-        <FormSection title="Make & Model" icon={<Factory className="h-4 w-4" />} description="Manufacturer and device identity details.">
+        <div data-equipment-form-section="model" tabIndex={-1}>
+          <FormSection title="Make & Model" icon={<Factory className="h-4 w-4" />} description="Manufacturer and device identity details.">
           <div className="grid grid-cols-2 gap-3">
             <Input
               label="Manufacturer"
@@ -201,9 +215,11 @@ export function EquipmentForm({ open, onClose, initialData, onSuccess }: Equipme
             value={values.serial_number ?? ''}
             onChange={(e) => setValue('serial_number', e.target.value || null)}
           />
-        </FormSection>
+          </FormSection>
+        </div>
 
-        <FormSection title="Purchase" icon={<Tag className="h-4 w-4" />} description="Acquisition date and cost (optional).">
+        <div data-equipment-form-section="purchase" tabIndex={-1}>
+          <FormSection title="Purchase" icon={<Tag className="h-4 w-4" />} description="Acquisition date and cost (optional).">
           <div className="grid grid-cols-2 gap-3">
             <Input
               label="Purchase Date"
@@ -218,9 +234,11 @@ export function EquipmentForm({ open, onClose, initialData, onSuccess }: Equipme
               onChange={(e) => setValue('purchase_price', e.target.value ? Number(e.target.value) : null)}
             />
           </div>
-        </FormSection>
+          </FormSection>
+        </div>
 
-        <FormSection title="Maintenance" icon={<CalendarClock className="h-4 w-4" />} description="Optional maintenance schedule and next steps.">
+        <div data-equipment-form-section="maintenance" tabIndex={-1}>
+          <FormSection title="Maintenance" icon={<CalendarClock className="h-4 w-4" />} description="Optional maintenance schedule and next steps.">
           <Input
             label="Maintenance Schedule"
             value={values.maintenance_schedule ?? ''}
@@ -246,15 +264,18 @@ export function EquipmentForm({ open, onClose, initialData, onSuccess }: Equipme
             onChange={(e) => setValue('maintenance_specs', e.target.value || null)}
             rows={3}
           />
-        </FormSection>
+          </FormSection>
+        </div>
 
-        <FormSection title="Notes" icon={<FileText className="h-4 w-4" />} description="Optional context for maintenance or assignment history.">
-          <Textarea
-            label="Notes"
-            value={values.notes ?? ''}
-            onChange={(e) => setValue('notes', e.target.value || null)}
-          />
-        </FormSection>
+        <div data-equipment-form-section="notes" tabIndex={-1}>
+          <FormSection title="Notes" icon={<FileText className="h-4 w-4" />} description="Optional context for maintenance or assignment history.">
+            <Textarea
+              label="Notes"
+              value={values.notes ?? ''}
+              onChange={(e) => setValue('notes', e.target.value || null)}
+            />
+          </FormSection>
+        </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <Button variant="secondary" type="button" onClick={handleClose}>

@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Badge, Button, EmptyState, Input, Select, SlideOver, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Textarea } from '@gleamops/ui';
 import { SupplyVendorForm } from '@/components/forms/supply-vendor-form';
+import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
 import {
   findVendorProfileBySlug,
   slugifyVendorName,
@@ -74,6 +75,7 @@ export default function SupplyVendorDetailPage() {
   const [supplies, setSupplies] = useState<SupplyLite[]>([]);
   const [orders, setOrders] = useState<OrderLite[]>([]);
   const [vendorFormOpen, setVendorFormOpen] = useState(false);
+  const [vendorFormFocus, setVendorFormFocus] = useState<'profile' | 'ordering' | 'scope' | undefined>(undefined);
   const [orderOpen, setOrderOpen] = useState(false);
   const [orderCode, setOrderCode] = useState('');
   const [orderDate, setOrderDate] = useState(new Date().toISOString().slice(0, 10));
@@ -160,6 +162,24 @@ export default function SupplyVendorDetailPage() {
   }, [fetchData]);
 
   const latestOrder = useMemo(() => orders[0] ?? null, [orders]);
+  const vendorCompletenessItems: CompletenessItem[] = useMemo(
+    () =>
+      profile
+        ? [
+            { key: 'company_name', label: 'Company Name', isComplete: isFieldComplete(profile.company_name), section: 'profile' },
+            { key: 'contact_person', label: 'Contact Person', isComplete: isFieldComplete(profile.contact_person), section: 'profile' },
+            { key: 'phone', label: 'Phone', isComplete: isFieldComplete(profile.phone), section: 'profile' },
+            { key: 'email', label: 'Email', isComplete: isFieldComplete(profile.email), section: 'profile' },
+            { key: 'account_number', label: 'Account Number', isComplete: isFieldComplete(profile.account_number), section: 'profile' },
+            { key: 'payment_terms', label: 'Payment Terms', isComplete: isFieldComplete(profile.payment_terms), section: 'ordering' },
+            { key: 'order_minimum', label: 'Order Minimum', isComplete: isFieldComplete(profile.order_minimum), section: 'ordering' },
+            { key: 'delivery_schedule', label: 'Delivery Schedule', isComplete: isFieldComplete(profile.delivery_schedule), section: 'ordering' },
+            { key: 'categories', label: 'Categories Supplied', isComplete: isFieldComplete(profile.categories_supplied), section: 'scope' },
+            { key: 'notes', label: 'Vendor Notes', isComplete: isFieldComplete(profile.notes), section: 'scope' },
+          ]
+        : [],
+    [profile]
+  );
 
   const openOrderTemplate = async () => {
     if (!profile) return;
@@ -257,6 +277,15 @@ export default function SupplyVendorDetailPage() {
         </div>
       </div>
 
+      <ProfileCompletenessCard
+        title="Vendor Profile"
+        items={vendorCompletenessItems}
+        onNavigateToMissing={(item) => {
+          setVendorFormFocus((item.section as 'profile' | 'ordering' | 'scope' | undefined) ?? 'profile');
+          setVendorFormOpen(true);
+        }}
+      />
+
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="rounded-xl border border-border bg-card p-5">
           <h3 className="mb-4 text-sm font-semibold text-foreground inline-flex items-center gap-2">
@@ -334,8 +363,12 @@ export default function SupplyVendorDetailPage() {
 
       <SupplyVendorForm
         open={vendorFormOpen}
-        onClose={() => setVendorFormOpen(false)}
+        onClose={() => {
+          setVendorFormOpen(false);
+          setVendorFormFocus(undefined);
+        }}
         initialData={profile}
+        focusSection={vendorFormFocus}
         onSave={(payload) => {
           const saved = upsertSupplyVendorProfile(payload);
           setProfile(saved);

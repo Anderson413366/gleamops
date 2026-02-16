@@ -87,9 +87,10 @@ interface StaffFormProps {
   onClose: () => void;
   initialData?: Staff | null;
   onSuccess?: () => void;
+  focusSection?: 'personal' | 'employment' | 'contact' | 'hr';
 }
 
-export function StaffForm({ open, onClose, initialData, onSuccess }: StaffFormProps) {
+export function StaffForm({ open, onClose, initialData, onSuccess, focusSection }: StaffFormProps) {
   const isEdit = !!initialData?.id;
   const supabase = getSupabaseBrowserClient();
   const wizard = useWizardSteps(WIZARD_STEPS.length);
@@ -221,6 +222,16 @@ export function StaffForm({ open, onClose, initialData, onSuccess }: StaffFormPr
     }
   }, [open, isEdit]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (!open || !focusSection) return;
+    window.setTimeout(() => {
+      const section = document.querySelector<HTMLElement>(`[data-staff-form-section="${focusSection}"]`);
+      if (!section) return;
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      section.focus?.();
+    }, 60);
+  }, [open, focusSection]);
+
   const handleClose = () => {
     reset();
     wizard.reset();
@@ -239,7 +250,8 @@ export function StaffForm({ open, onClose, initialData, onSuccess }: StaffFormPr
       <SlideOver open={open} onClose={handleClose} title="Edit Staff" subtitle={initialData?.staff_code} wide>
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Personal Info */}
-          <FormSection title="Personal Info" icon={<UserRound className="h-4 w-4" />} description="Identity, role, status, and photo.">
+          <div data-staff-form-section="personal" tabIndex={-1}>
+            <FormSection title="Personal Info" icon={<UserRound className="h-4 w-4" />} description="Identity, role, status, and photo.">
             <Input label="Staff Code" value={values.staff_code} readOnly disabled />
             <Input label="Full Name" value={values.full_name} onChange={(e) => setValue('full_name', e.target.value)} onBlur={() => onBlur('full_name')} error={errors.full_name} required />
             <div className="grid grid-cols-3 gap-3">
@@ -254,9 +266,11 @@ export function StaffForm({ open, onClose, initialData, onSuccess }: StaffFormPr
               <input type="file" accept="image/*" onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)} className="block text-sm text-muted-foreground file:mr-2 file:rounded file:border-0 file:bg-muted file:px-3 file:py-1 file:text-sm file:font-medium" />
               {values.photo_url && !photoFile && <p className="text-xs text-muted-foreground">Current photo set</p>}
             </div>
-          </FormSection>
+            </FormSection>
+          </div>
           {/* Employment */}
-          <FormSection title="Employment" icon={<Briefcase className="h-4 w-4" />} description="Hire details, pay, schedule, and supervisor.">
+          <div data-staff-form-section="employment" tabIndex={-1}>
+            <FormSection title="Employment" icon={<Briefcase className="h-4 w-4" />} description="Hire details, pay, schedule, and supervisor.">
             <div className="grid grid-cols-2 gap-3">
               <Select label="Employment Type" value={values.employment_type ?? ''} onChange={(e) => setValue('employment_type', e.target.value || null)} options={EMPLOYMENT_TYPE_OPTIONS} />
               <Input label="Hire Date" type="date" value={values.hire_date ?? ''} onChange={(e) => setValue('hire_date', e.target.value || null)} />
@@ -270,9 +284,11 @@ export function StaffForm({ open, onClose, initialData, onSuccess }: StaffFormPr
               <Select label="Supervisor" value={values.supervisor_id ?? ''} onChange={(e) => setValue('supervisor_id', e.target.value || null)} options={[{ value: '', label: 'None' }, ...supervisors]} />
             </div>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={values.is_subcontractor} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue('is_subcontractor', e.target.checked)} className="rounded border-border" /> Subcontractor</label>
-          </FormSection>
+            </FormSection>
+          </div>
           {/* Contact */}
-          <FormSection title="Contact" icon={<Phone className="h-4 w-4" />} description="Email, phone, and mailing address.">
+          <div data-staff-form-section="contact" tabIndex={-1}>
+            <FormSection title="Contact" icon={<Phone className="h-4 w-4" />} description="Email, phone, and mailing address.">
             <Input label="Email" type="email" value={values.email ?? ''} onChange={(e) => setValue('email', e.target.value || null)} onBlur={() => onBlur('email')} error={errors.email} />
             <div className="grid grid-cols-2 gap-3">
               <Input label="Phone" value={values.phone ?? ''} onChange={(e) => setValue('phone', e.target.value || null)} />
@@ -284,9 +300,11 @@ export function StaffForm({ open, onClose, initialData, onSuccess }: StaffFormPr
               <Input label="State" value={values.address?.state ?? ''} onChange={(e) => setValue('address', { ...values.address, state: e.target.value })} />
               <Input label="ZIP" value={values.address?.zip ?? ''} onChange={(e) => setValue('address', { ...values.address, zip: e.target.value })} />
             </div>
-          </FormSection>
+            </FormSection>
+          </div>
           {/* Emergency & Notes */}
-          <FormSection title="Emergency & HR" icon={<Siren className="h-4 w-4" />} description="Emergency contact, certifications, background checks, and notes.">
+          <div data-staff-form-section="hr" tabIndex={-1}>
+            <FormSection title="Emergency & HR" icon={<Siren className="h-4 w-4" />} description="Emergency contact, certifications, background checks, and notes.">
             <div className="grid grid-cols-3 gap-3">
               <Input label="Emergency Name" value={values.emergency_contact_name ?? ''} onChange={(e) => setValue('emergency_contact_name', e.target.value || null)} />
               <Input label="Emergency Phone" value={values.emergency_contact_phone ?? ''} onChange={(e) => setValue('emergency_contact_phone', e.target.value || null)} />
@@ -295,7 +313,8 @@ export function StaffForm({ open, onClose, initialData, onSuccess }: StaffFormPr
             <Input label="Certifications" value={values.certifications ?? ''} onChange={(e) => setValue('certifications', e.target.value || null)} />
             <Input label="Background Check Date" type="date" value={values.background_check_date ?? ''} onChange={(e) => setValue('background_check_date', e.target.value || null)} />
             <Textarea label="Notes" value={values.notes ?? ''} onChange={(e) => setValue('notes', e.target.value || null)} rows={3} />
-          </FormSection>
+            </FormSection>
+          </div>
           <div className="flex justify-end gap-3 pt-4 border-t border-border">
             <Button variant="secondary" type="button" onClick={handleClose}>Cancel</Button>
             <Button type="submit" loading={loading}>Save Changes</Button>

@@ -10,6 +10,7 @@ import type { Equipment, StatusColor } from '@gleamops/shared';
 import { EQUIPMENT_CONDITION_COLORS } from '@gleamops/shared';
 import { EquipmentForm } from '@/components/forms/equipment-form';
 import { ActivityHistorySection } from '@/components/activity/activity-history-section';
+import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
 
 interface EquipmentWithRelations extends Equipment {
   staff?: { full_name: string; staff_code: string } | null;
@@ -31,6 +32,7 @@ export default function EquipmentDetailPage() {
   const [equipment, setEquipment] = useState<EquipmentWithRelations | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
+  const [equipmentFormFocus, setEquipmentFormFocus] = useState<'basics' | 'model' | 'purchase' | 'maintenance' | 'notes' | undefined>(undefined);
 
   const fetchEquipment = async () => {
     setLoading(true);
@@ -74,6 +76,19 @@ export default function EquipmentDetailPage() {
     );
   }
 
+  const equipmentCompletenessItems: CompletenessItem[] = [
+    { key: 'name', label: 'Equipment Name', isComplete: isFieldComplete(equipment.name), section: 'basics' },
+    { key: 'equipment_type', label: 'Equipment Type', isComplete: isFieldComplete(equipment.equipment_type), section: 'basics' },
+    { key: 'condition', label: 'Condition', isComplete: isFieldComplete(equipment.condition), section: 'basics' },
+    { key: 'manufacturer', label: 'Manufacturer', isComplete: isFieldComplete(equipment.manufacturer), section: 'model' },
+    { key: 'model_number', label: 'Model Number', isComplete: isFieldComplete(equipment.model_number), section: 'model' },
+    { key: 'serial_number', label: 'Serial Number', isComplete: isFieldComplete(equipment.serial_number), section: 'model' },
+    { key: 'purchase_date', label: 'Purchase Date', isComplete: isFieldComplete(equipment.purchase_date), section: 'purchase' },
+    { key: 'maintenance_schedule', label: 'Maintenance Schedule', isComplete: isFieldComplete(equipment.maintenance_schedule), section: 'maintenance' },
+    { key: 'next_maintenance', label: 'Next Maintenance Date', isComplete: isFieldComplete(equipment.next_maintenance_date), section: 'maintenance' },
+    { key: 'notes', label: 'Notes', isComplete: isFieldComplete(equipment.notes), section: 'notes' },
+  ];
+
   return (
     <div className="space-y-6">
       <Link
@@ -111,6 +126,15 @@ export default function EquipmentDetailPage() {
           </button>
         </div>
       </div>
+
+      <ProfileCompletenessCard
+        title="Equipment Profile"
+        items={equipmentCompletenessItems}
+        onNavigateToMissing={(item) => {
+          setEquipmentFormFocus((item.section as 'basics' | 'model' | 'purchase' | 'maintenance' | 'notes' | undefined) ?? 'basics');
+          setFormOpen(true);
+        }}
+      />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
@@ -211,12 +235,16 @@ export default function EquipmentDetailPage() {
 
       <EquipmentForm
         open={formOpen}
-        onClose={() => setFormOpen(false)}
+        onClose={() => {
+          setFormOpen(false);
+          setEquipmentFormFocus(undefined);
+        }}
         initialData={equipment}
         onSuccess={async () => {
           setFormOpen(false);
           await fetchEquipment();
         }}
+        focusSection={equipmentFormFocus}
       />
     </div>
   );

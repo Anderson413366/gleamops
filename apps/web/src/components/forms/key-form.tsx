@@ -38,9 +38,10 @@ interface KeyFormProps {
   onClose: () => void;
   initialData?: KeyInventory | null;
   onSuccess?: () => void;
+  focusSection?: 'details';
 }
 
-export function KeyForm({ open, onClose, initialData, onSuccess }: KeyFormProps) {
+export function KeyForm({ open, onClose, initialData, onSuccess, focusSection }: KeyFormProps) {
   const isEdit = !!initialData?.id;
   const supabase = getSupabaseBrowserClient();
   const [sites, setSites] = useState<{ value: string; label: string }[]>([]);
@@ -100,9 +101,19 @@ export function KeyForm({ open, onClose, initialData, onSuccess }: KeyFormProps)
               data.map((s) => ({ value: s.id, label: `${s.name} (${s.site_code})` }))
             );
           }
-        });
+      });
     }
   }, [open, supabase]);
+
+  useEffect(() => {
+    if (!open || !focusSection) return;
+    window.setTimeout(() => {
+      const section = document.querySelector<HTMLElement>('[data-key-form-section="details"]');
+      if (!section) return;
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      section.focus?.();
+    }, 60);
+  }, [open, focusSection]);
 
   const handleClose = () => {
     reset();
@@ -117,7 +128,8 @@ export function KeyForm({ open, onClose, initialData, onSuccess }: KeyFormProps)
       subtitle={isEdit ? initialData?.key_code : undefined}
     >
       <form onSubmit={handleSubmit} className="space-y-8">
-        <FormSection title="Key Details" icon={<KeyRound className="h-4 w-4" />} description="Type, site association, and current availability status.">
+        <div data-key-form-section="details" tabIndex={-1}>
+          <FormSection title="Key Details" icon={<KeyRound className="h-4 w-4" />} description="Type, site association, and current availability status.">
           <Input
             label="Key Code"
             value={values.key_code}
@@ -166,7 +178,8 @@ export function KeyForm({ open, onClose, initialData, onSuccess }: KeyFormProps)
             value={values.notes ?? ''}
             onChange={(e) => setValue('notes', e.target.value || null)}
           />
-        </FormSection>
+          </FormSection>
+        </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <Button variant="secondary" type="button" onClick={handleClose}>

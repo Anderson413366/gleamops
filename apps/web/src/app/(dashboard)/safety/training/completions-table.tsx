@@ -333,7 +333,7 @@ export default function CompletionsTable({ search, autoCreate, onAutoCreateHandl
               <Sparkles className="absolute -right-1 -top-1 h-4 w-4" />
             </div>
           )}
-          title="No training completions found"
+          title="No training completions yet"
           description={search ? 'Try a different search term.' : 'Record completed training events and keep compliance current.'}
           actionLabel={search ? undefined : '+ Record First Completion'}
           onAction={search ? undefined : handleAdd}

@@ -86,7 +86,7 @@ export default function OrdersTable({ search, formOpen, onFormClose, onRefresh }
       <>
         <EmptyState
           icon={<ShoppingCart className="h-12 w-12" />}
-          title="No orders found"
+          title="No supply orders yet"
           description="Create a supply order to get started."
         />
         <SupplyOrderForm

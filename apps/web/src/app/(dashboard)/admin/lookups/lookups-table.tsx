@@ -80,7 +80,7 @@ export default function LookupsTable({ search, autoCreate, onAutoCreateHandled, 
     return (
       <EmptyState
         icon={<BookOpen className="h-10 w-10" />}
-        title="No lookups found"
+        title="No lookups yet"
         description="No lookup values match your search criteria."
       />
     );

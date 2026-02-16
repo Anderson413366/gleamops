@@ -84,17 +84,26 @@ export default function BidsTable({ search, onSelect, onCreateNew }: BidsTablePr
   );
   const sortedRows = sorted as unknown as BidWithClient[];
   const pag = usePagination(sortedRows, 25);
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: rows.length };
+    for (const row of rows) {
+      const status = row.status ?? 'ACTIVE';
+      counts[status] = (counts[status] || 0) + 1;
+    }
+    return counts;
+  }, [rows]);
   const selectedStatusLabel = effectiveStatusFilter === 'all'
     ? 'all statuses'
     : effectiveStatusFilter.toLowerCase().replace(/_/g, ' ');
   const emptyTitle = effectiveStatusFilter === 'all'
-    ? 'No bids'
-    : `No ${selectedStatusLabel} bids found`;
+    ? 'No bids yet'
+    : `No ${selectedStatusLabel} bids`;
   const emptyDescription = search
     ? 'Try a different search term.'
     : effectiveStatusFilter === 'all'
       ? 'Price your first opportunity to move it toward contract.'
-      : 'All bids are currently in other statuses.';
+      : `There are currently no bids with ${selectedStatusLabel} status.`;
+  const showGuidedEmptyState = !search && effectiveStatusFilter === 'all';
 
   if (loading) return <TableSkeleton rows={6} cols={5} />;
 
@@ -126,6 +135,12 @@ export default function BidsTable({ search, onSelect, onCreateNew }: BidsTablePr
             )}
           >
             {status === 'all' ? 'All' : status.replace(/_/g, ' ')}
+            <span className={cn(
+              'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+              effectiveStatusFilter === status ? 'bg-white/20' : 'bg-background'
+            )}>
+              {statusCounts[status] || 0}
+            </span>
           </button>
         ))}
       </div>
@@ -171,10 +186,10 @@ export default function BidsTable({ search, onSelect, onCreateNew }: BidsTablePr
             )}
             title={emptyTitle}
             description={emptyDescription}
-            actionLabel={search ? undefined : '+ Create Your First Bid'}
-            onAction={search ? undefined : onCreateNew}
+            actionLabel={showGuidedEmptyState ? '+ Create Your First Bid' : undefined}
+            onAction={showGuidedEmptyState ? onCreateNew : undefined}
           >
-            {!search && (
+            {showGuidedEmptyState && (
               <div className="space-y-4 text-left">
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li>Build clean scopes and pricing options in one place.</li>

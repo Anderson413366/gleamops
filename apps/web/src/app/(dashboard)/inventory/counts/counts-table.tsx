@@ -93,7 +93,7 @@ export default function CountsTable({ search, formOpen, onFormClose, onRefresh }
       <>
         <EmptyState
           icon={<ClipboardList className="h-12 w-12" />}
-          title="No inventory counts found"
+          title="No inventory counts yet"
           description="Create an inventory count to get started."
         />
         <InventoryCountForm

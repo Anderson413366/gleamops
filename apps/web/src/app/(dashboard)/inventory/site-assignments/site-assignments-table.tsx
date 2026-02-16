@@ -60,7 +60,7 @@ export default function SiteAssignmentsTable({ search }: Props) {
     return (
       <EmptyState
         icon={<MapPin className="h-12 w-12" />}
-        title="No site assignments found"
+        title="No site assignments yet"
         description="Supplies assigned to sites will appear here."
       />
     );

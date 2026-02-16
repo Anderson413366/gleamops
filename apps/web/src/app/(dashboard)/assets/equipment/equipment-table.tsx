@@ -154,6 +154,19 @@ export default function EquipmentTable({ search, onSelect, formOpen, onFormClose
 
   if (loading) return <TableSkeleton rows={8} cols={7} />;
 
+  const selectedStatusLabel = statusFilter === 'all'
+    ? 'all statuses'
+    : statusFilter.toLowerCase().replace(/_/g, ' ');
+  const emptyTitle = statusFilter === 'all'
+    ? 'No equipment yet'
+    : `No ${selectedStatusLabel} equipment`;
+  const emptyDescription = search
+    ? 'Try a different search term.'
+    : statusFilter === 'all'
+      ? 'Track asset condition, assignment, and site location in one place.'
+      : `There are currently no equipment records with ${selectedStatusLabel} status.`;
+  const showGuidedEmptyState = !search && statusFilter === 'all';
+
   return (
     <div>
       <div className="flex items-center justify-end gap-3 mb-4">
@@ -270,8 +283,10 @@ export default function EquipmentTable({ search, onSelect, formOpen, onFormClose
         <div className="mt-4">
           <EmptyState
             icon={<Wrench className="h-12 w-12" />}
-            title="No equipment found"
-            description={search ? 'Try a different search term.' : 'Add equipment to get started.'}
+            title={emptyTitle}
+            description={emptyDescription}
+            actionLabel={showGuidedEmptyState ? '+ Add Your First Equipment' : undefined}
+            onAction={showGuidedEmptyState ? () => setCreateOpen(true) : undefined}
           />
         </div>
       )}

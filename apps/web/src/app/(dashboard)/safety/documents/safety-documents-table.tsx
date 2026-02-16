@@ -296,7 +296,7 @@ export default function SafetyDocumentsTable({ search, autoCreate, onAutoCreateH
 
   if (loading) return <TableSkeleton rows={8} cols={6} />;
 
-  const emptyTitle = 'No safety documents found';
+  const emptyTitle = 'No safety documents yet';
   const emptyDescription = search
     ? 'Try a different search term.'
     : 'Build a living safety library for field teams and supervisors.';

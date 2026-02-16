@@ -93,7 +93,7 @@ export default function EqAssignmentsTable({ search, formOpen, onFormClose, onRe
       <>
         <EmptyState
           icon={<ArrowLeftRight className="h-12 w-12" />}
-          title="No assignments found"
+          title="No assignments yet"
           description="Equipment checkout records will appear here."
         />
         <EquipmentAssignmentForm

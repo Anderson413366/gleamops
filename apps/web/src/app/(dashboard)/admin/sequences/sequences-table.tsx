@@ -51,7 +51,7 @@ export default function SequencesTable({ search }: Props) {
     return (
       <EmptyState
         icon={<Hash className="h-10 w-10" />}
-        title="No sequences found"
+        title="No sequences yet"
         description="No system sequences match your search criteria."
       />
     );

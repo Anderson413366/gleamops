@@ -322,7 +322,7 @@ export default function KitsTable({ search, autoCreate, onAutoCreateHandled }: K
       <>
         <EmptyState
           icon={<Box className="h-12 w-12" />}
-          title="No kits found"
+          title="No kits yet"
           description={search ? 'Try a different search term.' : 'Create your first kit to get started.'}
         />
         <SlideOver open={formOpen} onClose={handleClose} title={isEdit ? 'Edit Kit' : 'New Kit'} subtitle={isEdit ? editItem?.code : undefined} wide>

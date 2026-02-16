@@ -80,17 +80,26 @@ export default function ProspectsTable({ search }: ProspectsTableProps) {
   );
   const sortedRows = sorted as unknown as SalesProspect[];
   const pag = usePagination(sortedRows, 25);
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: rows.length };
+    for (const row of rows) {
+      const status = row.prospect_status_code ?? 'ACTIVE';
+      counts[status] = (counts[status] || 0) + 1;
+    }
+    return counts;
+  }, [rows]);
   const selectedStatusLabel = effectiveStatusFilter === 'all'
     ? 'all statuses'
     : effectiveStatusFilter.toLowerCase().replace(/_/g, ' ');
   const emptyTitle = effectiveStatusFilter === 'all'
-    ? 'No prospects'
-    : `No ${selectedStatusLabel} prospects found`;
+    ? 'No prospects yet'
+    : `No ${selectedStatusLabel} prospects`;
   const emptyDescription = search
     ? 'Try a different search term.'
     : effectiveStatusFilter === 'all'
       ? 'Start your pipeline by capturing your first lead.'
-      : 'All your prospects are currently in other statuses.';
+      : `There are currently no prospects with ${selectedStatusLabel} status.`;
+  const showGuidedEmptyState = !search && effectiveStatusFilter === 'all';
 
   const handleAdd = () => {
     setFormOpen(true);
@@ -131,6 +140,12 @@ export default function ProspectsTable({ search }: ProspectsTableProps) {
             )}
           >
             {status === 'all' ? 'All' : status}
+            <span className={cn(
+              'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+              effectiveStatusFilter === status ? 'bg-white/20' : 'bg-background'
+            )}>
+              {statusCounts[status] || 0}
+            </span>
           </button>
         ))}
       </div>
@@ -178,10 +193,10 @@ export default function ProspectsTable({ search }: ProspectsTableProps) {
             )}
             title={emptyTitle}
             description={emptyDescription}
-            actionLabel={search ? undefined : '+ Add Your First Prospect'}
-            onAction={search ? undefined : handleAdd}
+            actionLabel={showGuidedEmptyState ? '+ Add Your First Prospect' : undefined}
+            onAction={showGuidedEmptyState ? handleAdd : undefined}
           >
-            {!search && (
+            {showGuidedEmptyState && (
               <div className="space-y-4 text-left">
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li>Track every lead from first contact to signed contract.</li>

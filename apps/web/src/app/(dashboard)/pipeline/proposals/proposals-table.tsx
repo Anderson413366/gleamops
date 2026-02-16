@@ -107,13 +107,14 @@ export default function ProposalsTable({ search, onSelect, onGoToBids }: Proposa
     ? 'all statuses'
     : statusFilter.toLowerCase().replace(/_/g, ' ');
   const emptyTitle = statusFilter === 'all'
-    ? 'No proposals'
-    : `No ${selectedStatusLabel} proposals found`;
+    ? 'No proposals yet'
+    : `No ${selectedStatusLabel} proposals`;
   const emptyDescription = search
     ? 'Try a different search term.'
     : statusFilter === 'all'
       ? 'Generate polished proposals from approved bids and send for signature.'
-      : 'All proposals are currently in other statuses.';
+      : `There are currently no proposals with ${selectedStatusLabel} status.`;
+  const showGuidedEmptyState = !search && statusFilter === 'all';
 
   if (loading) return <TableSkeleton rows={6} cols={5} />;
 
@@ -206,10 +207,10 @@ export default function ProposalsTable({ search, onSelect, onGoToBids }: Proposa
             )}
             title={emptyTitle}
             description={emptyDescription}
-            actionLabel={search ? undefined : '+ Go To Bids'}
-            onAction={search ? undefined : onGoToBids}
+            actionLabel={showGuidedEmptyState ? '+ Go To Bids' : undefined}
+            onAction={showGuidedEmptyState ? onGoToBids : undefined}
           >
-            {!search && (
+            {showGuidedEmptyState && (
               <div className="space-y-4 text-left">
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li>Turn finalized pricing into client-ready documents.</li>

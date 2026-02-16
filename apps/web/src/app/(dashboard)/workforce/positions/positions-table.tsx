@@ -101,7 +101,7 @@ export default function PositionsTable({ search }: Props) {
   const pag = usePagination(sortedRows, 25);
 
   if (loading) return <TableSkeleton rows={8} cols={5} />;
-  if (filtered.length === 0) return <EmptyState icon={<BriefcaseBusiness className="h-10 w-10" />} title="No positions found" description="Add a position to get started." />;
+  if (filtered.length === 0) return <EmptyState icon={<BriefcaseBusiness className="h-10 w-10" />} title="No positions yet" description="Add a position to get started." />;
 
   return (
     <div>

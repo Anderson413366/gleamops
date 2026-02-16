@@ -317,6 +317,19 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
 
   if (loading) return <TableSkeleton rows={8} cols={8} />;
 
+  const selectedStatusLabel = statusFilter === 'all'
+    ? 'all statuses'
+    : statusFilter.toLowerCase().replace(/_/g, ' ');
+  const emptyTitle = statusFilter === 'all'
+    ? 'No supplies yet'
+    : `No ${selectedStatusLabel} supplies`;
+  const emptyDescription = search
+    ? 'Try a different search term.'
+    : statusFilter === 'all'
+      ? 'Track catalog items, unit costs, and safety documents in one place.'
+      : `There are currently no supplies with ${selectedStatusLabel} status.`;
+  const showGuidedEmptyState = !search && statusFilter === 'all';
+
   return (
     <div>
       <div className="flex items-center justify-end gap-3 mb-4">
@@ -367,14 +380,10 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
         filtered.length === 0 ? (
           <EmptyState
             icon={<Package className="h-12 w-12" />}
-            title={statusFilter === 'all' ? 'No supplies found' : `No ${statusFilter.toLowerCase().replace(/_/g, ' ')} supplies found`}
-            description={
-              search
-                ? 'Try a different search term.'
-                : statusFilter === 'all'
-                  ? 'Add your first supply to get started.'
-                  : 'All supplies are currently in other statuses.'
-            }
+            title={emptyTitle}
+            description={emptyDescription}
+            actionLabel={showGuidedEmptyState ? '+ Add Your First Supply' : undefined}
+            onAction={showGuidedEmptyState ? handleAdd : undefined}
           />
         ) : (
           <SuppliesCardGrid rows={pag.page} onSelect={handleRowClick} />
@@ -439,14 +448,10 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
             <div className="mt-4">
               <EmptyState
                 icon={<Package className="h-12 w-12" />}
-                title={statusFilter === 'all' ? 'No supplies found' : `No ${statusFilter.toLowerCase().replace(/_/g, ' ')} supplies found`}
-                description={
-                  search
-                    ? 'Try a different search term.'
-                    : statusFilter === 'all'
-                      ? 'Add your first supply to get started.'
-                      : 'All supplies are currently in other statuses.'
-                }
+                title={emptyTitle}
+                description={emptyDescription}
+                actionLabel={showGuidedEmptyState ? '+ Add Your First Supply' : undefined}
+                onAction={showGuidedEmptyState ? handleAdd : undefined}
               />
             </div>
           )}

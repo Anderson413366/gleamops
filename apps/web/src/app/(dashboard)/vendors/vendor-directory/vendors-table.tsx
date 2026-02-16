@@ -267,7 +267,7 @@ export default function VendorsTable({ search, formOpen, onFormClose, onRefresh 
         <div className="space-y-4">
           <EmptyState
             icon={<Store className="h-12 w-12" />}
-            title="No supply vendors found"
+            title="No supply vendors yet"
             description={search ? 'Try a different search term.' : 'Add your first supply vendor profile to start centralizing purchasing details.'}
           />
           {!search && (

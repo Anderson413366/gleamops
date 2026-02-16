@@ -54,7 +54,7 @@ export default function ServiceTaskMapping({ search }: Props) {
   const pag = usePagination(sortedRows, 25);
 
   if (loading) return <TableSkeleton rows={8} cols={4} />;
-  if (filtered.length === 0) return <EmptyState icon={<Link2 className="h-10 w-10" />} title="No mappings found" description="Service-to-task mappings will appear here." />;
+  if (filtered.length === 0) return <EmptyState icon={<Link2 className="h-10 w-10" />} title="No mappings yet" description="Service-to-task mappings will appear here." />;
 
   return (
     <div>

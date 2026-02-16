@@ -56,7 +56,7 @@ export default function StatusRulesTable({ search }: Props) {
     return (
       <EmptyState
         icon={<GitBranch className="h-10 w-10" />}
-        title="No status rules found"
+        title="No status rules yet"
         description="No status transition rules match your search criteria."
       />
     );

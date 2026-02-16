@@ -113,8 +113,10 @@ export default function ContactsTable({ search }: ContactsTableProps) {
       {filtered.length === 0 ? (
         <EmptyState
           icon={<Users className="h-12 w-12" />}
-          title="No contacts found"
-          description={search ? 'Try a different search term.' : 'Add a contact to a client or site.'}
+          title="No contacts yet"
+          description={search ? 'Try a different search term.' : 'Add primary contacts so teams always know who to call.'}
+          actionLabel={search ? undefined : '+ Add Your First Contact'}
+          onAction={search ? undefined : handleAdd}
         />
       ) : (
         <>

@@ -10,6 +10,8 @@ import {
   Package,
   Pencil,
   Trash2,
+  PauseCircle,
+  PlayCircle,
   AlertTriangle,
   Info,
   Boxes,
@@ -27,6 +29,7 @@ import type { SupplyCatalog } from '@gleamops/shared';
 import { SupplyForm } from '@/components/forms/supply-form';
 import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
+import { StatusToggleDialog } from '@/components/detail/status-toggle-dialog';
 import { toast } from 'sonner';
 
 function formatCurrency(n: number | null) {
@@ -86,6 +89,8 @@ export default function SupplyDetailPage() {
   const [imageUploading, setImageUploading] = useState(false);
   const [imageUploadError, setImageUploadError] = useState<string | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archiveLoading, setArchiveLoading] = useState(false);
 
   const fetchSupply = async () => {
     setLoading(true);
@@ -118,6 +123,35 @@ export default function SupplyDetailPage() {
   useEffect(() => {
     setImageLoadError(false);
   }, [supply?.image_url]);
+
+  const handleStatusToggle = async () => {
+    if (!supply) return;
+    setArchiveLoading(true);
+    const supabase = getSupabaseBrowserClient();
+    const isInactive = (supply.supply_status ?? 'ACTIVE').toUpperCase() === 'DISCONTINUED';
+    const nextStatus = isInactive ? 'ACTIVE' : 'DISCONTINUED';
+
+    try {
+      const { error } = await supabase
+        .from('supply_catalog')
+        .update({
+          supply_status: nextStatus,
+        })
+        .eq('id', supply.id)
+        .eq('version_etag', supply.version_etag);
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
+      toast.success(`Successfully ${isInactive ? 'reactivated' : 'deactivated'} ${supply.name}`);
+      await fetchSupply();
+    } finally {
+      setArchiveLoading(false);
+      setArchiveOpen(false);
+    }
+  };
 
   const handleImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -217,6 +251,7 @@ export default function SupplyDetailPage() {
     { key: 'image', label: 'Product Image', isComplete: isFieldComplete(supply.image_url), section: 'details' },
     { key: 'notes', label: 'Notes', isComplete: isFieldComplete(supply.notes), section: 'details' },
   ];
+  const isInactive = (supply.supply_status ?? 'ACTIVE').toUpperCase() === 'DISCONTINUED';
 
   return (
     <div className="space-y-6">
@@ -296,9 +331,15 @@ export default function SupplyDetailPage() {
             <Pencil className="h-3.5 w-3.5" />
             Edit
           </button>
-          <button type="button" className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950">
-            <Trash2 className="h-3.5 w-3.5" />
-            Deactivate
+          <button
+            type="button"
+            onClick={() => setArchiveOpen(true)}
+            className={isInactive
+              ? 'inline-flex items-center gap-2 rounded-lg border border-green-300 px-3.5 py-2 text-sm font-medium text-green-700 hover:bg-green-50 transition-colors'
+              : 'inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3.5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors'}
+          >
+            {isInactive ? <PlayCircle className="h-3.5 w-3.5" /> : <PauseCircle className="h-3.5 w-3.5" />}
+            {isInactive ? 'Reactivate' : 'Deactivate'}
           </button>
         </div>
       </div>
@@ -542,6 +583,16 @@ export default function SupplyDetailPage() {
         initialData={supply}
         onSuccess={fetchSupply}
         focusSection={supplyFormFocus}
+      />
+
+      <StatusToggleDialog
+        open={archiveOpen}
+        onClose={() => setArchiveOpen(false)}
+        onConfirm={handleStatusToggle}
+        entityLabel="Supply Item"
+        entityName={supply.name}
+        mode={isInactive ? 'reactivate' : 'deactivate'}
+        loading={archiveLoading}
       />
     </div>
   );

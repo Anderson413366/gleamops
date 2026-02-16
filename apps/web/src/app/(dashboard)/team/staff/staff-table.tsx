@@ -31,11 +31,6 @@ interface StaffTableProps {
   onAutoCreateHandled?: () => void;
 }
 
-function formatDate(d: string | null) {
-  if (!d) return '—';
-  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
 export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: StaffTableProps) {
   const [rows, setRows] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
@@ -116,7 +111,6 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
             { key: 'employment_type', label: 'Employment' },
             { key: 'email', label: 'Email' },
             { key: 'phone', label: 'Phone' },
-            { key: 'hire_date', label: 'Hire Date' },
           ]}
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
@@ -165,7 +159,6 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
                 <TableHead>Employment</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Phone</TableHead>
-                <TableHead sortable sorted={sortKey === 'hire_date' && sortDir} onSort={() => onSort('hire_date')}>Hire Date</TableHead>
               </tr>
             </TableHeader>
             <TableBody>
@@ -181,7 +174,6 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
                   <TableCell className="text-muted-foreground">{row.employment_type ?? '—'}</TableCell>
                   <TableCell className="text-muted-foreground">{row.email ?? '—'}</TableCell>
                   <TableCell className="text-muted-foreground">{row.mobile_phone ?? row.phone ?? '—'}</TableCell>
-                  <TableCell className="text-muted-foreground">{formatDate(row.hire_date ?? null)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

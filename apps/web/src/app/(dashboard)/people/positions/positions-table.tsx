@@ -6,7 +6,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { StaffPosition } from '@gleamops/shared';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, SlideOver
+  EmptyState, Badge, Pagination, TableSkeleton, SlideOver, ExportButton
 } from '@gleamops/ui';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
@@ -53,6 +53,18 @@ export default function PositionsTable({ search }: Props) {
 
   return (
     <div>
+      <div className="flex justify-end mb-4">
+        <ExportButton
+          data={filtered as unknown as Record<string, unknown>[]}
+          filename="positions"
+          columns={[
+            { key: 'position_code', label: 'Code' },
+            { key: 'title', label: 'Title' },
+            { key: 'department', label: 'Department' },
+            { key: 'pay_grade', label: 'Pay Grade' },
+          ]}
+        />
+      </div>
       <Table>
         <TableHeader>
           <tr>

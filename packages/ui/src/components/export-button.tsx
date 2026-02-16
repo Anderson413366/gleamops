@@ -72,9 +72,10 @@ export function ExportButton<T extends Record<string, unknown>>({
   onExported,
   onError,
 }: ExportButtonProps<T>) {
-  if (data.length === 0) return null;
+  const isDisabled = data.length === 0;
 
   const handleExport = () => {
+    if (isDisabled) return;
     try {
       exportToCSV(data, filename, columns);
       const finalName = filename.endsWith('.csv') ? filename : `${filename}.csv`;
@@ -88,11 +89,14 @@ export function ExportButton<T extends Record<string, unknown>>({
     <button
       type="button"
       onClick={handleExport}
+      disabled={isDisabled}
       className={cn(
-        'inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+        'inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium text-muted-foreground transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+        isDisabled ? 'cursor-not-allowed opacity-50' : 'hover:bg-muted hover:text-foreground',
         className
       )}
-      aria-label={`Export ${data.length} records as CSV`}
+      aria-label={isDisabled ? 'Export unavailable: no records to export' : `Export ${data.length} records as CSV`}
+      title={isDisabled ? 'No matching records to export' : undefined}
     >
       <Download className="h-4 w-4" />
       {label}

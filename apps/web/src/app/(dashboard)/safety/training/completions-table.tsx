@@ -217,8 +217,9 @@ export default function CompletionsTable({ search, autoCreate, onAutoCreateHandl
       handleClose();
       fetchData();
       toast.success(isEdit ? 'Completion updated' : 'Completion recorded');
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Failed to save completion', { duration: Infinity });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to save completion';
+      toast.error(msg, { duration: Infinity });
     } finally {
       setFormLoading(false);
     }

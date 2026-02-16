@@ -4,10 +4,10 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { ArrowLeft, Send, MessageSquare, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { SlideOver, Badge, Button, Card, CardContent, Skeleton } from '@gleamops/ui';
+import { SlideOver, Badge, Button, Skeleton } from '@gleamops/ui';
 import type { BadgeColor } from '@gleamops/ui';
-import type { Message, MessageThread } from '@gleamops/shared';
-import { formatDateTime, formatRelative } from '@/lib/utils/date';
+import type { Message } from '@gleamops/shared';
+import { formatRelative } from '@/lib/utils/date';
 
 interface MessageWithSender extends Message {
   sender?: { full_name: string; staff_code: string } | null;
@@ -86,7 +86,7 @@ export function ThreadDetail({ threadId, threadSubject, threadType, open, onClos
     }
 
     // Fetch staff info for all users
-    let staffMap = new Map<string, { full_name: string; staff_code: string }>();
+    const staffMap = new Map<string, { full_name: string; staff_code: string }>();
     if (senderIds.size > 0) {
       const { data: staffData } = await supabase
         .from('staff')

@@ -66,7 +66,7 @@ export async function POST(
     }
 
     // Use pgcrypto crypt() + gen_salt() to hash the PIN via raw SQL
-    const { data: insertedRow, error: insertErr } = await service.rpc('fn_create_site_pin', {
+    const { error: insertErr } = await service.rpc('fn_create_site_pin', {
       p_tenant_id: tenantId,
       p_site_id: siteId,
       p_pin: pin,

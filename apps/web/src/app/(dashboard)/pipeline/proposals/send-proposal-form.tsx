@@ -95,7 +95,7 @@ export function SendProposalForm({ proposal, open, onClose, onSuccess }: SendPro
       setName('');
       onSuccess?.();
       onClose();
-    } catch (err) {
+    } catch {
       setError('Network error. Please try again.');
       setLoading(false);
     }

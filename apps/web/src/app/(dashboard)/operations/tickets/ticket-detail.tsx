@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   ClipboardList, MapPin, Briefcase, Calendar, Clock,
   UserPlus, X, Users, CheckSquare, Square, Camera, ImageIcon,
-  AlertTriangle, Filter, Eye, Timer, Shield, Star, Package,
+  AlertTriangle, Filter, Eye, Timer, Shield, Star,
   ExternalLink, Key,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';

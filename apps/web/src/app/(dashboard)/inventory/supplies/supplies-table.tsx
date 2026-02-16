@@ -192,8 +192,9 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
       handleClose();
       fetchData();
       toast.success('Supply created');
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Failed to save supply', { duration: Infinity });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to save supply';
+      toast.error(message, { duration: Infinity });
     } finally {
       setFormLoading(false);
     }

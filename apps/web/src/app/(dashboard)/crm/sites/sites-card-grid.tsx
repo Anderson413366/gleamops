@@ -1,5 +1,7 @@
 'use client';
 
+/* eslint-disable @next/next/no-img-element */
+
 import { MapPin } from 'lucide-react';
 import type { Site } from '@gleamops/shared';
 

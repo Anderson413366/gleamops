@@ -444,7 +444,7 @@ export function TemplateBuilder({ open, onClose, templateId, onSaved }: Template
             <CardContent>
               {activeItems.length === 0 ? (
                 <div className="text-center py-8 text-sm text-muted-foreground">
-                  No items yet. Click "Add Item" to start building your inspection checklist.
+                  No items yet. Click Add Item to start building your inspection checklist.
                 </div>
               ) : (
                 <div className="space-y-6">
@@ -460,7 +460,7 @@ export function TemplateBuilder({ open, onClose, templateId, onSaved }: Template
 
                       {/* Items */}
                       <div className="space-y-2">
-                        {sectionItems.map(({ item, globalIndex }, localIdx) => {
+                        {sectionItems.map(({ item, globalIndex }) => {
                           const activeIdx = activeItemIndices.indexOf(globalIndex);
                           return (
                             <div

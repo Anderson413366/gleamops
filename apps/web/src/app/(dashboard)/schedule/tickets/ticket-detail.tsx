@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   ClipboardList, MapPin, Briefcase, Calendar, Clock,
   UserPlus, X, Users, CheckSquare, Square, Camera, ImageIcon,
-  AlertTriangle, Filter, Eye, Timer, Shield, Star, Package,
+  AlertTriangle, Filter, Eye, Timer, Shield, Star,
   ExternalLink, Key, MessageSquare,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -307,7 +307,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
     else setAssetCheckouts([]);
 
     setLoading(false);
-  }, [ticket, open]);
+  }, [ticket, open, messagingEnabled]);
 
   const fetchChecklist = useCallback(async () => {
     if (!ticket || !open) return;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo } from 'react';
-import { ClipboardList, FileText, Wrench } from 'lucide-react';
+import { ClipboardList, FileText, Factory, Tag, CalendarClock } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { equipmentSchema, type EquipmentFormData } from '@gleamops/shared';
@@ -19,11 +19,20 @@ const DEFAULTS: EquipmentFormData = {
   equipment_code: '',
   name: '',
   equipment_type: null,
+  equipment_category: null,
+  manufacturer: null,
+  brand: null,
+  model_number: null,
   condition: 'GOOD',
   serial_number: null,
   purchase_date: null,
+  purchase_price: null,
   assigned_to: null,
   site_id: null,
+  maintenance_schedule: null,
+  last_maintenance_date: null,
+  next_maintenance_date: null,
+  maintenance_specs: null,
   notes: null,
 };
 
@@ -32,6 +41,12 @@ interface EquipmentFormProps {
   onClose: () => void;
   initialData?: Equipment | null;
   onSuccess?: () => void;
+}
+
+function normalizeDate(d: string | null): string | null {
+  if (!d) return null;
+  // Supabase can return a full timestamp; HTML date inputs require YYYY-MM-DD.
+  return d.length >= 10 ? d.slice(0, 10) : d;
 }
 
 export function EquipmentForm({ open, onClose, initialData, onSuccess }: EquipmentFormProps) {
@@ -44,11 +59,20 @@ export function EquipmentForm({ open, onClose, initialData, onSuccess }: Equipme
       equipment_code: initialData.equipment_code,
       name: initialData.name,
       equipment_type: initialData.equipment_type,
+      equipment_category: initialData.equipment_category,
+      manufacturer: initialData.manufacturer,
+      brand: initialData.brand,
+      model_number: initialData.model_number,
       condition: (initialData.condition as 'GOOD' | 'FAIR' | 'POOR' | 'OUT_OF_SERVICE' | null) ?? 'GOOD',
       serial_number: initialData.serial_number,
-      purchase_date: initialData.purchase_date,
+      purchase_date: normalizeDate(initialData.purchase_date),
+      purchase_price: initialData.purchase_price,
       assigned_to: initialData.assigned_to,
       site_id: initialData.site_id,
+      maintenance_schedule: initialData.maintenance_schedule,
+      last_maintenance_date: normalizeDate(initialData.last_maintenance_date),
+      next_maintenance_date: normalizeDate(initialData.next_maintenance_date),
+      maintenance_specs: initialData.maintenance_specs,
       notes: initialData.notes,
     };
   }, [initialData]);
@@ -63,11 +87,20 @@ export function EquipmentForm({ open, onClose, initialData, onSuccess }: Equipme
           .update({
             name: data.name,
             equipment_type: data.equipment_type,
+            equipment_category: data.equipment_category,
+            manufacturer: data.manufacturer,
+            brand: data.brand,
+            model_number: data.model_number,
             condition: data.condition,
             serial_number: data.serial_number,
             purchase_date: data.purchase_date,
+            purchase_price: data.purchase_price,
             assigned_to: data.assigned_to,
             site_id: data.site_id,
+            maintenance_schedule: data.maintenance_schedule,
+            last_maintenance_date: data.last_maintenance_date,
+            next_maintenance_date: data.next_maintenance_date,
+            maintenance_specs: data.maintenance_specs,
             notes: data.notes,
           })
           .eq('id', initialData!.id)
@@ -125,11 +158,18 @@ export function EquipmentForm({ open, onClose, initialData, onSuccess }: Equipme
             error={errors.name}
             required
           />
-          <Input
-            label="Equipment Type"
-            value={values.equipment_type ?? ''}
-            onChange={(e) => setValue('equipment_type', e.target.value || null)}
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Equipment Type"
+              value={values.equipment_type ?? ''}
+              onChange={(e) => setValue('equipment_type', e.target.value || null)}
+            />
+            <Input
+              label="Category"
+              value={values.equipment_category ?? ''}
+              onChange={(e) => setValue('equipment_category', e.target.value || null)}
+            />
+          </div>
           <Select
             label="Condition"
             value={values.condition}
@@ -138,17 +178,73 @@ export function EquipmentForm({ open, onClose, initialData, onSuccess }: Equipme
           />
         </FormSection>
 
-        <FormSection title="Details" icon={<Wrench className="h-4 w-4" />} description="Ownership, serial, and purchase details.">
+        <FormSection title="Make & Model" icon={<Factory className="h-4 w-4" />} description="Manufacturer and device identity details.">
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Manufacturer"
+              value={values.manufacturer ?? ''}
+              onChange={(e) => setValue('manufacturer', e.target.value || null)}
+            />
+            <Input
+              label="Brand"
+              value={values.brand ?? ''}
+              onChange={(e) => setValue('brand', e.target.value || null)}
+            />
+          </div>
+          <Input
+            label="Model Number"
+            value={values.model_number ?? ''}
+            onChange={(e) => setValue('model_number', e.target.value || null)}
+          />
           <Input
             label="Serial Number"
             value={values.serial_number ?? ''}
             onChange={(e) => setValue('serial_number', e.target.value || null)}
           />
+        </FormSection>
+
+        <FormSection title="Purchase" icon={<Tag className="h-4 w-4" />} description="Acquisition date and cost (optional).">
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Purchase Date"
+              type="date"
+              value={values.purchase_date ?? ''}
+              onChange={(e) => setValue('purchase_date', e.target.value || null)}
+            />
+            <Input
+              label="Purchase Price"
+              type="number"
+              value={values.purchase_price ?? ''}
+              onChange={(e) => setValue('purchase_price', e.target.value ? Number(e.target.value) : null)}
+            />
+          </div>
+        </FormSection>
+
+        <FormSection title="Maintenance" icon={<CalendarClock className="h-4 w-4" />} description="Optional maintenance schedule and next steps.">
           <Input
-            label="Purchase Date"
-            type="date"
-            value={values.purchase_date ?? ''}
-            onChange={(e) => setValue('purchase_date', e.target.value || null)}
+            label="Maintenance Schedule"
+            value={values.maintenance_schedule ?? ''}
+            onChange={(e) => setValue('maintenance_schedule', e.target.value || null)}
+          />
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Last Maintenance Date"
+              type="date"
+              value={values.last_maintenance_date ?? ''}
+              onChange={(e) => setValue('last_maintenance_date', e.target.value || null)}
+            />
+            <Input
+              label="Next Maintenance Date"
+              type="date"
+              value={values.next_maintenance_date ?? ''}
+              onChange={(e) => setValue('next_maintenance_date', e.target.value || null)}
+            />
+          </div>
+          <Textarea
+            label="Maintenance Specs"
+            value={values.maintenance_specs ?? ''}
+            onChange={(e) => setValue('maintenance_specs', e.target.value || null)}
+            rows={3}
           />
         </FormSection>
 

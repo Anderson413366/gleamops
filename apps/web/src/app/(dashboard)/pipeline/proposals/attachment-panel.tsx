@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { uploadToStorage } from '@/lib/upload-to-storage';
 import {
-  Card, CardHeader, CardTitle, CardContent, Button, Badge, FileDropzone,
+  Card, CardHeader, CardTitle, CardContent, Badge, FileDropzone,
 } from '@gleamops/ui';
 import type { SalesProposalAttachment, FileRecord } from '@gleamops/shared';
 

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import {
   Package, Wrench, Truck, Users, DollarSign, Briefcase,
-  AlertTriangle, Settings, Plus, Trash2, Sun, Moon,
+  AlertTriangle, Settings, Plus, Sun, Moon,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {

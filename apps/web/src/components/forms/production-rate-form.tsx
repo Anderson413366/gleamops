@@ -78,7 +78,9 @@ export function ProductionRateForm({ open, onClose, initialData, onSuccess }: Pr
       const tenantId = user?.app_metadata?.tenant_id;
 
       if (isEdit) {
-        const { rate_code: _code, ...updateData } = data;
+        // Rate code is immutable after create.
+        const { rate_code, ...updateData } = data;
+        void rate_code;
         const result = await supabase
           .from('sales_production_rates')
           .update(updateData)

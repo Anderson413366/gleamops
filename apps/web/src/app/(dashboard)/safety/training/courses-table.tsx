@@ -58,9 +58,7 @@ export default function CoursesTable({ search, formOpen, onFormClose, onRefresh 
       setCreateOpen(true);
       // Auto-generate course code for new courses
       const supabase = getSupabaseBrowserClient();
-      supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'TRC' }).then(({ data }) => {
-        // The form will be opened; code generation is handled separately
-      });
+      void supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'TRC' });
     }
   }, [formOpen]);
 

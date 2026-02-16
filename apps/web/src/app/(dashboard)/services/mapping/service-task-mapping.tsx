@@ -49,7 +49,7 @@ export default function ServiceTaskMapping({ search }: Props) {
     );
   }, [rows, search]);
 
-  const { sorted, sortKey, sortDir, onSort } = useTableSort(filtered as unknown as Record<string, unknown>[], 'created_at', 'asc');
+  const { sorted } = useTableSort(filtered as unknown as Record<string, unknown>[], 'created_at', 'asc');
   const sortedRows = sorted as unknown as ServiceTaskRow[];
   const pag = usePagination(sortedRows, 25);
 

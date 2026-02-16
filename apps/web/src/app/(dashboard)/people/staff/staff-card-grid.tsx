@@ -1,5 +1,7 @@
 'use client';
 
+/* eslint-disable @next/next/no-img-element */
+
 import { User } from 'lucide-react';
 import { Badge } from '@gleamops/ui';
 import type { Staff } from '@gleamops/shared';

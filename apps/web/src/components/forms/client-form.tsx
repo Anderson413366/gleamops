@@ -103,8 +103,10 @@ export function ClientForm({ open, onClose, initialData, onSuccess, focusSection
         }
       : DEFAULTS,
     onSubmit: async (data) => {
-      const { client_code, ...fields } = data;
       if (isEdit) {
+        // Client code is immutable after create.
+        const { client_code, ...fields } = data;
+        void client_code;
         const result = await supabase
           .from('clients')
           .update(fields)

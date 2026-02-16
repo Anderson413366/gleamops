@@ -46,7 +46,6 @@ const EMERALD = '#059669';
 const EMERALD_LIGHT = '#d1fae5';
 const DARK = '#111827';
 const GRAY = '#6b7280';
-const LIGHT_GRAY = '#f3f4f6';
 const WHITE = '#ffffff';
 const BORDER = '#e5e7eb';
 

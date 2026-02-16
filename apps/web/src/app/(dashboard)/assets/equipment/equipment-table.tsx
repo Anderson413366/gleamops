@@ -36,11 +36,6 @@ function formatCurrency(n: number | null) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(n);
 }
 
-function formatDate(d: string | null) {
-  if (!d) return '—';
-  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
 export default function EquipmentTable({ search, onSelect, formOpen, onFormClose, onRefresh }: Props) {
   const router = useRouter();
   const [rows, setRows] = useState<EquipmentRow[]>([]);

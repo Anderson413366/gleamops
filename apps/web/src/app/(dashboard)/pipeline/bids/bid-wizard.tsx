@@ -8,7 +8,6 @@ import {
   Button,
   Input,
   Select,
-  Textarea,
   Card,
   CardContent,
   CardHeader,
@@ -236,7 +235,6 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
 
   const currentStepName = stepNames[step];
   const isLastStep = step === stepNames.length - 1;
-  const reviewStepIndex = stepNames.length - 1;
 
   // Clamp step if bid type changes and we're past Specialization
   useEffect(() => {
@@ -754,7 +752,6 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
 
       // Consumables expansion table
       if (form.consumable_items.length > 0) {
-        const firstItem = form.consumable_items[0];
         await supabase.from('sales_bid_consumables').insert({
           tenant_id: tenantId,
           bid_version_id: version.id,

@@ -56,8 +56,9 @@ export default function SettingsPage() {
 
       if (error) throw error;
       toast.success('Settings saved');
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Failed to save settings', { duration: Infinity });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to save settings';
+      toast.error(message, { duration: Infinity });
     } finally {
       setSaving(false);
     }

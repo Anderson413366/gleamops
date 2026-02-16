@@ -250,11 +250,11 @@ export async function POST(
     let pdfBuffer: Buffer;
     try {
       pdfBuffer = await renderToBuffer(ProposalPDF(pdfProps));
-    } catch (renderErr: any) {
+    } catch (renderErr: unknown) {
       console.error('[generate-pdf] PDF render failed:', renderErr);
       return problemResponse(
         PROPOSAL_005(
-          `PDF render failed: ${renderErr?.message ?? 'Unknown error'}`,
+          `PDF render failed: ${renderErr instanceof Error ? renderErr.message : 'Unknown error'}`,
           API_PATH,
         ),
       );
@@ -334,10 +334,10 @@ export async function POST(
       fileId: fileRecord.id,
       storageUrl: storagePath,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[generate-pdf] Unexpected error:', err);
     return problemResponse(
-      SYS_002(err?.message ?? 'Unexpected server error', API_PATH),
+      SYS_002(err instanceof Error ? err.message : 'Unexpected server error', API_PATH),
     );
   }
 }

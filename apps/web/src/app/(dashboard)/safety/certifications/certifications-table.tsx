@@ -203,8 +203,9 @@ export default function CertificationsTable({ search, autoCreate, onAutoCreateHa
       handleClose();
       fetchData();
       toast.success(isEdit ? 'Certification updated' : 'Certification added');
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Failed to save certification', { duration: Infinity });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to save certification';
+      toast.error(msg, { duration: Infinity });
     } finally {
       setFormLoading(false);
     }

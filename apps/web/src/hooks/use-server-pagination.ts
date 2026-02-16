@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 interface UseServerPaginationOptions {
@@ -73,13 +73,13 @@ export function useServerPagination<T>(
       setCurrentPage(pageNum);
       setLoading(false);
     },
-    [table, select, pageSize, orderBy, ascending, JSON.stringify(filters)]
+    [table, select, pageSize, orderBy, ascending, filters]
   );
 
   // Initial fetch
-  useState(() => {
+  useEffect(() => {
     fetchPage(1);
-  });
+  }, [fetchPage]);
 
   const totalPages = Math.ceil(totalItems / pageSize);
   const hasNext = currentPage < totalPages;

@@ -9,7 +9,6 @@ import {
   CardHeader,
   CardTitle,
   Skeleton,
-  Badge,
 } from '@gleamops/ui';
 
 interface FunnelStage {

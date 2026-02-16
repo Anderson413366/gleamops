@@ -174,10 +174,9 @@ export async function POST(request: NextRequest) {
       idempotencyKey: sendRecord.idempotency_key,
       status: 'QUEUED',
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unexpected server error';
     console.error('[proposal-send] Unexpected error:', err);
-    return problemResponse(
-      SYS_002(err?.message ?? 'Unexpected server error', INSTANCE),
-    );
+    return problemResponse(SYS_002(message, INSTANCE));
   }
 }

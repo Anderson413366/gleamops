@@ -174,7 +174,9 @@ export function StaffForm({ open, onClose, initialData, onSuccess }: StaffFormPr
       const submitData = { ...data, full_name: fullName, photo_url: photoUrl };
 
       if (isEdit) {
-        const { staff_code: _code, ...updateData } = submitData;
+        // Staff code is immutable after create.
+        const { staff_code, ...updateData } = submitData;
+        void staff_code;
         const result = await supabase
           .from('staff')
           .update(updateData)

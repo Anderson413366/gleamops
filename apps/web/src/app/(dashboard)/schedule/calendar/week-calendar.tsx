@@ -3,8 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Users, Clock, GripVertical } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { Badge, Button, Skeleton } from '@gleamops/ui';
-import { TICKET_STATUS_COLORS } from '@gleamops/shared';
+import { Button, Skeleton } from '@gleamops/ui';
 import type { WorkTicket } from '@gleamops/shared';
 
 interface TicketWithRelations extends WorkTicket {
@@ -87,6 +86,8 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
   const fetchTickets = useCallback(async () => {
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
+    const end = new Date(weekStart);
+    end.setDate(end.getDate() + 6);
     const { data, error } = await supabase
       .from('work_tickets')
       .select(`
@@ -97,7 +98,7 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
       `)
       .is('archived_at', null)
       .gte('scheduled_date', formatDate(weekStart))
-      .lte('scheduled_date', formatDate(weekEnd))
+      .lte('scheduled_date', formatDate(end))
       .order('start_time', { ascending: true });
 
     if (!error && data) setTickets(data as unknown as TicketWithRelations[]);

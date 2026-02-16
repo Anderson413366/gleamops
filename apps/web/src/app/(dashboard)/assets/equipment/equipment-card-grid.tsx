@@ -1,5 +1,7 @@
 'use client';
 
+/* eslint-disable @next/next/no-img-element */
+
 import { Wrench } from 'lucide-react';
 import { Badge } from '@gleamops/ui';
 import { EQUIPMENT_CONDITION_COLORS } from '@gleamops/shared';

@@ -61,17 +61,7 @@ describe('verifySendGridSignature', () => {
   });
 
   it('FAILS when payload goes through JSON.parse → JSON.stringify', () => {
-    const rawPayload = Buffer.from(SAMPLE_PAYLOAD, 'utf8');
-    const signature = signPayload(TIMESTAMP, rawPayload);
-
-    // Simulate the bug: parse and re-serialize the JSON
-    const parsed = JSON.parse(SAMPLE_PAYLOAD);
-    const reserialized = Buffer.from(JSON.stringify(parsed), 'utf8');
-
-    // The raw bytes differ (key order, spacing, escaping may change)
-    const bytesMatch = rawPayload.equals(reserialized);
-    // They might match for this simple case, so let's also test with a payload
-    // that has intentional formatting differences
+    // Use a payload with intentional formatting differences so the raw bytes are guaranteed to change.
     const spacedPayload = `[ { "email" : "test@example.com" , "event" : "delivered" } ]`;
     const spacedRaw = Buffer.from(spacedPayload, 'utf8');
     const spacedSig = signPayload(TIMESTAMP, spacedRaw);

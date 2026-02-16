@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
-  SlideOver, Button, Select, Input, Textarea, Skeleton,
+  SlideOver, Button, Select, Textarea, Skeleton,
 } from '@gleamops/ui';
 import type { InspectionTemplate, Staff } from '@gleamops/shared';
 

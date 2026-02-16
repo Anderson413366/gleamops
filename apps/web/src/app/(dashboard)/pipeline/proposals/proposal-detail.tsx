@@ -2,15 +2,15 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import {
-  FileCheck, Send, Mail, Eye, DollarSign, AlertCircle, Trophy, Zap,
+  Send, Mail, Eye, DollarSign, AlertCircle, Trophy, Zap,
   CheckCircle2, XCircle, Loader2, Paperclip, FileText, Plus, Pencil, Save, Trash2, X,
-  PenTool, Layout,
+  PenTool,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useFeatureFlag } from '@/hooks/use-feature-flag';
 import {
-  SlideOver, Badge, Button, Card, CardContent, CardHeader, CardTitle, Skeleton, Select, Input,
+  SlideOver, Badge, Button, Card, CardContent, CardHeader, CardTitle, Skeleton, Select,
 } from '@gleamops/ui';
 import {
   PROPOSAL_STATUS_COLORS,
@@ -169,9 +169,8 @@ export function ProposalDetail({
         .order('name')
         .then(({ data }) => {
           if (data) setSites(data as unknown as SiteOption[]);
-          if (data && data.length > 0 && !selectedSiteId) {
-            setSelectedSiteId((data[0] as unknown as SiteOption).id);
-          }
+          const firstId = data && data.length > 0 ? (data[0] as unknown as SiteOption).id : '';
+          if (firstId) setSelectedSiteId((prev) => prev || firstId);
         });
     } else {
       supabase
@@ -182,9 +181,8 @@ export function ProposalDetail({
         .order('name')
         .then(({ data }) => {
           if (data) setSites(data as unknown as SiteOption[]);
-          if (data && data.length > 0 && !selectedSiteId) {
-            setSelectedSiteId((data[0] as unknown as SiteOption).id);
-          }
+          const firstId = data && data.length > 0 ? (data[0] as unknown as SiteOption).id : '';
+          if (firstId) setSelectedSiteId((prev) => prev || firstId);
         });
     }
   }, [showConvertForm, proposal]);

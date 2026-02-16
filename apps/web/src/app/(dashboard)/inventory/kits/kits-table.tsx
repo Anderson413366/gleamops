@@ -297,8 +297,9 @@ export default function KitsTable({ search, autoCreate, onAutoCreateHandled }: K
       handleClose();
       fetchData();
       toast.success(isEdit ? 'Kit updated' : 'Kit created');
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Failed to save kit', { duration: Infinity });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to save kit';
+      toast.error(message, { duration: Infinity });
     } finally {
       setFormLoading(false);
     }

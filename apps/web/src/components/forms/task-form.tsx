@@ -73,7 +73,9 @@ export function TaskForm({ open, onClose, initialData, onSuccess }: TaskFormProp
       : DEFAULTS,
     onSubmit: async (data) => {
       if (isEdit) {
-        const { task_code: _code, ...updateData } = data;
+        // Task code is immutable after create.
+        const { task_code, ...updateData } = data;
+        void task_code;
         const result = await supabase
           .from('tasks')
           .update(updateData)

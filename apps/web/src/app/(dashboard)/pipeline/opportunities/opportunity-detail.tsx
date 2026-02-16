@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Target, DollarSign, TrendingUp, Clock, FileText, Pencil } from 'lucide-react';
+import { DollarSign, TrendingUp, Clock, FileText, Pencil } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   SlideOver,
@@ -14,7 +14,7 @@ import {
   Skeleton,
 } from '@gleamops/ui';
 import { OPPORTUNITY_STAGE_COLORS, BID_STATUS_COLORS } from '@gleamops/shared';
-import type { SalesOpportunity, SalesBid } from '@gleamops/shared';
+import type { SalesOpportunity } from '@gleamops/shared';
 
 interface OpportunityWithProspect extends SalesOpportunity {
   prospect?: { company_name: string; prospect_code: string } | null;

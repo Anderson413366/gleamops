@@ -129,8 +129,10 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
         }
       : { ...DEFAULTS, site_id: preselectedSiteId ?? '' },
     onSubmit: async (data) => {
-      const { job_code, ...fields } = data;
       if (isEdit) {
+        // Job code is immutable after create.
+        const { job_code, ...fields } = data;
+        void job_code;
         const result = await supabase
           .from('site_jobs')
           .update(fields)

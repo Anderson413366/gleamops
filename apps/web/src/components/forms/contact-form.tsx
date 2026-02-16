@@ -124,7 +124,9 @@ export function ContactForm({
       const submitData = { ...data, name: fullName };
 
       if (isEdit) {
-        const { contact_code: _code, ...updateData } = submitData;
+        // Contact code is immutable after create.
+        const { contact_code, ...updateData } = submitData;
+        void contact_code;
         const result = await supabase
           .from('contacts')
           .update(updateData)

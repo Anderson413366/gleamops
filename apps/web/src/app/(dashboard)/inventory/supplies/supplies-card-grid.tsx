@@ -1,5 +1,7 @@
 'use client';
 
+/* eslint-disable @next/next/no-img-element */
+
 import { Package } from 'lucide-react';
 import { Badge } from '@gleamops/ui';
 import type { SupplyCatalog } from '@gleamops/shared';

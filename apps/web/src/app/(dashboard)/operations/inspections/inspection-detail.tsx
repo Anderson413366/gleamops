@@ -8,7 +8,7 @@ import {
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { formatDate, formatDateLong } from '@/lib/utils/date';
 import {
-  SlideOver, Badge, Button, Card, CardContent, CardHeader, CardTitle, Skeleton, Select,
+  SlideOver, Badge, Card, CardContent, CardHeader, CardTitle, Skeleton, Select,
 } from '@gleamops/ui';
 import { INSPECTION_STATUS_COLORS, ISSUE_SEVERITY_COLORS } from '@gleamops/shared';
 import type { Inspection, InspectionItem, InspectionIssue } from '@gleamops/shared';

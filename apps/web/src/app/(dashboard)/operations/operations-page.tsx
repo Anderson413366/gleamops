@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Calendar, ClipboardList, Briefcase, ClipboardCheck, FileText, MapPin, AlertTriangle, MessageSquare, Eye, EyeOff } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
-import type { WorkTicket, Inspection, Geofence, MessageThread } from '@gleamops/shared';
+import type { WorkTicket, Inspection, Geofence } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 import TicketsTable from './tickets/tickets-table';

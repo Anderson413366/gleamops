@@ -205,8 +205,9 @@ export default function SafetyDocumentsTable({ search, autoCreate, onAutoCreateH
       handleClose();
       fetchData();
       toast.success(isEdit ? 'Document updated' : 'Document created');
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Failed to save document', { duration: Infinity });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to save document';
+      toast.error(msg, { duration: Infinity });
     } finally {
       setFormLoading(false);
     }

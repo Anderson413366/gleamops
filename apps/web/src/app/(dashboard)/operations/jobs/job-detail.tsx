@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import {
   Briefcase,
-  ClipboardList,
   AlertTriangle,
   Calendar,
   DollarSign,

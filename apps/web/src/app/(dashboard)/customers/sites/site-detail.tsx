@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { MapPin, Users, Pencil, Building2, Key, Shield } from 'lucide-react';
+import { MapPin, Users, Pencil, Building2, Key } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   SlideOver,

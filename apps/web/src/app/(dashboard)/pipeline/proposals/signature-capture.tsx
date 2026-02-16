@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { uploadToStorage } from '@/lib/upload-to-storage';
 import {
-  SlideOver, Button, ChipTabs, Input, FileDropzone,
+  SlideOver, Button, ChipTabs, FileDropzone,
 } from '@gleamops/ui';
 import type { ChipTab } from '@gleamops/ui';
 import type { SalesProposalSignature } from '@gleamops/shared';
@@ -276,7 +276,7 @@ export function SignatureCapture({
       setSaving(false);
     }
   }, [
-    signerName, signerEmail, tab, typedText, selectedFont, uploadedFile,
+    signerName, signerEmail, tab, selectedFont, uploadedFile,
     proposalId, tenantId, renderTypedToCanvas, onCaptured, onClose,
   ]);
 

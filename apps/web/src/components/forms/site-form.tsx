@@ -1,5 +1,7 @@
 'use client';
 
+/* eslint-disable @next/next/no-img-element */
+
 import { useEffect, useState, type ChangeEvent, type DragEvent } from 'react';
 import { Building2, CheckCircle2, FileText, ImagePlus, MapPin, Shield, Warehouse } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';

@@ -1,10 +1,9 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { AlertTriangle, Award, BookOpen, FileText, CalendarCheck } from 'lucide-react';
+import { Award, BookOpen, FileText, CalendarCheck } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Badge, Skeleton } from '@gleamops/ui';
-import { CERTIFICATION_STATUS_COLORS, SAFETY_DOCUMENT_STATUS_COLORS } from '@gleamops/shared';
 import type { StatusColor } from '@gleamops/shared';
 import { toSafeDate } from '@/lib/utils/date';
 

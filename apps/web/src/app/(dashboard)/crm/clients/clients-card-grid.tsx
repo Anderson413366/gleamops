@@ -1,5 +1,7 @@
 'use client';
 
+/* eslint-disable @next/next/no-img-element */
+
 import type { Client } from '@gleamops/shared';
 
 interface ClientsCardGridProps {

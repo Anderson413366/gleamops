@@ -10,7 +10,7 @@ import {
   Input, Select, Textarea, Button, Card, CardHeader, CardTitle, CardContent,
   ExportButton,
 } from '@gleamops/ui';
-import type { Service, ServiceTask, Task } from '@gleamops/shared';
+import type { Service, Task } from '@gleamops/shared';
 import { FREQUENCIES } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';

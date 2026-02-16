@@ -1,5 +1,7 @@
 'use client';
 
+/* eslint-disable @next/next/no-img-element */
+
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
@@ -9,7 +11,6 @@ import {
   Pencil,
   Trash2,
   Building2,
-  Key,
   Shield,
   AlertTriangle,
 } from 'lucide-react';
@@ -30,15 +31,6 @@ function formatCurrency(n: number | null) {
     currency: 'USD',
     maximumFractionDigits: 0,
   }).format(n);
-}
-
-function formatDate(d: string | null) {
-  if (!d) return '\u2014';
-  return new Date(d).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
 }
 
 export default function SiteDetailPage() {

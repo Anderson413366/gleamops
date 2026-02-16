@@ -202,8 +202,9 @@ export async function POST(request: NextRequest) {
       }
 
       processed++;
-    } catch (evtErr: any) {
-      console.error('[webhook] event processing error:', evtErr?.message ?? evtErr);
+    } catch (evtErr: unknown) {
+      const msg = evtErr instanceof Error ? evtErr.message : String(evtErr);
+      console.error('[webhook] event processing error:', msg);
       skipped++;
     }
   }

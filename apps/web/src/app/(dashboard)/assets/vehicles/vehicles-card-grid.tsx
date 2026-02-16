@@ -1,5 +1,7 @@
 'use client';
 
+/* eslint-disable @next/next/no-img-element */
+
 import { Car } from 'lucide-react';
 import type { Vehicle } from '@gleamops/shared';
 

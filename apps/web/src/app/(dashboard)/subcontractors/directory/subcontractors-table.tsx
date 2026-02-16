@@ -79,6 +79,7 @@ export default function SubcontractorsTable({ search }: Props) {
       .from('subcontractors')
       .select('*')
       .is('archived_at', null)
+      .not('subcontractor_code', 'like', 'VEN-%')
       .order('company_name');
     if (!error && data) {
       const subcontractorRows = data as Subcontractor[];

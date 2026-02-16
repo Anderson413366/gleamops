@@ -70,6 +70,7 @@ export function SubcontractorJobForm({ open, onClose, initialData, onSuccess }: 
           .from('subcontractors')
           .select('id, subcontractor_code, company_name')
           .is('archived_at', null)
+          .not('subcontractor_code', 'like', 'VEN-%')
           .order('company_name'),
         supabase
           .from('site_jobs')

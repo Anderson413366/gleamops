@@ -60,9 +60,9 @@ export default function VendorsPageClient() {
     async function fetchKpis() {
       const supabase = getSupabaseBrowserClient();
       const [activeRes, pendingRes, missingW9Res, vendorsRes] = await Promise.all([
-        supabase.from('subcontractors').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'ACTIVE'),
-        supabase.from('subcontractors').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'PENDING'),
-        supabase.from('subcontractors').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('w9_on_file', false),
+        supabase.from('subcontractors').select('id', { count: 'exact', head: true }).is('archived_at', null).not('subcontractor_code', 'like', 'VEN-%').eq('status', 'ACTIVE'),
+        supabase.from('subcontractors').select('id', { count: 'exact', head: true }).is('archived_at', null).not('subcontractor_code', 'like', 'VEN-%').eq('status', 'PENDING'),
+        supabase.from('subcontractors').select('id', { count: 'exact', head: true }).is('archived_at', null).not('subcontractor_code', 'like', 'VEN-%').eq('w9_on_file', false),
         supabase.from('supply_catalog').select('preferred_vendor').is('archived_at', null).not('preferred_vendor', 'is', null),
       ]);
 

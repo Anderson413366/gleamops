@@ -23,6 +23,13 @@ interface EquipmentRow extends Equipment {
   site?: { name: string; site_code: string } | null;
 }
 
+interface EquipmentAssignmentLite {
+  equipment_id: string;
+  assigned_date: string;
+  staff?: { full_name: string } | null;
+  site?: { name: string; site_code: string } | null;
+}
+
 interface Props {
   search: string;
   onSelect?: (eq: EquipmentRow) => void;
@@ -46,7 +53,41 @@ export default function EquipmentTable({ search, onSelect, formOpen, onFormClose
       .select('*, staff:assigned_to(full_name), site:site_id(name, site_code)')
       .is('archived_at', null)
       .order('name');
-    if (!error && data) setRows(data as unknown as EquipmentRow[]);
+    if (!error && data) {
+      const equipmentRows = data as unknown as EquipmentRow[];
+      if (equipmentRows.length === 0) {
+        setRows([]);
+        setLoading(false);
+        return;
+      }
+
+      const ids = equipmentRows.map((row) => row.id);
+      const { data: assignmentRows } = await supabase
+        .from('equipment_assignments')
+        .select('equipment_id, assigned_date, staff:staff_id(full_name), site:site_id(name, site_code)')
+        .in('equipment_id', ids)
+        .is('archived_at', null)
+        .is('returned_date', null)
+        .order('assigned_date', { ascending: false });
+
+      const fallbackByEquipmentId = new Map<string, EquipmentAssignmentLite>();
+      for (const row of (assignmentRows ?? []) as unknown as EquipmentAssignmentLite[]) {
+        if (!fallbackByEquipmentId.has(row.equipment_id)) {
+          fallbackByEquipmentId.set(row.equipment_id, row);
+        }
+      }
+
+      setRows(
+        equipmentRows.map((row) => {
+          const fallback = fallbackByEquipmentId.get(row.id);
+          return {
+            ...row,
+            staff: row.staff ?? fallback?.staff ?? null,
+            site: row.site ?? fallback?.site ?? null,
+          };
+        })
+      );
+    }
     setLoading(false);
   }, []);
 

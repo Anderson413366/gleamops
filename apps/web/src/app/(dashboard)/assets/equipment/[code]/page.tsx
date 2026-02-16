@@ -19,14 +19,25 @@ interface EquipmentWithRelations extends Equipment {
   site?: { name: string; site_code: string } | null;
 }
 
+interface EquipmentAssignmentFallback {
+  equipment_id: string;
+  assigned_date: string;
+  staff?: { full_name: string; staff_code: string } | null;
+  site?: { name: string; site_code: string } | null;
+}
+
 function formatCurrency(n: number | null) {
-  if (n == null) return '\u2014';
+  if (n == null) return '$0';
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(n);
 }
 
 function formatDate(d: string | null) {
-  if (!d) return '\u2014';
+  if (!d) return 'Not Set';
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function notSet() {
+  return <span className="italic text-muted-foreground">Not Set</span>;
 }
 
 export default function EquipmentDetailPage() {
@@ -48,7 +59,28 @@ export default function EquipmentDetailPage() {
       .is('archived_at', null)
       .single();
 
-    setEquipment((data as unknown as EquipmentWithRelations | null) ?? null);
+    const eq = (data as unknown as EquipmentWithRelations | null) ?? null;
+    if (!eq) {
+      setEquipment(null);
+      setLoading(false);
+      return;
+    }
+
+    const { data: assignmentRows } = await supabase
+      .from('equipment_assignments')
+      .select('equipment_id, assigned_date, staff:staff_id(full_name, staff_code), site:site_id(name, site_code)')
+      .eq('equipment_id', eq.id)
+      .is('archived_at', null)
+      .is('returned_date', null)
+      .order('assigned_date', { ascending: false })
+      .limit(1);
+
+    const fallback = ((assignmentRows ?? [])[0] as unknown as EquipmentAssignmentFallback | undefined) ?? null;
+    setEquipment({
+      ...eq,
+      staff: eq.staff ?? fallback?.staff ?? null,
+      site: eq.site ?? fallback?.site ?? null,
+    });
     setLoading(false);
   };
 
@@ -182,15 +214,15 @@ export default function EquipmentDetailPage() {
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <p className="text-2xl font-bold text-foreground">{equipment.equipment_category ?? '\u2014'}</p>
+          <p className="text-2xl font-bold text-foreground">{equipment.equipment_category ?? 'Not Set'}</p>
           <p className="text-xs text-muted-foreground">Category</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <p className="text-2xl font-bold text-foreground">{equipment.manufacturer ?? '\u2014'}</p>
+          <p className="text-2xl font-bold text-foreground">{equipment.manufacturer ?? 'Not Set'}</p>
           <p className="text-xs text-muted-foreground">Manufacturer</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <p className="text-2xl font-bold text-foreground">{equipment.model_number ?? '\u2014'}</p>
+          <p className="text-2xl font-bold text-foreground">{equipment.model_number ?? 'Not Set'}</p>
           <p className="text-xs text-muted-foreground">Model</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
@@ -209,7 +241,7 @@ export default function EquipmentDetailPage() {
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Equipment Type</dt>
-              <dd className="font-medium">{equipment.equipment_type ?? '\u2014'}</dd>
+              <dd className="font-medium">{equipment.equipment_type ?? notSet()}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Condition</dt>
@@ -221,7 +253,7 @@ export default function EquipmentDetailPage() {
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Serial Number</dt>
-              <dd className="font-medium font-mono text-xs">{equipment.serial_number ?? '\u2014'}</dd>
+              <dd className="font-medium font-mono text-xs">{equipment.serial_number ?? 'Not Set'}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Purchase Date</dt>
@@ -235,34 +267,28 @@ export default function EquipmentDetailPage() {
           <dl className="space-y-3 text-sm">
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Assigned To</dt>
-              <dd className="font-medium">{equipment.staff?.full_name ?? '\u2014'}</dd>
+              <dd className="font-medium">{equipment.staff?.full_name ?? notSet()}</dd>
             </div>
-            {equipment.staff?.staff_code && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Staff Code</dt>
-                <dd className="font-medium font-mono text-xs">{equipment.staff.staff_code}</dd>
-              </div>
-            )}
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Staff Code</dt>
+              <dd className="font-medium font-mono text-xs">{equipment.staff?.staff_code ?? 'Not Set'}</dd>
+            </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Site</dt>
-              <dd className="font-medium">{equipment.site?.name ?? '\u2014'}</dd>
+              <dd className="font-medium">{equipment.site?.name ?? notSet()}</dd>
             </div>
-            {equipment.site?.site_code && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Site Code</dt>
-                <dd className="font-medium font-mono text-xs">{equipment.site.site_code}</dd>
-              </div>
-            )}
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Site Code</dt>
+              <dd className="font-medium font-mono text-xs">{equipment.site?.site_code ?? 'Not Set'}</dd>
+            </div>
           </dl>
         </div>
       </div>
 
-      {equipment.notes && (
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <h3 className="mb-4 text-sm font-semibold text-foreground">Notes</h3>
-          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{equipment.notes}</p>
-        </div>
-      )}
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <h3 className="mb-4 text-sm font-semibold text-foreground">Notes</h3>
+        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{equipment.notes || 'Not Set'}</p>
+      </div>
 
       <div className="text-xs text-muted-foreground space-y-1 pt-4 border-t border-border">
         <p>Created: {formatDate(equipment.created_at)}</p>

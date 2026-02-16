@@ -29,7 +29,7 @@ import { StatusToggleDialog } from '@/components/detail/status-toggle-dialog';
 import { toast } from 'sonner';
 
 function formatCurrency(n: number | null) {
-  if (n == null) return '\u2014';
+  if (n == null) return '$0';
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
@@ -38,12 +38,23 @@ function formatCurrency(n: number | null) {
 }
 
 function formatDate(d: string | null) {
-  if (!d) return '\u2014';
+  if (!d) return 'Not Set';
   return new Date(d).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
   });
+}
+
+function renderNotSet(variant: 'optional' | 'required' = 'optional') {
+  return (
+    <span className={variant === 'required'
+      ? 'italic text-red-600 dark:text-red-300'
+      : 'italic text-muted-foreground'}
+    >
+      Not Set
+    </span>
+  );
 }
 
 function getInitials(name: string): string {
@@ -411,7 +422,7 @@ export default function ClientDetailPage() {
                   <div>
                     <p className="text-base font-semibold text-foreground">{primaryContact.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {[primaryContact.role_title, primaryContact.role].filter(Boolean).join(' · ') || '\u2014'}
+                      {[primaryContact.role_title, primaryContact.role].filter(Boolean).join(' · ') || 'Not Set'}
                     </p>
                   </div>
                   <div className="space-y-1.5 text-sm">
@@ -425,7 +436,7 @@ export default function ClientDetailPage() {
                       </a>
                     ) : (
                       <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-                        <Mail className="h-4 w-4" /> No email on file
+                        <Mail className="h-4 w-4" /> {renderNotSet()}
                       </p>
                     )}
                     {(primaryContact.work_phone || primaryContact.mobile_phone || primaryContact.phone) ? (
@@ -453,11 +464,11 @@ export default function ClientDetailPage() {
                       </div>
                     ) : (
                       <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-                        <Phone className="h-4 w-4" /> No phone on file
+                        <Phone className="h-4 w-4" /> {renderNotSet()}
                       </p>
                     )}
                     <div className="text-xs text-muted-foreground">
-                      Preferred method: <span className="text-foreground">{primaryContact.preferred_contact_method ?? 'No preference'}</span>
+                      Preferred method: <span className="text-foreground">{primaryContact.preferred_contact_method ?? 'Not Set'}</span>
                     </div>
                   </div>
                 </div>
@@ -480,45 +491,35 @@ export default function ClientDetailPage() {
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Company</p>
               <dl className="mt-2 space-y-3 text-sm">
-                {client.website && (
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-muted-foreground inline-flex items-center gap-1">
-                      <Globe className="h-3 w-3" /> Website
-                    </dt>
-                    <dd className="font-medium text-right">
+                <div className="flex justify-between gap-4">
+                  <dt className="text-muted-foreground inline-flex items-center gap-1">
+                    <Globe className="h-3 w-3" /> Website
+                  </dt>
+                  <dd className="font-medium text-right">
+                    {client.website ? (
                       <a
-                        href={
-                          client.website.startsWith('http')
-                            ? client.website
-                            : `https://${client.website}`
-                        }
+                        href={client.website.startsWith('http') ? client.website : `https://${client.website}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-600 hover:underline dark:text-blue-400"
                       >
                         {client.website}
                       </a>
-                    </dd>
-                  </div>
-                )}
-                {client.client_type && (
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-muted-foreground">Type</dt>
-                    <dd className="font-medium text-right">{client.client_type}</dd>
-                  </div>
-                )}
-                {client.industry && (
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-muted-foreground">Industry</dt>
-                    <dd className="font-medium text-right">{client.industry}</dd>
-                  </div>
-                )}
-                {client.billing_contact_id && (
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-muted-foreground">Billing Contact</dt>
-                    <dd className="font-medium text-right">{client.bill_to_name ?? '\u2014'}</dd>
-                  </div>
-                )}
+                    ) : renderNotSet()}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-muted-foreground">Type</dt>
+                  <dd className="font-medium text-right">{client.client_type ?? renderNotSet()}</dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-muted-foreground">Industry</dt>
+                  <dd className="font-medium text-right">{client.industry ?? renderNotSet()}</dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-muted-foreground">Billing Contact</dt>
+                  <dd className="font-medium text-right">{client.bill_to_name ?? renderNotSet()}</dd>
+                </div>
               </dl>
             </div>
           </div>
@@ -533,33 +534,22 @@ export default function ClientDetailPage() {
             </span>
           </h3>
           <dl className="space-y-3 text-sm">
-            {addr?.street && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Street</dt>
-                <dd className="font-medium">{addr.street}</dd>
-              </div>
-            )}
-            {addr?.city && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">City</dt>
-                <dd className="font-medium">{addr.city}</dd>
-              </div>
-            )}
-            {addr?.state && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">State</dt>
-                <dd className="font-medium">{addr.state}</dd>
-              </div>
-            )}
-            {addr?.zip && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">ZIP</dt>
-                <dd className="font-medium">{addr.zip}</dd>
-              </div>
-            )}
-            {!addr?.street && !addr?.city && (
-              <p className="text-muted-foreground">No address on file.</p>
-            )}
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Street</dt>
+              <dd className="font-medium">{addr?.street ?? renderNotSet()}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">City</dt>
+              <dd className="font-medium">{addr?.city ?? renderNotSet()}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">State</dt>
+              <dd className="font-medium">{addr?.state ?? renderNotSet()}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">ZIP</dt>
+              <dd className="font-medium">{addr?.zip ?? renderNotSet()}</dd>
+            </div>
           </dl>
         </div>
 
@@ -579,19 +569,19 @@ export default function ClientDetailPage() {
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Bill To Name</dt>
               <dd className="font-medium text-right">
-                {client.bill_to_name ? client.bill_to_name : <span className="text-muted-foreground">Not Set</span>}
+                {client.bill_to_name ? client.bill_to_name : renderNotSet()}
               </dd>
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Payment Terms</dt>
               <dd className="font-medium text-right">
-                {client.payment_terms ? client.payment_terms : <span className="text-muted-foreground">Not Set</span>}
+                {client.payment_terms ? client.payment_terms : renderNotSet()}
               </dd>
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Invoice Frequency</dt>
               <dd className="font-medium text-right">
-                {client.invoice_frequency ? client.invoice_frequency : <span className="text-muted-foreground">Not Set</span>}
+                {client.invoice_frequency ? client.invoice_frequency : renderNotSet()}
               </dd>
             </div>
             <div className="flex justify-between">
@@ -603,13 +593,13 @@ export default function ClientDetailPage() {
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Credit Limit</dt>
               <dd className="font-medium text-right">
-                {client.credit_limit != null ? formatCurrency(client.credit_limit) : <span className="text-muted-foreground">Not Set</span>}
+                {client.credit_limit != null ? formatCurrency(client.credit_limit) : '$0'}
               </dd>
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Tax ID</dt>
               <dd className="font-medium text-right">
-                {client.tax_id ? client.tax_id : <span className="text-muted-foreground">Not Set</span>}
+                {client.tax_id ? client.tax_id : renderNotSet()}
               </dd>
             </div>
           </dl>
@@ -636,7 +626,7 @@ export default function ClientDetailPage() {
                 {client.contract_start_date ? (
                   formatDate(client.contract_start_date)
                 ) : (
-                  <span className="text-amber-700/80 dark:text-amber-300/80">Not Set</span>
+                  renderNotSet('required')
                 )}
               </dd>
             </div>
@@ -646,7 +636,7 @@ export default function ClientDetailPage() {
                 {client.contract_end_date ? (
                   formatDate(client.contract_end_date)
                 ) : (
-                  <span className="text-amber-700/80 dark:text-amber-300/80">Not Set</span>
+                  renderNotSet('required')
                 )}
               </dd>
             </div>
@@ -668,18 +658,16 @@ export default function ClientDetailPage() {
                 {client.insurance_expiry ? (
                   formatDate(client.insurance_expiry)
                 ) : (
-                  <span className="text-muted-foreground">Not Set</span>
+                  renderNotSet()
                 )}
               </dd>
             </div>
-            {client.client_since && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Client Since</dt>
-                <dd className="font-medium">
-                  {formatDate(client.client_since)}
-                </dd>
-              </div>
-            )}
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Client Since</dt>
+              <dd className="font-medium">
+                {client.client_since ? formatDate(client.client_since) : renderNotSet()}
+              </dd>
+            </div>
           </dl>
         </div>
       </div>
@@ -732,7 +720,7 @@ export default function ClientDetailPage() {
                         {c.preferred_contact_method && <Badge color="blue">{c.preferred_contact_method}</Badge>}
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {[c.role_title, c.role].filter(Boolean).join(' · ') || '\u2014'}
+                        {[c.role_title, c.role].filter(Boolean).join(' · ') || 'Not Set'}
                       </p>
                       <div className="mt-2 flex flex-wrap gap-4 text-xs text-muted-foreground">
                         {c.email && (

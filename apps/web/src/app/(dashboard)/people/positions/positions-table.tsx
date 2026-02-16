@@ -26,6 +26,10 @@ function normalize(value: string | null | undefined): string {
     .replace(/[^a-z0-9]+/g, '');
 }
 
+function renderNotSet() {
+  return <span className="italic text-muted-foreground">Not Set</span>;
+}
+
 export default function PositionsTable({ search }: Props) {
   const [rows, setRows] = useState<StaffPosition[]>([]);
   const [loading, setLoading] = useState(true);
@@ -136,7 +140,7 @@ export default function PositionsTable({ search }: Props) {
                   {row.department ?? 'Not Set'}
                 </span>
               </TableCell>
-              <TableCell>{row.pay_grade ?? '—'}</TableCell>
+              <TableCell>{row.pay_grade ?? renderNotSet()}</TableCell>
               <TableCell className="tabular-nums text-muted-foreground">{staffCountByPositionId[row.id] ?? 0}</TableCell>
             </TableRow>
           ))}
@@ -165,11 +169,11 @@ export default function PositionsTable({ search }: Props) {
             </div>
             <div className="flex items-center justify-between gap-4">
               <span className="text-muted-foreground">Department</span>
-              <span className="font-medium text-right">{selected.department ?? '—'}</span>
+              <span className="font-medium text-right">{selected.department ?? renderNotSet()}</span>
             </div>
             <div className="flex items-center justify-between gap-4">
               <span className="text-muted-foreground">Pay Grade</span>
-              <span className="font-medium text-right">{selected.pay_grade ?? '—'}</span>
+              <span className="font-medium text-right">{selected.pay_grade ?? renderNotSet()}</span>
             </div>
           </div>
         )}

@@ -37,12 +37,19 @@ interface SiteWithClient extends Site {
 }
 
 function formatCurrency(n: number | null) {
-  if (n == null) return '\u2014';
+  if (n == null) return '$0';
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
     maximumFractionDigits: 0,
   }).format(n);
+}
+
+function formatDate(value: string | null | undefined): string {
+  if (!value) return 'Not Set';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Not Set';
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function formatTime(t: string | null): string {
@@ -57,9 +64,30 @@ function formatTime(t: string | null): string {
 }
 
 function notSet(v: unknown): ReactNode {
-  if (v == null) return <span className="text-muted-foreground">Not Set</span>;
-  if (typeof v === 'string' && v.trim() === '') return <span className="text-muted-foreground">Not Set</span>;
+  if (v == null) return <span className="italic text-muted-foreground">Not Set</span>;
+  if (typeof v === 'string' && v.trim() === '') return <span className="italic text-muted-foreground">Not Set</span>;
   return String(v);
+}
+
+function parseLegacySiteNotes(notes: string | null | undefined): {
+  contractType: string | null;
+  geofenceCenter: string | null;
+  geofenceRadius: string | null;
+} {
+  if (!notes) return { contractType: null, geofenceCenter: null, geofenceRadius: null };
+  const read = (label: string): string | null => {
+    const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const match = notes.match(new RegExp(`${escaped}:\\s*([^\\n\\r]+)`, 'i'));
+    const raw = match?.[1]?.trim() ?? null;
+    if (!raw) return null;
+    if (raw === '—' || raw === '-') return null;
+    return raw;
+  };
+  return {
+    contractType: read('Contract Type'),
+    geofenceCenter: read('Geofence center'),
+    geofenceRadius: read('Geofence radius'),
+  };
 }
 
 function mapsSearchUrl(addr: { street?: string; city?: string; state?: string; zip?: string; country?: string } | null): string | null {
@@ -225,6 +253,15 @@ export default function SiteDetailPage() {
   const isInactive = (site.status ?? '').toUpperCase() === 'INACTIVE';
   const mapsUrl = mapsSearchUrl(addr);
   const heroMapUrl = site.photo_url ? null : osmStaticMapUrl(site.geofence_center_lat, site.geofence_center_lng);
+  const parsedLegacy = parseLegacySiteNotes(site.notes);
+  const geofenceCenterLabel =
+    site.geofence_center_lat != null && site.geofence_center_lng != null
+      ? `${site.geofence_center_lat}, ${site.geofence_center_lng}`
+      : (parsedLegacy.geofenceCenter ?? null);
+  const geofenceRadiusLabel =
+    site.geofence_radius_meters != null
+      ? `${site.geofence_radius_meters} m`
+      : (parsedLegacy.geofenceRadius ?? null);
   const siteCompletenessItems: CompletenessItem[] = [
     { key: 'photo', label: 'Site Photo', isComplete: isFieldComplete(site.photo_url), section: 'basics' },
     { key: 'address', label: 'Address', isComplete: isFieldComplete(site.address), section: 'address' },
@@ -328,9 +365,9 @@ export default function SiteDetailPage() {
         </div>
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <p className="text-2xl font-bold text-foreground">
-            {site.square_footage
+            {site.square_footage != null
               ? site.square_footage.toLocaleString()
-              : '\u2014'}
+              : 'Not Set'}
           </p>
           <p className="text-xs text-muted-foreground">Square Footage</p>
         </div>
@@ -398,7 +435,7 @@ export default function SiteDetailPage() {
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Primary Contact</p>
               <div className="mt-2">
                 <p className="text-sm font-semibold text-foreground">{site.primary_contact?.name ?? 'Not Set'}</p>
-                <p className="text-xs text-muted-foreground">{[site.primary_contact?.role_title, site.primary_contact?.role].filter(Boolean).join(' · ') || '\u2014'}</p>
+                <p className="text-xs text-muted-foreground">{[site.primary_contact?.role_title, site.primary_contact?.role].filter(Boolean).join(' · ') || 'Not Set'}</p>
                 <div className="mt-2 space-y-1 text-xs text-muted-foreground">
                   <p>Email: <span className="text-foreground">{site.primary_contact?.email ?? 'Not Set'}</span></p>
                   <p>Phone: <span className="text-foreground">{site.primary_contact?.mobile_phone || site.primary_contact?.work_phone || site.primary_contact?.phone || 'Not Set'}</span></p>
@@ -411,7 +448,7 @@ export default function SiteDetailPage() {
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Emergency Contact</p>
               <div className="mt-2">
                 <p className="text-sm font-semibold text-foreground">{site.emergency_contact?.name ?? 'Not Set'}</p>
-                <p className="text-xs text-muted-foreground">{[site.emergency_contact?.role_title, site.emergency_contact?.role].filter(Boolean).join(' · ') || '\u2014'}</p>
+                <p className="text-xs text-muted-foreground">{[site.emergency_contact?.role_title, site.emergency_contact?.role].filter(Boolean).join(' · ') || 'Not Set'}</p>
                 <div className="mt-2 space-y-1 text-xs text-muted-foreground">
                   <p>Email: <span className="text-foreground">{site.emergency_contact?.email ?? 'Not Set'}</span></p>
                   <p>Phone: <span className="text-foreground">{site.emergency_contact?.mobile_phone || site.emergency_contact?.work_phone || site.emergency_contact?.phone || 'Not Set'}</span></p>
@@ -423,7 +460,7 @@ export default function SiteDetailPage() {
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Site Supervisor</p>
               <div className="mt-2">
                 <p className="text-sm font-semibold text-foreground">{site.supervisor?.full_name ?? 'Not Set'}</p>
-                <p className="text-xs text-muted-foreground">{site.supervisor?.staff_code ? `Staff ${site.supervisor.staff_code}` : '\u2014'}</p>
+                <p className="text-xs text-muted-foreground">{site.supervisor?.staff_code ? `Staff ${site.supervisor.staff_code}` : 'Not Set'}</p>
                 <div className="mt-2 space-y-1 text-xs text-muted-foreground">
                   <p>Email: <span className="text-foreground">{site.supervisor?.email ?? 'Not Set'}</span></p>
                   <p>Phone: <span className="text-foreground">{site.supervisor?.mobile_phone || site.supervisor?.phone || 'Not Set'}</span></p>
@@ -461,8 +498,12 @@ export default function SiteDetailPage() {
               <dd className="font-medium text-right">{notSet(site.alarm_system)}</dd>
             </div>
             <div className="flex justify-between">
+              <dt className="text-muted-foreground">Alarm Company</dt>
+              <dd className="font-medium text-right">{notSet(site.alarm_company)}</dd>
+            </div>
+            <div className="flex justify-between">
               <dt className="text-muted-foreground">Alarm Code</dt>
-              <dd className="font-medium font-mono text-right">{site.alarm_code ? site.alarm_code : <span className="text-muted-foreground">Not Set</span>}</dd>
+              <dd className="font-medium font-mono text-right">{site.alarm_code ? site.alarm_code : notSet(null)}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Security Protocol</dt>
@@ -548,7 +589,7 @@ export default function SiteDetailPage() {
           <dl className="space-y-3 text-sm">
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Square Footage</dt>
-              <dd className="font-medium text-right">{site.square_footage ? `${site.square_footage.toLocaleString()} sq ft` : <span className="text-muted-foreground">Not Set</span>}</dd>
+              <dd className="font-medium text-right">{site.square_footage != null ? `${site.square_footage.toLocaleString()} sq ft` : notSet(null)}</dd>
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Floors</dt>
@@ -565,6 +606,18 @@ export default function SiteDetailPage() {
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Background Check</dt>
               <dd className="font-medium text-right">{site.background_check_required ? 'Required' : 'No'}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted-foreground">Service Start Date</dt>
+              <dd className="font-medium text-right">{site.service_start_date ? formatDate(site.service_start_date) : notSet(null)}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted-foreground">Business Hours</dt>
+              <dd className="font-medium text-right">
+                {site.business_hours_start || site.business_hours_end
+                  ? `${formatTime(site.business_hours_start)} - ${formatTime(site.business_hours_end)}`
+                  : notSet(null)}
+              </dd>
             </div>
           </dl>
         </div>
@@ -601,6 +654,14 @@ export default function SiteDetailPage() {
                 )}
               </dd>
             </div>
+            <div className="flex items-center justify-between gap-4">
+              <dt className="text-muted-foreground">Status Date</dt>
+              <dd className="font-medium text-right">{site.status_date ? formatDate(site.status_date) : notSet(null)}</dd>
+            </div>
+            <div className="flex items-start justify-between gap-4">
+              <dt className="text-muted-foreground">Status Reason</dt>
+              <dd className="font-medium text-right">{site.status_reason ? site.status_reason : notSet(null)}</dd>
+            </div>
             <div className="pt-3 border-t border-border">
               <p className="text-xs text-muted-foreground">
                 Critical = Red, High = Orange, Standard/Medium = Blue, Low = Gray
@@ -615,15 +676,18 @@ export default function SiteDetailPage() {
             {site.notes ? (
               <p className="text-muted-foreground whitespace-pre-wrap">{site.notes}</p>
             ) : (
-              <p className="text-muted-foreground">No notes.</p>
+              <p className="italic text-muted-foreground">Not Set</p>
             )}
           </div>
           <div className="mt-4 pt-4 border-t border-border text-xs text-muted-foreground space-y-2">
             <p>
-              Geofence center: <span className="font-mono">{site.geofence_center_lat ?? '—'}</span>, <span className="font-mono">{site.geofence_center_lng ?? '—'}</span>
+              Contract Type: <span className="font-mono">{parsedLegacy.contractType ?? 'Not Set'}</span>
             </p>
             <p>
-              Geofence radius: <span className="font-mono">{site.geofence_radius_meters ?? 50}</span> m
+              Geofence center: <span className="font-mono">{geofenceCenterLabel ?? 'Not Set'}</span>
+            </p>
+            <p>
+              Geofence radius: <span className="font-mono">{geofenceRadiusLabel ?? 'Not Set'}</span>
             </p>
           </div>
         </div>

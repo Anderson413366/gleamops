@@ -26,7 +26,6 @@ import {
   computeJobFinancials,
   type JobFinancialResult,
 } from '@/lib/utils/job-financials';
-import { formatDate } from '@/lib/utils/date';
 import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
 import { StatusToggleDialog } from '@/components/detail/status-toggle-dialog';
@@ -72,8 +71,20 @@ const FREQUENCY_COLORS: Record<string, 'green' | 'blue' | 'yellow' | 'gray' | 'p
   ONE_TIME: 'purple',
 };
 
+const FREQUENCY_LABELS: Record<string, string> = {
+  DAILY: 'Daily',
+  WEEKLY: 'Weekly',
+  BIWEEKLY: 'Biweekly',
+  MONTHLY: 'Monthly',
+  '2X_WEEK': '2×/Week',
+  '3X_WEEK': '3×/Week',
+  '4X_WEEK': '4×/Week',
+  '5X_WEEK': '5×/Week',
+  '6X_WEEK': '6×/Week',
+};
+
 function formatCurrency(n: number | null) {
-  if (n == null) return '\u2014';
+  if (n == null) return '$0';
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
@@ -81,10 +92,15 @@ function formatCurrency(n: number | null) {
   }).format(n);
 }
 
-// formatDate imported from @/lib/utils/date
+function formatDateText(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
 
-function formatRelativeDate(dateStr: string | null): string {
-  if (!dateStr) return '\u2014';
+function formatRelativeDate(dateStr: string | null): string | null {
+  if (!dateStr) return null;
   const target = new Date(dateStr);
   const now = new Date();
   const diffMs = target.getTime() - now.getTime();
@@ -94,6 +110,24 @@ function formatRelativeDate(dateStr: string | null): string {
   if (diffDays === -1) return 'yesterday';
   if (diffDays > 1) return `in ${diffDays} days`;
   return `${Math.abs(diffDays)} days ago`;
+}
+
+function notSet(required = false) {
+  return (
+    <span className={required ? 'italic text-red-600 dark:text-red-300' : 'italic text-muted-foreground'}>
+      Not Set
+    </span>
+  );
+}
+
+function formatDateSafe(value: string | null | undefined, required = false) {
+  const formatted = formatDateText(value);
+  return formatted ?? notSet(required);
+}
+
+function frequencyLabel(value: string | null | undefined) {
+  if (!value) return null;
+  return FREQUENCY_LABELS[value] ?? value.replace(/_/g, ' ');
 }
 
 function formatRelativeDateTime(dateStr: string): string {
@@ -311,7 +345,7 @@ export default function JobDetailPage() {
 
   const marginPct = financials
     ? `${financials.profit_margin_pct.toFixed(1)}%`
-    : '\u2014';
+    : 'Not Set';
   const startsIn = formatRelativeDate(job.start_date);
   const updatedAgo = formatRelativeDateTime(job.updated_at);
   const isInactive = ['ON_HOLD', 'CANCELED', 'CANCELLED'].includes((job.status ?? '').toUpperCase());
@@ -361,10 +395,10 @@ export default function JobDetailPage() {
                 <Badge
                   color={FREQUENCY_COLORS[job.frequency] ?? 'gray'}
                 >
-                  {job.frequency}
+                  {frequencyLabel(job.frequency)}
                 </Badge>
               )}
-              <Badge color="blue">{`Starts ${startsIn}`}</Badge>
+              {startsIn && <Badge color="blue">{`Starts ${startsIn}`}</Badge>}
               <Badge color="gray">{`Updated ${updatedAgo}`}</Badge>
             </div>
           </div>
@@ -435,58 +469,46 @@ export default function JobDetailPage() {
           <dl className="space-y-3 text-sm">
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Frequency</dt>
-              <dd className="font-medium">{job.frequency ?? '\u2014'}</dd>
+              <dd className="font-medium">{frequencyLabel(job.frequency) ?? notSet()}</dd>
             </div>
-            {job.schedule_days && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Schedule Days</dt>
-                <dd className="font-medium">{job.schedule_days}</dd>
-              </div>
-            )}
-            {job.start_time && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Start Time</dt>
-                <dd className="font-medium">{job.start_time}</dd>
-              </div>
-            )}
-            {job.end_time && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">End Time</dt>
-                <dd className="font-medium">{job.end_time}</dd>
-              </div>
-            )}
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Schedule Days</dt>
+              <dd className="font-medium">{job.schedule_days ?? notSet(true)}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Start Time</dt>
+              <dd className="font-medium">{job.start_time ?? notSet(true)}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">End Time</dt>
+              <dd className="font-medium">{job.end_time ?? notSet(true)}</dd>
+            </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Start Date</dt>
-              <dd className="font-medium">{formatDate(job.start_date)}</dd>
+              <dd className="font-medium">{formatDateSafe(job.start_date, true)}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">End Date</dt>
-              <dd className="font-medium">{formatDate(job.end_date)}</dd>
+              <dd className="font-medium">{formatDateSafe(job.end_date)}</dd>
             </div>
-            {job.staff_needed != null && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Staff Needed</dt>
-                <dd className="font-medium">{job.staff_needed}</dd>
-              </div>
-            )}
-            {job.estimated_hours_per_service != null && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">
-                  Est. Hours / Service
-                </dt>
-                <dd className="font-medium">
-                  {job.estimated_hours_per_service}
-                </dd>
-              </div>
-            )}
-            {job.estimated_hours_per_month != null && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Est. Hours / Month</dt>
-                <dd className="font-medium">
-                  {job.estimated_hours_per_month}
-                </dd>
-              </div>
-            )}
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Staff Needed</dt>
+              <dd className="font-medium">{job.staff_needed ?? 0}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">
+                Est. Hours / Service
+              </dt>
+              <dd className="font-medium">
+                {job.estimated_hours_per_service ?? notSet()}
+              </dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Est. Hours / Month</dt>
+              <dd className="font-medium">
+                {job.estimated_hours_per_month ?? notSet()}
+              </dd>
+            </div>
           </dl>
         </div>
 
@@ -499,7 +521,7 @@ export default function JobDetailPage() {
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Site</dt>
               <dd className="font-medium">
-                {job.site?.name ?? '\u2014'}
+                {job.site?.name ?? notSet(true)}
                 {job.site?.site_code && (
                   <span className="ml-1 text-xs text-muted-foreground font-mono">
                     ({job.site.site_code})
@@ -510,7 +532,7 @@ export default function JobDetailPage() {
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Client</dt>
               <dd className="font-medium">
-                {job.site?.client?.name ?? '\u2014'}
+                {job.site?.client?.name ?? notSet(true)}
                 {job.site?.client?.client_code && (
                   <span className="ml-1 text-xs text-muted-foreground font-mono">
                     ({job.site.client.client_code})
@@ -518,24 +540,18 @@ export default function JobDetailPage() {
                 )}
               </dd>
             </div>
-            {job.job_type && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Job Type</dt>
-                <dd className="font-medium">{job.job_type}</dd>
-              </div>
-            )}
-            {job.priority_level && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Priority</dt>
-                <dd className="font-medium">{job.priority_level}</dd>
-              </div>
-            )}
-            {job.job_assigned_to && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Assigned To</dt>
-                <dd className="font-medium">{job.job_assigned_to}</dd>
-              </div>
-            )}
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Job Type</dt>
+              <dd className="font-medium">{job.job_type ?? notSet()}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Priority</dt>
+              <dd className="font-medium">{job.priority_level ?? notSet()}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Assigned To</dt>
+              <dd className="font-medium">{job.job_assigned_to ?? notSet()}</dd>
+            </div>
           </dl>
         </div>
 
@@ -554,12 +570,10 @@ export default function JobDetailPage() {
                 {formatCurrency(job.billing_amount)}
               </dd>
             </div>
-            {job.billing_uom && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Billing UOM</dt>
-                <dd className="font-medium">{job.billing_uom}</dd>
-              </div>
-            )}
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Billing UOM</dt>
+              <dd className="font-medium">{job.billing_uom ?? notSet(true)}</dd>
+            </div>
             {financials && (
               <>
                 <div className="flex justify-between">
@@ -597,14 +611,12 @@ export default function JobDetailPage() {
                 </div>
               </>
             )}
-            {job.invoice_description && (
-              <div>
-                <dt className="text-muted-foreground">Invoice Description</dt>
-                <dd className="font-medium mt-1">
-                  {job.invoice_description}
-                </dd>
-              </div>
-            )}
+            <div>
+              <dt className="text-muted-foreground">Invoice Description</dt>
+              <dd className="font-medium mt-1">
+                {job.invoice_description ?? notSet()}
+              </dd>
+            </div>
           </dl>
         </div>
 
@@ -617,56 +629,40 @@ export default function JobDetailPage() {
             </span>
           </h3>
           <dl className="space-y-3 text-sm">
-            {job.quality_score != null && (
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Quality Score</dt>
-                <dd className="font-medium">{job.quality_score}</dd>
-              </div>
-            )}
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Quality Score</dt>
+              <dd className="font-medium">{job.quality_score ?? notSet()}</dd>
+            </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Last Service</dt>
               <dd className="font-medium">
-                {formatDate(job.last_service_date)}
+                {formatDateSafe(job.last_service_date)}
               </dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Next Service</dt>
               <dd className="font-medium">
-                {formatDate(job.next_service_date)}
+                {formatDateSafe(job.next_service_date)}
               </dd>
             </div>
-            {job.specifications && (
-              <div>
-                <dt className="text-muted-foreground">Specifications</dt>
-                <dd className="mt-1 whitespace-pre-wrap">
-                  {job.specifications}
-                </dd>
-              </div>
-            )}
-            {job.special_requirements && (
-              <div>
-                <dt className="text-muted-foreground">
-                  Special Requirements
-                </dt>
-                <dd className="mt-1 whitespace-pre-wrap">
-                  {job.special_requirements}
-                </dd>
-              </div>
-            )}
-            {job.notes && (
-              <div>
-                <dt className="text-muted-foreground">Notes</dt>
-                <dd className="mt-1 whitespace-pre-wrap">{job.notes}</dd>
-              </div>
-            )}
-            {!job.specifications &&
-              !job.special_requirements &&
-              !job.notes &&
-              job.quality_score == null && (
-                <p className="text-muted-foreground">
-                  No quality data or notes recorded.
-                </p>
-              )}
+            <div>
+              <dt className="text-muted-foreground">Specifications</dt>
+              <dd className="mt-1 whitespace-pre-wrap">
+                {job.specifications ?? notSet()}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">
+                Special Requirements
+              </dt>
+              <dd className="mt-1 whitespace-pre-wrap">
+                {job.special_requirements ?? notSet()}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Notes</dt>
+              <dd className="mt-1 whitespace-pre-wrap">{job.notes ?? notSet()}</dd>
+            </div>
           </dl>
         </div>
 
@@ -736,8 +732,8 @@ export default function JobDetailPage() {
                       ) : null}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {assignment.role ?? 'Assigned'} • Start {formatDate(assignment.start_date)}
-                      {assignment.end_date ? ` • End ${formatDate(assignment.end_date)}` : ''}
+                      {assignment.role ?? 'Assigned'} • Start {formatDateSafe(assignment.start_date)}
+                      {assignment.end_date ? ` • End ${formatDateText(assignment.end_date) ?? 'Not Set'}` : ''}
                     </p>
                   </div>
                   <button

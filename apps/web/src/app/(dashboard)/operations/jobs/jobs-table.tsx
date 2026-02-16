@@ -37,7 +37,7 @@ interface JobsTableProps {
 }
 
 function formatCurrency(n: number | null) {
-  if (n == null) return '\u2014';
+  if (n == null) return '$0';
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
 }
 
@@ -54,7 +54,7 @@ const FREQUENCY_LABELS: Record<string, string> = {
 };
 
 function humanFrequency(value: string | null | undefined) {
-  if (!value) return '\u2014';
+  if (!value) return 'Not Set';
   return FREQUENCY_LABELS[value] ?? value.replace(/_/g, ' ');
 }
 
@@ -235,18 +235,18 @@ export default function JobsTable({ search, openCreateToken }: JobsTableProps) {
                     <div className="flex items-center gap-2">
                       <StatusDot status={row.status} />
                       <span className="inline-block max-w-[220px] truncate" title={row.job_name ?? 'Not Set'}>
-                        {row.job_name ?? '\u2014'}
+                        {row.job_name ?? 'Not Set'}
                       </span>
                     </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     <span className="inline-block max-w-[180px] truncate" title={row.site?.name ?? 'Not Set'}>
-                      {row.site?.name ?? '\u2014'}
+                      {row.site?.name ?? 'Not Set'}
                     </span>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     <span className="inline-block max-w-[180px] truncate" title={row.site?.client?.name ?? 'Not Set'}>
-                      {row.site?.client?.name ?? '\u2014'}
+                      {row.site?.client?.name ?? 'Not Set'}
                     </span>
                   </TableCell>
                   <TableCell className="text-muted-foreground">{humanFrequency(row.frequency)}</TableCell>
@@ -254,7 +254,9 @@ export default function JobsTable({ search, openCreateToken }: JobsTableProps) {
                   <TableCell>
                     {row.priority_level ? (
                       <Badge color={PRIORITY_COLORS[row.priority_level] ?? 'gray'}>{row.priority_level}</Badge>
-                    ) : '\u2014'}
+                    ) : (
+                      <span className="italic text-muted-foreground">Not Set</span>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

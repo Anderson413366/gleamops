@@ -1,11 +1,36 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { CalendarClock, ClipboardList, CreditCard, FileText } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  CalendarClock,
+  ClipboardList,
+  CreditCard,
+  FileText,
+  Layers3,
+  Plus,
+  Trash2,
+  UserRound,
+} from 'lucide-react';
+import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { siteJobSchema, type SiteJobFormData } from '@gleamops/shared';
-import { SlideOver, Input, Select, Textarea, Button, FormWizard, useWizardSteps, FormSection } from '@gleamops/ui';
+import {
+  SlideOver,
+  Input,
+  Select,
+  Textarea,
+  Button,
+  FormWizard,
+  useWizardSteps,
+  FormSection,
+  Badge,
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  cn,
+} from '@gleamops/ui';
 import type { WizardStep } from '@gleamops/ui';
 import type { SiteJob } from '@gleamops/shared';
 
@@ -18,20 +43,19 @@ const STATUS_OPTIONS = [
 
 const FREQUENCY_OPTIONS = [
   { value: 'DAILY', label: 'Daily' },
+  { value: '2X_WEEK', label: '2x Week' },
+  { value: '3X_WEEK', label: '3x Week' },
+  { value: '5X_WEEK', label: '5x Week' },
   { value: 'WEEKLY', label: 'Weekly' },
-  { value: 'BIWEEKLY', label: 'Biweekly' },
+  { value: 'BIWEEKLY', label: 'Bi-Weekly' },
   { value: 'MONTHLY', label: 'Monthly' },
-  { value: 'QUARTERLY', label: 'Quarterly' },
-  { value: 'YEARLY', label: 'Yearly' },
-  { value: 'ONE_TIME', label: 'One Time' },
+  { value: 'AS_NEEDED', label: 'One-Time' },
 ];
 
-const BILLING_UOM_OPTIONS = [
+const BILLING_PERIOD_OPTIONS = [
   { value: '', label: 'Select...' },
-  { value: 'FLAT_RATE', label: 'Flat Rate' },
-  { value: 'PER_SQFT', label: 'Per Sq Ft' },
-  { value: 'PER_HOUR', label: 'Per Hour' },
   { value: 'PER_VISIT', label: 'Per Visit' },
+  { value: 'FLAT_RATE', label: 'Per Month' },
 ];
 
 const PRIORITY_OPTIONS = [
@@ -42,13 +66,44 @@ const PRIORITY_OPTIONS = [
   { value: 'CRITICAL', label: 'Critical' },
 ];
 
+const PRIORITY_BADGE_COLORS: Record<string, 'gray' | 'blue' | 'yellow' | 'orange' | 'red'> = {
+  LOW: 'gray',
+  MEDIUM: 'blue',
+  HIGH: 'orange',
+  CRITICAL: 'red',
+};
+
 const JOB_TYPE_OPTIONS = [
   { value: '', label: 'Select...' },
-  { value: 'RECURRING', label: 'Recurring' },
-  { value: 'PROJECT', label: 'Project' },
-  { value: 'EMERGENCY', label: 'Emergency' },
-  { value: 'SPECIAL', label: 'Special' },
+  { value: 'CONTRACT_CLEANING', label: 'Contract Cleaning' },
+  { value: 'DAY_PORTER', label: 'Day Porter' },
+  { value: 'FLOOR_CARE', label: 'Floor Care' },
+  { value: 'SPECIALTY', label: 'Specialty' },
+  { value: 'DEEP_CLEAN', label: 'Deep Clean' },
+  { value: 'POST_CONSTRUCTION', label: 'Post Construction' },
+  { value: 'OTHER', label: 'Other' },
 ];
+
+const DAY_OPTIONS = [
+  { code: 'MON', label: 'Mon' },
+  { code: 'TUE', label: 'Tue' },
+  { code: 'WED', label: 'Wed' },
+  { code: 'THU', label: 'Thu' },
+  { code: 'FRI', label: 'Fri' },
+  { code: 'SAT', label: 'Sat' },
+  { code: 'SUN', label: 'Sun' },
+];
+
+const VISITS_PER_MONTH: Record<string, number> = {
+  DAILY: 30,
+  '2X_WEEK': 8.7,
+  '3X_WEEK': 13,
+  '5X_WEEK': 21.7,
+  WEEKLY: 4.3,
+  BIWEEKLY: 2.2,
+  MONTHLY: 1,
+  AS_NEEDED: 1,
+};
 
 const DEFAULTS: SiteJobFormData = {
   job_code: '',
@@ -77,10 +132,9 @@ const DEFAULTS: SiteJobFormData = {
 };
 
 const WIZARD_STEPS: WizardStep[] = [
-  { id: 'basics', title: 'Basic Info' },
-  { id: 'schedule', title: 'Schedule' },
-  { id: 'billing', title: 'Billing' },
-  { id: 'specs', title: 'Specs & Notes' },
+  { id: 'assignment', title: 'Assignment' },
+  { id: 'schedule-billing', title: 'Schedule & Billing' },
+  { id: 'tasks-details', title: 'Tasks & Details' },
 ];
 
 interface JobFormProps {
@@ -91,17 +145,95 @@ interface JobFormProps {
   preselectedSiteId?: string;
 }
 
+interface SiteOption {
+  value: string;
+  label: string;
+  clientId: string | null;
+}
+
+interface TaskCatalogRow {
+  id: string;
+  task_code: string;
+  name: string;
+  default_minutes: number | null;
+}
+
+interface SelectedTask {
+  taskId: string;
+  taskCode: string;
+  name: string;
+  minutesPerVisit: number;
+  quantity: number;
+}
+
+function parseDayCodes(scheduleDays: string | null): string[] {
+  if (!scheduleDays) return [];
+  const alias: Record<string, string> = {
+    MONDAY: 'MON',
+    MON: 'MON',
+    TUESDAY: 'TUE',
+    TUES: 'TUE',
+    TUE: 'TUE',
+    WEDNESDAY: 'WED',
+    WED: 'WED',
+    THURSDAY: 'THU',
+    THURS: 'THU',
+    THU: 'THU',
+    FRIDAY: 'FRI',
+    FRI: 'FRI',
+    SATURDAY: 'SAT',
+    SAT: 'SAT',
+    SUNDAY: 'SUN',
+    SUN: 'SUN',
+  };
+  const ordered = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+  const parsed = scheduleDays
+    .split(/[,\s]+/g)
+    .map((t) => t.trim().toUpperCase())
+    .filter(Boolean)
+    .map((t) => alias[t] ?? t)
+    .filter((t) => ordered.includes(t));
+  return ordered.filter((d) => parsed.includes(d));
+}
+
+function serializeDayCodes(dayCodes: string[]): string | null {
+  if (!dayCodes.length) return null;
+  const labelMap = new Map(DAY_OPTIONS.map((d) => [d.code, d.label]));
+  return dayCodes.map((c) => labelMap.get(c) ?? c).join(', ');
+}
+
+function formatCurrency(n: number) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 2,
+  }).format(n);
+}
+
 export function JobForm({ open, onClose, initialData, onSuccess, preselectedSiteId }: JobFormProps) {
   const isEdit = !!initialData?.id;
   const supabase = getSupabaseBrowserClient();
   const wizard = useWizardSteps(WIZARD_STEPS.length);
-  const [sites, setSites] = useState<{ value: string; label: string }[]>([]);
-  const [services, setServices] = useState<{ value: string; label: string }[]>([]);
-  const [subcontractors, setSubcontractors] = useState<{ value: string; label: string }[]>([]);
 
-  const { values, errors, loading, setValue, onBlur, handleSubmit, reset } = useForm<SiteJobFormData>({
-    schema: siteJobSchema,
-    initialValues: initialData
+  const [sites, setSites] = useState<SiteOption[]>([]);
+  const [clients, setClients] = useState<{ value: string; label: string }[]>([]);
+  const [services, setServices] = useState<{ value: string; label: string }[]>([]);
+  const [assignmentOptions, setAssignmentOptions] = useState<{ value: string; label: string }[]>([
+    { value: '', label: 'Unassigned' },
+    { value: 'Day Team', label: 'Day Team' },
+    { value: 'Night Team', label: 'Night Team' },
+  ]);
+  const [selectedClientId, setSelectedClientId] = useState<string>('');
+  const [taskCatalog, setTaskCatalog] = useState<TaskCatalogRow[]>([]);
+  const [selectedTasks, setSelectedTasks] = useState<SelectedTask[]>([]);
+  const [taskSelectId, setTaskSelectId] = useState<string>('');
+  const [taskQuantity, setTaskQuantity] = useState<number>(1);
+  const [hourlyCostRate, setHourlyCostRate] = useState<number>(25);
+  const [loadingServiceTemplate, setLoadingServiceTemplate] = useState(false);
+  const [codeGenerationFailed, setCodeGenerationFailed] = useState(false);
+
+  const initialValues = useMemo<SiteJobFormData>(() => {
+    return initialData
       ? {
           job_code: initialData.job_code,
           job_name: initialData.job_name ?? '',
@@ -127,10 +259,14 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
           special_requirements: initialData.special_requirements,
           notes: initialData.notes,
         }
-      : { ...DEFAULTS, site_id: preselectedSiteId ?? '' },
+      : { ...DEFAULTS, site_id: preselectedSiteId ?? '' };
+  }, [initialData, preselectedSiteId]);
+
+  const { values, errors, loading, setValue, onBlur, handleSubmit, reset } = useForm<SiteJobFormData>({
+    schema: siteJobSchema,
+    initialValues,
     onSubmit: async (data) => {
       if (isEdit) {
-        // Job code is immutable after create.
         const { job_code, ...fields } = data;
         void job_code;
         const result = await supabase
@@ -141,99 +277,380 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
           .select();
         assertUpdateSucceeded(result);
       } else {
-        const { error } = await supabase.from('site_jobs').insert({
-          ...data,
-          tenant_id: (await supabase.auth.getUser()).data.user?.app_metadata?.tenant_id,
-        });
+        const user = (await supabase.auth.getUser()).data.user;
+        const tenantId = user?.app_metadata?.tenant_id as string | undefined;
+        const { data: created, error } = await supabase
+          .from('site_jobs')
+          .insert({
+            ...data,
+            tenant_id: tenantId,
+          })
+          .select('id')
+          .single();
         if (error) throw error;
+
+        if (created?.id && selectedTasks.length > 0) {
+          const rows = selectedTasks.map((t, index) => ({
+            tenant_id: tenantId,
+            job_id: created.id,
+            task_id: t.taskId,
+            sequence_order: index + 1,
+            is_required: true,
+            estimated_minutes: Math.max(1, Math.round(t.minutesPerVisit * t.quantity)),
+            status: 'PENDING',
+          }));
+
+          const { error: taskInsertError } = await supabase.from('job_tasks').insert(rows);
+          if (taskInsertError) {
+            toast.warning('Job created, but task rows could not be saved. You can add tasks from the Job detail page.');
+          }
+        }
       }
+
       onSuccess?.();
       handleClose();
     },
   });
 
-  // Load dropdowns
   useEffect(() => {
-    if (open) {
-      supabase.from('sites').select('id, name, site_code').is('archived_at', null).order('name').then(({ data }) => {
-        if (data) setSites(data.map((s) => ({ value: s.id, label: `${s.name} (${s.site_code})` })));
-      });
-      supabase.from('services').select('id, name, service_code').is('archived_at', null).order('name').then(({ data }) => {
-        if (data) setServices(data.map((s) => ({ value: s.id, label: `${s.name} (${s.service_code})` })));
-      });
-      supabase.from('subcontractors').select('id, company_name, subcontractor_code').is('archived_at', null).order('company_name').then(({ data }) => {
-        if (data) setSubcontractors(data.map((s) => ({ value: s.id, label: `${s.company_name} (${s.subcontractor_code})` })));
-      });
-    }
+    if (!open) return;
+    reset(initialValues);
+    wizard.reset();
+    setCodeGenerationFailed(false);
+    setTaskSelectId('');
+    setTaskQuantity(1);
+    setSelectedTasks([]);
+    setHourlyCostRate(25);
+  }, [open, reset, initialValues]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!open) return;
+
+    Promise.all([
+      supabase.from('clients').select('id, name, client_code').is('archived_at', null).order('name'),
+      supabase.from('sites').select('id, name, site_code, client_id').is('archived_at', null).order('name'),
+      supabase.from('services').select('id, name, service_code').is('archived_at', null).order('name'),
+      supabase
+        .from('staff')
+        .select('full_name, staff_code, role')
+        .is('archived_at', null)
+        .in('role', ['SUPERVISOR', 'MANAGER', 'OWNER_ADMIN'])
+        .order('full_name'),
+      supabase
+        .from('tasks')
+        .select('id, task_code, name, default_minutes')
+        .is('archived_at', null)
+        .eq('is_active', true)
+        .order('name'),
+    ]).then(([clientsRes, sitesRes, servicesRes, staffRes, tasksRes]) => {
+      if (clientsRes.data) {
+        setClients(
+          clientsRes.data.map((c) => ({
+            value: c.id,
+            label: `${c.name} (${c.client_code})`,
+          }))
+        );
+      }
+
+      if (sitesRes.data) {
+        setSites(
+          sitesRes.data.map((s) => ({
+            value: s.id,
+            label: `${s.name} (${s.site_code})`,
+            clientId: (s as { client_id: string | null }).client_id,
+          }))
+        );
+      }
+
+      if (servicesRes.data) {
+        setServices(
+          servicesRes.data.map((s) => ({
+            value: s.id,
+            label: `${s.name} (${s.service_code})`,
+          }))
+        );
+      }
+
+      if (staffRes.data) {
+        const staffOpts = staffRes.data.map((s) => ({
+          value: `${s.full_name} (${s.staff_code})`,
+          label: `${s.full_name} (${s.staff_code})`,
+        }));
+        setAssignmentOptions([
+          { value: '', label: 'Unassigned' },
+          { value: 'Day Team', label: 'Day Team' },
+          { value: 'Night Team', label: 'Night Team' },
+          ...staffOpts,
+        ]);
+      }
+
+      if (tasksRes.data) {
+        setTaskCatalog(tasksRes.data as TaskCatalogRow[]);
+      }
+    });
   }, [open, supabase]);
 
-  // Generate next code on create
   useEffect(() => {
-    if (open && !isEdit && !values.job_code) {
-      supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'JOB' }).then(({ data }) => {
-        if (data) setValue('job_code', data);
-      });
+    let cancelled = false;
+    if (!open || isEdit || values.job_code) return;
+
+    (async () => {
+      const { data, error } = await supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'JOB' });
+      if (cancelled) return;
+      if (error || !data) {
+        const fallback = `JOB-${new Date().getFullYear()}${String(Math.floor(Math.random() * 1_000_000)).padStart(6, '0')}`;
+        setCodeGenerationFailed(true);
+        setValue('job_code', fallback);
+        return;
+      }
+      setCodeGenerationFailed(false);
+      setValue('job_code', data);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, isEdit, values.job_code, setValue, supabase]);
+
+  useEffect(() => {
+    if (!open || !sites.length) return;
+    if (values.site_id) {
+      const selectedSite = sites.find((s) => s.value === values.site_id);
+      if (selectedSite?.clientId) setSelectedClientId(selectedSite.clientId);
+      return;
     }
-  }, [open, isEdit]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (preselectedSiteId) {
+      const selectedSite = sites.find((s) => s.value === preselectedSiteId);
+      if (selectedSite?.clientId) {
+        setSelectedClientId(selectedSite.clientId);
+        setValue('site_id', preselectedSiteId);
+      }
+    }
+  }, [open, sites, values.site_id, preselectedSiteId, setValue]);
+
+  const filteredSites = useMemo(() => {
+    if (!selectedClientId) return [];
+    return sites.filter((s) => s.clientId === selectedClientId);
+  }, [sites, selectedClientId]);
+
+  const selectedDayCodes = useMemo(() => parseDayCodes(values.schedule_days), [values.schedule_days]);
+
+  const toggleDay = (dayCode: string) => {
+    const exists = selectedDayCodes.includes(dayCode);
+    const next = exists ? selectedDayCodes.filter((d) => d !== dayCode) : [...selectedDayCodes, dayCode];
+    setValue('schedule_days', serializeDayCodes(next));
+  };
+
+  const taskSelectOptions = useMemo(
+    () => [
+      { value: '', label: 'Select task...' },
+      ...taskCatalog.map((t) => ({ value: t.id, label: `${t.name} (${t.task_code})` })),
+    ],
+    [taskCatalog]
+  );
+
+  const liveEstimate = useMemo(() => {
+    const totalQuantity = selectedTasks.reduce((sum, t) => sum + t.quantity, 0);
+    const totalMinutesPerVisit = selectedTasks.reduce((sum, t) => sum + t.minutesPerVisit * t.quantity, 0);
+    const hoursPerVisit = totalMinutesPerVisit / 60;
+    const visitsPerMonth = VISITS_PER_MONTH[values.frequency] ?? 1;
+    const monthlyHours = hoursPerVisit * visitsPerMonth;
+    const costPerVisit = hoursPerVisit * hourlyCostRate;
+    const monthlyCost = monthlyHours * hourlyCostRate;
+    const billingAmount = values.billing_amount ?? 0;
+    const billingPerVisit = values.billing_uom === 'FLAT_RATE' ? billingAmount / Math.max(visitsPerMonth, 1) : billingAmount;
+    const marginPerVisit = billingPerVisit - costPerVisit;
+
+    return {
+      lineItems: selectedTasks.length,
+      totalQuantity,
+      totalMinutesPerVisit,
+      hoursPerVisit,
+      visitsPerMonth,
+      monthlyHours,
+      costPerVisit,
+      monthlyCost,
+      billingPerVisit,
+      marginPerVisit,
+      marginPct: billingPerVisit > 0 ? (marginPerVisit / billingPerVisit) * 100 : 0,
+    };
+  }, [selectedTasks, values.frequency, values.billing_amount, values.billing_uom, hourlyCostRate]);
+
+  const addTaskFromCatalog = () => {
+    if (!taskSelectId) return;
+    const task = taskCatalog.find((t) => t.id === taskSelectId);
+    if (!task) return;
+
+    const qty = Number.isFinite(taskQuantity) && taskQuantity > 0 ? Math.floor(taskQuantity) : 1;
+    const minutes = task.default_minutes ?? 30;
+
+    setSelectedTasks((prev) => {
+      const existing = prev.find((t) => t.taskId === task.id);
+      if (existing) {
+        return prev.map((t) => (t.taskId === task.id ? { ...t, quantity: t.quantity + qty } : t));
+      }
+      return [
+        ...prev,
+        {
+          taskId: task.id,
+          taskCode: task.task_code,
+          name: task.name,
+          minutesPerVisit: minutes,
+          quantity: qty,
+        },
+      ];
+    });
+
+    setTaskSelectId('');
+    setTaskQuantity(1);
+  };
+
+  const loadFromServiceTemplate = async () => {
+    if (!values.service_id) {
+      toast.error('Select a service template first.');
+      return;
+    }
+    setLoadingServiceTemplate(true);
+    const { data, error } = await supabase
+      .from('service_tasks')
+      .select('task_id, sequence_order, estimated_minutes')
+      .eq('service_id', values.service_id)
+      .is('archived_at', null)
+      .order('sequence_order');
+
+    if (error || !data?.length) {
+      toast.error(error?.message ?? 'No service tasks found for this template.');
+      setLoadingServiceTemplate(false);
+      return;
+    }
+
+    setSelectedTasks((prev) => {
+      const byId = new Map(prev.map((t) => [t.taskId, t]));
+      for (const row of data as Array<{ task_id: string; estimated_minutes: number | null }>) {
+        if (byId.has(row.task_id)) continue;
+        const task = taskCatalog.find((t) => t.id === row.task_id);
+        if (!task) continue;
+        byId.set(row.task_id, {
+          taskId: task.id,
+          taskCode: task.task_code,
+          name: task.name,
+          minutesPerVisit: row.estimated_minutes ?? task.default_minutes ?? 30,
+          quantity: 1,
+        });
+      }
+      return Array.from(byId.values());
+    });
+
+    setLoadingServiceTemplate(false);
+    toast.success('Loaded tasks from service template.');
+  };
+
+  const validateStep = (step: number): boolean => {
+    if (step === 0) {
+      return Boolean(selectedClientId && values.site_id && values.job_name.trim());
+    }
+    if (step === 1) {
+      return Boolean(values.frequency && values.billing_uom && (values.billing_amount ?? 0) > 0);
+    }
+    return true;
+  };
 
   const handleClose = () => {
     reset();
     wizard.reset();
+    setSelectedTasks([]);
+    setSelectedClientId('');
+    setTaskSelectId('');
+    setTaskQuantity(1);
+    setCodeGenerationFailed(false);
     onClose();
   };
 
-  const validateStep = (step: number): boolean => {
-    if (step === 0) return !!values.job_name.trim() && !!values.site_id;
-    return true;
-  };
-
-  // ---------- Edit mode: flat form ----------
   if (isEdit) {
     return (
       <SlideOver open={open} onClose={handleClose} title="Edit Job" subtitle={initialData?.job_code} wide>
         <form onSubmit={handleSubmit} className="space-y-8">
-          <FormSection title="Basic Info" icon={<ClipboardList className="h-4 w-4" />} description="Core identity, site, and current state.">
+          <FormSection title="Assignment" icon={<ClipboardList className="h-4 w-4" />}>
             <Input label="Job Code" value={values.job_code} readOnly disabled />
-            <Input label="Name" value={values.job_name} onChange={(e) => setValue('job_name', e.target.value)} onBlur={() => onBlur('job_name')} error={errors.job_name} required />
-            <Select label="Site" value={values.site_id} onChange={(e) => setValue('site_id', e.target.value)} options={sites} required />
-            <Select label="Service" value={values.service_id ?? ''} onChange={(e) => setValue('service_id', e.target.value || null)} options={[{ value: '', label: 'None' }, ...services]} />
-            <Select label="Status" value={values.status} onChange={(e) => setValue('status', e.target.value)} options={STATUS_OPTIONS} />
+            <Input
+              label="Job Name"
+              value={values.job_name}
+              onChange={(e) => setValue('job_name', e.target.value)}
+              onBlur={() => onBlur('job_name')}
+              error={errors.job_name}
+              required
+            />
+            <Select
+              label="Site"
+              value={values.site_id}
+              onChange={(e) => setValue('site_id', e.target.value)}
+              options={sites.map((s) => ({ value: s.value, label: s.label }))}
+            />
+            <Select
+              label="Job Type"
+              value={values.job_type ?? ''}
+              onChange={(e) => setValue('job_type', e.target.value || null)}
+              options={JOB_TYPE_OPTIONS}
+            />
+            <Select
+              label="Priority"
+              value={values.priority_level ?? ''}
+              onChange={(e) => setValue('priority_level', e.target.value || null)}
+              options={PRIORITY_OPTIONS}
+            />
+            <Select
+              label="Assigned Team / Supervisor"
+              value={values.job_assigned_to ?? ''}
+              onChange={(e) => setValue('job_assigned_to', e.target.value || null)}
+              options={assignmentOptions}
+            />
           </FormSection>
 
-          <FormSection title="Schedule" icon={<CalendarClock className="h-4 w-4" />} description="Frequency, time window, staffing, and date range.">
-            <Select label="Frequency" value={values.frequency} onChange={(e) => setValue('frequency', e.target.value)} options={FREQUENCY_OPTIONS} />
-            <Input label="Schedule Days" value={values.schedule_days ?? ''} onChange={(e) => setValue('schedule_days', e.target.value || null)} placeholder="e.g., Mon,Wed,Fri" />
+          <FormSection title="Schedule & Billing" icon={<CalendarClock className="h-4 w-4" />}>
+            <Select
+              label="Frequency"
+              value={values.frequency}
+              onChange={(e) => setValue('frequency', e.target.value)}
+              options={FREQUENCY_OPTIONS}
+            />
+            <Input label="Schedule Days" value={values.schedule_days ?? ''} onChange={(e) => setValue('schedule_days', e.target.value || null)} />
             <div className="grid grid-cols-2 gap-3">
-              <Input label="Start Time" type="time" value={values.start_time ?? ''} onChange={(e) => setValue('start_time', e.target.value || null)} />
-              <Input label="End Time" type="time" value={values.end_time ?? ''} onChange={(e) => setValue('end_time', e.target.value || null)} />
+              <Input label="Earliest Start Time" type="time" value={values.start_time ?? ''} onChange={(e) => setValue('start_time', e.target.value || null)} />
+              <Input label="Latest Start Time" type="time" value={values.end_time ?? ''} onChange={(e) => setValue('end_time', e.target.value || null)} />
             </div>
-            <Input label="Staff Needed" type="number" value={values.staff_needed ?? ''} onChange={(e) => setValue('staff_needed', e.target.value ? Number(e.target.value) : null)} />
             <div className="grid grid-cols-2 gap-3">
-              <Input label="Start Date" type="date" value={values.start_date ?? ''} onChange={(e) => setValue('start_date', e.target.value || null)} />
-              <Input label="End Date" type="date" value={values.end_date ?? ''} onChange={(e) => setValue('end_date', e.target.value || null)} />
+              <Input
+                label="Billing Amount"
+                type="number"
+                value={values.billing_amount ?? ''}
+                onChange={(e) => setValue('billing_amount', e.target.value ? Number(e.target.value) : null)}
+              />
+              <Select
+                label="Billing Period"
+                value={values.billing_uom ?? ''}
+                onChange={(e) => setValue('billing_uom', e.target.value || null)}
+                options={BILLING_PERIOD_OPTIONS}
+              />
             </div>
+            <Textarea
+              label="Invoice Description"
+              value={values.invoice_description ?? ''}
+              onChange={(e) => setValue('invoice_description', e.target.value || null)}
+            />
           </FormSection>
 
-          <FormSection title="Billing" icon={<CreditCard className="h-4 w-4" />} description="Billing unit, amount, assignment, and invoicing.">
-            <div className="grid grid-cols-2 gap-3">
-              <Select label="Billing UOM" value={values.billing_uom ?? ''} onChange={(e) => setValue('billing_uom', e.target.value || null)} options={BILLING_UOM_OPTIONS} />
-              <Input label="Billing Amount" type="number" value={values.billing_amount ?? ''} onChange={(e) => setValue('billing_amount', e.target.value ? Number(e.target.value) : null)} />
-            </div>
-            <Input label="Assigned To" value={values.job_assigned_to ?? ''} onChange={(e) => setValue('job_assigned_to', e.target.value || null)} />
-            <Select label="Subcontractor" value={values.subcontractor_id ?? ''} onChange={(e) => setValue('subcontractor_id', e.target.value || null)} options={[{ value: '', label: 'None' }, ...subcontractors]} />
-            <Textarea label="Invoice Description" value={values.invoice_description ?? ''} onChange={(e) => setValue('invoice_description', e.target.value || null)} rows={2} />
+          <FormSection title="Tasks & Details" icon={<FileText className="h-4 w-4" />}>
+            <Select
+              label="Service Template"
+              value={values.service_id ?? ''}
+              onChange={(e) => setValue('service_id', e.target.value || null)}
+              options={[{ value: '', label: 'None' }, ...services]}
+            />
+            <Textarea label="Special Requirements" value={values.special_requirements ?? ''} onChange={(e) => setValue('special_requirements', e.target.value || null)} />
+            <Textarea label="Specifications" value={values.specifications ?? ''} onChange={(e) => setValue('specifications', e.target.value || null)} />
+            <Textarea label="Notes" value={values.notes ?? ''} onChange={(e) => setValue('notes', e.target.value || null)} />
           </FormSection>
 
-          <FormSection title="Specs & Notes" icon={<FileText className="h-4 w-4" />} description="Operational details and internal context.">
-            <div className="grid grid-cols-2 gap-3">
-              <Select label="Job Type" value={values.job_type ?? ''} onChange={(e) => setValue('job_type', e.target.value || null)} options={JOB_TYPE_OPTIONS} />
-              <Select label="Priority" value={values.priority_level ?? ''} onChange={(e) => setValue('priority_level', e.target.value || null)} options={PRIORITY_OPTIONS} />
-            </div>
-            <Input label="Est. Hours / Service" type="number" value={values.estimated_hours_per_service ?? ''} onChange={(e) => setValue('estimated_hours_per_service', e.target.value ? Number(e.target.value) : null)} />
-            <Textarea label="Specifications" value={values.specifications ?? ''} onChange={(e) => setValue('specifications', e.target.value || null)} rows={2} />
-            <Textarea label="Special Requirements" value={values.special_requirements ?? ''} onChange={(e) => setValue('special_requirements', e.target.value || null)} rows={2} />
-            <Textarea label="Notes" value={values.notes ?? ''} onChange={(e) => setValue('notes', e.target.value || null)} rows={2} />
-          </FormSection>
           <div className="flex justify-end gap-3 pt-4 border-t border-border">
             <Button variant="secondary" type="button" onClick={handleClose}>Cancel</Button>
             <Button type="submit" loading={loading}>Save Changes</Button>
@@ -243,7 +660,6 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
     );
   }
 
-  // ---------- Create mode: wizard ----------
   return (
     <SlideOver open={open} onClose={handleClose} title="New Job" wide>
       <FormWizard
@@ -256,59 +672,362 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
         loading={loading}
         validateStep={validateStep}
       >
-        {/* Step 0: Basic Info */}
         {wizard.currentStep === 0 && (
-          <FormSection title="Basic Info" icon={<ClipboardList className="h-4 w-4" />} description="Core identity, site, and current state.">
-            <Input label="Job Code" value={values.job_code} readOnly disabled hint="Auto-generated" />
-            <Input label="Name" value={values.job_name} onChange={(e) => setValue('job_name', e.target.value)} onBlur={() => onBlur('job_name')} error={errors.job_name} required />
-            <Select label="Site" value={values.site_id} onChange={(e) => setValue('site_id', e.target.value)} onBlur={() => onBlur('site_id')} error={errors.site_id} options={[{ value: '', label: 'Select a site...' }, ...sites]} required />
-            <Select label="Service" value={values.service_id ?? ''} onChange={(e) => setValue('service_id', e.target.value || null)} options={[{ value: '', label: 'None' }, ...services]} />
-            <Select label="Status" value={values.status} onChange={(e) => setValue('status', e.target.value)} options={STATUS_OPTIONS} />
+          <FormSection
+            title="Step 1 — Assignment"
+            icon={<UserRound className="h-4 w-4" />}
+            description="Client, site, core job details, and ownership."
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label="Job Code"
+                value={values.job_code}
+                readOnly
+                disabled
+                hint={codeGenerationFailed ? 'Using fallback code; save will still work.' : 'Auto-generated'}
+              />
+              <Select
+                label="Status"
+                value={values.status}
+                onChange={(e) => setValue('status', e.target.value)}
+                options={STATUS_OPTIONS}
+              />
+              <Select
+                label="Client"
+                value={selectedClientId}
+                onChange={(e) => {
+                  const nextClient = e.target.value;
+                  setSelectedClientId(nextClient);
+                  setValue('site_id', '');
+                }}
+                options={[{ value: '', label: 'Select client...' }, ...clients]}
+                required
+              />
+              <Select
+                label="Site"
+                value={values.site_id}
+                onChange={(e) => setValue('site_id', e.target.value)}
+                onBlur={() => onBlur('site_id')}
+                error={errors.site_id}
+                options={[{ value: '', label: selectedClientId ? 'Select site...' : 'Select client first...' }, ...filteredSites.map((s) => ({ value: s.value, label: s.label }))]}
+                required
+                disabled={!selectedClientId}
+              />
+              <Input
+                label="Job Name"
+                value={values.job_name}
+                onChange={(e) => setValue('job_name', e.target.value)}
+                onBlur={() => onBlur('job_name')}
+                error={errors.job_name}
+                required
+              />
+              <Select
+                label="Job Type"
+                value={values.job_type ?? ''}
+                onChange={(e) => setValue('job_type', e.target.value || null)}
+                options={JOB_TYPE_OPTIONS}
+              />
+              <div className="space-y-1.5">
+                <Select
+                  label="Priority"
+                  value={values.priority_level ?? ''}
+                  onChange={(e) => setValue('priority_level', e.target.value || null)}
+                  options={PRIORITY_OPTIONS}
+                />
+                {values.priority_level && (
+                  <div className="pt-1">
+                    <Badge color={PRIORITY_BADGE_COLORS[values.priority_level] ?? 'gray'} dot={false}>
+                      {values.priority_level}
+                    </Badge>
+                  </div>
+                )}
+              </div>
+              <Select
+                label="Assigned Team / Supervisor"
+                value={values.job_assigned_to ?? ''}
+                onChange={(e) => setValue('job_assigned_to', e.target.value || null)}
+                options={assignmentOptions}
+              />
+              <Select
+                label="Service Template"
+                value={values.service_id ?? ''}
+                onChange={(e) => setValue('service_id', e.target.value || null)}
+                options={[{ value: '', label: 'None' }, ...services]}
+              />
+            </div>
           </FormSection>
         )}
 
-        {/* Step 1: Schedule */}
         {wizard.currentStep === 1 && (
-          <FormSection title="Schedule" icon={<CalendarClock className="h-4 w-4" />} description="Frequency, time window, staffing, and date range.">
-            <Select label="Frequency" value={values.frequency} onChange={(e) => setValue('frequency', e.target.value)} options={FREQUENCY_OPTIONS} />
-            <Input label="Schedule Days" value={values.schedule_days ?? ''} onChange={(e) => setValue('schedule_days', e.target.value || null)} placeholder="e.g., Mon,Wed,Fri" />
-            <div className="grid grid-cols-2 gap-3">
-              <Input label="Start Time" type="time" value={values.start_time ?? ''} onChange={(e) => setValue('start_time', e.target.value || null)} />
-              <Input label="End Time" type="time" value={values.end_time ?? ''} onChange={(e) => setValue('end_time', e.target.value || null)} />
-            </div>
-            <Input label="Staff Needed" type="number" value={values.staff_needed ?? ''} onChange={(e) => setValue('staff_needed', e.target.value ? Number(e.target.value) : null)} />
-            <div className="grid grid-cols-2 gap-3">
-              <Input label="Start Date" type="date" value={values.start_date ?? ''} onChange={(e) => setValue('start_date', e.target.value || null)} />
-              <Input label="End Date" type="date" value={values.end_date ?? ''} onChange={(e) => setValue('end_date', e.target.value || null)} />
+          <FormSection
+            title="Step 2 — Schedule & Billing"
+            icon={<CalendarClock className="h-4 w-4" />}
+            description="Frequency, service windows, and billing setup."
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Select
+                label="Frequency"
+                value={values.frequency}
+                onChange={(e) => setValue('frequency', e.target.value)}
+                options={FREQUENCY_OPTIONS}
+                required
+              />
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-foreground">Schedule Days</label>
+                <div className="flex flex-wrap gap-2">
+                  {DAY_OPTIONS.map((d) => {
+                    const active = selectedDayCodes.includes(d.code);
+                    return (
+                      <button
+                        key={d.code}
+                        type="button"
+                        onClick={() => toggleDay(d.code)}
+                        className={cn(
+                          'rounded-full px-3 py-1 text-xs font-medium transition-colors',
+                          active
+                            ? 'bg-module-accent text-module-accent-foreground'
+                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                        )}
+                      >
+                        {d.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {selectedDayCodes.length ? serializeDayCodes(selectedDayCodes) : 'No days selected'}
+                </p>
+              </div>
+              <Input
+                label="Earliest Start Time"
+                type="time"
+                value={values.start_time ?? ''}
+                onChange={(e) => setValue('start_time', e.target.value || null)}
+              />
+              <Input
+                label="Latest Start Time"
+                type="time"
+                value={values.end_time ?? ''}
+                onChange={(e) => setValue('end_time', e.target.value || null)}
+              />
+              <Input
+                label="Billing Amount"
+                type="number"
+                min={0}
+                step="0.01"
+                value={values.billing_amount ?? ''}
+                onChange={(e) => setValue('billing_amount', e.target.value ? Number(e.target.value) : null)}
+                required
+              />
+              <Select
+                label="Billing Period"
+                value={values.billing_uom ?? ''}
+                onChange={(e) => setValue('billing_uom', e.target.value || null)}
+                options={BILLING_PERIOD_OPTIONS}
+                required
+              />
+              <div className="md:col-span-2">
+                <Textarea
+                  label="Invoice Description"
+                  value={values.invoice_description ?? ''}
+                  onChange={(e) => setValue('invoice_description', e.target.value || null)}
+                  rows={2}
+                />
+              </div>
             </div>
           </FormSection>
         )}
 
-        {/* Step 2: Billing */}
         {wizard.currentStep === 2 && (
-          <FormSection title="Billing" icon={<CreditCard className="h-4 w-4" />} description="Billing unit, amount, assignment, and invoicing.">
-            <div className="grid grid-cols-2 gap-3">
-              <Select label="Billing UOM" value={values.billing_uom ?? ''} onChange={(e) => setValue('billing_uom', e.target.value || null)} options={BILLING_UOM_OPTIONS} />
-              <Input label="Billing Amount" type="number" value={values.billing_amount ?? ''} onChange={(e) => setValue('billing_amount', e.target.value ? Number(e.target.value) : null)} />
-            </div>
-            <Input label="Assigned To" value={values.job_assigned_to ?? ''} onChange={(e) => setValue('job_assigned_to', e.target.value || null)} placeholder="Staff name or team" />
-            <Select label="Subcontractor" value={values.subcontractor_id ?? ''} onChange={(e) => setValue('subcontractor_id', e.target.value || null)} options={[{ value: '', label: 'None' }, ...subcontractors]} />
-            <Textarea label="Invoice Description" value={values.invoice_description ?? ''} onChange={(e) => setValue('invoice_description', e.target.value || null)} rows={2} placeholder="What appears on the invoice..." />
-          </FormSection>
-        )}
+          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_300px] gap-4">
+            <FormSection
+              title="Step 3 — Tasks & Details"
+              icon={<Layers3 className="h-4 w-4" />}
+              description="Build the job task list and capture operational notes."
+            >
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-[1fr_120px_auto] gap-3 items-end">
+                  <Select
+                    label="Add Task"
+                    value={taskSelectId}
+                    onChange={(e) => setTaskSelectId(e.target.value)}
+                    options={taskSelectOptions}
+                  />
+                  <Input
+                    label="Qty"
+                    type="number"
+                    min={1}
+                    value={taskQuantity}
+                    onChange={(e) => setTaskQuantity(e.target.value ? Number(e.target.value) : 1)}
+                  />
+                  <Button type="button" onClick={addTaskFromCatalog}>
+                    <Plus className="h-4 w-4" />
+                    Add
+                  </Button>
+                </div>
 
-        {/* Step 3: Specs & Notes */}
-        {wizard.currentStep === 3 && (
-          <FormSection title="Specs & Notes" icon={<FileText className="h-4 w-4" />} description="Operational details and internal context.">
-            <div className="grid grid-cols-2 gap-3">
-              <Select label="Job Type" value={values.job_type ?? ''} onChange={(e) => setValue('job_type', e.target.value || null)} options={JOB_TYPE_OPTIONS} />
-              <Select label="Priority" value={values.priority_level ?? ''} onChange={(e) => setValue('priority_level', e.target.value || null)} options={PRIORITY_OPTIONS} />
-            </div>
-            <Input label="Est. Hours / Service" type="number" value={values.estimated_hours_per_service ?? ''} onChange={(e) => setValue('estimated_hours_per_service', e.target.value ? Number(e.target.value) : null)} />
-            <Textarea label="Specifications" value={values.specifications ?? ''} onChange={(e) => setValue('specifications', e.target.value || null)} rows={3} placeholder="Service specifications..." />
-            <Textarea label="Special Requirements" value={values.special_requirements ?? ''} onChange={(e) => setValue('special_requirements', e.target.value || null)} rows={2} />
-            <Textarea label="Notes" value={values.notes ?? ''} onChange={(e) => setValue('notes', e.target.value || null)} rows={2} />
-          </FormSection>
+                {values.service_id && (
+                  <div className="flex justify-start">
+                    <Button type="button" variant="secondary" loading={loadingServiceTemplate} onClick={loadFromServiceTemplate}>
+                      Load from Service Template
+                    </Button>
+                  </div>
+                )}
+
+                {selectedTasks.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No tasks added yet.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {selectedTasks.map((task) => (
+                      <li key={task.taskId} className="rounded-xl border border-border p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">{task.name}</p>
+                            <p className="text-xs text-muted-foreground font-mono">{task.taskCode}</p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => setSelectedTasks((prev) => prev.filter((t) => t.taskId !== task.taskId))}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                        <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <Input
+                            label="Qty"
+                            type="number"
+                            min={1}
+                            value={task.quantity}
+                            onChange={(e) =>
+                              setSelectedTasks((prev) =>
+                                prev.map((t) =>
+                                  t.taskId === task.taskId
+                                    ? { ...t, quantity: e.target.value ? Math.max(1, Number(e.target.value)) : 1 }
+                                    : t
+                                )
+                              )
+                            }
+                          />
+                          <Input
+                            label="Minutes / Qty"
+                            type="number"
+                            min={1}
+                            value={task.minutesPerVisit}
+                            onChange={(e) =>
+                              setSelectedTasks((prev) =>
+                                prev.map((t) =>
+                                  t.taskId === task.taskId
+                                    ? { ...t, minutesPerVisit: e.target.value ? Math.max(1, Number(e.target.value)) : 1 }
+                                    : t
+                                )
+                              )
+                            }
+                          />
+                          <div className="space-y-1.5">
+                            <label className="block text-sm font-medium text-foreground">Total Minutes</label>
+                            <div className="h-11 rounded-[var(--radius-input)] border border-border bg-background px-3.5 flex items-center text-sm">
+                              {Math.round(task.quantity * task.minutesPerVisit)}
+                            </div>
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <Textarea
+                  label="Special Requirements"
+                  value={values.special_requirements ?? ''}
+                  onChange={(e) => setValue('special_requirements', e.target.value || null)}
+                  rows={2}
+                />
+                <Textarea
+                  label="Specifications"
+                  value={values.specifications ?? ''}
+                  onChange={(e) => setValue('specifications', e.target.value || null)}
+                  rows={2}
+                />
+                <Textarea
+                  label="Notes"
+                  value={values.notes ?? ''}
+                  onChange={(e) => setValue('notes', e.target.value || null)}
+                  rows={2}
+                />
+              </div>
+            </FormSection>
+
+            <Card className="h-fit">
+              <CardHeader>
+                <CardTitle className="inline-flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  Live Estimate
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Input
+                  label="Labor Cost / Hour"
+                  type="number"
+                  min={1}
+                  step="0.01"
+                  value={hourlyCostRate}
+                  onChange={(e) => setHourlyCostRate(e.target.value ? Number(e.target.value) : 25)}
+                />
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Task Lines</span>
+                    <span className="font-medium">{liveEstimate.lineItems}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Total Qty</span>
+                    <span className="font-medium">{liveEstimate.totalQuantity}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Minutes / Visit</span>
+                    <span className="font-medium">{Math.round(liveEstimate.totalMinutesPerVisit)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Hours / Visit</span>
+                    <span className="font-medium">{liveEstimate.hoursPerVisit.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Cost / Visit</span>
+                    <span className="font-medium">{formatCurrency(liveEstimate.costPerVisit)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Visits / Month</span>
+                    <span className="font-medium">{liveEstimate.visitsPerMonth.toFixed(1)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Monthly Hours</span>
+                    <span className="font-medium">{liveEstimate.monthlyHours.toFixed(1)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Monthly Cost</span>
+                    <span className="font-medium">{formatCurrency(liveEstimate.monthlyCost)}</span>
+                  </div>
+                  <div className="pt-2 border-t border-border" />
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Billing / Visit</span>
+                    <span className="font-medium">{formatCurrency(liveEstimate.billingPerVisit)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Margin / Visit</span>
+                    <span className={cn('font-semibold', liveEstimate.marginPerVisit >= 0 ? 'text-success' : 'text-destructive')}>
+                      {formatCurrency(liveEstimate.marginPerVisit)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Margin %</span>
+                    <span className={cn('font-semibold', liveEstimate.marginPct >= 0 ? 'text-success' : 'text-destructive')}>
+                      {liveEstimate.marginPct.toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         )}
       </FormWizard>
     </SlideOver>

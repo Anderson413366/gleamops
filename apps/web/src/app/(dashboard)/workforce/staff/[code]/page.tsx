@@ -517,15 +517,25 @@ export default function StaffDetailPage() {
         </div>
       )}
 
+      <Link
+        href="/workforce"
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to Workforce
+      </Link>
+      <div className="text-xs text-muted-foreground">
+        <Link href="/home" className="hover:text-foreground transition-colors">Home</Link>
+        <span className="mx-1">›</span>
+        <Link href="/workforce" className="hover:text-foreground transition-colors">Workforce</Link>
+        <span className="mx-1">›</span>
+        <span>Staff</span>
+        <span className="mx-1">›</span>
+        <span className="font-mono">{staff.staff_code}</span>
+      </div>
+
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link
-            href="/workforce"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Workforce
-          </Link>
           <div className="flex items-center gap-3">
             {staff.photo_url ? (
               <img src={staff.photo_url} alt={staff.full_name} className="h-12 w-12 rounded-full object-cover" />
@@ -642,7 +652,7 @@ export default function StaffDetailPage() {
                 <dd className="font-medium">{formatDate(staff.hire_date)}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-muted-foreground">Pay</dt>
+                <dt className="text-muted-foreground">Pay Rate</dt>
                 <dd className="font-medium">{formatPayRate(staff.pay_rate ?? null, staff.pay_type ?? null)}</dd>
               </div>
               {staff.schedule_type && (
@@ -684,7 +694,7 @@ export default function StaffDetailPage() {
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Next Ticket</dt>
                   <dd className="font-medium">
-                    {nextTicket ? nextTicket.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : <span className="text-muted-foreground">\u2014</span>}
+                    {nextTicket ? nextTicket.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : <span className="text-muted-foreground">None scheduled</span>}
                   </dd>
                 </div>
               </dl>

@@ -36,6 +36,25 @@ interface SiteWithClient extends Site {
   supervisor?: Pick<Staff, 'full_name' | 'staff_code' | 'email' | 'phone' | 'mobile_phone' | 'photo_url'> | null;
 }
 
+interface RelatedSiteJobRow {
+  id: string;
+  job_code: string;
+  job_name: string | null;
+  status: string;
+  frequency: string | null;
+  billing_amount: number | null;
+  priority_level: string | null;
+}
+
+interface RelatedEquipmentRow {
+  id: string;
+  equipment_code: string;
+  name: string;
+  equipment_type: string | null;
+  condition: string | null;
+  staff?: { full_name: string } | null;
+}
+
 function formatCurrency(n: number | null) {
   if (n == null) return '$0';
   return new Intl.NumberFormat('en-US', {
@@ -61,6 +80,19 @@ function formatTime(t: string | null): string {
   const ampm = h >= 12 ? 'PM' : 'AM';
   const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
   return `${h12}:${m} ${ampm}`;
+}
+
+function formatRelativeDateTime(dateStr: string): string {
+  const target = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - target.getTime();
+  const diffMinutes = Math.floor(diffMs / 60000);
+  if (diffMinutes < 1) return 'just now';
+  if (diffMinutes < 60) return `${diffMinutes} min ago`;
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours} hr ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
 }
 
 function notSet(v: unknown): ReactNode {
@@ -133,6 +165,8 @@ export default function SiteDetailPage() {
   const [monthlyRevenue, setMonthlyRevenue] = useState(0);
   const [equipmentCount, setEquipmentCount] = useState(0);
   const [keys, setKeys] = useState<KeyInventory[]>([]);
+  const [relatedJobs, setRelatedJobs] = useState<RelatedSiteJobRow[]>([]);
+  const [relatedEquipment, setRelatedEquipment] = useState<RelatedEquipmentRow[]>([]);
 
   const fetchSite = async () => {
     setLoading(true);
@@ -158,12 +192,12 @@ export default function SiteDetailPage() {
       const [jobsRes, equipRes, keysRes] = await Promise.all([
         supabase
           .from('site_jobs')
-          .select('id, status, billing_amount')
+          .select('id, job_code, job_name, status, frequency, billing_amount, priority_level')
           .eq('site_id', s.id)
-          .is('archived_at', null),
+          .order('job_code'),
         supabase
-          .from('equipment_assignments')
-          .select('id')
+          .from('equipment')
+          .select('id, equipment_code, name, equipment_type, condition, staff:assigned_to(full_name)')
           .eq('site_id', s.id)
           .is('archived_at', null),
         supabase
@@ -174,7 +208,8 @@ export default function SiteDetailPage() {
           .order('key_code'),
       ]);
 
-      const jobs = jobsRes.data ?? [];
+      const jobs = (jobsRes.data ?? []) as unknown as RelatedSiteJobRow[];
+      setRelatedJobs(jobs);
       const active = jobs.filter(
         (j: { status: string }) => j.status === 'ACTIVE'
       );
@@ -186,8 +221,13 @@ export default function SiteDetailPage() {
           0
         )
       );
-      setEquipmentCount(equipRes.data?.length ?? 0);
+      const equipment = (equipRes.data ?? []) as unknown as RelatedEquipmentRow[];
+      setRelatedEquipment(equipment);
+      setEquipmentCount(equipment.length);
       setKeys((keysRes.data as unknown as KeyInventory[]) ?? []);
+    } else {
+      setRelatedJobs([]);
+      setRelatedEquipment([]);
     }
     setLoading(false);
   };
@@ -254,6 +294,7 @@ export default function SiteDetailPage() {
   const mapsUrl = mapsSearchUrl(addr);
   const heroMapUrl = site.photo_url ? null : osmStaticMapUrl(site.geofence_center_lat, site.geofence_center_lng);
   const parsedLegacy = parseLegacySiteNotes(site.notes);
+  const updatedAgo = formatRelativeDateTime(site.updated_at);
   const geofenceCenterLabel =
     site.geofence_center_lat != null && site.geofence_center_lng != null
       ? `${site.geofence_center_lat}, ${site.geofence_center_lng}`
@@ -285,6 +326,15 @@ export default function SiteDetailPage() {
         <ArrowLeft className="h-4 w-4" />
         Back to CRM
       </Link>
+      <div className="text-xs text-muted-foreground">
+        <Link href="/home" className="hover:text-foreground transition-colors">Home</Link>
+        <span className="mx-1">›</span>
+        <Link href="/crm" className="hover:text-foreground transition-colors">CRM</Link>
+        <span className="mx-1">›</span>
+        <span>Sites</span>
+        <span className="mx-1">›</span>
+        <span className="font-mono">{site.site_code}</span>
+      </div>
 
       {/* Hero */}
       <div className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
@@ -314,6 +364,7 @@ export default function SiteDetailPage() {
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
               <span className="font-mono">{site.site_code}</span>
+              <Badge color="gray">{`Updated ${updatedAgo}`}</Badge>
               {site.client?.name && (
                 <span className="inline-flex items-center gap-1.5">
                   <Building2 className="h-4 w-4" />
@@ -690,6 +741,82 @@ export default function SiteDetailPage() {
               Geofence radius: <span className="font-mono">{geofenceRadiusLabel ?? 'Not Set'}</span>
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Related Records */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+          <h3 className="mb-4 text-sm font-semibold text-foreground">Related Jobs</h3>
+          {relatedJobs.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No jobs assigned to this site.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                    <th className="py-2 pr-3 font-medium">Code</th>
+                    <th className="py-2 pr-3 font-medium">Name</th>
+                    <th className="py-2 pr-3 font-medium">Status</th>
+                    <th className="py-2 pr-3 font-medium">Priority</th>
+                    <th className="py-2 text-right font-medium">Billing</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {relatedJobs.slice(0, 8).map((job) => (
+                    <tr key={job.id} className="border-b border-border/50">
+                      <td className="py-2 pr-3 font-mono text-xs">{job.job_code}</td>
+                      <td className="py-2 pr-3 font-medium">{job.job_name ?? 'Not Set'}</td>
+                      <td className="py-2 pr-3">
+                        <Badge color={SITE_STATUS_COLORS[job.status] ?? 'gray'}>{job.status}</Badge>
+                      </td>
+                      <td className="py-2 pr-3">
+                        {job.priority_level ? (
+                          <Badge color={PRIORITY_BADGE[job.priority_level] ?? 'gray'}>{job.priority_level}</Badge>
+                        ) : (
+                          <span className="italic text-muted-foreground">Not Set</span>
+                        )}
+                      </td>
+                      <td className="py-2 text-right tabular-nums">{formatCurrency(job.billing_amount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+          <h3 className="mb-4 text-sm font-semibold text-foreground">Related Equipment</h3>
+          {relatedEquipment.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No equipment linked to this site.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                    <th className="py-2 pr-3 font-medium">Code</th>
+                    <th className="py-2 pr-3 font-medium">Name</th>
+                    <th className="py-2 pr-3 font-medium">Type</th>
+                    <th className="py-2 pr-3 font-medium">Assigned To</th>
+                    <th className="py-2 font-medium">Condition</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {relatedEquipment.slice(0, 8).map((equip) => (
+                    <tr key={equip.id} className="border-b border-border/50">
+                      <td className="py-2 pr-3 font-mono text-xs">{equip.equipment_code}</td>
+                      <td className="py-2 pr-3 font-medium">{equip.name}</td>
+                      <td className="py-2 pr-3 text-muted-foreground">{equip.equipment_type ?? 'Not Set'}</td>
+                      <td className="py-2 pr-3 text-muted-foreground">{equip.staff?.full_name ?? 'Not Set'}</td>
+                      <td className="py-2">
+                        {equip.condition ? <Badge color="gray">{equip.condition.replace(/_/g, ' ')}</Badge> : <span className="italic text-muted-foreground">Not Set</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
 

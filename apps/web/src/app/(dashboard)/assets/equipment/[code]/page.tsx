@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { AlertTriangle, ArrowLeft, PauseCircle, Pencil, PlayCircle, Wrench } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CalendarClock, ImagePlus, PauseCircle, Pencil, PlayCircle, Wrench } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Badge, Skeleton } from '@gleamops/ui';
 import type { Equipment, StatusColor } from '@gleamops/shared';
@@ -20,8 +20,11 @@ interface EquipmentWithRelations extends Equipment {
 }
 
 interface EquipmentAssignmentFallback {
+  id: string;
   equipment_id: string;
   assigned_date: string;
+  returned_date: string | null;
+  notes: string | null;
   staff?: { full_name: string; staff_code: string } | null;
   site?: { name: string; site_code: string } | null;
 }
@@ -36,6 +39,27 @@ function formatDate(d: string | null) {
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+function formatRelativeDateTime(dateStr: string): string {
+  const target = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - target.getTime();
+  const diffMinutes = Math.floor(diffMs / 60000);
+  if (diffMinutes < 1) return 'just now';
+  if (diffMinutes < 60) return `${diffMinutes} min ago`;
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours} hr ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+}
+
+function readNoteField(notes: string | null | undefined, label: string): string | null {
+  if (!notes) return null;
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = notes.match(new RegExp(`${escaped}:\\s*([^\\n\\r]+)`, 'i'));
+  const raw = match?.[1]?.trim() ?? null;
+  return raw || null;
+}
+
 function notSet() {
   return <span className="italic text-muted-foreground">Not Set</span>;
 }
@@ -48,6 +72,7 @@ export default function EquipmentDetailPage() {
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archiveLoading, setArchiveLoading] = useState(false);
   const [equipmentFormFocus, setEquipmentFormFocus] = useState<'basics' | 'model' | 'purchase' | 'maintenance' | 'notes' | undefined>(undefined);
+  const [assignmentHistory, setAssignmentHistory] = useState<EquipmentAssignmentFallback[]>([]);
 
   const fetchEquipment = async () => {
     setLoading(true);
@@ -68,14 +93,15 @@ export default function EquipmentDetailPage() {
 
     const { data: assignmentRows } = await supabase
       .from('equipment_assignments')
-      .select('equipment_id, assigned_date, staff:staff_id(full_name, staff_code), site:site_id(name, site_code)')
+      .select('id, equipment_id, assigned_date, returned_date, notes, staff:staff_id(full_name, staff_code), site:site_id(name, site_code)')
       .eq('equipment_id', eq.id)
       .is('archived_at', null)
-      .is('returned_date', null)
       .order('assigned_date', { ascending: false })
-      .limit(1);
+      .limit(20);
 
-    const fallback = ((assignmentRows ?? [])[0] as unknown as EquipmentAssignmentFallback | undefined) ?? null;
+    const assignmentHistoryRows = (assignmentRows ?? []) as unknown as EquipmentAssignmentFallback[];
+    setAssignmentHistory(assignmentHistoryRows);
+    const fallback = assignmentHistoryRows.find((row) => row.returned_date == null) ?? assignmentHistoryRows[0] ?? null;
     setEquipment({
       ...eq,
       staff: eq.staff ?? fallback?.staff ?? null,
@@ -154,6 +180,10 @@ export default function EquipmentDetailPage() {
     { key: 'notes', label: 'Notes', isComplete: isFieldComplete(equipment.notes), section: 'notes' },
   ];
   const isInactive = ['RETIRED', 'OUT_OF_SERVICE'].includes((equipment.condition ?? '').toUpperCase());
+  const updatedAgo = formatRelativeDateTime(equipment.updated_at);
+  const warrantyProvider = readNoteField(equipment.notes, 'Warranty Provider');
+  const warrantyPolicy = readNoteField(equipment.notes, 'Warranty Policy');
+  const warrantyExpiry = readNoteField(equipment.notes, 'Warranty Expiry');
 
   return (
     <div className="space-y-6">
@@ -164,12 +194,25 @@ export default function EquipmentDetailPage() {
         <ArrowLeft className="h-4 w-4" />
         Back to Assets
       </Link>
+      <div className="text-xs text-muted-foreground">
+        <Link href="/home" className="hover:text-foreground transition-colors">Home</Link>
+        <span className="mx-1">›</span>
+        <Link href="/assets" className="hover:text-foreground transition-colors">Assets</Link>
+        <span className="mx-1">›</span>
+        <span>Equipment</span>
+        <span className="mx-1">›</span>
+        <span className="font-mono">{equipment.equipment_code}</span>
+      </div>
 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-xl font-bold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-            <Wrench className="h-8 w-8" />
-          </div>
+          {equipment.photo_url ? (
+            <img src={equipment.photo_url} alt={`${equipment.name || equipment.equipment_code} photo`} className="h-16 w-16 rounded-full border border-border object-cover" />
+          ) : (
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-xl font-bold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+              <Wrench className="h-8 w-8" />
+            </div>
+          )}
           <div>
             <h1 className="text-2xl font-bold text-foreground">{equipment.name || equipment.equipment_code}</h1>
             <div className="flex items-center gap-2 mt-1">
@@ -178,6 +221,7 @@ export default function EquipmentDetailPage() {
                 {(equipment.condition ?? 'N/A').replace(/_/g, ' ')}
               </Badge>
               {equipment.equipment_type && <Badge color="blue">{equipment.equipment_type}</Badge>}
+              <Badge color="gray">{`Updated ${updatedAgo}`}</Badge>
             </div>
           </div>
         </div>
@@ -211,6 +255,36 @@ export default function EquipmentDetailPage() {
           setFormOpen(true);
         }}
       />
+
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Equipment Photo</h3>
+            <p className="mt-1 text-xs text-muted-foreground">Use a clear front-facing photo for quick identification in assignments and audits.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setEquipmentFormFocus('basics');
+              setFormOpen(true);
+            }}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          >
+            <ImagePlus className="h-3.5 w-3.5" />
+            {equipment.photo_url ? 'Change Photo' : 'Upload Photo'}
+          </button>
+        </div>
+        <div className="mt-4 flex min-h-40 items-center justify-center rounded-lg border border-dashed border-border bg-muted/20">
+          {equipment.photo_url ? (
+            <img src={equipment.photo_url} alt={`${equipment.name || equipment.equipment_code} detail`} className="max-h-40 w-auto rounded-md object-contain" />
+          ) : (
+            <div className="text-center">
+              <Wrench className="mx-auto h-8 w-8 text-muted-foreground" />
+              <p className="mt-2 text-sm text-muted-foreground">No photo uploaded yet</p>
+            </div>
+          )}
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
@@ -283,6 +357,89 @@ export default function EquipmentDetailPage() {
             </div>
           </dl>
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+          <h3 className="mb-4 text-sm font-semibold text-foreground">
+            <span className="inline-flex items-center gap-2">
+              <CalendarClock className="h-4 w-4 text-muted-foreground" />
+              Maintenance Schedule
+            </span>
+          </h3>
+          <dl className="space-y-3 text-sm">
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Schedule</dt>
+              <dd className="font-medium">{equipment.maintenance_schedule ?? notSet()}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Last Maintenance</dt>
+              <dd className="font-medium">{formatDate(equipment.last_maintenance_date)}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Next Maintenance</dt>
+              <dd className="font-medium">{formatDate(equipment.next_maintenance_date)}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Maintenance Specs</dt>
+              <dd className="mt-1 whitespace-pre-wrap text-sm">
+                {equipment.maintenance_specs ?? <span className="italic text-muted-foreground">Not Set</span>}
+              </dd>
+            </div>
+          </dl>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+          <h3 className="mb-4 text-sm font-semibold text-foreground">Warranty Info</h3>
+          <dl className="space-y-3 text-sm">
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Warranty Provider</dt>
+              <dd className="font-medium">{warrantyProvider ?? notSet()}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Warranty Policy</dt>
+              <dd className="font-medium">{warrantyPolicy ?? notSet()}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Warranty Expiry</dt>
+              <dd className="font-medium">{warrantyExpiry ?? notSet()}</dd>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Tip: Add fields like “Warranty Provider: …” and “Warranty Expiry: …” in notes until dedicated columns are introduced.
+            </p>
+          </dl>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <h3 className="mb-4 text-sm font-semibold text-foreground">Assignment History</h3>
+        {assignmentHistory.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No assignment history yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                  <th className="py-2 pr-3 font-medium">Assigned Date</th>
+                  <th className="py-2 pr-3 font-medium">Returned Date</th>
+                  <th className="py-2 pr-3 font-medium">Assigned To</th>
+                  <th className="py-2 pr-3 font-medium">Site</th>
+                  <th className="py-2 font-medium">Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {assignmentHistory.map((row) => (
+                  <tr key={row.id} className="border-b border-border/50">
+                    <td className="py-2 pr-3">{formatDate(row.assigned_date)}</td>
+                    <td className="py-2 pr-3">{formatDate(row.returned_date)}</td>
+                    <td className="py-2 pr-3 text-muted-foreground">{row.staff?.full_name ?? 'Not Set'}</td>
+                    <td className="py-2 pr-3 text-muted-foreground">{row.site?.name ?? 'Not Set'}</td>
+                    <td className="py-2 text-muted-foreground">{row.notes ?? 'Not Set'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">

@@ -373,6 +373,15 @@ export default function JobDetailPage() {
         <ArrowLeft className="h-4 w-4" />
         Back to Service Plans
       </Link>
+      <div className="text-xs text-muted-foreground">
+        <Link href="/home" className="hover:text-foreground transition-colors">Home</Link>
+        <span className="mx-1">›</span>
+        <Link href="/operations?tab=jobs" className="hover:text-foreground transition-colors">Operations</Link>
+        <span className="mx-1">›</span>
+        <span>Service Plans</span>
+        <span className="mx-1">›</span>
+        <span className="font-mono">{job.job_code}</span>
+      </div>
 
       {/* Header */}
       <div className="flex items-center justify-between">

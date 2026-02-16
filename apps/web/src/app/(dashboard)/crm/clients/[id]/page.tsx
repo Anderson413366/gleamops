@@ -85,6 +85,39 @@ function getContractHealth(start: string | null, end: string | null): { label: s
   return { label: 'Active', color: 'green' };
 }
 
+function formatRelativeDateTime(dateStr: string): string {
+  const target = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - target.getTime();
+  const diffMinutes = Math.floor(diffMs / 60000);
+  if (diffMinutes < 1) return 'just now';
+  if (diffMinutes < 60) return `${diffMinutes} min ago`;
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours} hr ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+}
+
+interface RelatedSiteRow {
+  id: string;
+  site_code: string;
+  name: string;
+  status: string | null;
+  address: { city?: string; state?: string } | null;
+}
+
+interface RelatedJobRow {
+  id: string;
+  job_code: string;
+  job_name: string | null;
+  status: string;
+  billing_amount: number | null;
+  site?: {
+    name: string;
+    site_code: string;
+  } | null;
+}
+
 export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [client, setClient] = useState<Client | null>(null);
@@ -104,6 +137,8 @@ export default function ClientDetailPage() {
   const [activeJobCount, setActiveJobCount] = useState(0);
   const [monthlyRevenue, setMonthlyRevenue] = useState(0);
   const [siteIds, setSiteIds] = useState<string[]>([]);
+  const [relatedSites, setRelatedSites] = useState<RelatedSiteRow[]>([]);
+  const [relatedJobs, setRelatedJobs] = useState<RelatedJobRow[]>([]);
 
   const fetchClient = async () => {
     setLoading(true);
@@ -135,12 +170,14 @@ export default function ClientDetailPage() {
       const [sitesRes] = await Promise.all([
         supabase
           .from('sites')
-          .select('id, status')
+          .select('id, site_code, name, status, address')
           .eq('client_id', c.id)
+          .order('name')
           .is('archived_at', null),
       ]);
 
-      const sites = sitesRes.data ?? [];
+      const sites = (sitesRes.data ?? []) as unknown as RelatedSiteRow[];
+      setRelatedSites(sites);
       setSiteCount(sites.length);
       const activeSites = sites.filter((s: { status?: string | null }) => (s.status ?? '').toUpperCase() === 'ACTIVE');
       setActiveSiteCount(activeSites.length);
@@ -150,11 +187,13 @@ export default function ClientDetailPage() {
         const siteIds = sites.map((s: { id: string }) => s.id);
         const { data: jobsData } = await supabase
           .from('site_jobs')
-          .select('id, status, billing_amount')
+          .select('id, job_code, job_name, status, billing_amount, site:site_id(name, site_code)')
           .in('site_id', siteIds)
+          .order('job_code')
           .is('archived_at', null);
 
-        const jobs = jobsData ?? [];
+        const jobs = (jobsData ?? []) as unknown as RelatedJobRow[];
+        setRelatedJobs(jobs);
         const active = jobs.filter(
           (j: { status: string }) => j.status === 'ACTIVE'
         );
@@ -171,7 +210,11 @@ export default function ClientDetailPage() {
         setMonthlyRevenue(0);
         setSiteIds([]);
         setActiveSiteCount(0);
+        setRelatedJobs([]);
       }
+    } else {
+      setRelatedSites([]);
+      setRelatedJobs([]);
     }
     setLoading(false);
   };
@@ -246,6 +289,7 @@ export default function ClientDetailPage() {
       : clientColor === 'red'
         ? 'bg-red-50/70 border-red-200 dark:bg-red-950/20 dark:border-red-900/50'
         : 'bg-muted/40 border-border';
+  const updatedAgo = formatRelativeDateTime(client.updated_at);
 
   const primaryContact =
     contacts.find((c) => c.id === client.primary_contact_id) ??
@@ -290,6 +334,15 @@ export default function ClientDetailPage() {
         <ArrowLeft className="h-4 w-4" />
         Back to CRM
       </Link>
+      <div className="text-xs text-muted-foreground">
+        <Link href="/home" className="hover:text-foreground transition-colors">Home</Link>
+        <span className="mx-1">›</span>
+        <Link href="/crm" className="hover:text-foreground transition-colors">CRM</Link>
+        <span className="mx-1">›</span>
+        <span>Clients</span>
+        <span className="mx-1">›</span>
+        <span className="font-mono">{client.client_code}</span>
+      </div>
 
       {isInactive && (
         <div className="rounded-xl border-2 border-red-300 bg-red-50 px-4 py-3 text-center text-base font-semibold tracking-wide text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
@@ -324,6 +377,10 @@ export default function ClientDetailPage() {
               >
                 {client.status}
               </Badge>
+              {client.client_since && (
+                <Badge color="blue">{`Since ${formatDate(client.client_since)}`}</Badge>
+              )}
+              <Badge color="gray">{`Updated ${updatedAgo}`}</Badge>
             </div>
           </div>
         </div>
@@ -402,15 +459,7 @@ export default function ClientDetailPage() {
         {/* Contact Info */}
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <div className="flex items-start justify-between gap-3">
-            <h3 className="text-sm font-semibold text-foreground">Contact</h3>
-            <button
-              type="button"
-              onClick={openAddContact}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-            >
-              <Users className="h-3.5 w-3.5" />
-              Add Contact
-            </button>
+            <h3 className="text-sm font-semibold text-foreground">Contact Info</h3>
           </div>
 
           <div className="mt-4 grid grid-cols-1 gap-5 lg:grid-cols-2">
@@ -662,13 +711,81 @@ export default function ClientDetailPage() {
                 )}
               </dd>
             </div>
-            <div className="flex justify-between">
-              <dt className="text-muted-foreground">Client Since</dt>
-              <dd className="font-medium">
-                {client.client_since ? formatDate(client.client_since) : renderNotSet()}
-              </dd>
-            </div>
           </dl>
+        </div>
+      </div>
+
+      {/* Related Records */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+          <h3 className="mb-4 text-sm font-semibold text-foreground">Related Sites</h3>
+          {relatedSites.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No related sites yet.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                    <th className="py-2 pr-3 font-medium">Code</th>
+                    <th className="py-2 pr-3 font-medium">Site</th>
+                    <th className="py-2 pr-3 font-medium">City/State</th>
+                    <th className="py-2 font-medium">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {relatedSites.slice(0, 8).map((site) => (
+                    <tr key={site.id} className="border-b border-border/50">
+                      <td className="py-2 pr-3 font-mono text-xs">{site.site_code}</td>
+                      <td className="py-2 pr-3 font-medium">{site.name}</td>
+                      <td className="py-2 pr-3 text-muted-foreground">
+                        {[site.address?.city, site.address?.state].filter(Boolean).join(', ') || 'Not Set'}
+                      </td>
+                      <td className="py-2">
+                        <Badge color={site.status ? (site.status === 'ACTIVE' ? 'green' : 'gray') : 'gray'}>
+                          {site.status ?? 'Not Set'}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+          <h3 className="mb-4 text-sm font-semibold text-foreground">Related Jobs</h3>
+          {relatedJobs.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No related service plans yet.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                    <th className="py-2 pr-3 font-medium">Code</th>
+                    <th className="py-2 pr-3 font-medium">Name</th>
+                    <th className="py-2 pr-3 font-medium">Site</th>
+                    <th className="py-2 pr-3 font-medium">Status</th>
+                    <th className="py-2 text-right font-medium">Billing</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {relatedJobs.slice(0, 8).map((job) => (
+                    <tr key={job.id} className="border-b border-border/50">
+                      <td className="py-2 pr-3 font-mono text-xs">{job.job_code}</td>
+                      <td className="py-2 pr-3 font-medium">{job.job_name || 'Not Set'}</td>
+                      <td className="py-2 pr-3 text-muted-foreground">{job.site?.name ?? 'Not Set'}</td>
+                      <td className="py-2 pr-3">
+                        <Badge color={job.status === 'ACTIVE' ? 'green' : job.status === 'ON_HOLD' ? 'yellow' : 'gray'}>
+                          {job.status}
+                        </Badge>
+                      </td>
+                      <td className="py-2 text-right tabular-nums">{formatCurrency(job.billing_amount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
 

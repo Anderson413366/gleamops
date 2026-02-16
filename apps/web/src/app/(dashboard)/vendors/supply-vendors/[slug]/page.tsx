@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Archive, ArrowLeft, Building2, CreditCard, FileText, ShoppingCart, Store, Truck } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { ArchiveDialog, Badge, Button, EmptyState, Input, Select, SlideOver, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Textarea } from '@gleamops/ui';
+import { ArchiveDialog, Badge, Button, EmptyState, Input, Select, Skeleton, SlideOver, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Textarea } from '@gleamops/ui';
 import { SupplyVendorForm } from '@/components/forms/supply-vendor-form';
 import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
@@ -29,10 +29,12 @@ interface SupplyLite {
 
 interface OrderLite {
   id: string;
+  order_code: string | null;
   supplier: string | null;
   order_date: string;
   status: string;
   total_amount: number | null;
+  notes: string | null;
 }
 
 function normalize(value: string | null | undefined): string {
@@ -102,7 +104,7 @@ export default function SupplyVendorDetailPage() {
         .not('preferred_vendor', 'is', null),
       supabase
         .from('supply_orders')
-        .select('id, supplier, order_date, status, total_amount')
+        .select('id, order_code, supplier, order_date, status, total_amount, notes')
         .is('archived_at', null)
         .not('supplier', 'is', null)
         .order('order_date', { ascending: false }),
@@ -275,13 +277,21 @@ export default function SupplyVendorDetailPage() {
   };
 
   if (loading) {
-    return <div className="p-6 text-sm text-muted-foreground">Loading vendor details...</div>;
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
   }
 
   if (notFound || !profile) {
     return (
       <div className="space-y-4">
-        <Link href="/vendors?tab=vendors" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <Link
+          href="/vendors?tab=vendors"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
           <ArrowLeft className="h-4 w-4" />
           Back to Supply Vendors
         </Link>
@@ -296,7 +306,10 @@ export default function SupplyVendorDetailPage() {
 
   return (
     <div className="space-y-6">
-      <Link href="/vendors?tab=vendors" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+      <Link
+        href="/vendors?tab=vendors"
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
         <ArrowLeft className="h-4 w-4" />
         Back to Supply Vendors
       </Link>
@@ -395,6 +408,43 @@ export default function SupplyVendorDetailPage() {
                   <TableCell>
                     <Badge color={statusColor(row.supply_status)}>{row.supply_status ?? 'ACTIVE'}</Badge>
                   </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <h3 className="mb-4 text-sm font-semibold text-foreground">
+          <span className="inline-flex items-center gap-2">
+            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+            Order History
+          </span>
+        </h3>
+        {orders.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No orders yet.</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <tr>
+                <TableHead>Order Code</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Total</TableHead>
+                <TableHead>Notes</TableHead>
+              </tr>
+            </TableHeader>
+            <TableBody>
+              {orders.map((order) => (
+                <TableRow key={order.id}>
+                  <TableCell className="font-mono text-xs">{order.order_code ?? '—'}</TableCell>
+                  <TableCell>{formatDate(order.order_date)}</TableCell>
+                  <TableCell>
+                    <Badge color={statusColor(order.status)}>{order.status}</Badge>
+                  </TableCell>
+                  <TableCell>{formatMoney(order.total_amount)}</TableCell>
+                  <TableCell className="text-muted-foreground">{order.notes ?? '—'}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

@@ -4,6 +4,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   User,
   Briefcase,
@@ -465,9 +466,13 @@ export default function StaffDetailPage() {
       <div className="flex flex-col items-center justify-center py-24 gap-4">
         <AlertTriangle className="h-12 w-12 text-muted-foreground" />
         <p className="text-lg text-muted-foreground">Staff member not found.</p>
-        <Button variant="secondary" onClick={() => router.push('/workforce')}>
-          <ArrowLeft className="h-4 w-4" /> Back to Workforce
-        </Button>
+        <Link
+          href="/workforce"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Workforce
+        </Link>
       </div>
     );
   }
@@ -506,12 +511,15 @@ export default function StaffDetailPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="secondary" size="sm" onClick={() => router.push('/workforce')}>
+          <Link
+            href="/workforce"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
             <ArrowLeft className="h-4 w-4" />
-          </Button>
+            Back to Workforce
+          </Link>
           <div className="flex items-center gap-3">
             {staff.photo_url ? (
               <img src={staff.photo_url} alt={staff.full_name} className="h-12 w-12 rounded-full object-cover" />

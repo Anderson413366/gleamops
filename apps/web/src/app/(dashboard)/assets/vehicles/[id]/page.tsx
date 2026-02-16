@@ -123,7 +123,7 @@ export default function VehicleDetailPage() {
         <p className="text-lg text-muted-foreground">Vehicle not found.</p>
         <Link
           href="/assets"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-4 w-4" /> Back to Assets
         </Link>

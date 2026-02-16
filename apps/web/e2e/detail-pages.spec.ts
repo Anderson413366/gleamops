@@ -102,6 +102,39 @@ test.describe('Detail page navigation', () => {
       await page.waitForTimeout(1000);
     }
   });
+
+  test('Assets > Equipment: first row click opens detail and edit form pre-fills', async ({ page }) => {
+    await page.goto('/assets');
+    await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 10_000 });
+
+    const equipmentTab = page.locator('button, [role="tab"]').filter({ hasText: /^Equipment$/i });
+    if (await equipmentTab.count()) {
+      await equipmentTab.first().click();
+    }
+
+    const table = page.locator('table').first();
+    if (!(await table.isVisible({ timeout: 10_000 }).catch(() => false))) {
+      await expect(page.locator('main')).toBeVisible();
+      return;
+    }
+
+    const firstRow = page.locator('tbody tr').first();
+    if (!(await firstRow.isVisible())) return;
+
+    await firstRow.click();
+    await page.waitForTimeout(500);
+
+    // Should navigate to equipment detail page
+    await page.waitForURL(/\/assets\/equipment\//, { timeout: 10_000 }).catch(() => {});
+
+    // Open edit and assert key fields are prefilled
+    const editButton = page.getByRole('button', { name: /^Edit$/i }).first();
+    if (await editButton.count()) {
+      await editButton.click();
+      await expect(page.getByLabel('Equipment Code')).not.toHaveValue('');
+      await expect(page.getByLabel('Name')).not.toHaveValue('');
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------

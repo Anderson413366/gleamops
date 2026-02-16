@@ -91,16 +91,6 @@ export default function SitesTable({ search, onSelect }: SitesTableProps) {
 
   if (loading) return <TableSkeleton rows={8} cols={5} />;
 
-  if (filtered.length === 0) {
-    return (
-      <EmptyState
-        icon={<MapPin className="h-12 w-12" />}
-        title="No sites found"
-        description={search ? 'Try a different search term.' : 'Create your first site to get started.'}
-      />
-    );
-  }
-
   return (
     <div>
       <div className="flex justify-end mb-4">
@@ -142,50 +132,60 @@ export default function SitesTable({ search, onSelect }: SitesTableProps) {
           </button>
         ))}
       </div>
-      <Table>
-        <TableHeader>
-          <tr>
-            <TableHead sortable sorted={sortKey === 'site_code' && sortDir} onSort={() => onSort('site_code')}>
-              Code
-            </TableHead>
-            <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>
-              Name
-            </TableHead>
-            <TableHead>Client</TableHead>
-            <TableHead>Address</TableHead>
-            <TableHead>Sq Ft</TableHead>
-          </tr>
-        </TableHeader>
-        <TableBody>
-          {pag.page.map((row) => (
-            <TableRow key={row.id} onClick={() => onSelect?.(row)}>
-              <TableCell className="font-mono text-xs">{row.site_code}</TableCell>
-              <TableCell className="font-medium">{row.name}</TableCell>
-              <TableCell className="text-muted-foreground">{row.client?.name ?? '—'}</TableCell>
-              <TableCell className="text-muted-foreground">
-                {row.address
-                  ? [row.address.street, row.address.city, row.address.state]
-                      .filter(Boolean)
-                      .join(', ')
-                  : '—'}
-              </TableCell>
-              <TableCell className="text-right tabular-nums">
-                {row.square_footage ? row.square_footage.toLocaleString() : '—'}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      <Pagination
-        currentPage={pag.currentPage}
-        totalPages={pag.totalPages}
-        totalItems={pag.totalItems}
-        pageSize={pag.pageSize}
-        hasNext={pag.hasNext}
-        hasPrev={pag.hasPrev}
-        onNext={pag.nextPage}
-        onPrev={pag.prevPage}
-      />
+      {filtered.length === 0 ? (
+        <EmptyState
+          icon={<MapPin className="h-12 w-12" />}
+          title="No sites found"
+          description={search ? 'Try a different search term.' : 'Create your first site to get started.'}
+        />
+      ) : (
+        <>
+          <Table>
+            <TableHeader>
+              <tr>
+                <TableHead sortable sorted={sortKey === 'site_code' && sortDir} onSort={() => onSort('site_code')}>
+                  Code
+                </TableHead>
+                <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>
+                  Name
+                </TableHead>
+                <TableHead>Client</TableHead>
+                <TableHead>Address</TableHead>
+                <TableHead>Sq Ft</TableHead>
+              </tr>
+            </TableHeader>
+            <TableBody>
+              {pag.page.map((row) => (
+                <TableRow key={row.id} onClick={() => onSelect?.(row)}>
+                  <TableCell className="font-mono text-xs">{row.site_code}</TableCell>
+                  <TableCell className="font-medium">{row.name}</TableCell>
+                  <TableCell className="text-muted-foreground">{row.client?.name ?? '—'}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {row.address
+                      ? [row.address.street, row.address.city, row.address.state]
+                          .filter(Boolean)
+                          .join(', ')
+                      : '—'}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {row.square_footage ? row.square_footage.toLocaleString() : '—'}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <Pagination
+            currentPage={pag.currentPage}
+            totalPages={pag.totalPages}
+            totalItems={pag.totalItems}
+            pageSize={pag.pageSize}
+            hasNext={pag.hasNext}
+            hasPrev={pag.hasPrev}
+            onNext={pag.nextPage}
+            onPrev={pag.prevPage}
+          />
+        </>
+      )}
     </div>
   );
 }

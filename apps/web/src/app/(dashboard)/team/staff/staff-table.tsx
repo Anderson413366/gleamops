@@ -102,24 +102,6 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
 
   if (loading) return <TableSkeleton rows={6} cols={8} />;
 
-  if (filtered.length === 0) {
-    return (
-      <>
-        <EmptyState
-          icon={<Users className="h-12 w-12" />}
-          title="No staff found"
-          description={search ? 'Try a different search term.' : 'Add your first staff member.'}
-        />
-        <StaffForm
-          open={formOpen}
-          onClose={() => { setFormOpen(false); setEditItem(null); }}
-          initialData={editItem}
-          onSuccess={fetchData}
-        />
-      </>
-    );
-  }
-
   return (
     <div>
       <div className="flex justify-end mb-4">
@@ -166,41 +148,51 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
           </button>
         ))}
       </div>
-      <Table>
-        <TableHeader>
-          <tr>
-            <TableHead sortable sorted={sortKey === 'staff_code' && sortDir} onSort={() => onSort('staff_code')}>Code</TableHead>
-            <TableHead sortable sorted={sortKey === 'full_name' && sortDir} onSort={() => onSort('full_name')}>Name</TableHead>
-            <TableHead sortable sorted={sortKey === 'role' && sortDir} onSort={() => onSort('role')}>Role</TableHead>
-            <TableHead>Employment</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Phone</TableHead>
-            <TableHead sortable sorted={sortKey === 'hire_date' && sortDir} onSort={() => onSort('hire_date')}>Hire Date</TableHead>
-          </tr>
-        </TableHeader>
-        <TableBody>
-          {pag.page.map((row) => (
-            <TableRow key={row.id} onClick={() => handleEdit(row)} className="cursor-pointer">
-              <TableCell className="font-mono text-xs">{row.staff_code}</TableCell>
-              <TableCell className="font-medium">{row.full_name}</TableCell>
-              <TableCell>
-                <Badge color={ROLE_COLORS[row.role] ?? 'gray'}>
-                  {row.role.replace(/_/g, ' ')}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-muted-foreground">{row.employment_type ?? '—'}</TableCell>
-              <TableCell className="text-muted-foreground">{row.email ?? '—'}</TableCell>
-              <TableCell className="text-muted-foreground">{row.mobile_phone ?? row.phone ?? '—'}</TableCell>
-              <TableCell className="text-muted-foreground">{formatDate(row.hire_date ?? null)}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      <Pagination
-        currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
-        pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
-        onNext={pag.nextPage} onPrev={pag.prevPage}
-      />
+      {filtered.length === 0 ? (
+        <EmptyState
+          icon={<Users className="h-12 w-12" />}
+          title="No staff found"
+          description={search ? 'Try a different search term.' : 'Add your first staff member.'}
+        />
+      ) : (
+        <>
+          <Table>
+            <TableHeader>
+              <tr>
+                <TableHead sortable sorted={sortKey === 'staff_code' && sortDir} onSort={() => onSort('staff_code')}>Code</TableHead>
+                <TableHead sortable sorted={sortKey === 'full_name' && sortDir} onSort={() => onSort('full_name')}>Name</TableHead>
+                <TableHead sortable sorted={sortKey === 'role' && sortDir} onSort={() => onSort('role')}>Role</TableHead>
+                <TableHead>Employment</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead sortable sorted={sortKey === 'hire_date' && sortDir} onSort={() => onSort('hire_date')}>Hire Date</TableHead>
+              </tr>
+            </TableHeader>
+            <TableBody>
+              {pag.page.map((row) => (
+                <TableRow key={row.id} onClick={() => handleEdit(row)} className="cursor-pointer">
+                  <TableCell className="font-mono text-xs">{row.staff_code}</TableCell>
+                  <TableCell className="font-medium">{row.full_name}</TableCell>
+                  <TableCell>
+                    <Badge color={ROLE_COLORS[row.role] ?? 'gray'}>
+                      {row.role.replace(/_/g, ' ')}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{row.employment_type ?? '—'}</TableCell>
+                  <TableCell className="text-muted-foreground">{row.email ?? '—'}</TableCell>
+                  <TableCell className="text-muted-foreground">{row.mobile_phone ?? row.phone ?? '—'}</TableCell>
+                  <TableCell className="text-muted-foreground">{formatDate(row.hire_date ?? null)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <Pagination
+            currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
+            pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
+            onNext={pag.nextPage} onPrev={pag.prevPage}
+          />
+        </>
+      )}
 
       <StaffForm
         open={formOpen}

@@ -87,34 +87,6 @@ export default function BidsTable({ search, onSelect, onCreateNew }: BidsTablePr
 
   if (loading) return <TableSkeleton rows={6} cols={5} />;
 
-  if (filtered.length === 0) {
-    return (
-      <EmptyState
-        icon={(
-          <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-300">
-            <FileText className="h-10 w-10" />
-            <Sparkles className="absolute -right-1 -top-1 h-4 w-4" />
-          </div>
-        )}
-        title="No bids"
-        description={search ? 'Try a different search term.' : 'Price your first opportunity to move it toward contract.'}
-        actionLabel={search ? undefined : '+ Create Your First Bid'}
-        onAction={search ? undefined : onCreateNew}
-      >
-        {!search && (
-          <div className="space-y-4 text-left">
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>Build clean scopes and pricing options in one place.</li>
-              <li>Standardize assumptions so estimates are consistent across reps.</li>
-              <li>Move from opportunity to client-ready proposal quickly.</li>
-            </ul>
-            <PipelineFlowHint />
-          </div>
-        )}
-      </EmptyState>
-    );
-  }
-
   return (
     <div>
       <div className="flex justify-end mb-4">
@@ -146,42 +118,70 @@ export default function BidsTable({ search, onSelect, onCreateNew }: BidsTablePr
           </button>
         ))}
       </div>
-      <Table>
-        <TableHeader>
-          <tr>
-            <TableHead sortable sorted={sortKey === 'bid_code' && sortDir} onSort={() => onSort('bid_code')}>Code</TableHead>
-            <TableHead>Client</TableHead>
-            <TableHead>Service</TableHead>
-            <TableHead sortable sorted={sortKey === 'total_sqft' && sortDir} onSort={() => onSort('total_sqft')}>Sq Ft</TableHead>
-            <TableHead sortable sorted={sortKey === 'bid_monthly_price' && sortDir} onSort={() => onSort('bid_monthly_price')}>Monthly Price</TableHead>
-          </tr>
-        </TableHeader>
-        <TableBody>
-          {pag.page.map((row) => (
-            <TableRow
-              key={row.id}
-              onClick={() => onSelect?.(row)}
-              className={cn('cursor-pointer', statusRowAccentClass(row.status))}
-            >
-              <TableCell className="font-mono text-xs">
-                <div className="flex items-center gap-2">
-                  <StatusDot status={row.status} />
-                  <span>{row.bid_code}</span>
-                </div>
-              </TableCell>
-              <TableCell className="font-medium">{row.client?.name ?? '—'}</TableCell>
-              <TableCell className="text-muted-foreground">{row.service?.name ?? '—'}</TableCell>
-              <TableCell className="text-right tabular-nums">{row.total_sqft?.toLocaleString() ?? '—'}</TableCell>
-              <TableCell className="text-right tabular-nums font-medium">{formatCurrency(row.bid_monthly_price)}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      <Pagination
-        currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
-        pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
-        onNext={pag.nextPage} onPrev={pag.prevPage}
-      />
+      {filtered.length === 0 ? (
+        <EmptyState
+          icon={(
+            <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-300">
+              <FileText className="h-10 w-10" />
+              <Sparkles className="absolute -right-1 -top-1 h-4 w-4" />
+            </div>
+          )}
+          title="No bids"
+          description={search ? 'Try a different search term.' : 'Price your first opportunity to move it toward contract.'}
+          actionLabel={search ? undefined : '+ Create Your First Bid'}
+          onAction={search ? undefined : onCreateNew}
+        >
+          {!search && (
+            <div className="space-y-4 text-left">
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>Build clean scopes and pricing options in one place.</li>
+                <li>Standardize assumptions so estimates are consistent across reps.</li>
+                <li>Move from opportunity to client-ready proposal quickly.</li>
+              </ul>
+              <PipelineFlowHint />
+            </div>
+          )}
+        </EmptyState>
+      ) : (
+        <>
+          <Table>
+            <TableHeader>
+              <tr>
+                <TableHead sortable sorted={sortKey === 'bid_code' && sortDir} onSort={() => onSort('bid_code')}>Code</TableHead>
+                <TableHead>Client</TableHead>
+                <TableHead>Service</TableHead>
+                <TableHead sortable sorted={sortKey === 'total_sqft' && sortDir} onSort={() => onSort('total_sqft')}>Sq Ft</TableHead>
+                <TableHead sortable sorted={sortKey === 'bid_monthly_price' && sortDir} onSort={() => onSort('bid_monthly_price')}>Monthly Price</TableHead>
+              </tr>
+            </TableHeader>
+            <TableBody>
+              {pag.page.map((row) => (
+                <TableRow
+                  key={row.id}
+                  onClick={() => onSelect?.(row)}
+                  className={cn('cursor-pointer', statusRowAccentClass(row.status))}
+                >
+                  <TableCell className="font-mono text-xs">
+                    <div className="flex items-center gap-2">
+                      <StatusDot status={row.status} />
+                      <span>{row.bid_code}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-medium">{row.client?.name ?? '—'}</TableCell>
+                  <TableCell className="text-muted-foreground">{row.service?.name ?? '—'}</TableCell>
+                  <TableCell className="text-right tabular-nums">{row.total_sqft?.toLocaleString() ?? '—'}</TableCell>
+                  <TableCell className="text-right tabular-nums font-medium">{formatCurrency(row.bid_monthly_price)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <Pagination
+            currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
+            pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
+            onNext={pag.nextPage} onPrev={pag.prevPage}
+          />
+        </>
+      )}
     </div>
   );
 }

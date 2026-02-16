@@ -317,21 +317,6 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
 
   if (loading) return <TableSkeleton rows={8} cols={8} />;
 
-  if (filtered.length === 0) {
-    return (
-      <>
-        <EmptyState
-          icon={<Package className="h-12 w-12" />}
-          title="No supplies found"
-          description={search ? 'Try a different search term.' : 'Add your first supply to get started.'}
-        />
-        <SlideOver open={formOpen} onClose={handleClose} title="New Supply">
-          {renderForm()}
-        </SlideOver>
-      </>
-    );
-  }
-
   return (
     <div>
       <div className="flex items-center justify-end gap-3 mb-4">
@@ -378,74 +363,84 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
           </button>
         ))}
       </div>
-      {view === 'card' ? (
-        <SuppliesCardGrid rows={pag.page} onSelect={handleRowClick} />
+      {filtered.length === 0 ? (
+        <EmptyState
+          icon={<Package className="h-12 w-12" />}
+          title="No supplies found"
+          description={search ? 'Try a different search term.' : 'Add your first supply to get started.'}
+        />
       ) : (
-      <Table>
-        <TableHeader>
-          <tr>
-            <TableHead sortable sorted={sortKey === 'code' && sortDir} onSort={() => onSort('code')}>Code</TableHead>
-            <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Name</TableHead>
-            <TableHead sortable sorted={sortKey === 'category' && sortDir} onSort={() => onSort('category')}>Category</TableHead>
-            <TableHead>Brand</TableHead>
-            <TableHead sortable sorted={sortKey === 'unit' && sortDir} onSort={() => onSort('unit')}>Unit</TableHead>
-            <TableHead sortable sorted={sortKey === 'unit_cost' && sortDir} onSort={() => onSort('unit_cost')}>Cost</TableHead>
-            <TableHead>Vendor</TableHead>
-            <TableHead>SDS</TableHead>
-          </tr>
-        </TableHeader>
-        <TableBody>
-          {pag.page.map((row) => (
-            <TableRow
-              key={row.id}
-              onClick={() => handleRowClick(row)}
-              className={statusRowAccentClass(row.supply_status ?? 'ACTIVE')}
-            >
-              <TableCell className="font-mono text-xs">
-                <div className="flex items-center gap-2">
-                  <StatusDot status={row.supply_status ?? 'ACTIVE'} />
-                  <span>{row.code}</span>
-                </div>
-              </TableCell>
-              <TableCell className="font-medium">{row.name}</TableCell>
-              <TableCell className="text-muted-foreground">{row.category ?? '—'}</TableCell>
-              <TableCell className="text-muted-foreground">{row.brand ?? '—'}</TableCell>
-              <TableCell>{row.unit}</TableCell>
-              <TableCell className="font-mono text-xs">
-                {row.unit_cost != null ? `$${Number(row.unit_cost).toFixed(2)}` : '—'}
-              </TableCell>
-              <TableCell className="text-muted-foreground">{row.preferred_vendor ?? '—'}</TableCell>
-              <TableCell>
-                {row.sds_url ? (
-                  <a
-                    href={row.sds_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-primary hover:text-primary/80"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <ExternalLink className="h-3.5 w-3.5" />
-                    View
-                  </a>
-                ) : (
-                  <span className="text-muted-foreground">—</span>
-                )}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+        <>
+          {view === 'card' ? (
+            <SuppliesCardGrid rows={pag.page} onSelect={handleRowClick} />
+          ) : (
+          <Table>
+            <TableHeader>
+              <tr>
+                <TableHead sortable sorted={sortKey === 'code' && sortDir} onSort={() => onSort('code')}>Code</TableHead>
+                <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Name</TableHead>
+                <TableHead sortable sorted={sortKey === 'category' && sortDir} onSort={() => onSort('category')}>Category</TableHead>
+                <TableHead>Brand</TableHead>
+                <TableHead sortable sorted={sortKey === 'unit' && sortDir} onSort={() => onSort('unit')}>Unit</TableHead>
+                <TableHead sortable sorted={sortKey === 'unit_cost' && sortDir} onSort={() => onSort('unit_cost')}>Cost</TableHead>
+                <TableHead>Vendor</TableHead>
+                <TableHead>SDS</TableHead>
+              </tr>
+            </TableHeader>
+            <TableBody>
+              {pag.page.map((row) => (
+                <TableRow
+                  key={row.id}
+                  onClick={() => handleRowClick(row)}
+                  className={statusRowAccentClass(row.supply_status ?? 'ACTIVE')}
+                >
+                  <TableCell className="font-mono text-xs">
+                    <div className="flex items-center gap-2">
+                      <StatusDot status={row.supply_status ?? 'ACTIVE'} />
+                      <span>{row.code}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-medium">{row.name}</TableCell>
+                  <TableCell className="text-muted-foreground">{row.category ?? '—'}</TableCell>
+                  <TableCell className="text-muted-foreground">{row.brand ?? '—'}</TableCell>
+                  <TableCell>{row.unit}</TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {row.unit_cost != null ? `$${Number(row.unit_cost).toFixed(2)}` : '—'}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{row.preferred_vendor ?? '—'}</TableCell>
+                  <TableCell>
+                    {row.sds_url ? (
+                      <a
+                        href={row.sds_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-primary hover:text-primary/80"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        View
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          )}
+          <Pagination
+            currentPage={pag.currentPage}
+            totalPages={pag.totalPages}
+            totalItems={pag.totalItems}
+            pageSize={pag.pageSize}
+            hasNext={pag.hasNext}
+            hasPrev={pag.hasPrev}
+            onNext={pag.nextPage}
+            onPrev={pag.prevPage}
+          />
+        </>
       )}
-      <Pagination
-        currentPage={pag.currentPage}
-        totalPages={pag.totalPages}
-        totalItems={pag.totalItems}
-        pageSize={pag.pageSize}
-        hasNext={pag.hasNext}
-        hasPrev={pag.hasPrev}
-        onNext={pag.nextPage}
-        onPrev={pag.prevPage}
-      />
 
       <SlideOver open={formOpen} onClose={handleClose} title="New Supply">
         {renderForm()}

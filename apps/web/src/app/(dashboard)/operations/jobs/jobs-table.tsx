@@ -111,29 +111,6 @@ export default function JobsTable({ search, openCreateToken }: JobsTableProps) {
 
   if (loading) return <TableSkeleton rows={6} cols={8} />;
 
-  if (filtered.length === 0) {
-    return (
-      <>
-        <div className="flex justify-end mb-4">
-          <Button size="sm" onClick={() => { setEditItem(null); setFormOpen(true); }}>
-            <Plus className="h-4 w-4" /> New Job
-          </Button>
-        </div>
-        <EmptyState
-          icon={<Briefcase className="h-12 w-12" />}
-          title="No jobs"
-          description={search ? 'Try a different search term.' : 'Create your first job to get started.'}
-        />
-        <JobForm
-          open={formOpen}
-          onClose={() => { setFormOpen(false); setEditItem(null); }}
-          initialData={editItem}
-          onSuccess={fetchData}
-        />
-      </>
-    );
-  }
-
   return (
     <div>
       <div className="flex justify-between mb-4">
@@ -182,56 +159,66 @@ export default function JobsTable({ search, openCreateToken }: JobsTableProps) {
           </button>
         ))}
       </div>
-      {view === 'card' ? (
-        <JobsCardGrid rows={pag.page} onSelect={handleRowClick} />
+      {filtered.length === 0 ? (
+        <EmptyState
+          icon={<Briefcase className="h-12 w-12" />}
+          title="No jobs"
+          description={search ? 'Try a different search term.' : 'Create your first job to get started.'}
+        />
       ) : (
-      <Table>
-        <TableHeader>
-          <tr>
-            <TableHead sortable sorted={sortKey === 'job_code' && sortDir} onSort={() => onSort('job_code')}>Code</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>Site</TableHead>
-            <TableHead>Client</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Frequency</TableHead>
-            <TableHead sortable sorted={sortKey === 'billing_amount' && sortDir} onSort={() => onSort('billing_amount')}>Billing</TableHead>
-            <TableHead>Priority</TableHead>
-          </tr>
-        </TableHeader>
-        <TableBody>
-          {pag.page.map((row) => (
-            <TableRow
-              key={row.id}
-              className={cn('cursor-pointer', priorityRowAccentClass(row.priority_level))}
-              onClick={() => handleRowClick(row)}
-            >
-              <TableCell className="font-mono text-xs">
-                <div className="flex items-center gap-2">
-                  <StatusDot status={row.status} />
-                  <span>{row.job_code}</span>
-                </div>
-              </TableCell>
-              <TableCell className="font-medium">{row.job_name ?? '\u2014'}</TableCell>
-              <TableCell>{row.site?.name ?? '\u2014'}</TableCell>
-              <TableCell className="text-muted-foreground">{row.site?.client?.name ?? '\u2014'}</TableCell>
-              <TableCell className="text-muted-foreground">{row.job_type ?? '\u2014'}</TableCell>
-              <TableCell className="text-muted-foreground">{row.frequency}</TableCell>
-              <TableCell className="text-right tabular-nums font-medium">{formatCurrency(row.billing_amount)}</TableCell>
-              <TableCell>
-                {row.priority_level ? (
-                  <Badge color={PRIORITY_COLORS[row.priority_level] ?? 'gray'}>{row.priority_level}</Badge>
-                ) : '\u2014'}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+        <>
+          {view === 'card' ? (
+            <JobsCardGrid rows={pag.page} onSelect={handleRowClick} />
+          ) : (
+          <Table>
+            <TableHeader>
+              <tr>
+                <TableHead sortable sorted={sortKey === 'job_code' && sortDir} onSort={() => onSort('job_code')}>Code</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Site</TableHead>
+                <TableHead>Client</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Frequency</TableHead>
+                <TableHead sortable sorted={sortKey === 'billing_amount' && sortDir} onSort={() => onSort('billing_amount')}>Billing</TableHead>
+                <TableHead>Priority</TableHead>
+              </tr>
+            </TableHeader>
+            <TableBody>
+              {pag.page.map((row) => (
+                <TableRow
+                  key={row.id}
+                  className={cn('cursor-pointer', priorityRowAccentClass(row.priority_level))}
+                  onClick={() => handleRowClick(row)}
+                >
+                  <TableCell className="font-mono text-xs">
+                    <div className="flex items-center gap-2">
+                      <StatusDot status={row.status} />
+                      <span>{row.job_code}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-medium">{row.job_name ?? '\u2014'}</TableCell>
+                  <TableCell>{row.site?.name ?? '\u2014'}</TableCell>
+                  <TableCell className="text-muted-foreground">{row.site?.client?.name ?? '\u2014'}</TableCell>
+                  <TableCell className="text-muted-foreground">{row.job_type ?? '\u2014'}</TableCell>
+                  <TableCell className="text-muted-foreground">{row.frequency}</TableCell>
+                  <TableCell className="text-right tabular-nums font-medium">{formatCurrency(row.billing_amount)}</TableCell>
+                  <TableCell>
+                    {row.priority_level ? (
+                      <Badge color={PRIORITY_COLORS[row.priority_level] ?? 'gray'}>{row.priority_level}</Badge>
+                    ) : '\u2014'}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          )}
+          <Pagination
+            currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
+            pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
+            onNext={pag.nextPage} onPrev={pag.prevPage}
+          />
+        </>
       )}
-      <Pagination
-        currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
-        pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
-        onNext={pag.nextPage} onPrev={pag.prevPage}
-      />
 
       <JobForm
         open={formOpen}

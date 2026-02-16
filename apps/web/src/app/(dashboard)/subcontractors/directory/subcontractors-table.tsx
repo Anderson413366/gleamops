@@ -82,15 +82,6 @@ export default function SubcontractorsTable({ search, onSelect }: Props) {
   const pag = usePagination(sortedRows, 25);
 
   if (loading) return <TableSkeleton rows={8} cols={8} />;
-  if (filtered.length === 0) {
-    return (
-      <EmptyState
-        icon={<HardHat className="h-10 w-10" />}
-        title="No subcontractors found"
-        description={search ? 'Try a different search term.' : 'Add a subcontractor to get started.'}
-      />
-    );
-  }
 
   return (
     <div>
@@ -138,49 +129,59 @@ export default function SubcontractorsTable({ search, onSelect }: Props) {
           </button>
         ))}
       </div>
-      {view === 'card' ? (
-        <SubcontractorsCardGrid rows={pag.page} onSelect={(item) => onSelect?.(item)} />
+      {filtered.length === 0 ? (
+        <EmptyState
+          icon={<HardHat className="h-10 w-10" />}
+          title="No subcontractors found"
+          description={search ? 'Try a different search term.' : 'Add a subcontractor to get started.'}
+        />
       ) : (
-      <Table>
-        <TableHeader>
-          <tr>
-            <TableHead sortable sorted={sortKey === 'subcontractor_code' && sortDir} onSort={() => onSort('subcontractor_code')}>Code</TableHead>
-            <TableHead sortable sorted={sortKey === 'company_name' && sortDir} onSort={() => onSort('company_name')}>Company</TableHead>
-            <TableHead>Contact</TableHead>
-            <TableHead>Phone</TableHead>
-            <TableHead>Services</TableHead>
-            <TableHead sortable sorted={sortKey === 'hourly_rate' && sortDir} onSort={() => onSort('hourly_rate')}>Rate</TableHead>
-            <TableHead>License Exp.</TableHead>
-            <TableHead>W9</TableHead>
-          </tr>
-        </TableHeader>
-        <TableBody>
-          {pag.page.map((row) => (
-            <TableRow key={row.id} onClick={() => onSelect?.(row)} className="cursor-pointer">
-              <TableCell className="font-mono text-xs">{row.subcontractor_code}</TableCell>
-              <TableCell className="font-medium">{row.company_name}</TableCell>
-              <TableCell>{row.contact_name ?? '---'}</TableCell>
-              <TableCell>{row.business_phone ?? row.phone ?? '---'}</TableCell>
-              <TableCell className="max-w-[200px] truncate text-muted-foreground">{row.services_provided ?? '---'}</TableCell>
-              <TableCell className="text-right tabular-nums">{formatCurrency(row.hourly_rate ?? null)}/hr</TableCell>
-              <TableCell className="text-muted-foreground">{formatDate(row.license_expiry ?? null)}</TableCell>
-              <TableCell>
-                {row.w9_on_file ? (
-                  <CheckCircle className="h-4 w-4 text-success" />
-                ) : (
-                  <XCircle className="h-4 w-4 text-destructive/70" />
-                )}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+        <>
+          {view === 'card' ? (
+            <SubcontractorsCardGrid rows={pag.page} onSelect={(item) => onSelect?.(item)} />
+          ) : (
+          <Table>
+            <TableHeader>
+              <tr>
+                <TableHead sortable sorted={sortKey === 'subcontractor_code' && sortDir} onSort={() => onSort('subcontractor_code')}>Code</TableHead>
+                <TableHead sortable sorted={sortKey === 'company_name' && sortDir} onSort={() => onSort('company_name')}>Company</TableHead>
+                <TableHead>Contact</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Services</TableHead>
+                <TableHead sortable sorted={sortKey === 'hourly_rate' && sortDir} onSort={() => onSort('hourly_rate')}>Rate</TableHead>
+                <TableHead>License Exp.</TableHead>
+                <TableHead>W9</TableHead>
+              </tr>
+            </TableHeader>
+            <TableBody>
+              {pag.page.map((row) => (
+                <TableRow key={row.id} onClick={() => onSelect?.(row)} className="cursor-pointer">
+                  <TableCell className="font-mono text-xs">{row.subcontractor_code}</TableCell>
+                  <TableCell className="font-medium">{row.company_name}</TableCell>
+                  <TableCell>{row.contact_name ?? '---'}</TableCell>
+                  <TableCell>{row.business_phone ?? row.phone ?? '---'}</TableCell>
+                  <TableCell className="max-w-[200px] truncate text-muted-foreground">{row.services_provided ?? '---'}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatCurrency(row.hourly_rate ?? null)}/hr</TableCell>
+                  <TableCell className="text-muted-foreground">{formatDate(row.license_expiry ?? null)}</TableCell>
+                  <TableCell>
+                    {row.w9_on_file ? (
+                      <CheckCircle className="h-4 w-4 text-success" />
+                    ) : (
+                      <XCircle className="h-4 w-4 text-destructive/70" />
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          )}
+          <Pagination
+            currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
+            pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
+            onNext={pag.nextPage} onPrev={pag.prevPage}
+          />
+        </>
       )}
-      <Pagination
-        currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
-        pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
-        onNext={pag.nextPage} onPrev={pag.prevPage}
-      />
     </div>
   );
 }

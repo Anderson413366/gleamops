@@ -97,16 +97,6 @@ export default function SitesTable({ search }: SitesTableProps) {
 
   if (loading) return <TableSkeleton rows={8} cols={7} />;
 
-  if (filtered.length === 0) {
-    return (
-      <EmptyState
-        icon={<MapPin className="h-12 w-12" />}
-        title="No sites found"
-        description={search ? 'Try a different search term.' : 'Create your first site to get started.'}
-      />
-    );
-  }
-
   return (
     <div>
       <div className="flex items-center justify-end gap-3 mb-4">
@@ -152,60 +142,70 @@ export default function SitesTable({ search }: SitesTableProps) {
           </button>
         ))}
       </div>
-      {view === 'card' ? (
-        <SitesCardGrid rows={pag.page} onSelect={handleRowClick} />
+      {filtered.length === 0 ? (
+        <EmptyState
+          icon={<MapPin className="h-12 w-12" />}
+          title="No sites found"
+          description={search ? 'Try a different search term.' : 'Create your first site to get started.'}
+        />
       ) : (
-      <Table>
-        <TableHeader>
-          <tr>
-            <TableHead sortable sorted={sortKey === 'site_code' && sortDir} onSort={() => onSort('site_code')}>Code</TableHead>
-            <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Name</TableHead>
-            <TableHead>Client</TableHead>
-            <TableHead>Address</TableHead>
-            <TableHead sortable sorted={sortKey === 'square_footage' && sortDir} onSort={() => onSort('square_footage')}>Sq Ft</TableHead>
-            <TableHead>Floors</TableHead>
-            <TableHead>Priority</TableHead>
-          </tr>
-        </TableHeader>
-        <TableBody>
-          {pag.page.map((row) => (
-            <TableRow
-              key={row.id}
-              onClick={() => handleRowClick(row)}
-              className={cn('cursor-pointer', statusRowAccentClass(row.status))}
-            >
-              <TableCell className="font-mono text-xs">
-                <div className="flex items-center gap-2">
-                  <StatusDot status={row.status} />
-                  <span>{row.site_code}</span>
-                </div>
-              </TableCell>
-              <TableCell className="font-medium">{row.name}</TableCell>
-              <TableCell className="text-muted-foreground">{row.client?.name ?? '---'}</TableCell>
-              <TableCell className="text-muted-foreground">
-                {row.address
-                  ? [row.address.city, row.address.state].filter(Boolean).join(', ')
-                  : '---'}
-              </TableCell>
-              <TableCell className="text-right tabular-nums">
-                {row.square_footage ? row.square_footage.toLocaleString() : '---'}
-              </TableCell>
-              <TableCell className="text-center">{row.number_of_floors ?? '---'}</TableCell>
-              <TableCell>
-                {row.priority_level ? (
-                  <Badge color={PRIORITY_COLORS[row.priority_level] ?? 'gray'}>{row.priority_level}</Badge>
-                ) : '---'}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+        <>
+          {view === 'card' ? (
+            <SitesCardGrid rows={pag.page} onSelect={handleRowClick} />
+          ) : (
+          <Table>
+            <TableHeader>
+              <tr>
+                <TableHead sortable sorted={sortKey === 'site_code' && sortDir} onSort={() => onSort('site_code')}>Code</TableHead>
+                <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Name</TableHead>
+                <TableHead>Client</TableHead>
+                <TableHead>Address</TableHead>
+                <TableHead sortable sorted={sortKey === 'square_footage' && sortDir} onSort={() => onSort('square_footage')}>Sq Ft</TableHead>
+                <TableHead>Floors</TableHead>
+                <TableHead>Priority</TableHead>
+              </tr>
+            </TableHeader>
+            <TableBody>
+              {pag.page.map((row) => (
+                <TableRow
+                  key={row.id}
+                  onClick={() => handleRowClick(row)}
+                  className={cn('cursor-pointer', statusRowAccentClass(row.status))}
+                >
+                  <TableCell className="font-mono text-xs">
+                    <div className="flex items-center gap-2">
+                      <StatusDot status={row.status} />
+                      <span>{row.site_code}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-medium">{row.name}</TableCell>
+                  <TableCell className="text-muted-foreground">{row.client?.name ?? '---'}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {row.address
+                      ? [row.address.city, row.address.state].filter(Boolean).join(', ')
+                      : '---'}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {row.square_footage ? row.square_footage.toLocaleString() : '---'}
+                  </TableCell>
+                  <TableCell className="text-center">{row.number_of_floors ?? '---'}</TableCell>
+                  <TableCell>
+                    {row.priority_level ? (
+                      <Badge color={PRIORITY_COLORS[row.priority_level] ?? 'gray'}>{row.priority_level}</Badge>
+                    ) : '---'}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          )}
+          <Pagination
+            currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
+            pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
+            onNext={pag.nextPage} onPrev={pag.prevPage}
+          />
+        </>
       )}
-      <Pagination
-        currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
-        pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
-        onNext={pag.nextPage} onPrev={pag.prevPage}
-      />
     </div>
   );
 }

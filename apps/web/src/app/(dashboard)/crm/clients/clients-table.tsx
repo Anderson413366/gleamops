@@ -195,16 +195,6 @@ export default function ClientsTable({ search }: ClientsTableProps) {
 
   if (loading) return <TableSkeleton rows={8} cols={7} />;
 
-  if (filtered.length === 0) {
-    return (
-      <EmptyState
-        icon={<Building2 className="h-12 w-12" />}
-        title="No clients found"
-        description={search ? 'Try a different search term.' : 'Create your first client to get started.'}
-      />
-    );
-  }
-
   const handleRowClick = (row: Client) => {
     router.push(`/crm/clients/${row.client_code}`);
   };
@@ -256,54 +246,64 @@ export default function ClientsTable({ search }: ClientsTableProps) {
           </button>
         ))}
       </div>
-      {view === 'card' ? (
-        <ClientsCardGrid rows={pag.page} onSelect={handleRowClick} metaByClientId={cardMetaByClientId} />
+      {filtered.length === 0 ? (
+        <EmptyState
+          icon={<Building2 className="h-12 w-12" />}
+          title="No clients found"
+          description={search ? 'Try a different search term.' : 'Create your first client to get started.'}
+        />
       ) : (
-      <Table>
-        <TableHeader>
-          <tr>
-            <TableHead sortable sorted={sortKey === 'client_code' && sortDir} onSort={() => onSort('client_code')}>Code</TableHead>
-            <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Name</TableHead>
-            <TableHead sortable sorted={sortKey === 'client_type' && sortDir} onSort={() => onSort('client_type')}>Type</TableHead>
-            <TableHead>Industry</TableHead>
-            <TableHead>Address</TableHead>
-            <TableHead>Payment Terms</TableHead>
-            <TableHead sortable sorted={sortKey === 'contract_end_date' && sortDir} onSort={() => onSort('contract_end_date')}>Contract End</TableHead>
-          </tr>
-        </TableHeader>
-        <TableBody>
-          {pag.page.map((row) => (
-            <TableRow
-              key={row.id}
-              onClick={() => handleRowClick(row)}
-              className={cn('cursor-pointer', statusRowAccentClass(row.status))}
-            >
-              <TableCell className="font-mono text-xs">
-                <div className="flex items-center gap-2">
-                  <StatusDot status={row.status} />
-                  <span>{row.client_code}</span>
-                </div>
-              </TableCell>
-              <TableCell className="font-medium">{row.name}</TableCell>
-              <TableCell className="text-muted-foreground">{row.client_type ?? '—'}</TableCell>
-              <TableCell className="text-muted-foreground">{row.industry ?? '—'}</TableCell>
-              <TableCell className="text-muted-foreground">
-                {row.billing_address
-                  ? [row.billing_address.city, row.billing_address.state].filter(Boolean).join(', ')
-                  : '—'}
-              </TableCell>
-              <TableCell className="text-muted-foreground">{row.payment_terms ?? '—'}</TableCell>
-              <TableCell className="text-muted-foreground">{formatDate(row.contract_end_date ?? null)}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+        <>
+          {view === 'card' ? (
+            <ClientsCardGrid rows={pag.page} onSelect={handleRowClick} metaByClientId={cardMetaByClientId} />
+          ) : (
+          <Table>
+            <TableHeader>
+              <tr>
+                <TableHead sortable sorted={sortKey === 'client_code' && sortDir} onSort={() => onSort('client_code')}>Code</TableHead>
+                <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Name</TableHead>
+                <TableHead sortable sorted={sortKey === 'client_type' && sortDir} onSort={() => onSort('client_type')}>Type</TableHead>
+                <TableHead>Industry</TableHead>
+                <TableHead>Address</TableHead>
+                <TableHead>Payment Terms</TableHead>
+                <TableHead sortable sorted={sortKey === 'contract_end_date' && sortDir} onSort={() => onSort('contract_end_date')}>Contract End</TableHead>
+              </tr>
+            </TableHeader>
+            <TableBody>
+              {pag.page.map((row) => (
+                <TableRow
+                  key={row.id}
+                  onClick={() => handleRowClick(row)}
+                  className={cn('cursor-pointer', statusRowAccentClass(row.status))}
+                >
+                  <TableCell className="font-mono text-xs">
+                    <div className="flex items-center gap-2">
+                      <StatusDot status={row.status} />
+                      <span>{row.client_code}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-medium">{row.name}</TableCell>
+                  <TableCell className="text-muted-foreground">{row.client_type ?? '—'}</TableCell>
+                  <TableCell className="text-muted-foreground">{row.industry ?? '—'}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {row.billing_address
+                      ? [row.billing_address.city, row.billing_address.state].filter(Boolean).join(', ')
+                      : '—'}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{row.payment_terms ?? '—'}</TableCell>
+                  <TableCell className="text-muted-foreground">{formatDate(row.contract_end_date ?? null)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          )}
+          <Pagination
+            currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
+            pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
+            onNext={pag.nextPage} onPrev={pag.prevPage}
+          />
+        </>
       )}
-      <Pagination
-        currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
-        pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
-        onNext={pag.nextPage} onPrev={pag.prevPage}
-      />
     </div>
   );
 }

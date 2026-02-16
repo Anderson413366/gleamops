@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Building2, CreditCard, FileText, StickyNote } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
@@ -56,6 +56,38 @@ const DEFAULTS: ClientFormData = {
   notes: null,
 };
 
+const CLIENT_TYPE_FALLBACK = [
+  'Office Building',
+  'Medical Facility',
+  'Retail Store',
+  'School/University',
+  'Church/Religious',
+  'Sports Facility',
+  'Restaurant',
+  'Government Building',
+  'Industrial/Manufacturing',
+  'Residential Property Management',
+  'Other',
+];
+
+const INDUSTRY_FALLBACK = [
+  'Healthcare',
+  'Education',
+  'Real Estate',
+  'Retail/Entertainment',
+  'Professional Services',
+  'Sports/Recreation',
+  'Government',
+  'Religious',
+  'Non-Profit',
+  'Manufacturing',
+  'Hospitality',
+  'Other',
+];
+
+type LookupOption = { code: string; label: string };
+const OTHER_VALUE = '__OTHER__';
+
 const WIZARD_STEPS: WizardStep[] = [
   { id: 'basics', title: 'Basic Info' },
   { id: 'billing', title: 'Billing' },
@@ -77,9 +109,8 @@ export function ClientForm({ open, onClose, initialData, onSuccess, focusSection
   const supabase = getSupabaseBrowserClient();
   const wizard = useWizardSteps(WIZARD_STEPS.length);
 
-  const { values, errors, loading, setValue, onBlur, handleSubmit, reset } = useForm<ClientFormData>({
-    schema: clientSchema,
-    initialValues: initialData
+  const initialValues = useMemo<ClientFormData>(() => {
+    return initialData
       ? {
           client_code: initialData.client_code,
           name: initialData.name,
@@ -101,7 +132,12 @@ export function ClientForm({ open, onClose, initialData, onSuccess, focusSection
           insurance_expiry: initialData.insurance_expiry,
           notes: initialData.notes,
         }
-      : DEFAULTS,
+      : DEFAULTS;
+  }, [initialData]);
+
+  const { values, errors, loading, setValue, onBlur, handleSubmit, reset } = useForm<ClientFormData>({
+    schema: clientSchema,
+    initialValues,
     onSubmit: async (data) => {
       if (isEdit) {
         // Client code is immutable after create.
@@ -133,6 +169,115 @@ export function ClientForm({ open, onClose, initialData, onSuccess, focusSection
       handleClose();
     },
   });
+
+  // `useForm` doesn't automatically reinitialize when `initialData` changes.
+  // When opening the SlideOver, reset to the current record defaults so edit forms prefill.
+  useEffect(() => {
+    if (!open) return;
+    reset(initialValues);
+  }, [open, reset, initialValues]);
+
+  // Lookups: Client Type + Industry (from Admin > Lookups)
+  const [clientTypeLookups, setClientTypeLookups] = useState<LookupOption[]>([]);
+  const [industryLookups, setIndustryLookups] = useState<LookupOption[]>([]);
+
+  useEffect(() => {
+    if (!open) return;
+    // Categories use the same style as existing lookups (e.g. opportunity_stage).
+    const clientTypeCats = ['client_type', 'CLIENT_TYPE'];
+    const industryCats = ['industry', 'INDUSTRY'];
+
+    supabase
+      .from('lookups')
+      .select('code, label')
+      .in('category', clientTypeCats)
+      .eq('is_active', true)
+      .order('sort_order')
+      .then(({ data }) => setClientTypeLookups((data as unknown as LookupOption[]) ?? []));
+
+    supabase
+      .from('lookups')
+      .select('code, label')
+      .in('category', industryCats)
+      .eq('is_active', true)
+      .order('sort_order')
+      .then(({ data }) => setIndustryLookups((data as unknown as LookupOption[]) ?? []));
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const clientTypeLabels = useMemo(() => {
+    const labels = clientTypeLookups.length > 0 ? clientTypeLookups.map((l) => l.label) : CLIENT_TYPE_FALLBACK;
+    return Array.from(new Set(labels.filter(Boolean)));
+  }, [clientTypeLookups]);
+
+  const industryLabels = useMemo(() => {
+    const labels = industryLookups.length > 0 ? industryLookups.map((l) => l.label) : INDUSTRY_FALLBACK;
+    return Array.from(new Set(labels.filter(Boolean)));
+  }, [industryLookups]);
+
+  // Select value management: persist actual text in `values.*` but support an "Other" mode.
+  const [clientTypeSelect, setClientTypeSelect] = useState<string>('');
+  const [clientTypeOther, setClientTypeOther] = useState<string>('');
+  const [industrySelect, setIndustrySelect] = useState<string>('');
+  const [industryOther, setIndustryOther] = useState<string>('');
+
+  // Sync select state from current form values each time we open/reset.
+  useEffect(() => {
+    if (!open) return;
+
+    const currentClientType = (values.client_type ?? '').trim();
+    if (!currentClientType) {
+      setClientTypeSelect('');
+      setClientTypeOther('');
+    } else if (clientTypeLabels.some((l) => l.toLowerCase() === currentClientType.toLowerCase() && l.toLowerCase() !== 'other')) {
+      const canonical = clientTypeLabels.find((l) => l.toLowerCase() === currentClientType.toLowerCase()) ?? currentClientType;
+      setClientTypeSelect(canonical);
+      setClientTypeOther('');
+    } else if (currentClientType.toLowerCase() === 'other') {
+      setClientTypeSelect(OTHER_VALUE);
+      setClientTypeOther('');
+    } else {
+      setClientTypeSelect(OTHER_VALUE);
+      setClientTypeOther(currentClientType);
+    }
+
+    const currentIndustry = (values.industry ?? '').trim();
+    if (!currentIndustry) {
+      setIndustrySelect('');
+      setIndustryOther('');
+    } else if (industryLabels.some((l) => l.toLowerCase() === currentIndustry.toLowerCase() && l.toLowerCase() !== 'other')) {
+      const canonical = industryLabels.find((l) => l.toLowerCase() === currentIndustry.toLowerCase()) ?? currentIndustry;
+      setIndustrySelect(canonical);
+      setIndustryOther('');
+    } else if (currentIndustry.toLowerCase() === 'other') {
+      setIndustrySelect(OTHER_VALUE);
+      setIndustryOther('');
+    } else {
+      setIndustrySelect(OTHER_VALUE);
+      setIndustryOther(currentIndustry);
+    }
+  }, [open, values.client_type, values.industry, clientTypeLabels, industryLabels]);
+
+  const clientTypeOptions = useMemo(() => {
+    const base = clientTypeLabels
+      .filter((l) => l.toLowerCase() !== 'other')
+      .map((l) => ({ value: l, label: l }));
+    return [
+      { value: '', label: 'Select...' },
+      ...base,
+      { value: OTHER_VALUE, label: 'Other' },
+    ];
+  }, [clientTypeLabels]);
+
+  const industryOptions = useMemo(() => {
+    const base = industryLabels
+      .filter((l) => l.toLowerCase() !== 'other')
+      .map((l) => ({ value: l, label: l }));
+    return [
+      { value: '', label: 'Select...' },
+      ...base,
+      { value: OTHER_VALUE, label: 'Other' },
+    ];
+  }, [industryLabels]);
 
   // Generate next code on create
   useEffect(() => {
@@ -186,8 +331,76 @@ export function ClientForm({ open, onClose, initialData, onSuccess, focusSection
               <Input label="Name" value={values.name} onChange={(e) => setValue('name', e.target.value)} onBlur={() => onBlur('name')} error={errors.name} required />
               <Select label="Status" value={values.status} onChange={(e) => setValue('status', e.target.value)} options={STATUS_OPTIONS} />
               <div className="grid grid-cols-2 gap-3">
-                <Input label="Client Type" value={values.client_type ?? ''} onChange={(e) => setValue('client_type', e.target.value || null)} />
-                <Input label="Industry" value={values.industry ?? ''} onChange={(e) => setValue('industry', e.target.value || null)} />
+                <div>
+                  <Select
+                    label="Client Type"
+                    value={clientTypeSelect}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setClientTypeSelect(v);
+                      if (v === OTHER_VALUE) {
+                        const existing = (values.client_type ?? '').trim();
+                        const shouldPreserve = existing && !clientTypeLabels.some((l) => l.toLowerCase() === existing.toLowerCase());
+                        const next = shouldPreserve ? existing : (clientTypeOther || '');
+                        setClientTypeOther(next);
+                        setValue('client_type', next.trim() ? next : null);
+                      } else {
+                        setClientTypeOther('');
+                        setValue('client_type', v ? v : null);
+                      }
+                    }}
+                    options={clientTypeOptions}
+                  />
+                  {clientTypeSelect === OTHER_VALUE && (
+                    <div className="mt-3">
+                      <Input
+                        label="Client Type (Other)"
+                        value={clientTypeOther}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setClientTypeOther(v);
+                          setValue('client_type', v.trim() ? v : null);
+                        }}
+                        placeholder="e.g., Ambulatory Surgery Center"
+                      />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <Select
+                    label="Industry"
+                    value={industrySelect}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setIndustrySelect(v);
+                      if (v === OTHER_VALUE) {
+                        const existing = (values.industry ?? '').trim();
+                        const shouldPreserve = existing && !industryLabels.some((l) => l.toLowerCase() === existing.toLowerCase());
+                        const next = shouldPreserve ? existing : (industryOther || '');
+                        setIndustryOther(next);
+                        setValue('industry', next.trim() ? next : null);
+                      } else {
+                        setIndustryOther('');
+                        setValue('industry', v ? v : null);
+                      }
+                    }}
+                    options={industryOptions}
+                  />
+                  {industrySelect === OTHER_VALUE && (
+                    <div className="mt-3">
+                      <Input
+                        label="Industry (Other)"
+                        value={industryOther}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setIndustryOther(v);
+                          setValue('industry', v.trim() ? v : null);
+                        }}
+                        placeholder="e.g., Sports & shooting club"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
               <Input label="Website" value={values.website ?? ''} onChange={(e) => setValue('website', e.target.value || null)} />
             </FormSection>
@@ -260,8 +473,68 @@ export function ClientForm({ open, onClose, initialData, onSuccess, focusSection
             <Input label="Name" value={values.name} onChange={(e) => setValue('name', e.target.value)} onBlur={() => onBlur('name')} error={errors.name} required />
             <Select label="Status" value={values.status} onChange={(e) => setValue('status', e.target.value)} options={STATUS_OPTIONS} />
             <div className="grid grid-cols-2 gap-3">
-              <Input label="Client Type" value={values.client_type ?? ''} onChange={(e) => setValue('client_type', e.target.value || null)} placeholder="e.g., Commercial, Government" />
-              <Input label="Industry" value={values.industry ?? ''} onChange={(e) => setValue('industry', e.target.value || null)} placeholder="e.g., Healthcare, Education" />
+              <div>
+                <Select
+                  label="Client Type"
+                  value={clientTypeSelect}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setClientTypeSelect(v);
+                    if (v === OTHER_VALUE) {
+                      setValue('client_type', clientTypeOther.trim() ? clientTypeOther : null);
+                    } else {
+                      setClientTypeOther('');
+                      setValue('client_type', v ? v : null);
+                    }
+                  }}
+                  options={clientTypeOptions}
+                />
+                {clientTypeSelect === OTHER_VALUE && (
+                  <div className="mt-3">
+                    <Input
+                      label="Client Type (Other)"
+                      value={clientTypeOther}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setClientTypeOther(v);
+                        setValue('client_type', v.trim() ? v : null);
+                      }}
+                      placeholder="Describe the building type"
+                    />
+                  </div>
+                )}
+              </div>
+              <div>
+                <Select
+                  label="Industry"
+                  value={industrySelect}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setIndustrySelect(v);
+                    if (v === OTHER_VALUE) {
+                      setValue('industry', industryOther.trim() ? industryOther : null);
+                    } else {
+                      setIndustryOther('');
+                      setValue('industry', v ? v : null);
+                    }
+                  }}
+                  options={industryOptions}
+                />
+                {industrySelect === OTHER_VALUE && (
+                  <div className="mt-3">
+                    <Input
+                      label="Industry (Other)"
+                      value={industryOther}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setIndustryOther(v);
+                        setValue('industry', v.trim() ? v : null);
+                      }}
+                      placeholder="Describe the industry"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
             <Input label="Website" value={values.website ?? ''} onChange={(e) => setValue('website', e.target.value || null)} />
           </FormSection>

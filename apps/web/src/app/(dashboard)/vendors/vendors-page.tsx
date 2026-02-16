@@ -21,6 +21,7 @@ const TABS = [
 
 const ADD_LABELS: Record<string, string> = {
   subcontractors: 'New Subcontractor',
+  vendors: 'New Supply Vendor',
 };
 
 export default function VendorsPageClient() {
@@ -31,6 +32,7 @@ export default function VendorsPageClient() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [selected, setSelected] = useState<Subcontractor | null>(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [vendorFormOpen, setVendorFormOpen] = useState(false);
   const [editItem, setEditItem] = useState<Subcontractor | null>(null);
   const [kpis, setKpis] = useState({
     activeSubs: 0,
@@ -46,6 +48,8 @@ export default function VendorsPageClient() {
     if (tab === 'subcontractors') {
       setEditItem(null);
       setFormOpen(true);
+    } else if (tab === 'vendors') {
+      setVendorFormOpen(true);
     }
   };
 
@@ -113,7 +117,13 @@ export default function VendorsPageClient() {
       )}
 
       {tab === 'vendors' && (
-        <VendorsTable key={`vendors-${refreshKey}`} search={search} />
+        <VendorsTable
+          key={`vendors-${refreshKey}`}
+          search={search}
+          formOpen={vendorFormOpen}
+          onFormClose={() => setVendorFormOpen(false)}
+          onRefresh={refresh}
+        />
       )}
 
       <SubcontractorDetail

@@ -1,9 +1,10 @@
 'use client';
 
+import { Package } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { supplySchema, type SupplyFormData } from '@gleamops/shared';
-import { SlideOver, Input, Textarea, Button } from '@gleamops/ui';
+import { SlideOver, Input, Textarea, Button, FormSection } from '@gleamops/ui';
 import type { SupplyCatalog } from '@gleamops/shared';
 
 const DEFAULTS: SupplyFormData = {
@@ -80,8 +81,8 @@ export function SupplyForm({ open, onClose, initialData, onSuccess }: SupplyForm
       title={isEdit ? 'Edit Supply' : 'New Supply'}
       subtitle={isEdit ? initialData?.code : undefined}
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <FormSection title="Supply Details" icon={<Package className="h-4 w-4" />} description="Catalog info, unit pricing, and safety links.">
           <Input
             label="Code"
             value={values.code}
@@ -132,7 +133,7 @@ export function SupplyForm({ open, onClose, initialData, onSuccess }: SupplyForm
             value={values.notes ?? ''}
             onChange={(e) => setValue('notes', e.target.value || null)}
           />
-        </div>
+        </FormSection>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <Button variant="secondary" type="button" onClick={handleClose}>

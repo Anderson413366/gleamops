@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect } from 'react';
+import { ClipboardList, FileText, Phone, StickyNote } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { subcontractorSchema, type SubcontractorFormData } from '@gleamops/shared';
-import { SlideOver, Input, Select, Textarea, Button } from '@gleamops/ui';
+import { SlideOver, Input, Select, Textarea, Button, FormSection } from '@gleamops/ui';
 import type { Subcontractor } from '@gleamops/shared';
 
 const STATUS_OPTIONS = [
@@ -105,8 +106,8 @@ export function SubcontractorForm({ open, onClose, initialData, onSuccess }: Sub
       title={isEdit ? 'Edit Subcontractor' : 'New Subcontractor'}
       subtitle={isEdit ? initialData?.subcontractor_code : undefined}
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <FormSection title="Basic Info" icon={<ClipboardList className="h-4 w-4" />} description="Company identity and current status.">
           <Input
             label="Subcontractor Code"
             value={values.subcontractor_code}
@@ -128,10 +129,9 @@ export function SubcontractorForm({ open, onClose, initialData, onSuccess }: Sub
             onChange={(e) => setValue('status', e.target.value as 'ACTIVE' | 'INACTIVE' | 'PENDING')}
             options={STATUS_OPTIONS}
           />
-        </div>
+        </FormSection>
 
-        <div className="space-y-4">
-          <h3 className="text-sm font-medium text-foreground">Contact Info</h3>
+        <FormSection title="Contact Info" icon={<Phone className="h-4 w-4" />} description="Primary contact details for the subcontractor.">
           <Input
             label="Contact Name"
             value={values.contact_name ?? ''}
@@ -150,10 +150,9 @@ export function SubcontractorForm({ open, onClose, initialData, onSuccess }: Sub
             value={values.phone ?? ''}
             onChange={(e) => setValue('phone', e.target.value || null)}
           />
-        </div>
+        </FormSection>
 
-        <div className="space-y-4">
-          <h3 className="text-sm font-medium text-foreground">Details</h3>
+        <FormSection title="Details" icon={<FileText className="h-4 w-4" />} description="Services provided and compliance details.">
           <Textarea
             label="Services Provided"
             value={values.services_provided ?? ''}
@@ -172,15 +171,15 @@ export function SubcontractorForm({ open, onClose, initialData, onSuccess }: Sub
               onChange={(e) => setValue('license_number', e.target.value || null)}
             />
           </div>
-        </div>
+        </FormSection>
 
-        <div className="space-y-4">
+        <FormSection title="Notes" icon={<StickyNote className="h-4 w-4" />} description="Optional notes for your team.">
           <Textarea
             label="Notes"
             value={values.notes ?? ''}
             onChange={(e) => setValue('notes', e.target.value || null)}
           />
-        </div>
+        </FormSection>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <Button variant="secondary" type="button" onClick={handleClose}>

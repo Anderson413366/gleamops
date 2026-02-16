@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { CalendarClock, ClipboardList, CreditCard, FileText } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { siteJobSchema, type SiteJobFormData } from '@gleamops/shared';
-import { SlideOver, Input, Select, Textarea, Button, FormWizard, useWizardSteps } from '@gleamops/ui';
+import { SlideOver, Input, Select, Textarea, Button, FormWizard, useWizardSteps, FormSection } from '@gleamops/ui';
 import type { WizardStep } from '@gleamops/ui';
 import type { SiteJob } from '@gleamops/shared';
 
@@ -188,19 +189,16 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
   if (isEdit) {
     return (
       <SlideOver open={open} onClose={handleClose} title="Edit Job" subtitle={initialData?.job_code} wide>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic Info */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Basic Info</h3>
+        <form onSubmit={handleSubmit} className="space-y-8">
+          <FormSection title="Basic Info" icon={<ClipboardList className="h-4 w-4" />} description="Core identity, site, and current state.">
             <Input label="Job Code" value={values.job_code} readOnly disabled />
             <Input label="Name" value={values.job_name} onChange={(e) => setValue('job_name', e.target.value)} onBlur={() => onBlur('job_name')} error={errors.job_name} required />
             <Select label="Site" value={values.site_id} onChange={(e) => setValue('site_id', e.target.value)} options={sites} required />
             <Select label="Service" value={values.service_id ?? ''} onChange={(e) => setValue('service_id', e.target.value || null)} options={[{ value: '', label: 'None' }, ...services]} />
             <Select label="Status" value={values.status} onChange={(e) => setValue('status', e.target.value)} options={STATUS_OPTIONS} />
-          </div>
-          {/* Schedule */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Schedule</h3>
+          </FormSection>
+
+          <FormSection title="Schedule" icon={<CalendarClock className="h-4 w-4" />} description="Frequency, time window, staffing, and date range.">
             <Select label="Frequency" value={values.frequency} onChange={(e) => setValue('frequency', e.target.value)} options={FREQUENCY_OPTIONS} />
             <Input label="Schedule Days" value={values.schedule_days ?? ''} onChange={(e) => setValue('schedule_days', e.target.value || null)} placeholder="e.g., Mon,Wed,Fri" />
             <div className="grid grid-cols-2 gap-3">
@@ -212,10 +210,9 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
               <Input label="Start Date" type="date" value={values.start_date ?? ''} onChange={(e) => setValue('start_date', e.target.value || null)} />
               <Input label="End Date" type="date" value={values.end_date ?? ''} onChange={(e) => setValue('end_date', e.target.value || null)} />
             </div>
-          </div>
-          {/* Billing */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Billing</h3>
+          </FormSection>
+
+          <FormSection title="Billing" icon={<CreditCard className="h-4 w-4" />} description="Billing unit, amount, assignment, and invoicing.">
             <div className="grid grid-cols-2 gap-3">
               <Select label="Billing UOM" value={values.billing_uom ?? ''} onChange={(e) => setValue('billing_uom', e.target.value || null)} options={BILLING_UOM_OPTIONS} />
               <Input label="Billing Amount" type="number" value={values.billing_amount ?? ''} onChange={(e) => setValue('billing_amount', e.target.value ? Number(e.target.value) : null)} />
@@ -223,10 +220,9 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
             <Input label="Assigned To" value={values.job_assigned_to ?? ''} onChange={(e) => setValue('job_assigned_to', e.target.value || null)} />
             <Select label="Subcontractor" value={values.subcontractor_id ?? ''} onChange={(e) => setValue('subcontractor_id', e.target.value || null)} options={[{ value: '', label: 'None' }, ...subcontractors]} />
             <Textarea label="Invoice Description" value={values.invoice_description ?? ''} onChange={(e) => setValue('invoice_description', e.target.value || null)} rows={2} />
-          </div>
-          {/* Specs */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Specs & Notes</h3>
+          </FormSection>
+
+          <FormSection title="Specs & Notes" icon={<FileText className="h-4 w-4" />} description="Operational details and internal context.">
             <div className="grid grid-cols-2 gap-3">
               <Select label="Job Type" value={values.job_type ?? ''} onChange={(e) => setValue('job_type', e.target.value || null)} options={JOB_TYPE_OPTIONS} />
               <Select label="Priority" value={values.priority_level ?? ''} onChange={(e) => setValue('priority_level', e.target.value || null)} options={PRIORITY_OPTIONS} />
@@ -235,7 +231,7 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
             <Textarea label="Specifications" value={values.specifications ?? ''} onChange={(e) => setValue('specifications', e.target.value || null)} rows={2} />
             <Textarea label="Special Requirements" value={values.special_requirements ?? ''} onChange={(e) => setValue('special_requirements', e.target.value || null)} rows={2} />
             <Textarea label="Notes" value={values.notes ?? ''} onChange={(e) => setValue('notes', e.target.value || null)} rows={2} />
-          </div>
+          </FormSection>
           <div className="flex justify-end gap-3 pt-4 border-t border-border">
             <Button variant="secondary" type="button" onClick={handleClose}>Cancel</Button>
             <Button type="submit" loading={loading}>Save Changes</Button>
@@ -260,18 +256,18 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
       >
         {/* Step 0: Basic Info */}
         {wizard.currentStep === 0 && (
-          <div className="space-y-4">
+          <FormSection title="Basic Info" icon={<ClipboardList className="h-4 w-4" />} description="Core identity, site, and current state.">
             <Input label="Job Code" value={values.job_code} readOnly disabled hint="Auto-generated" />
             <Input label="Name" value={values.job_name} onChange={(e) => setValue('job_name', e.target.value)} onBlur={() => onBlur('job_name')} error={errors.job_name} required />
             <Select label="Site" value={values.site_id} onChange={(e) => setValue('site_id', e.target.value)} onBlur={() => onBlur('site_id')} error={errors.site_id} options={[{ value: '', label: 'Select a site...' }, ...sites]} required />
             <Select label="Service" value={values.service_id ?? ''} onChange={(e) => setValue('service_id', e.target.value || null)} options={[{ value: '', label: 'None' }, ...services]} />
             <Select label="Status" value={values.status} onChange={(e) => setValue('status', e.target.value)} options={STATUS_OPTIONS} />
-          </div>
+          </FormSection>
         )}
 
         {/* Step 1: Schedule */}
         {wizard.currentStep === 1 && (
-          <div className="space-y-4">
+          <FormSection title="Schedule" icon={<CalendarClock className="h-4 w-4" />} description="Frequency, time window, staffing, and date range.">
             <Select label="Frequency" value={values.frequency} onChange={(e) => setValue('frequency', e.target.value)} options={FREQUENCY_OPTIONS} />
             <Input label="Schedule Days" value={values.schedule_days ?? ''} onChange={(e) => setValue('schedule_days', e.target.value || null)} placeholder="e.g., Mon,Wed,Fri" />
             <div className="grid grid-cols-2 gap-3">
@@ -283,12 +279,12 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
               <Input label="Start Date" type="date" value={values.start_date ?? ''} onChange={(e) => setValue('start_date', e.target.value || null)} />
               <Input label="End Date" type="date" value={values.end_date ?? ''} onChange={(e) => setValue('end_date', e.target.value || null)} />
             </div>
-          </div>
+          </FormSection>
         )}
 
         {/* Step 2: Billing */}
         {wizard.currentStep === 2 && (
-          <div className="space-y-4">
+          <FormSection title="Billing" icon={<CreditCard className="h-4 w-4" />} description="Billing unit, amount, assignment, and invoicing.">
             <div className="grid grid-cols-2 gap-3">
               <Select label="Billing UOM" value={values.billing_uom ?? ''} onChange={(e) => setValue('billing_uom', e.target.value || null)} options={BILLING_UOM_OPTIONS} />
               <Input label="Billing Amount" type="number" value={values.billing_amount ?? ''} onChange={(e) => setValue('billing_amount', e.target.value ? Number(e.target.value) : null)} />
@@ -296,12 +292,12 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
             <Input label="Assigned To" value={values.job_assigned_to ?? ''} onChange={(e) => setValue('job_assigned_to', e.target.value || null)} placeholder="Staff name or team" />
             <Select label="Subcontractor" value={values.subcontractor_id ?? ''} onChange={(e) => setValue('subcontractor_id', e.target.value || null)} options={[{ value: '', label: 'None' }, ...subcontractors]} />
             <Textarea label="Invoice Description" value={values.invoice_description ?? ''} onChange={(e) => setValue('invoice_description', e.target.value || null)} rows={2} placeholder="What appears on the invoice..." />
-          </div>
+          </FormSection>
         )}
 
         {/* Step 3: Specs & Notes */}
         {wizard.currentStep === 3 && (
-          <div className="space-y-4">
+          <FormSection title="Specs & Notes" icon={<FileText className="h-4 w-4" />} description="Operational details and internal context.">
             <div className="grid grid-cols-2 gap-3">
               <Select label="Job Type" value={values.job_type ?? ''} onChange={(e) => setValue('job_type', e.target.value || null)} options={JOB_TYPE_OPTIONS} />
               <Select label="Priority" value={values.priority_level ?? ''} onChange={(e) => setValue('priority_level', e.target.value || null)} options={PRIORITY_OPTIONS} />
@@ -310,7 +306,7 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
             <Textarea label="Specifications" value={values.specifications ?? ''} onChange={(e) => setValue('specifications', e.target.value || null)} rows={3} placeholder="Service specifications..." />
             <Textarea label="Special Requirements" value={values.special_requirements ?? ''} onChange={(e) => setValue('special_requirements', e.target.value || null)} rows={2} />
             <Textarea label="Notes" value={values.notes ?? ''} onChange={(e) => setValue('notes', e.target.value || null)} rows={2} />
-          </div>
+          </FormSection>
         )}
       </FormWizard>
     </SlideOver>

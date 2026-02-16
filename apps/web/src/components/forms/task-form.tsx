@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect } from 'react';
+import { ClipboardList, FileText, Layers, ShieldCheck, Timer } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { taskSchema, type TaskFormData } from '@gleamops/shared';
-import { SlideOver, Input, Select, Textarea, Button } from '@gleamops/ui';
+import { SlideOver, Input, Select, Textarea, Button, FormSection } from '@gleamops/ui';
 import type { Task } from '@gleamops/shared';
 
 const UNIT_OPTIONS = [
@@ -114,10 +115,8 @@ export function TaskForm({ open, onClose, initialData, onSuccess }: TaskFormProp
       subtitle={isEdit ? initialData?.task_code : undefined}
       wide
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Basic Info */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Basic Info</h3>
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <FormSection title="Basic Info" icon={<ClipboardList className="h-4 w-4" />} description="Identity, unit, and categorization for this task.">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               label="Task Code"
@@ -153,11 +152,9 @@ export function TaskForm({ open, onClose, initialData, onSuccess }: TaskFormProp
               onChange={(e) => setValue('subcategory', e.target.value || null)}
             />
           </div>
-        </div>
+        </FormSection>
 
-        {/* Classification */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Classification</h3>
+        <FormSection title="Classification" icon={<Layers className="h-4 w-4" />} description="Optional attributes used for scoping and filtering.">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Input
               label="Area Type"
@@ -178,11 +175,9 @@ export function TaskForm({ open, onClose, initialData, onSuccess }: TaskFormProp
               options={PRIORITY_OPTIONS}
             />
           </div>
-        </div>
+        </FormSection>
 
-        {/* Production & Time */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Production & Time</h3>
+        <FormSection title="Production & Time" icon={<Timer className="h-4 w-4" />} description="Defaults used for estimating labor and schedules.">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               label="Production Rate (sq ft / hour)"
@@ -197,11 +192,9 @@ export function TaskForm({ open, onClose, initialData, onSuccess }: TaskFormProp
               onChange={(e) => setValue('default_minutes', e.target.value ? Number(e.target.value) : null)}
             />
           </div>
-        </div>
+        </FormSection>
 
-        {/* Descriptions */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Descriptions</h3>
+        <FormSection title="Descriptions" icon={<FileText className="h-4 w-4" />} description="What clients see vs. internal instructions for staff.">
           <Textarea
             label="Spec Description"
             value={values.spec_description ?? ''}
@@ -222,10 +215,9 @@ export function TaskForm({ open, onClose, initialData, onSuccess }: TaskFormProp
             onChange={(e) => setValue('tools_materials', e.target.value || null)}
             placeholder="e.g., Mop, Bucket, All-purpose cleaner"
           />
-        </div>
+        </FormSection>
 
-        {/* Status & Notes */}
-        <div className="space-y-4">
+        <FormSection title="Status & Notes" icon={<ShieldCheck className="h-4 w-4" />} description="Enable/disable this task and capture any internal notes.">
           <label className="flex items-center gap-2 text-sm text-foreground">
             <input
               type="checkbox"
@@ -241,7 +233,7 @@ export function TaskForm({ open, onClose, initialData, onSuccess }: TaskFormProp
             onChange={(e) => setValue('notes', e.target.value || null)}
             rows={2}
           />
-        </div>
+        </FormSection>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <Button variant="secondary" type="button" onClick={handleClose}>

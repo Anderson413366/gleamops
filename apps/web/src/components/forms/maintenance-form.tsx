@@ -1,9 +1,10 @@
 'use client';
 
+import { CalendarDays, FileText, Wrench } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { vehicleMaintenanceSchema, type VehicleMaintenanceFormData } from '@gleamops/shared';
-import { SlideOver, Input, Textarea, Button } from '@gleamops/ui';
+import { SlideOver, Input, Textarea, Button, FormSection } from '@gleamops/ui';
 import type { VehicleMaintenance } from '@gleamops/shared';
 
 const DEFAULTS: VehicleMaintenanceFormData = {
@@ -86,8 +87,8 @@ export function MaintenanceForm({ open, onClose, vehicleId, initialData, onSucce
       onClose={handleClose}
       title={isEdit ? 'Edit Service Record' : 'New Service Record'}
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <FormSection title="Service Record" icon={<CalendarDays className="h-4 w-4" />} description="When the service happened and what was done.">
           <Input
             label="Service Date"
             type="date"
@@ -111,10 +112,9 @@ export function MaintenanceForm({ open, onClose, vehicleId, initialData, onSucce
             value={values.description ?? ''}
             onChange={(e) => setValue('description', e.target.value || null)}
           />
-        </div>
+        </FormSection>
 
-        <div className="space-y-4">
-          <h3 className="text-sm font-medium text-foreground">Details</h3>
+        <FormSection title="Details" icon={<Wrench className="h-4 w-4" />} description="Costs, odometer, who performed it, and next service date.">
           <div className="grid grid-cols-2 gap-3">
             <Input
               label="Cost ($)"
@@ -141,15 +141,15 @@ export function MaintenanceForm({ open, onClose, vehicleId, initialData, onSucce
             value={values.next_service_date ?? ''}
             onChange={(e) => setValue('next_service_date', e.target.value || null)}
           />
-        </div>
+        </FormSection>
 
-        <div className="space-y-4">
+        <FormSection title="Notes" icon={<FileText className="h-4 w-4" />} description="Optional internal notes.">
           <Textarea
             label="Notes"
             value={values.notes ?? ''}
             onChange={(e) => setValue('notes', e.target.value || null)}
           />
-        </div>
+        </FormSection>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <Button variant="secondary" type="button" onClick={handleClose}>

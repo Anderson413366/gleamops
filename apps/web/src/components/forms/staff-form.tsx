@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Briefcase, FileText, MapPin, Phone, Siren, UserRound } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { staffSchema, type StaffFormData } from '@gleamops/shared';
-import { SlideOver, Input, Select, Textarea, Button, FormWizard, useWizardSteps } from '@gleamops/ui';
+import { SlideOver, Input, Select, Textarea, Button, FormWizard, useWizardSteps, FormSection } from '@gleamops/ui';
 import type { WizardStep } from '@gleamops/ui';
 import type { Staff } from '@gleamops/shared';
 
@@ -234,10 +235,9 @@ export function StaffForm({ open, onClose, initialData, onSuccess }: StaffFormPr
   if (isEdit) {
     return (
       <SlideOver open={open} onClose={handleClose} title="Edit Staff" subtitle={initialData?.staff_code} wide>
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-8">
           {/* Personal Info */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Personal Info</h3>
+          <FormSection title="Personal Info" icon={<UserRound className="h-4 w-4" />} description="Identity, role, status, and photo.">
             <Input label="Staff Code" value={values.staff_code} readOnly disabled />
             <Input label="Full Name" value={values.full_name} onChange={(e) => setValue('full_name', e.target.value)} onBlur={() => onBlur('full_name')} error={errors.full_name} required />
             <div className="grid grid-cols-3 gap-3">
@@ -252,10 +252,9 @@ export function StaffForm({ open, onClose, initialData, onSuccess }: StaffFormPr
               <input type="file" accept="image/*" onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)} className="block text-sm text-muted-foreground file:mr-2 file:rounded file:border-0 file:bg-muted file:px-3 file:py-1 file:text-sm file:font-medium" />
               {values.photo_url && !photoFile && <p className="text-xs text-muted-foreground">Current photo set</p>}
             </div>
-          </div>
+          </FormSection>
           {/* Employment */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Employment</h3>
+          <FormSection title="Employment" icon={<Briefcase className="h-4 w-4" />} description="Hire details, pay, schedule, and supervisor.">
             <div className="grid grid-cols-2 gap-3">
               <Select label="Employment Type" value={values.employment_type ?? ''} onChange={(e) => setValue('employment_type', e.target.value || null)} options={EMPLOYMENT_TYPE_OPTIONS} />
               <Input label="Hire Date" type="date" value={values.hire_date ?? ''} onChange={(e) => setValue('hire_date', e.target.value || null)} />
@@ -269,10 +268,9 @@ export function StaffForm({ open, onClose, initialData, onSuccess }: StaffFormPr
               <Select label="Supervisor" value={values.supervisor_id ?? ''} onChange={(e) => setValue('supervisor_id', e.target.value || null)} options={[{ value: '', label: 'None' }, ...supervisors]} />
             </div>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={values.is_subcontractor} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue('is_subcontractor', e.target.checked)} className="rounded border-border" /> Subcontractor</label>
-          </div>
+          </FormSection>
           {/* Contact */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Contact</h3>
+          <FormSection title="Contact" icon={<Phone className="h-4 w-4" />} description="Email, phone, and mailing address.">
             <Input label="Email" type="email" value={values.email ?? ''} onChange={(e) => setValue('email', e.target.value || null)} onBlur={() => onBlur('email')} error={errors.email} />
             <div className="grid grid-cols-2 gap-3">
               <Input label="Phone" value={values.phone ?? ''} onChange={(e) => setValue('phone', e.target.value || null)} />
@@ -284,10 +282,9 @@ export function StaffForm({ open, onClose, initialData, onSuccess }: StaffFormPr
               <Input label="State" value={values.address?.state ?? ''} onChange={(e) => setValue('address', { ...values.address, state: e.target.value })} />
               <Input label="ZIP" value={values.address?.zip ?? ''} onChange={(e) => setValue('address', { ...values.address, zip: e.target.value })} />
             </div>
-          </div>
+          </FormSection>
           {/* Emergency & Notes */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Emergency & HR</h3>
+          <FormSection title="Emergency & HR" icon={<Siren className="h-4 w-4" />} description="Emergency contact, certifications, background checks, and notes.">
             <div className="grid grid-cols-3 gap-3">
               <Input label="Emergency Name" value={values.emergency_contact_name ?? ''} onChange={(e) => setValue('emergency_contact_name', e.target.value || null)} />
               <Input label="Emergency Phone" value={values.emergency_contact_phone ?? ''} onChange={(e) => setValue('emergency_contact_phone', e.target.value || null)} />
@@ -296,7 +293,7 @@ export function StaffForm({ open, onClose, initialData, onSuccess }: StaffFormPr
             <Input label="Certifications" value={values.certifications ?? ''} onChange={(e) => setValue('certifications', e.target.value || null)} />
             <Input label="Background Check Date" type="date" value={values.background_check_date ?? ''} onChange={(e) => setValue('background_check_date', e.target.value || null)} />
             <Textarea label="Notes" value={values.notes ?? ''} onChange={(e) => setValue('notes', e.target.value || null)} rows={3} />
-          </div>
+          </FormSection>
           <div className="flex justify-end gap-3 pt-4 border-t border-border">
             <Button variant="secondary" type="button" onClick={handleClose}>Cancel</Button>
             <Button type="submit" loading={loading}>Save Changes</Button>
@@ -321,7 +318,7 @@ export function StaffForm({ open, onClose, initialData, onSuccess }: StaffFormPr
       >
         {/* Step 0: Personal Info */}
         {wizard.currentStep === 0 && (
-          <div className="space-y-4">
+          <FormSection title="Personal Info" icon={<UserRound className="h-4 w-4" />} description="Identity, role, status, and photo.">
             <Input label="Staff Code" value={values.staff_code} readOnly disabled hint="Auto-generated" />
             <Input label="Full Name" value={values.full_name} onChange={(e) => setValue('full_name', e.target.value)} onBlur={() => onBlur('full_name')} error={errors.full_name} required />
             <div className="grid grid-cols-3 gap-3">
@@ -335,56 +332,66 @@ export function StaffForm({ open, onClose, initialData, onSuccess }: StaffFormPr
               <label className="text-sm font-medium text-foreground">Photo</label>
               <input type="file" accept="image/*" onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)} className="block text-sm text-muted-foreground file:mr-2 file:rounded file:border-0 file:bg-muted file:px-3 file:py-1 file:text-sm file:font-medium" />
             </div>
-          </div>
+          </FormSection>
         )}
 
         {/* Step 1: Employment */}
         {wizard.currentStep === 1 && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <Select label="Employment Type" value={values.employment_type ?? ''} onChange={(e) => setValue('employment_type', e.target.value || null)} options={EMPLOYMENT_TYPE_OPTIONS} />
-              <Input label="Hire Date" type="date" value={values.hire_date ?? ''} onChange={(e) => setValue('hire_date', e.target.value || null)} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Input label="Pay Rate ($/hr)" type="number" value={values.pay_rate ?? ''} onChange={(e) => setValue('pay_rate', e.target.value ? Number(e.target.value) : null)} />
-              <Select label="Pay Type" value={values.pay_type ?? ''} onChange={(e) => setValue('pay_type', e.target.value || null)} options={PAY_TYPE_OPTIONS} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Select label="Schedule Type" value={values.schedule_type ?? ''} onChange={(e) => setValue('schedule_type', e.target.value || null)} options={SCHEDULE_TYPE_OPTIONS} />
-              <Select label="Supervisor" value={values.supervisor_id ?? ''} onChange={(e) => setValue('supervisor_id', e.target.value || null)} options={[{ value: '', label: 'None' }, ...supervisors]} />
-            </div>
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={values.is_subcontractor} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue('is_subcontractor', e.target.checked)} className="rounded border-border" /> Subcontractor</label>
-            <div className="space-y-4 pt-2">
-              <h4 className="text-sm font-medium text-foreground">Contact Info</h4>
+          <div className="space-y-8">
+            <FormSection title="Employment" icon={<Briefcase className="h-4 w-4" />} description="Hire details, pay, schedule, and supervisor.">
+              <div className="grid grid-cols-2 gap-3">
+                <Select label="Employment Type" value={values.employment_type ?? ''} onChange={(e) => setValue('employment_type', e.target.value || null)} options={EMPLOYMENT_TYPE_OPTIONS} />
+                <Input label="Hire Date" type="date" value={values.hire_date ?? ''} onChange={(e) => setValue('hire_date', e.target.value || null)} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Input label="Pay Rate ($/hr)" type="number" value={values.pay_rate ?? ''} onChange={(e) => setValue('pay_rate', e.target.value ? Number(e.target.value) : null)} />
+                <Select label="Pay Type" value={values.pay_type ?? ''} onChange={(e) => setValue('pay_type', e.target.value || null)} options={PAY_TYPE_OPTIONS} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Select label="Schedule Type" value={values.schedule_type ?? ''} onChange={(e) => setValue('schedule_type', e.target.value || null)} options={SCHEDULE_TYPE_OPTIONS} />
+                <Select label="Supervisor" value={values.supervisor_id ?? ''} onChange={(e) => setValue('supervisor_id', e.target.value || null)} options={[{ value: '', label: 'None' }, ...supervisors]} />
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={values.is_subcontractor} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue('is_subcontractor', e.target.checked)} className="rounded border-border" />
+                Subcontractor
+              </label>
+            </FormSection>
+
+            <FormSection title="Contact" icon={<Phone className="h-4 w-4" />} description="Email and phone numbers for quick reach.">
               <Input label="Email" type="email" value={values.email ?? ''} onChange={(e) => setValue('email', e.target.value || null)} />
               <div className="grid grid-cols-2 gap-3">
                 <Input label="Phone" value={values.phone ?? ''} onChange={(e) => setValue('phone', e.target.value || null)} />
                 <Input label="Mobile" value={values.mobile_phone ?? ''} onChange={(e) => setValue('mobile_phone', e.target.value || null)} />
               </div>
-            </div>
+            </FormSection>
           </div>
         )}
 
         {/* Step 2: Emergency & Notes */}
         {wizard.currentStep === 2 && (
-          <div className="space-y-4">
-            <h4 className="text-sm font-medium text-foreground">Emergency Contact</h4>
-            <div className="grid grid-cols-3 gap-3">
-              <Input label="Name" value={values.emergency_contact_name ?? ''} onChange={(e) => setValue('emergency_contact_name', e.target.value || null)} />
-              <Input label="Phone" value={values.emergency_contact_phone ?? ''} onChange={(e) => setValue('emergency_contact_phone', e.target.value || null)} />
-              <Input label="Relationship" value={values.emergency_contact_relationship ?? ''} onChange={(e) => setValue('emergency_contact_relationship', e.target.value || null)} />
-            </div>
-            <h4 className="text-sm font-medium text-foreground pt-2">Address</h4>
-            <Input label="Street" value={values.address?.street ?? ''} onChange={(e) => setValue('address', { ...values.address, street: e.target.value })} />
-            <div className="grid grid-cols-3 gap-3">
-              <Input label="City" value={values.address?.city ?? ''} onChange={(e) => setValue('address', { ...values.address, city: e.target.value })} />
-              <Input label="State" value={values.address?.state ?? ''} onChange={(e) => setValue('address', { ...values.address, state: e.target.value })} />
-              <Input label="ZIP" value={values.address?.zip ?? ''} onChange={(e) => setValue('address', { ...values.address, zip: e.target.value })} />
-            </div>
-            <h4 className="text-sm font-medium text-foreground pt-2">HR</h4>
-            <Input label="Certifications" value={values.certifications ?? ''} onChange={(e) => setValue('certifications', e.target.value || null)} placeholder="e.g., OSHA 10, CPR" />
-            <Input label="Background Check Date" type="date" value={values.background_check_date ?? ''} onChange={(e) => setValue('background_check_date', e.target.value || null)} />
-            <Textarea label="Notes" value={values.notes ?? ''} onChange={(e) => setValue('notes', e.target.value || null)} rows={3} />
+          <div className="space-y-8">
+            <FormSection title="Emergency Contact" icon={<Siren className="h-4 w-4" />} description="Who to contact if something happens on-site.">
+              <div className="grid grid-cols-3 gap-3">
+                <Input label="Name" value={values.emergency_contact_name ?? ''} onChange={(e) => setValue('emergency_contact_name', e.target.value || null)} />
+                <Input label="Phone" value={values.emergency_contact_phone ?? ''} onChange={(e) => setValue('emergency_contact_phone', e.target.value || null)} />
+                <Input label="Relationship" value={values.emergency_contact_relationship ?? ''} onChange={(e) => setValue('emergency_contact_relationship', e.target.value || null)} />
+              </div>
+            </FormSection>
+
+            <FormSection title="Address" icon={<MapPin className="h-4 w-4" />} description="Mailing address for this staff member.">
+              <Input label="Street" value={values.address?.street ?? ''} onChange={(e) => setValue('address', { ...values.address, street: e.target.value })} />
+              <div className="grid grid-cols-3 gap-3">
+                <Input label="City" value={values.address?.city ?? ''} onChange={(e) => setValue('address', { ...values.address, city: e.target.value })} />
+                <Input label="State" value={values.address?.state ?? ''} onChange={(e) => setValue('address', { ...values.address, state: e.target.value })} />
+                <Input label="ZIP" value={values.address?.zip ?? ''} onChange={(e) => setValue('address', { ...values.address, zip: e.target.value })} />
+              </div>
+            </FormSection>
+
+            <FormSection title="HR & Notes" icon={<FileText className="h-4 w-4" />} description="Certifications, background checks, and internal notes.">
+              <Input label="Certifications" value={values.certifications ?? ''} onChange={(e) => setValue('certifications', e.target.value || null)} placeholder="e.g., OSHA 10, CPR" />
+              <Input label="Background Check Date" type="date" value={values.background_check_date ?? ''} onChange={(e) => setValue('background_check_date', e.target.value || null)} />
+              <Textarea label="Notes" value={values.notes ?? ''} onChange={(e) => setValue('notes', e.target.value || null)} rows={3} />
+            </FormSection>
           </div>
         )}
       </FormWizard>

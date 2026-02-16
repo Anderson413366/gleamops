@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect } from 'react';
+import { ClipboardList, Filter, ShieldCheck, Timer } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { productionRateSchema, type ProductionRateFormData } from '@gleamops/shared';
 import type { SalesProductionRate } from '@gleamops/shared';
-import { SlideOver, Input, Select, Textarea, Button } from '@gleamops/ui';
+import { SlideOver, Input, Select, Textarea, Button, FormSection } from '@gleamops/ui';
 
 const UNIT_OPTIONS = [
   { value: 'SQFT_1000', label: 'Sq Ft (per 1,000)' },
@@ -119,10 +120,8 @@ export function ProductionRateForm({ open, onClose, initialData, onSuccess }: Pr
       subtitle={isEdit ? initialData?.rate_code : undefined}
       wide
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Basic Info */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Basic Info</h3>
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <FormSection title="Basic Info" icon={<ClipboardList className="h-4 w-4" />} description="Identity and unit for this production rate.">
           <div className="grid grid-cols-2 gap-4">
             <Input
               label="Rate Code"
@@ -150,11 +149,9 @@ export function ProductionRateForm({ open, onClose, initialData, onSuccess }: Pr
             error={errors.task_name}
             required
           />
-        </div>
+        </FormSection>
 
-        {/* Production Settings */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Production Settings</h3>
+        <FormSection title="Production Settings" icon={<Timer className="h-4 w-4" />} description="Base minutes plus default adjustment used for estimating.">
           <div className="grid grid-cols-2 gap-4">
             <Input
               label="Base Minutes"
@@ -175,11 +172,9 @@ export function ProductionRateForm({ open, onClose, initialData, onSuccess }: Pr
               error={errors.default_ml_adjustment}
             />
           </div>
-        </div>
+        </FormSection>
 
-        {/* Scope Filters */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Scope Filters (optional)</h3>
+        <FormSection title="Scope Filters" icon={<Filter className="h-4 w-4" />} description="Optional: narrow this rate to specific environments.">
           <div className="grid grid-cols-2 gap-4">
             <Select
               label="Floor Type"
@@ -194,10 +189,9 @@ export function ProductionRateForm({ open, onClose, initialData, onSuccess }: Pr
               options={BUILDING_TYPE_OPTIONS}
             />
           </div>
-        </div>
+        </FormSection>
 
-        {/* Status & Notes */}
-        <div className="space-y-4">
+        <FormSection title="Status & Notes" icon={<ShieldCheck className="h-4 w-4" />} description="Enable/disable this rate and capture internal notes.">
           <label className="flex items-center gap-2 text-sm text-foreground">
             <input
               type="checkbox"
@@ -213,7 +207,7 @@ export function ProductionRateForm({ open, onClose, initialData, onSuccess }: Pr
             onChange={(e) => setValue('notes', e.target.value || null)}
             rows={3}
           />
-        </div>
+        </FormSection>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <Button variant="secondary" type="button" onClick={handleClose}>

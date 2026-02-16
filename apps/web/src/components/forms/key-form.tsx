@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { KeyRound } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { keySchema, type KeyFormData } from '@gleamops/shared';
-import { SlideOver, Input, Select, Textarea, Button } from '@gleamops/ui';
+import { SlideOver, Input, Select, Textarea, Button, FormSection } from '@gleamops/ui';
 import type { KeyInventory } from '@gleamops/shared';
 
 const TYPE_OPTIONS = [
@@ -115,8 +116,8 @@ export function KeyForm({ open, onClose, initialData, onSuccess }: KeyFormProps)
       title={isEdit ? 'Edit Key' : 'New Key'}
       subtitle={isEdit ? initialData?.key_code : undefined}
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <FormSection title="Key Details" icon={<KeyRound className="h-4 w-4" />} description="Type, site association, and current availability status.">
           <Input
             label="Key Code"
             value={values.key_code}
@@ -165,7 +166,7 @@ export function KeyForm({ open, onClose, initialData, onSuccess }: KeyFormProps)
             value={values.notes ?? ''}
             onChange={(e) => setValue('notes', e.target.value || null)}
           />
-        </div>
+        </FormSection>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <Button variant="secondary" type="button" onClick={handleClose}>

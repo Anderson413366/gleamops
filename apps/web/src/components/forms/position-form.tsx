@@ -1,9 +1,10 @@
 'use client';
 
+import { Briefcase, StickyNote } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { staffPositionSchema, type StaffPositionFormData } from '@gleamops/shared';
-import { SlideOver, Input, Select, Textarea, Button } from '@gleamops/ui';
+import { SlideOver, Input, Select, Textarea, Button, FormSection } from '@gleamops/ui';
 import type { StaffPosition } from '@gleamops/shared';
 
 const DEFAULTS: StaffPositionFormData = {
@@ -77,8 +78,8 @@ export function PositionForm({ open, onClose, initialData, onSuccess }: Position
       title={isEdit ? 'Edit Position' : 'New Position'}
       subtitle={isEdit ? initialData?.position_code : undefined}
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <FormSection title="Position Details" icon={<Briefcase className="h-4 w-4" />} description="Title, department, and pay grade.">
           <Input
             label="Position Code"
             value={values.position_code}
@@ -116,15 +117,15 @@ export function PositionForm({ open, onClose, initialData, onSuccess }: Position
               { value: 'false', label: 'Inactive' },
             ]}
           />
-        </div>
+        </FormSection>
 
-        <div className="space-y-4">
+        <FormSection title="Notes" icon={<StickyNote className="h-4 w-4" />} description="Optional internal notes for this position.">
           <Textarea
             label="Notes"
             value={values.notes ?? ''}
             onChange={(e) => setValue('notes', e.target.value || null)}
           />
-        </div>
+        </FormSection>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <Button variant="secondary" type="button" onClick={handleClose}>

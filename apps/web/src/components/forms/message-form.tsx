@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { MessageCircle, Send, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm } from '@/hooks/use-form';
 import { messageThreadSchema, type MessageThreadFormData } from '@gleamops/shared';
-import { SlideOver, Input, Select, Textarea, Button } from '@gleamops/ui';
+import { SlideOver, Input, Select, Textarea, Button, FormSection } from '@gleamops/ui';
 
 const THREAD_TYPE_OPTIONS = [
   { value: 'DIRECT', label: 'Direct Message' },
@@ -161,9 +162,8 @@ export function MessageForm({ open, onClose, onSuccess }: MessageFormProps) {
 
   return (
     <SlideOver open={open} onClose={handleClose} title="New Message Thread" wide>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Thread Details</h3>
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <FormSection title="Thread Details" icon={<MessageCircle className="h-4 w-4" />} description="Set context and optionally link to a work ticket.">
           <Input
             label="Subject"
             value={values.subject}
@@ -190,12 +190,13 @@ export function MessageForm({ open, onClose, onSuccess }: MessageFormProps) {
               options={[{ value: '', label: 'Select a ticket...' }, ...ticketOptions]}
             />
           )}
-        </div>
+        </FormSection>
 
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-            Members {selectedMembers.length > 0 && `(${selectedMembers.length})`}
-          </h3>
+        <FormSection
+          title={`Members${selectedMembers.length > 0 ? ` (${selectedMembers.length})` : ''}`}
+          icon={<Users className="h-4 w-4" />}
+          description="Choose who’s included in this thread."
+        >
           {errors.member_ids && (
             <p className="text-xs text-destructive">{errors.member_ids}</p>
           )}
@@ -219,10 +220,9 @@ export function MessageForm({ open, onClose, onSuccess }: MessageFormProps) {
               ))
             )}
           </div>
-        </div>
+        </FormSection>
 
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Initial Message</h3>
+        <FormSection title="Initial Message" icon={<Send className="h-4 w-4" />} description="Write the first message to start the conversation.">
           <Textarea
             label="Message"
             value={values.initial_message}
@@ -233,7 +233,7 @@ export function MessageForm({ open, onClose, onSuccess }: MessageFormProps) {
             placeholder="Write the first message..."
             required
           />
-        </div>
+        </FormSection>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <Button variant="secondary" type="button" onClick={handleClose}>Cancel</Button>

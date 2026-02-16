@@ -3,13 +3,13 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { BookOpen } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import type { Lookup } from '@gleamops/shared';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
   EmptyState, Badge, Pagination, TableSkeleton, cn,
 } from '@gleamops/ui';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { LookupForm, type LookupRow } from '@/components/forms/lookup-form';
 
 interface Props {
   search: string;
@@ -18,11 +18,13 @@ interface Props {
   onRefresh?: () => void;
 }
 
-export default function LookupsTable({ search, autoCreate, onAutoCreateHandled }: Props) {
-  const [rows, setRows] = useState<Lookup[]>([]);
+export default function LookupsTable({ search, autoCreate, onAutoCreateHandled, onRefresh }: Props) {
+  const [rows, setRows] = useState<LookupRow[]>([]);
   const [loading, setLoading] = useState(true);
   // Per product rule: default to ACTIVE; ACTIVE first; ALL last.
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('active');
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<LookupRow | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -32,7 +34,7 @@ export default function LookupsTable({ search, autoCreate, onAutoCreateHandled }
       .select('*')
       .order('category')
       .order('sort_order');
-    if (!error && data) setRows(data as Lookup[]);
+    if (!error && data) setRows(data as unknown as LookupRow[]);
     setLoading(false);
   }, []);
 
@@ -40,7 +42,8 @@ export default function LookupsTable({ search, autoCreate, onAutoCreateHandled }
 
   useEffect(() => {
     if (autoCreate && !loading) {
-      // Future: open lookup form
+      setEditing(null);
+      setFormOpen(true);
       onAutoCreateHandled?.();
     }
   }, [autoCreate, loading, onAutoCreateHandled]);
@@ -69,7 +72,7 @@ export default function LookupsTable({ search, autoCreate, onAutoCreateHandled }
     'category',
     'asc'
   );
-  const sortedRows = sorted as unknown as Lookup[];
+  const sortedRows = sorted as unknown as LookupRow[];
   const pag = usePagination(sortedRows, 25);
 
   if (loading) return <TableSkeleton rows={8} cols={5} />;
@@ -119,7 +122,14 @@ export default function LookupsTable({ search, autoCreate, onAutoCreateHandled }
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id}>
+            <TableRow
+              key={row.id}
+              onClick={() => {
+                setEditing(row);
+                setFormOpen(true);
+              }}
+              className="cursor-pointer"
+            >
               <TableCell>
                 <Badge color="blue">{row.category.replace(/_/g, ' ')}</Badge>
               </TableCell>
@@ -140,6 +150,19 @@ export default function LookupsTable({ search, autoCreate, onAutoCreateHandled }
         onNext={pag.nextPage}
         onPrev={pag.prevPage}
         onGoTo={pag.goToPage}
+      />
+
+      <LookupForm
+        open={formOpen}
+        onClose={() => {
+          setFormOpen(false);
+          setEditing(null);
+        }}
+        initialData={editing}
+        onSuccess={() => {
+          fetchData();
+          onRefresh?.();
+        }}
       />
     </div>
   );

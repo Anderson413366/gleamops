@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useMemo } from 'react';
+import { ClipboardList, FileText, Wrench } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { equipmentSchema, type EquipmentFormData } from '@gleamops/shared';
-import { SlideOver, Input, Select, Textarea, Button } from '@gleamops/ui';
+import { SlideOver, Input, Select, Textarea, Button, FormSection } from '@gleamops/ui';
 import type { Equipment } from '@gleamops/shared';
 
 const CONDITION_OPTIONS = [
@@ -104,8 +105,8 @@ export function EquipmentForm({ open, onClose, initialData, onSuccess }: Equipme
       title={isEdit ? 'Edit Equipment' : 'New Equipment'}
       subtitle={isEdit ? initialData?.equipment_code : undefined}
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <FormSection title="Basic Info" icon={<ClipboardList className="h-4 w-4" />} description="Identity, classification, and current condition.">
           <Input
             label="Equipment Code"
             value={values.equipment_code}
@@ -135,10 +136,9 @@ export function EquipmentForm({ open, onClose, initialData, onSuccess }: Equipme
             onChange={(e) => setValue('condition', e.target.value as 'GOOD' | 'FAIR' | 'POOR' | 'OUT_OF_SERVICE')}
             options={CONDITION_OPTIONS}
           />
-        </div>
+        </FormSection>
 
-        <div className="space-y-4">
-          <h3 className="text-sm font-medium text-foreground">Details</h3>
+        <FormSection title="Details" icon={<Wrench className="h-4 w-4" />} description="Ownership, serial, and purchase details.">
           <Input
             label="Serial Number"
             value={values.serial_number ?? ''}
@@ -150,15 +150,15 @@ export function EquipmentForm({ open, onClose, initialData, onSuccess }: Equipme
             value={values.purchase_date ?? ''}
             onChange={(e) => setValue('purchase_date', e.target.value || null)}
           />
-        </div>
+        </FormSection>
 
-        <div className="space-y-4">
+        <FormSection title="Notes" icon={<FileText className="h-4 w-4" />} description="Optional context for maintenance or assignment history.">
           <Textarea
             label="Notes"
             value={values.notes ?? ''}
             onChange={(e) => setValue('notes', e.target.value || null)}
           />
-        </div>
+        </FormSection>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <Button variant="secondary" type="button" onClick={handleClose}>

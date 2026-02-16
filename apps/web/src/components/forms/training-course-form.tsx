@@ -1,9 +1,10 @@
 'use client';
 
+import { FileText, GraduationCap, ListChecks } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { trainingCourseSchema, type TrainingCourseFormData } from '@gleamops/shared';
-import { SlideOver, Input, Textarea, Button } from '@gleamops/ui';
+import { SlideOver, Input, Textarea, Button, FormSection } from '@gleamops/ui';
 import type { TrainingCourse } from '@gleamops/shared';
 
 const DEFAULTS: TrainingCourseFormData = {
@@ -89,8 +90,8 @@ export function TrainingCourseForm({ open, onClose, initialData, onSuccess }: Tr
       title={isEdit ? 'Edit Course' : 'New Training Course'}
       subtitle={isEdit ? initialData?.course_code : undefined}
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <FormSection title="Course Basics" icon={<GraduationCap className="h-4 w-4" />} description="Course name and description.">
           <Input
             label="Course Code"
             value={values.course_code}
@@ -115,10 +116,9 @@ export function TrainingCourseForm({ open, onClose, initialData, onSuccess }: Tr
             value={values.description ?? ''}
             onChange={(e) => setValue('description', e.target.value || null)}
           />
-        </div>
+        </FormSection>
 
-        <div className="space-y-4">
-          <h3 className="text-sm font-medium text-foreground">Details</h3>
+        <FormSection title="Details" icon={<ListChecks className="h-4 w-4" />} description="Provider, duration, recurrence, and requirement flags.">
           <div className="grid grid-cols-2 gap-3">
             <Input
               label="Category"
@@ -170,15 +170,15 @@ export function TrainingCourseForm({ open, onClose, initialData, onSuccess }: Tr
               Active
             </label>
           </div>
-        </div>
+        </FormSection>
 
-        <div className="space-y-4">
+        <FormSection title="Notes" icon={<FileText className="h-4 w-4" />} description="Optional internal notes.">
           <Textarea
             label="Notes"
             value={values.notes ?? ''}
             onChange={(e) => setValue('notes', e.target.value || null)}
           />
-        </div>
+        </FormSection>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <Button variant="secondary" type="button" onClick={handleClose}>

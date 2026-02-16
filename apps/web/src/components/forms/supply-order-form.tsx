@@ -1,9 +1,10 @@
 'use client';
 
+import { CalendarDays, FileText, ShoppingCart } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { supplyOrderSchema, type SupplyOrderFormData } from '@gleamops/shared';
-import { SlideOver, Input, Select, Textarea, Button } from '@gleamops/ui';
+import { SlideOver, Input, Select, Textarea, Button, FormSection } from '@gleamops/ui';
 import type { SupplyOrder } from '@gleamops/shared';
 
 const STATUS_OPTIONS = [
@@ -88,8 +89,8 @@ export function SupplyOrderForm({ open, onClose, initialData, onSuccess }: Suppl
       title={isEdit ? 'Edit Order' : 'New Supply Order'}
       subtitle={isEdit ? initialData?.order_code : undefined}
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <FormSection title="Order Details" icon={<ShoppingCart className="h-4 w-4" />} description="Code, supplier, and current order status.">
           <Input
             label="Order Code"
             value={values.order_code}
@@ -112,10 +113,9 @@ export function SupplyOrderForm({ open, onClose, initialData, onSuccess }: Suppl
             onChange={(e) => setValue('status', e.target.value as 'DRAFT' | 'ORDERED' | 'SHIPPED' | 'RECEIVED' | 'CANCELED')}
             options={STATUS_OPTIONS}
           />
-        </div>
+        </FormSection>
 
-        <div className="space-y-4">
-          <h3 className="text-sm font-medium text-foreground">Dates & Amount</h3>
+        <FormSection title="Dates & Amount" icon={<CalendarDays className="h-4 w-4" />} description="When it was ordered, expected delivery, and total amount.">
           <div className="grid grid-cols-2 gap-3">
             <Input
               label="Order Date"
@@ -139,15 +139,15 @@ export function SupplyOrderForm({ open, onClose, initialData, onSuccess }: Suppl
             value={values.total_amount ?? ''}
             onChange={(e) => setValue('total_amount', e.target.value ? Number(e.target.value) : null)}
           />
-        </div>
+        </FormSection>
 
-        <div className="space-y-4">
+        <FormSection title="Notes" icon={<FileText className="h-4 w-4" />} description="Optional internal notes for purchasing and receiving.">
           <Textarea
             label="Notes"
             value={values.notes ?? ''}
             onChange={(e) => setValue('notes', e.target.value || null)}
           />
-        </div>
+        </FormSection>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <Button variant="secondary" type="button" onClick={handleClose}>

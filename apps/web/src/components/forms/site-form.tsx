@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState, type ChangeEvent, type DragEvent } from 'react';
-import { ImagePlus } from 'lucide-react';
+import { Building2, CheckCircle2, FileText, ImagePlus, MapPin, Shield, Warehouse } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { siteSchema, type SiteFormData } from '@gleamops/shared';
-import { SlideOver, Input, Select, Textarea, Button, FormWizard, useWizardSteps } from '@gleamops/ui';
+import { SlideOver, Input, Select, Textarea, Button, FormWizard, useWizardSteps, FormSection } from '@gleamops/ui';
 import type { WizardStep } from '@gleamops/ui';
 import type { Site } from '@gleamops/shared';
 
@@ -235,10 +235,8 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
   if (isEdit) {
     return (
       <SlideOver open={open} onClose={handleClose} title="Edit Site" subtitle={initialData?.site_code} wide>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic Info */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Basic Info</h3>
+        <form onSubmit={handleSubmit} className="space-y-8">
+          <FormSection title="Basic Info" icon={<Building2 className="h-4 w-4" />} description="Core identity, client association, and photo.">
             <Input label="Site Code" value={values.site_code} readOnly disabled />
             <Input label="Name" value={values.name} onChange={(e) => setValue('name', e.target.value)} onBlur={() => onBlur('name')} error={errors.name} required />
             <Select label="Client" value={values.client_id} onChange={(e) => setValue('client_id', e.target.value)} options={clients} required />
@@ -264,10 +262,9 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
                 <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoPick} className="hidden" />
               </label>
             </div>
-          </div>
-          {/* Address & Facility */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Address & Facility</h3>
+          </FormSection>
+
+          <FormSection title="Address & Facility" icon={<MapPin className="h-4 w-4" />} description="Location and facility sizing details used for planning.">
             <Input label="Street" value={values.address?.street ?? ''} onChange={(e) => setValue('address', { ...values.address, street: e.target.value })} />
             <div className="grid grid-cols-3 gap-3">
               <Input label="City" value={values.address?.city ?? ''} onChange={(e) => setValue('address', { ...values.address, city: e.target.value })} />
@@ -279,10 +276,9 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
               <Input label="Floors" type="number" value={values.number_of_floors ?? ''} onChange={(e) => setValue('number_of_floors', e.target.value ? Number(e.target.value) : null)} />
               <Input label="Employees On Site" type="number" value={values.employees_on_site ?? ''} onChange={(e) => setValue('employees_on_site', e.target.value ? Number(e.target.value) : null)} />
             </div>
-          </div>
-          {/* Access & Security */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Access & Security</h3>
+          </FormSection>
+
+          <FormSection title="Access & Security" icon={<Shield className="h-4 w-4" />} description="How your team gets in, where to park, and security protocols.">
             <div className="grid grid-cols-2 gap-3">
               <Input label="Alarm Code" value={values.alarm_code ?? ''} onChange={(e) => setValue('alarm_code', e.target.value || null)} />
               <Input label="Alarm System" value={values.alarm_system ?? ''} onChange={(e) => setValue('alarm_system', e.target.value || null)} />
@@ -291,10 +287,9 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
             <Textarea label="Entry Instructions" value={values.entry_instructions ?? ''} onChange={(e) => setValue('entry_instructions', e.target.value || null)} rows={2} />
             <Textarea label="Parking Instructions" value={values.parking_instructions ?? ''} onChange={(e) => setValue('parking_instructions', e.target.value || null)} rows={2} />
             <Textarea label="Access Notes" value={values.access_notes ?? ''} onChange={(e) => setValue('access_notes', e.target.value || null)} rows={2} />
-          </div>
-          {/* Service Window & Compliance */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Service & Compliance</h3>
+          </FormSection>
+
+          <FormSection title="Service & Compliance" icon={<CheckCircle2 className="h-4 w-4" />} description="Service window and compliance requirements.">
             <div className="grid grid-cols-2 gap-3">
               <Input label="Earliest Start Time" type="time" value={values.earliest_start_time ?? ''} onChange={(e) => setValue('earliest_start_time', e.target.value || null)} />
               <Input label="Latest Start Time" type="time" value={values.latest_start_time ?? ''} onChange={(e) => setValue('latest_start_time', e.target.value || null)} />
@@ -302,10 +297,9 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={values.weekend_access} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue('weekend_access', e.target.checked)} className="rounded border-border" /> Weekend Access</label>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={values.osha_compliance_required} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue('osha_compliance_required', e.target.checked)} className="rounded border-border" /> OSHA Compliance Required</label>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={values.background_check_required} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue('background_check_required', e.target.checked)} className="rounded border-border" /> Background Check Required</label>
-          </div>
-          {/* Facility Details */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Facility Details</h3>
+          </FormSection>
+
+          <FormSection title="Facility Details" icon={<Warehouse className="h-4 w-4" />} description="Storage locations, risk, and priority indicators.">
             <div className="grid grid-cols-2 gap-3">
               <Input label="Janitorial Closet" value={values.janitorial_closet_location ?? ''} onChange={(e) => setValue('janitorial_closet_location', e.target.value || null)} />
               <Input label="Supply Storage" value={values.supply_storage_location ?? ''} onChange={(e) => setValue('supply_storage_location', e.target.value || null)} />
@@ -318,9 +312,11 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
               <Select label="Risk Level" value={values.risk_level ?? ''} onChange={(e) => setValue('risk_level', e.target.value || null)} options={RISK_OPTIONS} />
               <Select label="Priority Level" value={values.priority_level ?? ''} onChange={(e) => setValue('priority_level', e.target.value || null)} options={PRIORITY_OPTIONS} />
             </div>
-          </div>
-          {/* Notes */}
-          <Textarea label="Notes" value={values.notes ?? ''} onChange={(e) => setValue('notes', e.target.value || null)} rows={3} />
+          </FormSection>
+
+          <FormSection title="Notes" icon={<FileText className="h-4 w-4" />} description="Optional context your team will appreciate later.">
+            <Textarea label="Notes" value={values.notes ?? ''} onChange={(e) => setValue('notes', e.target.value || null)} rows={3} />
+          </FormSection>
           <div className="flex justify-end gap-3 pt-4 border-t border-border">
             <Button variant="secondary" type="button" onClick={handleClose}>Cancel</Button>
             <Button type="submit" loading={loading}>Save Changes</Button>
@@ -345,7 +341,7 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
       >
         {/* Step 0: Basic Info */}
         {wizard.currentStep === 0 && (
-          <div className="space-y-4">
+          <FormSection title="Basic Info" icon={<Building2 className="h-4 w-4" />} description="Core identity, client association, and photo.">
             <Input label="Site Code" value={values.site_code} readOnly disabled hint="Auto-generated" />
             <Input label="Name" value={values.name} onChange={(e) => setValue('name', e.target.value)} onBlur={() => onBlur('name')} error={errors.name} required />
             <Select
@@ -379,12 +375,12 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
                 <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoPick} className="hidden" />
               </label>
             </div>
-          </div>
+          </FormSection>
         )}
 
         {/* Step 1: Address & Facility */}
         {wizard.currentStep === 1 && (
-          <div className="space-y-4">
+          <FormSection title="Address & Facility" icon={<MapPin className="h-4 w-4" />} description="Location and facility sizing details used for planning.">
             <Input label="Street" value={values.address?.street ?? ''} onChange={(e) => setValue('address', { ...values.address, street: e.target.value })} />
             <div className="grid grid-cols-3 gap-3">
               <Input label="City" value={values.address?.city ?? ''} onChange={(e) => setValue('address', { ...values.address, city: e.target.value })} />
@@ -396,12 +392,12 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
               <Input label="Floors" type="number" value={values.number_of_floors ?? ''} onChange={(e) => setValue('number_of_floors', e.target.value ? Number(e.target.value) : null)} />
               <Input label="Employees On Site" type="number" value={values.employees_on_site ?? ''} onChange={(e) => setValue('employees_on_site', e.target.value ? Number(e.target.value) : null)} />
             </div>
-          </div>
+          </FormSection>
         )}
 
         {/* Step 2: Access & Security */}
         {wizard.currentStep === 2 && (
-          <div className="space-y-4">
+          <FormSection title="Access & Security" icon={<Shield className="h-4 w-4" />} description="How your team gets in, where to park, and security protocols.">
             <div className="grid grid-cols-2 gap-3">
               <Input label="Alarm Code" value={values.alarm_code ?? ''} onChange={(e) => setValue('alarm_code', e.target.value || null)} />
               <Input label="Alarm System" value={values.alarm_system ?? ''} onChange={(e) => setValue('alarm_system', e.target.value || null)} placeholder="e.g., ADT, SimpliSafe" />
@@ -410,12 +406,12 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
             <Textarea label="Entry Instructions" value={values.entry_instructions ?? ''} onChange={(e) => setValue('entry_instructions', e.target.value || null)} rows={2} placeholder="How to enter the building..." />
             <Textarea label="Parking Instructions" value={values.parking_instructions ?? ''} onChange={(e) => setValue('parking_instructions', e.target.value || null)} rows={2} placeholder="Where to park vehicles..." />
             <Textarea label="Access Notes" value={values.access_notes ?? ''} onChange={(e) => setValue('access_notes', e.target.value || null)} rows={2} />
-          </div>
+          </FormSection>
         )}
 
         {/* Step 3: Service Window & Compliance */}
         {wizard.currentStep === 3 && (
-          <div className="space-y-4">
+          <FormSection title="Service & Compliance" icon={<CheckCircle2 className="h-4 w-4" />} description="Service window and compliance requirements.">
             <div className="grid grid-cols-2 gap-3">
               <Input label="Earliest Start Time" type="time" value={values.earliest_start_time ?? ''} onChange={(e) => setValue('earliest_start_time', e.target.value || null)} />
               <Input label="Latest Start Time" type="time" value={values.latest_start_time ?? ''} onChange={(e) => setValue('latest_start_time', e.target.value || null)} />
@@ -423,12 +419,12 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={values.weekend_access} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue('weekend_access', e.target.checked)} className="rounded border-border" /> Weekend Access</label>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={values.osha_compliance_required} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue('osha_compliance_required', e.target.checked)} className="rounded border-border" /> OSHA Compliance Required</label>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={values.background_check_required} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue('background_check_required', e.target.checked)} className="rounded border-border" /> Background Check Required</label>
-          </div>
+          </FormSection>
         )}
 
         {/* Step 4: Facility Details & Notes */}
         {wizard.currentStep === 4 && (
-          <div className="space-y-4">
+          <FormSection title="Facility Details & Notes" icon={<Warehouse className="h-4 w-4" />} description="Storage locations, risk, priority, and internal notes.">
             <div className="grid grid-cols-2 gap-3">
               <Input label="Janitorial Closet" value={values.janitorial_closet_location ?? ''} onChange={(e) => setValue('janitorial_closet_location', e.target.value || null)} placeholder="e.g., Room 101" />
               <Input label="Supply Storage" value={values.supply_storage_location ?? ''} onChange={(e) => setValue('supply_storage_location', e.target.value || null)} placeholder="e.g., Basement B1" />
@@ -442,7 +438,7 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
               <Select label="Priority Level" value={values.priority_level ?? ''} onChange={(e) => setValue('priority_level', e.target.value || null)} options={PRIORITY_OPTIONS} />
             </div>
             <Textarea label="Notes" value={values.notes ?? ''} onChange={(e) => setValue('notes', e.target.value || null)} rows={4} placeholder="Any additional notes about this site..." />
-          </div>
+          </FormSection>
         )}
       </FormWizard>
     </SlideOver>

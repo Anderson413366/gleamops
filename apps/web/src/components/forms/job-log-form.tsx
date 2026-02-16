@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { FileText, MapPin, Zap } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { jobLogSchema, type JobLogFormData } from '@gleamops/shared';
-import { SlideOver, Input, Select, Textarea, Button } from '@gleamops/ui';
+import { SlideOver, Input, Select, Textarea, Button, FormSection } from '@gleamops/ui';
 
 const SEVERITY_OPTIONS = [
   { value: 'MINOR', label: 'Minor' },
@@ -112,9 +113,8 @@ export function JobLogForm({ open, onClose, initialData, onSuccess, preselectedS
 
   return (
     <SlideOver open={open} onClose={handleClose} title={isEdit ? 'Edit Log Entry' : 'New Log Entry'} wide>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Context</h3>
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <FormSection title="Context" icon={<MapPin className="h-4 w-4" />} description="Where and when this event happened.">
           <Select
             label="Site"
             value={values.site_id}
@@ -139,10 +139,9 @@ export function JobLogForm({ open, onClose, initialData, onSuccess, preselectedS
             error={errors.log_date}
             required
           />
-        </div>
+        </FormSection>
 
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Event</h3>
+        <FormSection title="Event" icon={<Zap className="h-4 w-4" />} description="What happened, how severe it was, and current status.">
           <Select
             label="Event Type"
             value={values.event_type}
@@ -157,15 +156,14 @@ export function JobLogForm({ open, onClose, initialData, onSuccess, preselectedS
             <Select label="Status" value={values.status} onChange={(e) => setValue('status', e.target.value as 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED')} options={STATUS_OPTIONS} />
           </div>
           <Input label="Message" value={values.message ?? ''} onChange={(e) => setValue('message', e.target.value || null)} placeholder="Brief summary..." />
-        </div>
+        </FormSection>
 
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Details</h3>
+        <FormSection title="Details" icon={<FileText className="h-4 w-4" />} description="Full description, corrective actions, photos, and notes.">
           <Textarea label="Description" value={values.description ?? ''} onChange={(e) => setValue('description', e.target.value || null)} rows={3} placeholder="Full description of the issue..." />
           <Textarea label="Corrective Action" value={values.corrective_action ?? ''} onChange={(e) => setValue('corrective_action', e.target.value || null)} rows={2} placeholder="What was done to resolve it..." />
           <Input label="Photos Link" value={values.photos_link ?? ''} onChange={(e) => setValue('photos_link', e.target.value || null)} placeholder="URL to photos..." />
           <Textarea label="Notes" value={values.notes ?? ''} onChange={(e) => setValue('notes', e.target.value || null)} rows={2} />
-        </div>
+        </FormSection>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <Button variant="secondary" type="button" onClick={handleClose}>Cancel</Button>

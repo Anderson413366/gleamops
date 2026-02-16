@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect } from 'react';
+import { Building2, CreditCard, FileText, StickyNote } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { clientSchema, type ClientFormData } from '@gleamops/shared';
-import { SlideOver, Input, Select, Textarea, Button, FormWizard, useWizardSteps } from '@gleamops/ui';
+import { SlideOver, Input, Select, Textarea, Button, FormWizard, useWizardSteps, FormSection } from '@gleamops/ui';
 import type { WizardStep } from '@gleamops/ui';
 import type { Client } from '@gleamops/shared';
 
@@ -175,53 +176,58 @@ export function ClientForm({ open, onClose, initialData, onSuccess, focusSection
   if (isEdit) {
     return (
       <SlideOver open={open} onClose={handleClose} title="Edit Client" subtitle={initialData?.client_code} wide>
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-8">
           {/* Basic Info */}
-          <div className="space-y-4" data-client-form-section="basics" tabIndex={-1}>
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Basic Info</h3>
-            <Input label="Client Code" value={values.client_code} readOnly disabled />
-            <Input label="Name" value={values.name} onChange={(e) => setValue('name', e.target.value)} onBlur={() => onBlur('name')} error={errors.name} required />
-            <Select label="Status" value={values.status} onChange={(e) => setValue('status', e.target.value)} options={STATUS_OPTIONS} />
-            <div className="grid grid-cols-2 gap-3">
-              <Input label="Client Type" value={values.client_type ?? ''} onChange={(e) => setValue('client_type', e.target.value || null)} />
-              <Input label="Industry" value={values.industry ?? ''} onChange={(e) => setValue('industry', e.target.value || null)} />
-            </div>
-            <Input label="Website" value={values.website ?? ''} onChange={(e) => setValue('website', e.target.value || null)} />
+          <div data-client-form-section="basics" tabIndex={-1}>
+            <FormSection title="Basic Info" icon={<Building2 className="h-4 w-4" />}>
+              <Input label="Client Code" value={values.client_code} readOnly disabled />
+              <Input label="Name" value={values.name} onChange={(e) => setValue('name', e.target.value)} onBlur={() => onBlur('name')} error={errors.name} required />
+              <Select label="Status" value={values.status} onChange={(e) => setValue('status', e.target.value)} options={STATUS_OPTIONS} />
+              <div className="grid grid-cols-2 gap-3">
+                <Input label="Client Type" value={values.client_type ?? ''} onChange={(e) => setValue('client_type', e.target.value || null)} />
+                <Input label="Industry" value={values.industry ?? ''} onChange={(e) => setValue('industry', e.target.value || null)} />
+              </div>
+              <Input label="Website" value={values.website ?? ''} onChange={(e) => setValue('website', e.target.value || null)} />
+            </FormSection>
           </div>
           {/* Billing */}
-          <div className="space-y-4" data-client-form-section="billing" tabIndex={-1}>
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Billing</h3>
-            <Input label="Bill To Name" value={values.bill_to_name ?? ''} onChange={(e) => setValue('bill_to_name', e.target.value || null)} />
-            <Input label="Street" value={values.billing_address?.street ?? ''} onChange={(e) => setValue('billing_address', { ...values.billing_address, street: e.target.value })} />
-            <div className="grid grid-cols-3 gap-3">
-              <Input label="City" value={values.billing_address?.city ?? ''} onChange={(e) => setValue('billing_address', { ...values.billing_address, city: e.target.value })} />
-              <Input label="State" value={values.billing_address?.state ?? ''} onChange={(e) => setValue('billing_address', { ...values.billing_address, state: e.target.value })} />
-              <Input label="ZIP" value={values.billing_address?.zip ?? ''} onChange={(e) => setValue('billing_address', { ...values.billing_address, zip: e.target.value })} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Select label="Payment Terms" value={values.payment_terms ?? ''} onChange={(e) => setValue('payment_terms', e.target.value || null)} options={PAYMENT_TERMS_OPTIONS} />
-              <Select label="Invoice Frequency" value={values.invoice_frequency ?? ''} onChange={(e) => setValue('invoice_frequency', e.target.value || null)} options={INVOICE_FREQ_OPTIONS} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Input label="Credit Limit" type="number" value={values.credit_limit ?? ''} onChange={(e) => setValue('credit_limit', e.target.value ? Number(e.target.value) : null)} />
-              <Input label="Tax ID" value={values.tax_id ?? ''} onChange={(e) => setValue('tax_id', e.target.value || null)} />
-            </div>
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={values.po_required} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue('po_required', e.target.checked)} className="rounded border-border" /> PO Required</label>
+          <div data-client-form-section="billing" tabIndex={-1}>
+            <FormSection title="Billing" icon={<CreditCard className="h-4 w-4" />}>
+              <Input label="Bill To Name" value={values.bill_to_name ?? ''} onChange={(e) => setValue('bill_to_name', e.target.value || null)} />
+              <Input label="Street" value={values.billing_address?.street ?? ''} onChange={(e) => setValue('billing_address', { ...values.billing_address, street: e.target.value })} />
+              <div className="grid grid-cols-3 gap-3">
+                <Input label="City" value={values.billing_address?.city ?? ''} onChange={(e) => setValue('billing_address', { ...values.billing_address, city: e.target.value })} />
+                <Input label="State" value={values.billing_address?.state ?? ''} onChange={(e) => setValue('billing_address', { ...values.billing_address, state: e.target.value })} />
+                <Input label="ZIP" value={values.billing_address?.zip ?? ''} onChange={(e) => setValue('billing_address', { ...values.billing_address, zip: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Select label="Payment Terms" value={values.payment_terms ?? ''} onChange={(e) => setValue('payment_terms', e.target.value || null)} options={PAYMENT_TERMS_OPTIONS} />
+                <Select label="Invoice Frequency" value={values.invoice_frequency ?? ''} onChange={(e) => setValue('invoice_frequency', e.target.value || null)} options={INVOICE_FREQ_OPTIONS} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Input label="Credit Limit" type="number" value={values.credit_limit ?? ''} onChange={(e) => setValue('credit_limit', e.target.value ? Number(e.target.value) : null)} />
+                <Input label="Tax ID" value={values.tax_id ?? ''} onChange={(e) => setValue('tax_id', e.target.value || null)} />
+              </div>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={values.po_required} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue('po_required', e.target.checked)} className="rounded border-border" /> PO Required</label>
+            </FormSection>
           </div>
           {/* Contract */}
-          <div className="space-y-4" data-client-form-section="contract" tabIndex={-1}>
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Contract & Insurance</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <Input label="Contract Start" type="date" value={values.contract_start_date ?? ''} onChange={(e) => setValue('contract_start_date', e.target.value || null)} />
-              <Input label="Contract End" type="date" value={values.contract_end_date ?? ''} onChange={(e) => setValue('contract_end_date', e.target.value || null)} />
-            </div>
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={values.auto_renewal} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue('auto_renewal', e.target.checked)} className="rounded border-border" /> Auto-renewal</label>
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={values.insurance_required} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue('insurance_required', e.target.checked)} className="rounded border-border" /> Insurance Required</label>
-            <Input label="Insurance Expiry" type="date" value={values.insurance_expiry ?? ''} onChange={(e) => setValue('insurance_expiry', e.target.value || null)} />
+          <div data-client-form-section="contract" tabIndex={-1}>
+            <FormSection title="Contract & Insurance" icon={<FileText className="h-4 w-4" />}>
+              <div className="grid grid-cols-2 gap-3">
+                <Input label="Contract Start" type="date" value={values.contract_start_date ?? ''} onChange={(e) => setValue('contract_start_date', e.target.value || null)} />
+                <Input label="Contract End" type="date" value={values.contract_end_date ?? ''} onChange={(e) => setValue('contract_end_date', e.target.value || null)} />
+              </div>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={values.auto_renewal} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue('auto_renewal', e.target.checked)} className="rounded border-border" /> Auto-renewal</label>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={values.insurance_required} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue('insurance_required', e.target.checked)} className="rounded border-border" /> Insurance Required</label>
+              <Input label="Insurance Expiry" type="date" value={values.insurance_expiry ?? ''} onChange={(e) => setValue('insurance_expiry', e.target.value || null)} />
+            </FormSection>
           </div>
           {/* Notes */}
           <div data-client-form-section="notes" tabIndex={-1}>
-            <Textarea label="Notes" value={values.notes ?? ''} onChange={(e) => setValue('notes', e.target.value || null)} rows={3} />
+            <FormSection title="Notes" icon={<StickyNote className="h-4 w-4" />}>
+              <Textarea label="Notes" value={values.notes ?? ''} onChange={(e) => setValue('notes', e.target.value || null)} rows={3} />
+            </FormSection>
           </div>
           <div className="flex justify-end gap-3 pt-4 border-t border-border">
             <Button variant="secondary" type="button" onClick={handleClose}>Cancel</Button>
@@ -247,7 +253,7 @@ export function ClientForm({ open, onClose, initialData, onSuccess, focusSection
       >
         {/* Step 0: Basic Info */}
         {wizard.currentStep === 0 && (
-          <div className="space-y-4">
+          <FormSection title="Basic Info" icon={<Building2 className="h-4 w-4" />} description="Core identity and classification for this client.">
             <Input label="Client Code" value={values.client_code} readOnly disabled hint="Auto-generated" />
             <Input label="Name" value={values.name} onChange={(e) => setValue('name', e.target.value)} onBlur={() => onBlur('name')} error={errors.name} required />
             <Select label="Status" value={values.status} onChange={(e) => setValue('status', e.target.value)} options={STATUS_OPTIONS} />
@@ -256,12 +262,12 @@ export function ClientForm({ open, onClose, initialData, onSuccess, focusSection
               <Input label="Industry" value={values.industry ?? ''} onChange={(e) => setValue('industry', e.target.value || null)} placeholder="e.g., Healthcare, Education" />
             </div>
             <Input label="Website" value={values.website ?? ''} onChange={(e) => setValue('website', e.target.value || null)} />
-          </div>
+          </FormSection>
         )}
 
         {/* Step 1: Billing */}
         {wizard.currentStep === 1 && (
-          <div className="space-y-4">
+          <FormSection title="Billing" icon={<CreditCard className="h-4 w-4" />} description="Invoice and payment settings for this client.">
             <Input label="Bill To Name" value={values.bill_to_name ?? ''} onChange={(e) => setValue('bill_to_name', e.target.value || null)} />
             <Input label="Street" value={values.billing_address?.street ?? ''} onChange={(e) => setValue('billing_address', { ...values.billing_address, street: e.target.value })} />
             <div className="grid grid-cols-3 gap-3">
@@ -278,12 +284,12 @@ export function ClientForm({ open, onClose, initialData, onSuccess, focusSection
               <Input label="Tax ID" value={values.tax_id ?? ''} onChange={(e) => setValue('tax_id', e.target.value || null)} />
             </div>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={values.po_required} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue('po_required', e.target.checked)} className="rounded border-border" /> PO Required</label>
-          </div>
+          </FormSection>
         )}
 
         {/* Step 2: Contract & Insurance */}
         {wizard.currentStep === 2 && (
-          <div className="space-y-4">
+          <FormSection title="Contract & Insurance" icon={<FileText className="h-4 w-4" />} description="Contract dates, renewal, and insurance requirements.">
             <div className="grid grid-cols-2 gap-3">
               <Input label="Contract Start" type="date" value={values.contract_start_date ?? ''} onChange={(e) => setValue('contract_start_date', e.target.value || null)} />
               <Input label="Contract End" type="date" value={values.contract_end_date ?? ''} onChange={(e) => setValue('contract_end_date', e.target.value || null)} />
@@ -293,14 +299,14 @@ export function ClientForm({ open, onClose, initialData, onSuccess, focusSection
             {values.insurance_required && (
               <Input label="Insurance Expiry" type="date" value={values.insurance_expiry ?? ''} onChange={(e) => setValue('insurance_expiry', e.target.value || null)} />
             )}
-          </div>
+          </FormSection>
         )}
 
         {/* Step 3: Notes */}
         {wizard.currentStep === 3 && (
-          <div className="space-y-4">
+          <FormSection title="Notes" icon={<StickyNote className="h-4 w-4" />} description="Optional notes to help your team serve this client.">
             <Textarea label="Notes" value={values.notes ?? ''} onChange={(e) => setValue('notes', e.target.value || null)} rows={6} placeholder="Any additional notes about this client..." />
-          </div>
+          </FormSection>
         )}
       </FormWizard>
     </SlideOver>

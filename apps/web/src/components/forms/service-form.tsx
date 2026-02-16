@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect } from 'react';
+import { Sparkles } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { serviceSchema, type ServiceFormData } from '@gleamops/shared';
-import { SlideOver, Input, Textarea, Button } from '@gleamops/ui';
+import { SlideOver, Input, Textarea, Button, FormSection } from '@gleamops/ui';
 import type { Service } from '@gleamops/shared';
 
 const DEFAULTS: ServiceFormData = {
@@ -78,8 +79,8 @@ export function ServiceForm({ open, onClose, initialData, onSuccess }: ServiceFo
       title={isEdit ? 'Edit Service' : 'New Service'}
       subtitle={isEdit ? initialData?.service_code : undefined}
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <FormSection title="Service Details" icon={<Sparkles className="h-4 w-4" />} description="Name and description used across jobs and proposals.">
           <Input
             label="Service Code"
             value={values.service_code}
@@ -100,7 +101,7 @@ export function ServiceForm({ open, onClose, initialData, onSuccess }: ServiceFo
             value={values.description ?? ''}
             onChange={(e) => setValue('description', e.target.value || null)}
           />
-        </div>
+        </FormSection>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <Button variant="secondary" type="button" onClick={handleClose}>

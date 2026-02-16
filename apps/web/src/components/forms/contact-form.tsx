@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { Link2, StickyNote, UserRound, Phone } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { contactSchema, type ContactFormData } from '@gleamops/shared';
-import { SlideOver, Input, Select, Textarea, Button } from '@gleamops/ui';
+import { SlideOver, Input, Select, Textarea, Button, FormSection } from '@gleamops/ui';
 import type { Contact } from '@gleamops/shared';
 
 const CONTACT_TYPE_OPTIONS = [
@@ -214,10 +215,9 @@ export function ContactForm({
 
   return (
     <SlideOver open={open} onClose={handleClose} title={isEdit ? 'Edit Contact' : 'New Contact'} subtitle={isEdit ? initialData?.contact_code : undefined} wide>
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-8">
         {/* Identity */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Identity</h3>
+        <FormSection title="Identity" icon={<UserRound className="h-4 w-4" />} description="Who this person is and their role at the client/site.">
           <Input
             label="Contact Code"
             value={values.contact_code}
@@ -255,11 +255,10 @@ export function ContactForm({
             <Input label="Company Name" value={values.company_name ?? ''} onChange={(e) => setValue('company_name', e.target.value || null)} />
             <Input label="Role/Title" value={values.role_title ?? ''} onChange={(e) => setValue('role_title', e.target.value || null)} placeholder="e.g., Facility Manager" />
           </div>
-        </div>
+        </FormSection>
 
         {/* Contact Info */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Contact Info</h3>
+        <FormSection title="Contact Info" icon={<Phone className="h-4 w-4" />} description="How to reach this contact quickly.">
           <Input
             label="Email"
             type="email"
@@ -277,11 +276,10 @@ export function ContactForm({
             <Select label="Preferred Contact" value={values.preferred_contact_method ?? ''} onChange={(e) => setValue('preferred_contact_method', e.target.value || null)} options={CONTACT_METHOD_OPTIONS} />
             <Select label="Preferred Language" value={values.preferred_language ?? ''} onChange={(e) => setValue('preferred_language', e.target.value || null)} options={LANGUAGE_OPTIONS} />
           </div>
-        </div>
+        </FormSection>
 
         {/* Linked To */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Linked To</h3>
+        <FormSection title="Linked To" icon={<Link2 className="h-4 w-4" />} description="Associate this contact with a client and/or a site.">
           <Select
             label="Client"
             value={values.client_id ?? ''}
@@ -303,10 +301,12 @@ export function ContactForm({
             />
             Primary Contact
           </label>
-        </div>
+        </FormSection>
 
         {/* Notes */}
-        <Textarea label="Notes" value={values.notes ?? ''} onChange={(e) => setValue('notes', e.target.value || null)} rows={3} />
+        <FormSection title="Notes" icon={<StickyNote className="h-4 w-4" />} description="Optional context your team will appreciate later.">
+          <Textarea label="Notes" value={values.notes ?? ''} onChange={(e) => setValue('notes', e.target.value || null)} rows={3} />
+        </FormSection>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <Button variant="secondary" type="button" onClick={handleClose}>Cancel</Button>

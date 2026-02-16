@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { FileText, TrendingUp } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { opportunitySchema, type OpportunityFormData } from '@gleamops/shared';
-import { SlideOver, Input, Select, Textarea, Button } from '@gleamops/ui';
+import { SlideOver, Input, Select, Textarea, Button, FormSection } from '@gleamops/ui';
 import type { SalesOpportunity } from '@gleamops/shared';
 
 interface ProspectOption {
@@ -150,8 +151,8 @@ export function OpportunityForm({ open, onClose, initialData, onSuccess }: Oppor
       title={isEdit ? 'Edit Opportunity' : 'New Opportunity'}
       subtitle={isEdit ? initialData?.opportunity_code : undefined}
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <FormSection title="Opportunity Details" icon={<TrendingUp className="h-4 w-4" />} description="Prospect, stage, value, and target close date.">
           {!isEdit && (
             <Input
               label="Opportunity Code"
@@ -210,6 +211,9 @@ export function OpportunityForm({ open, onClose, initialData, onSuccess }: Oppor
             onChange={(e) => setValue('close_date_target', e.target.value || null)}
             onBlur={() => onBlur('close_date_target')}
           />
+        </FormSection>
+
+        <FormSection title="Notes" icon={<FileText className="h-4 w-4" />} description="Competitive context and internal notes.">
           <Textarea
             label="Competitor Notes"
             value={values.competitor_notes ?? ''}
@@ -222,7 +226,7 @@ export function OpportunityForm({ open, onClose, initialData, onSuccess }: Oppor
             onChange={(e) => setValue('notes', e.target.value || null)}
             placeholder="Additional details about this opportunity..."
           />
-        </div>
+        </FormSection>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <Button variant="secondary" type="button" onClick={handleClose}>

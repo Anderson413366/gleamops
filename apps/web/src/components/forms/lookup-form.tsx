@@ -1,11 +1,12 @@
 'use client';
 
+import { ListChecks } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { lookupSchema, type LookupFormData } from '@gleamops/shared';
-import { SlideOver, Input, Select, Button } from '@gleamops/ui';
+import { SlideOver, Input, Select, Button, FormSection } from '@gleamops/ui';
 
-interface LookupRow {
+export interface LookupRow {
   id: string;
   category: string;
   code: string;
@@ -81,8 +82,8 @@ export function LookupForm({ open, onClose, initialData, onSuccess }: LookupForm
       onClose={handleClose}
       title={isEdit ? 'Edit Lookup' : 'New Lookup'}
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <FormSection title="Lookup Details" icon={<ListChecks className="h-4 w-4" />} description="Category, code, label, sort order, and activation status.">
           <Input
             label="Category"
             value={values.category}
@@ -127,7 +128,7 @@ export function LookupForm({ open, onClose, initialData, onSuccess }: LookupForm
               { value: 'false', label: 'Inactive' },
             ]}
           />
-        </div>
+        </FormSection>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <Button variant="secondary" type="button" onClick={handleClose}>

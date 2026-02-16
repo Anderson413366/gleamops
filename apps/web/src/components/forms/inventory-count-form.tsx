@@ -1,9 +1,10 @@
 'use client';
 
+import { ClipboardList, FileText } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { inventoryCountSchema, type InventoryCountFormData } from '@gleamops/shared';
-import { SlideOver, Input, Select, Textarea, Button } from '@gleamops/ui';
+import { SlideOver, Input, Select, Textarea, Button, FormSection } from '@gleamops/ui';
 import type { InventoryCount } from '@gleamops/shared';
 
 const STATUS_OPTIONS = [
@@ -83,8 +84,8 @@ export function InventoryCountForm({ open, onClose, initialData, onSuccess }: In
       title={isEdit ? 'Edit Count' : 'New Inventory Count'}
       subtitle={isEdit ? initialData?.count_code : undefined}
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <FormSection title="Count Details" icon={<ClipboardList className="h-4 w-4" />} description="Code, date, and current status for this count.">
           <Input
             label="Count Code"
             value={values.count_code}
@@ -110,15 +111,15 @@ export function InventoryCountForm({ open, onClose, initialData, onSuccess }: In
             onChange={(e) => setValue('status', e.target.value as 'DRAFT' | 'IN_PROGRESS' | 'COMPLETED')}
             options={STATUS_OPTIONS}
           />
-        </div>
+        </FormSection>
 
-        <div className="space-y-4">
+        <FormSection title="Notes" icon={<FileText className="h-4 w-4" />} description="Optional notes to help your team during the count.">
           <Textarea
             label="Notes"
             value={values.notes ?? ''}
             onChange={(e) => setValue('notes', e.target.value || null)}
           />
-        </div>
+        </FormSection>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <Button variant="secondary" type="button" onClick={handleClose}>

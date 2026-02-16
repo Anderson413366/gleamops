@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { MapPin } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { geofenceSchema, type GeofenceFormData } from '@gleamops/shared';
-import { SlideOver, Input, Select, Button } from '@gleamops/ui';
+import { SlideOver, Input, Select, Button, FormSection } from '@gleamops/ui';
 import type { Geofence } from '@gleamops/shared';
 
 const DEFAULTS: GeofenceFormData = {
@@ -94,8 +95,8 @@ export function GeofenceForm({ open, onClose, initialData, onSuccess }: Geofence
       onClose={handleClose}
       title={isEdit ? 'Edit Geofence' : 'New Geofence'}
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <FormSection title="Geofence Settings" icon={<MapPin className="h-4 w-4" />} description="Location center, radius, and activation status.">
           <Select
             label="Site"
             value={values.site_id}
@@ -146,7 +147,7 @@ export function GeofenceForm({ open, onClose, initialData, onSuccess }: Geofence
               { value: 'false', label: 'Inactive' },
             ]}
           />
-        </div>
+        </FormSection>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <Button variant="secondary" type="button" onClick={handleClose}>

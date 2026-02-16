@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { LockKeyhole } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm } from '@/hooks/use-form';
 import { sitePinCodeSchema, type SitePinCodeFormData } from '@gleamops/shared';
-import { SlideOver, Input, Select, Button } from '@gleamops/ui';
+import { SlideOver, Input, Select, Button, FormSection } from '@gleamops/ui';
 
 const DEFAULTS: SitePinCodeFormData = {
   site_id: '',
@@ -86,8 +87,8 @@ export function SitePinForm({ open, onClose, onSuccess }: SitePinFormProps) {
       onClose={handleClose}
       title="New Site PIN"
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <FormSection title="PIN Settings" icon={<LockKeyhole className="h-4 w-4" />} description="Create a time-bound PIN for site access.">
           <Select
             label="Site"
             value={values.site_id}
@@ -132,7 +133,7 @@ export function SitePinForm({ open, onClose, onSuccess }: SitePinFormProps) {
             value={values.expires_at ?? ''}
             onChange={(e) => setValue('expires_at', e.target.value || null)}
           />
-        </div>
+        </FormSection>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <Button variant="secondary" type="button" onClick={handleClose}>

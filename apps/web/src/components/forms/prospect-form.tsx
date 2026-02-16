@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Building2 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { prospectSchema, type ProspectFormData } from '@gleamops/shared';
-import { SlideOver, Input, Select, Textarea, Button } from '@gleamops/ui';
+import { SlideOver, Input, Select, Textarea, Button, FormSection } from '@gleamops/ui';
 import type { SalesProspect } from '@gleamops/shared';
 
 const STATUS_OPTIONS = [
@@ -131,8 +132,8 @@ export function ProspectForm({ open, onClose, initialData, onSuccess }: Prospect
       title={isEdit ? 'Edit Prospect' : 'New Prospect'}
       subtitle={isEdit ? initialData?.prospect_code : undefined}
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <FormSection title="Prospect Details" icon={<Building2 className="h-4 w-4" />} description="Company status, source, industry, and notes.">
           {!isEdit && (
             <Input
               label="Prospect Code"
@@ -181,7 +182,7 @@ export function ProspectForm({ open, onClose, initialData, onSuccess }: Prospect
             value={values.notes ?? ''}
             onChange={(e) => setValue('notes', e.target.value || null)}
           />
-        </div>
+        </FormSection>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <Button variant="secondary" type="button" onClick={handleClose}>

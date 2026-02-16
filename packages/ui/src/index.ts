@@ -34,6 +34,8 @@ export type { ChipTab } from './components/chip-tabs';
 export { SearchInput } from './components/search-input';
 export { FormWizard, useWizardSteps } from './components/form-wizard';
 export type { WizardStep } from './components/form-wizard';
+export { FormSection } from './components/form-section';
+export type { FormSectionProps } from './components/form-section';
 export { CollapsibleCard } from './components/collapsible-card';
 export { ExportButton } from './components/export-button';
 export { StatCard } from './components/stat-card';

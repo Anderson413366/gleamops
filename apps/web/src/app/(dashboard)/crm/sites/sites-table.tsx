@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { MapPin, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -54,6 +54,8 @@ function formatCurrency(amount: number) {
 
 export default function SitesTable({ search }: SitesTableProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const clientFilterCode = searchParams.get('client');
   const [rows, setRows] = useState<SiteWithClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
@@ -115,6 +117,9 @@ export default function SitesTable({ search }: SitesTableProps) {
 
   const filtered = useMemo(() => {
     let result = rows;
+    if (clientFilterCode) {
+      result = result.filter((r) => r.client?.client_code === clientFilterCode);
+    }
     if (statusFilter !== 'all') {
       result = result.filter((r) => r.status === statusFilter);
     }
@@ -130,7 +135,7 @@ export default function SitesTable({ search }: SitesTableProps) {
       );
     }
     return result;
-  }, [rows, search, statusFilter]);
+  }, [rows, clientFilterCode, search, statusFilter]);
 
   const { sorted, sortKey, sortDir, onSort } = useTableSort(
     filtered as unknown as Record<string, unknown>[], 'name', 'asc'
@@ -216,6 +221,20 @@ export default function SitesTable({ search }: SitesTableProps) {
           </button>
         ))}
       </div>
+      {clientFilterCode && (
+        <div className="mb-4 flex items-center gap-2 text-xs text-muted-foreground">
+          <span>
+            Filtered to client <span className="font-mono text-foreground">{clientFilterCode}</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => router.replace('/crm?tab=sites')}
+            className="text-blue-600 hover:underline dark:text-blue-400"
+          >
+            Clear filter
+          </button>
+        </div>
+      )}
       {view === 'card' ? (
         filtered.length === 0 ? (
           <EmptyState

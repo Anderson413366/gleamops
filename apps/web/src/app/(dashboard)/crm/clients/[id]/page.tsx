@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -104,19 +104,66 @@ interface RelatedSiteRow {
   site_code: string;
   name: string;
   status: string | null;
-  address: { city?: string; state?: string } | null;
+  address: { street?: string; city?: string; state?: string } | null;
 }
 
 interface RelatedJobRow {
   id: string;
+  site_id: string | null;
   job_code: string;
   job_name: string | null;
   status: string;
+  frequency: string | null;
+  schedule_days: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  priority_level: string | null;
   billing_amount: number | null;
   site?: {
     name: string;
     site_code: string;
   } | null;
+}
+
+interface JobTaskRow {
+  id: string;
+  job_id: string;
+  task_name: string | null;
+  task_code: string | null;
+  planned_minutes: number | null;
+}
+
+function formatFrequency(value: string | null): string {
+  if (!value) return 'Not Set';
+  const normalized = value.toUpperCase();
+  const map: Record<string, string> = {
+    DAILY: 'Daily',
+    WEEKLY: 'Weekly',
+    BIWEEKLY: 'Biweekly',
+    MONTHLY: 'Monthly',
+    '2X_WEEK': '2x/Week',
+    '3X_WEEK': '3x/Week',
+    '4X_WEEK': '4x/Week',
+    '5X_WEEK': '5x/Week',
+    '6X_WEEK': '6x/Week',
+    AS_NEEDED: 'As Needed',
+  };
+  return map[normalized] ?? normalized.replace(/_/g, ' ');
+}
+
+function formatTimeWindow(start: string | null, end: string | null): string {
+  if (!start && !end) return 'Time window not set';
+  const format = (time: string | null): string => {
+    if (!time) return 'Not Set';
+    const [hRaw, mRaw] = time.split(':');
+    const h = Number.parseInt(hRaw ?? '0', 10);
+    const m = mRaw ?? '00';
+    if (!Number.isFinite(h)) return time;
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    return `${h12}:${m} ${ampm}`;
+  };
+  return `${format(start)} - ${format(end)}`;
 }
 
 export default function ClientDetailPage() {
@@ -140,6 +187,8 @@ export default function ClientDetailPage() {
   const [siteIds, setSiteIds] = useState<string[]>([]);
   const [relatedSites, setRelatedSites] = useState<RelatedSiteRow[]>([]);
   const [relatedJobs, setRelatedJobs] = useState<RelatedJobRow[]>([]);
+  const [jobTasksByJob, setJobTasksByJob] = useState<Record<string, JobTaskRow[]>>({});
+  const [showAllSites, setShowAllSites] = useState(false);
 
   const fetchClient = async () => {
     setLoading(true);
@@ -188,7 +237,7 @@ export default function ClientDetailPage() {
         const siteIds = sites.map((s: { id: string }) => s.id);
         const { data: jobsData } = await supabase
           .from('site_jobs')
-          .select('id, job_code, job_name, status, billing_amount, site:site_id(name, site_code)')
+          .select('id, site_id, job_code, job_name, status, frequency, schedule_days, start_time, end_time, priority_level, billing_amount, site:site_id(name, site_code)')
           .in('site_id', siteIds)
           .order('job_code')
           .is('archived_at', null);
@@ -206,16 +255,38 @@ export default function ClientDetailPage() {
             0
           )
         );
+
+        if (jobs.length > 0) {
+          const jobIds = jobs.map((job) => job.id);
+          const { data: taskRows } = await supabase
+            .from('job_tasks')
+            .select('id, job_id, task_name, task_code, planned_minutes')
+            .in('job_id', jobIds)
+            .is('archived_at', null)
+            .order('task_name');
+
+          const groupedTasks: Record<string, JobTaskRow[]> = {};
+          for (const task of (taskRows ?? []) as unknown as JobTaskRow[]) {
+            const key = task.job_id;
+            if (!groupedTasks[key]) groupedTasks[key] = [];
+            groupedTasks[key].push(task);
+          }
+          setJobTasksByJob(groupedTasks);
+        } else {
+          setJobTasksByJob({});
+        }
       } else {
         setActiveJobCount(0);
         setMonthlyRevenue(0);
         setSiteIds([]);
         setActiveSiteCount(0);
         setRelatedJobs([]);
+        setJobTasksByJob({});
       }
     } else {
       setRelatedSites([]);
       setRelatedJobs([]);
+      setJobTasksByJob({});
     }
     setLoading(false);
   };
@@ -251,6 +322,28 @@ export default function ClientDetailPage() {
       setArchiveOpen(false);
     }
   };
+
+  const jobsBySiteId = useMemo(() => {
+    const map: Record<string, RelatedJobRow[]> = {};
+    for (const job of relatedJobs) {
+      const key = job.site_id ?? '';
+      if (!key) continue;
+      if (!map[key]) map[key] = [];
+      map[key].push(job);
+    }
+    return map;
+  }, [relatedJobs]);
+
+  const sortedSites = useMemo(() => (
+    [...relatedSites].sort((a, b) => {
+      const aActive = (jobsBySiteId[a.id] ?? []).filter((job) => job.status === 'ACTIVE').length;
+      const bActive = (jobsBySiteId[b.id] ?? []).filter((job) => job.status === 'ACTIVE').length;
+      if (aActive !== bActive) return bActive - aActive;
+      return a.name.localeCompare(b.name);
+    })
+  ), [jobsBySiteId, relatedSites]);
+
+  const visibleSites = showAllSites ? sortedSites : sortedSites.slice(0, 5);
 
   if (loading) {
     return (
@@ -730,90 +823,148 @@ export default function ClientDetailPage() {
         </div>
       </div>
 
-      {/* Related Records */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <h3 className="mb-4 text-sm font-semibold text-foreground">Related Sites</h3>
-          {relatedSites.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No related sites yet.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                    <th className="py-2 pr-3 font-medium">Code</th>
-                    <th className="py-2 pr-3 font-medium">Site</th>
-                    <th className="py-2 pr-3 font-medium">City/State</th>
-                    <th className="py-2 font-medium">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {relatedSites.slice(0, 8).map((site) => (
-                    <tr key={site.id} className="border-b border-border/50">
-                      <td className="py-2 pr-3 font-mono text-xs">
-                        <EntityLink entityType="site" code={site.site_code} name={site.site_code} showCode={false} />
-                      </td>
-                      <td className="py-2 pr-3 font-medium">
-                        <EntityLink entityType="site" code={site.site_code} name={site.name} showCode={false} />
-                      </td>
-                      <td className="py-2 pr-3 text-muted-foreground">
-                        {[site.address?.city, site.address?.state].filter(Boolean).join(', ') || 'Not Set'}
-                      </td>
-                      <td className="py-2">
-                        <Badge color={site.status ? (site.status === 'ACTIVE' ? 'green' : 'gray') : 'gray'}>
-                          {site.status ?? 'Not Set'}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+      {/* Sites & Service Plans */}
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Sites &amp; Service Plans</h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {activeJobCount} active job{activeJobCount === 1 ? '' : 's'} across {siteCount} site{siteCount === 1 ? '' : 's'} · {formatCurrency(monthlyRevenue)}/mo total revenue
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Badge color="blue">{`${siteCount} site${siteCount === 1 ? '' : 's'}`}</Badge>
+            <Link
+              href={`/crm?tab=sites&client=${encodeURIComponent(client.client_code)}`}
+              className="text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
+            >
+              View All Sites →
+            </Link>
+          </div>
         </div>
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <h3 className="mb-4 text-sm font-semibold text-foreground">Related Jobs</h3>
-          {relatedJobs.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No related service plans yet.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                    <th className="py-2 pr-3 font-medium">Code</th>
-                    <th className="py-2 pr-3 font-medium">Name</th>
-                    <th className="py-2 pr-3 font-medium">Site</th>
-                    <th className="py-2 pr-3 font-medium">Status</th>
-                    <th className="py-2 text-right font-medium">Billing</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {relatedJobs.slice(0, 8).map((job) => (
-                    <tr key={job.id} className="border-b border-border/50">
-                      <td className="py-2 pr-3 font-mono text-xs">
-                        <EntityLink entityType="job" code={job.job_code} name={job.job_code} showCode={false} />
-                      </td>
-                      <td className="py-2 pr-3 font-medium">
-                        <EntityLink entityType="job" code={job.job_code} name={job.job_name ?? job.job_code} showCode={false} />
-                      </td>
-                      <td className="py-2 pr-3 text-muted-foreground">
-                        {job.site?.site_code
-                          ? <EntityLink entityType="site" code={job.site.site_code} name={job.site.name} showCode={false} />
-                          : 'Not Set'}
-                      </td>
-                      <td className="py-2 pr-3">
-                        <Badge color={job.status === 'ACTIVE' ? 'green' : job.status === 'ON_HOLD' ? 'yellow' : 'gray'}>
-                          {job.status}
-                        </Badge>
-                      </td>
-                      <td className="py-2 text-right tabular-nums">{formatCurrency(job.billing_amount)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+
+        {sortedSites.length === 0 ? (
+          <div className="mt-4 rounded-lg border border-dashed border-border bg-muted/20 p-5 text-sm text-muted-foreground">
+            No sites linked to this client yet.
+          </div>
+        ) : (
+          <div className="mt-4 space-y-4">
+            {visibleSites.map((siteRow) => {
+              const siteJobs = jobsBySiteId[siteRow.id] ?? [];
+              const activeSiteJobs = siteJobs.filter((job) => job.status === 'ACTIVE');
+              const siteRevenue = activeSiteJobs.reduce((sum, job) => sum + (job.billing_amount ?? 0), 0);
+              return (
+                <div key={siteRow.id} className="rounded-xl border border-border bg-muted/10 p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-foreground">
+                        <EntityLink entityType="site" code={siteRow.site_code} name={siteRow.name} showCode={false} />
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        <EntityLink entityType="site" code={siteRow.site_code} name={siteRow.site_code} showCode={false} />
+                        {' · '}
+                        {[siteRow.address?.street, siteRow.address?.city, siteRow.address?.state].filter(Boolean).join(', ') || 'Address not set'}
+                      </p>
+                    </div>
+                    <Badge color={(siteRow.status ?? '').toUpperCase() === 'ACTIVE' ? 'green' : 'gray'}>
+                      {siteRow.status ?? 'Not Set'}
+                    </Badge>
+                  </div>
+
+                  <div className="mt-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Active Jobs ({activeSiteJobs.length})
+                    </p>
+                    {activeSiteJobs.length === 0 ? (
+                      <p className="mt-2 text-sm text-muted-foreground">No active jobs at this site.</p>
+                    ) : (
+                      <div className="mt-2 space-y-2">
+                        {activeSiteJobs.map((job) => {
+                          const tasks = jobTasksByJob[job.id] ?? [];
+                          return (
+                            <div key={job.id} className="rounded-lg border border-border bg-background p-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-semibold text-foreground">
+                                    <EntityLink entityType="job" code={job.job_code} name={job.job_name ?? job.job_code} showCode={false} />
+                                  </p>
+                                  <p className="mt-1 text-xs text-muted-foreground">
+                                    <EntityLink entityType="job" code={job.job_code} name={job.job_code} showCode={false} />
+                                    {' · '}
+                                    {formatFrequency(job.frequency)}
+                                    {' · '}
+                                    {formatCurrency(job.billing_amount)}/mo
+                                  </p>
+                                </div>
+                                {job.priority_level ? (
+                                  <Badge
+                                    color={
+                                      job.priority_level === 'CRITICAL'
+                                        ? 'red'
+                                        : job.priority_level === 'HIGH'
+                                          ? 'orange'
+                                          : job.priority_level === 'LOW'
+                                            ? 'gray'
+                                            : 'blue'
+                                    }
+                                  >
+                                    {job.priority_level}
+                                  </Badge>
+                                ) : null}
+                              </div>
+
+                              <details className="mt-3 rounded-md border border-border/70 bg-muted/20 p-3">
+                                <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
+                                  Task List ({tasks.length})
+                                </summary>
+                                {tasks.length === 0 ? (
+                                  <p className="mt-2 text-xs italic text-muted-foreground">No tasks linked to this service plan yet.</p>
+                                ) : (
+                                  <ul className="mt-2 space-y-1.5 text-xs text-foreground">
+                                    {tasks.slice(0, 5).map((task) => (
+                                      <li key={task.id} className="flex items-center justify-between gap-3">
+                                        <span className="truncate">{task.task_name ?? task.task_code ?? 'Unnamed Task'}</span>
+                                        <span className="shrink-0 text-muted-foreground">
+                                          {task.planned_minutes != null ? `${task.planned_minutes} min` : ''}
+                                        </span>
+                                      </li>
+                                    ))}
+                                    {tasks.length > 5 && (
+                                      <li className="text-muted-foreground">+{tasks.length - 5} more tasks (open service plan for full scope)</li>
+                                    )}
+                                  </ul>
+                                )}
+                              </details>
+
+                              <p className="mt-2 text-xs text-muted-foreground">
+                                Schedule: {job.schedule_days ? job.schedule_days : 'Days not set'} · {formatTimeWindow(job.start_time, job.end_time)}
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <p className="mt-3 text-xs font-medium text-muted-foreground">
+                      Site Revenue: <span className="font-semibold text-foreground">{formatCurrency(siteRevenue)}/mo</span>
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+
+            {sortedSites.length > 5 && (
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowAllSites((prev) => !prev)}
+                  className="text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
+                >
+                  {showAllSites ? `Show Top 5 Sites` : `Show All ${sortedSites.length} Sites`}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Contacts */}

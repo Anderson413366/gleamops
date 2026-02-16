@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -18,6 +18,8 @@ import {
   Warehouse,
   Users,
   ExternalLink,
+  ClipboardList,
+  Package,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Badge, Skeleton } from '@gleamops/ui';
@@ -63,8 +65,36 @@ interface RelatedSiteJobRow {
   job_name: string | null;
   status: string;
   frequency: string | null;
+  schedule_days: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  job_assigned_to: string | null;
   billing_amount: number | null;
   priority_level: string | null;
+}
+
+interface JobTaskRow {
+  id: string;
+  job_id: string;
+  task_name: string | null;
+  task_code: string | null;
+  planned_minutes: number | null;
+  status: string | null;
+}
+
+interface SiteSupplyRow {
+  id: string;
+  name: string;
+  category: string | null;
+  sds_url: string | null;
+  notes: string | null;
+}
+
+interface CountSummary {
+  count_code: string;
+  count_date: string;
+  status: string;
+  counted_by: string | null;
 }
 
 interface RelatedEquipmentRow {
@@ -101,6 +131,24 @@ function formatTime(t: string | null): string {
   const ampm = h >= 12 ? 'PM' : 'AM';
   const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
   return `${h12}:${m} ${ampm}`;
+}
+
+function formatFrequency(value: string | null): string {
+  if (!value) return 'Not Set';
+  const normalized = value.toUpperCase();
+  const map: Record<string, string> = {
+    DAILY: 'Daily',
+    WEEKLY: 'Weekly',
+    BIWEEKLY: 'Biweekly',
+    MONTHLY: 'Monthly',
+    '2X_WEEK': '2x/Week',
+    '3X_WEEK': '3x/Week',
+    '4X_WEEK': '4x/Week',
+    '5X_WEEK': '5x/Week',
+    '6X_WEEK': '6x/Week',
+    AS_NEEDED: 'As Needed',
+  };
+  return map[normalized] ?? normalized.replace(/_/g, ' ');
 }
 
 function formatRelativeDateTime(dateStr: string): string {
@@ -188,6 +236,12 @@ export default function SiteDetailPage() {
   const [keys, setKeys] = useState<KeyInventory[]>([]);
   const [relatedJobs, setRelatedJobs] = useState<RelatedSiteJobRow[]>([]);
   const [relatedEquipment, setRelatedEquipment] = useState<RelatedEquipmentRow[]>([]);
+  const [jobTasksByJob, setJobTasksByJob] = useState<Record<string, JobTaskRow[]>>({});
+  const [expandedJobs, setExpandedJobs] = useState<string[]>([]);
+  const [siteSupplies, setSiteSupplies] = useState<SiteSupplyRow[]>([]);
+  const [supplyCategoryFilter, setSupplyCategoryFilter] = useState('all');
+  const [latestCount, setLatestCount] = useState<CountSummary | null>(null);
+  const [latestCountedByName, setLatestCountedByName] = useState<string | null>(null);
 
   const fetchSite = async () => {
     setLoading(true);
@@ -210,10 +264,10 @@ export default function SiteDetailPage() {
       setSite(s);
 
       // Fetch related data in parallel
-      const [jobsRes, equipRes, keysRes] = await Promise.all([
+      const [jobsRes, equipRes, keysRes, siteSuppliesRes, latestCountRes] = await Promise.all([
         supabase
           .from('site_jobs')
-          .select('id, job_code, job_name, status, frequency, billing_amount, priority_level')
+          .select('id, job_code, job_name, status, frequency, schedule_days, start_time, end_time, job_assigned_to, billing_amount, priority_level')
           .eq('site_id', s.id)
           .order('job_code'),
         supabase
@@ -227,10 +281,25 @@ export default function SiteDetailPage() {
           .eq('site_id', s.id)
           .is('archived_at', null)
           .order('key_code'),
+        supabase
+          .from('site_supplies')
+          .select('id, name, category, sds_url, notes')
+          .eq('site_id', s.id)
+          .is('archived_at', null)
+          .order('category')
+          .order('name'),
+        supabase
+          .from('inventory_counts')
+          .select('count_code, count_date, status, counted_by')
+          .eq('site_id', s.id)
+          .is('archived_at', null)
+          .order('count_date', { ascending: false })
+          .limit(1),
       ]);
 
       const jobs = (jobsRes.data ?? []) as unknown as RelatedSiteJobRow[];
       setRelatedJobs(jobs);
+      setExpandedJobs(jobs.length > 0 ? [jobs[0].id] : []);
       const active = jobs.filter(
         (j: { status: string }) => j.status === 'ACTIVE'
       );
@@ -246,9 +315,47 @@ export default function SiteDetailPage() {
       setRelatedEquipment(equipment);
       setEquipmentCount(equipment.length);
       setKeys((keysRes.data as unknown as KeyInventory[]) ?? []);
+      setSiteSupplies((siteSuppliesRes.data as unknown as SiteSupplyRow[]) ?? []);
+
+      const latest = (latestCountRes.data?.[0] ?? null) as CountSummary | null;
+      setLatestCount(latest);
+      if (latest?.counted_by) {
+        const { data: counter } = await supabase
+          .from('staff')
+          .select('full_name')
+          .eq('id', latest.counted_by)
+          .is('archived_at', null)
+          .maybeSingle();
+        setLatestCountedByName((counter as { full_name?: string } | null)?.full_name ?? null);
+      } else {
+        setLatestCountedByName(null);
+      }
+
+      if (jobs.length > 0) {
+        const jobIds = jobs.map((job) => job.id);
+        const { data: taskRows } = await supabase
+          .from('job_tasks')
+          .select('id, job_id, task_name, task_code, planned_minutes, status')
+          .in('job_id', jobIds)
+          .is('archived_at', null)
+          .order('task_name');
+
+        const groupedTasks: Record<string, JobTaskRow[]> = {};
+        for (const task of (taskRows ?? []) as unknown as JobTaskRow[]) {
+          if (!groupedTasks[task.job_id]) groupedTasks[task.job_id] = [];
+          groupedTasks[task.job_id].push(task);
+        }
+        setJobTasksByJob(groupedTasks);
+      } else {
+        setJobTasksByJob({});
+      }
     } else {
       setRelatedJobs([]);
       setRelatedEquipment([]);
+      setSiteSupplies([]);
+      setLatestCount(null);
+      setLatestCountedByName(null);
+      setJobTasksByJob({});
     }
     setLoading(false);
   };
@@ -284,6 +391,52 @@ export default function SiteDetailPage() {
       setArchiveLoading(false);
       setArchiveOpen(false);
     }
+  };
+
+  const activeServicePlans = useMemo(
+    () => relatedJobs.filter((job) => job.status === 'ACTIVE'),
+    [relatedJobs]
+  );
+
+  const supplyCategories = useMemo(() => {
+    const values = new Set<string>();
+    for (const supply of siteSupplies) {
+      if (supply.category) values.add(supply.category);
+    }
+    return Array.from(values).sort((a, b) => a.localeCompare(b));
+  }, [siteSupplies]);
+
+  const filteredSupplies = useMemo(() => {
+    if (supplyCategoryFilter === 'all') return siteSupplies;
+    return siteSupplies.filter((supply) => supply.category === supplyCategoryFilter);
+  }, [siteSupplies, supplyCategoryFilter]);
+
+  const groupedSupplies = useMemo(() => {
+    const map: Record<string, SiteSupplyRow[]> = {};
+    for (const supply of filteredSupplies) {
+      const category = supply.category ?? 'Uncategorized';
+      if (!map[category]) map[category] = [];
+      map[category].push(supply);
+    }
+    return map;
+  }, [filteredSupplies]);
+
+  const nextCountDueDate = latestCount
+    ? new Date(new Date(latestCount.count_date).getTime() + (30 * 24 * 60 * 60 * 1000))
+    : null;
+  const dueLabel = nextCountDueDate
+    ? (() => {
+        const now = new Date();
+        const diffMs = nextCountDueDate.getTime() - now.getTime();
+        const diffDays = Math.ceil(diffMs / (24 * 60 * 60 * 1000));
+        if (diffDays < 0) return { text: `Overdue by ${Math.abs(diffDays)} day(s)`, color: 'red' as const };
+        if (diffDays <= 7) return { text: `Due in ${diffDays} day(s)`, color: 'yellow' as const };
+        return { text: `Due in ${diffDays} day(s)`, color: 'green' as const };
+      })()
+    : null;
+
+  const toggleJobExpanded = (jobId: string) => {
+    setExpandedJobs((prev) => (prev.includes(jobId) ? prev.filter((idValue) => idValue !== jobId) : [...prev, jobId]));
   };
 
   if (loading) {
@@ -790,92 +943,245 @@ export default function SiteDetailPage() {
         </div>
       </div>
 
-      {/* Related Records */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <h3 className="mb-4 text-sm font-semibold text-foreground">Related Jobs</h3>
-          {relatedJobs.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No jobs assigned to this site.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                    <th className="py-2 pr-3 font-medium">Code</th>
-                    <th className="py-2 pr-3 font-medium">Name</th>
-                    <th className="py-2 pr-3 font-medium">Status</th>
-                    <th className="py-2 pr-3 font-medium">Priority</th>
-                    <th className="py-2 text-right font-medium">Billing</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {relatedJobs.slice(0, 8).map((job) => (
-                    <tr key={job.id} className="border-b border-border/50">
-                      <td className="py-2 pr-3 font-mono text-xs">
-                        <EntityLink entityType="job" code={job.job_code} name={job.job_code} showCode={false} />
-                      </td>
-                      <td className="py-2 pr-3 font-medium">
+      {/* Service Plans & Scope of Work */}
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="text-sm font-semibold text-foreground">
+            <span className="inline-flex items-center gap-2">
+              <ClipboardList className="h-4 w-4 text-muted-foreground" />
+              Service Plans &amp; Scope of Work
+            </span>
+          </h3>
+          <Badge color="blue">{`${activeServicePlans.length} active`}</Badge>
+        </div>
+
+        {relatedJobs.length === 0 ? (
+          <p className="mt-4 text-sm text-muted-foreground">
+            No service plans assigned to this site. Create one from Operations → Service Plans.
+          </p>
+        ) : (
+          <div className="mt-4 space-y-3">
+            {relatedJobs.map((job) => {
+              const tasks = jobTasksByJob[job.id] ?? [];
+              const isExpanded = expandedJobs.includes(job.id);
+              return (
+                <div key={job.id} className="rounded-lg border border-border bg-muted/10 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-foreground">
                         <EntityLink entityType="job" code={job.job_code} name={job.job_name ?? job.job_code} showCode={false} />
-                      </td>
-                      <td className="py-2 pr-3">
-                        <Badge color={SITE_STATUS_COLORS[job.status] ?? 'gray'}>{job.status}</Badge>
-                      </td>
-                      <td className="py-2 pr-3">
-                        {job.priority_level ? (
-                          <Badge color={PRIORITY_BADGE[job.priority_level] ?? 'gray'}>{job.priority_level}</Badge>
-                        ) : (
-                          <span className="italic text-muted-foreground">Not Set</span>
-                        )}
-                      </td>
-                      <td className="py-2 text-right tabular-nums">{formatCurrency(job.billing_amount)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        <EntityLink entityType="job" code={job.job_code} name={job.job_code} showCode={false} />
+                        {' · '}
+                        {formatFrequency(job.frequency)}
+                        {' · '}
+                        {formatCurrency(job.billing_amount)}/mo
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Assigned to: {job.job_assigned_to || 'Not Set'} · Schedule: {job.schedule_days || 'Days not set'} · {formatTime(job.start_time)} - {formatTime(job.end_time)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge color={SITE_STATUS_COLORS[job.status] ?? 'gray'}>{job.status}</Badge>
+                      {job.priority_level ? (
+                        <Badge color={PRIORITY_BADGE[job.priority_level] ?? 'gray'}>{job.priority_level}</Badge>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => toggleJobExpanded(job.id)}
+                    className="mt-3 text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
+                  >
+                    {isExpanded ? `Hide Task List (${tasks.length})` : `Show Task List (${tasks.length})`}
+                  </button>
+
+                  {isExpanded && (
+                    <div className="mt-2 rounded-md border border-border bg-background p-3">
+                      {tasks.length === 0 ? (
+                        <p className="text-xs italic text-muted-foreground">No task list defined for this service plan yet.</p>
+                      ) : (
+                        <ul className="space-y-1.5 text-xs">
+                          {tasks.slice(0, 5).map((task) => (
+                            <li key={task.id} className="flex items-center justify-between gap-3">
+                              <span>{task.task_name ?? task.task_code ?? 'Unnamed Task'}</span>
+                              <span className="text-muted-foreground">
+                                {task.planned_minutes != null ? `${task.planned_minutes} min` : ''}
+                              </span>
+                            </li>
+                          ))}
+                          {tasks.length > 5 && (
+                            <li className="text-muted-foreground">+{tasks.length - 5} more tasks in this scope.</li>
+                          )}
+                        </ul>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Assigned Supplies & Inventory */}
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold text-foreground">
+            <span className="inline-flex items-center gap-2">
+              <Package className="h-4 w-4 text-muted-foreground" />
+              Assigned Supplies ({siteSupplies.length})
+            </span>
+          </h3>
+          <Link
+            href={`/inventory?tab=site-assignments&site=${encodeURIComponent(site.site_code)}`}
+            className="inline-flex items-center rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          >
+            + Add Supply
+          </Link>
         </div>
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <h3 className="mb-4 text-sm font-semibold text-foreground">Related Equipment</h3>
-          {relatedEquipment.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No equipment linked to this site.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                    <th className="py-2 pr-3 font-medium">Code</th>
-                    <th className="py-2 pr-3 font-medium">Name</th>
-                    <th className="py-2 pr-3 font-medium">Type</th>
-                    <th className="py-2 pr-3 font-medium">Assigned To</th>
-                    <th className="py-2 font-medium">Condition</th>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <label htmlFor="supply-category-filter" className="text-xs text-muted-foreground">Category</label>
+          <select
+            id="supply-category-filter"
+            value={supplyCategoryFilter}
+            onChange={(event) => setSupplyCategoryFilter(event.target.value)}
+            className="h-8 rounded-lg border border-border bg-background px-2.5 text-xs"
+          >
+            <option value="all">All Categories</option>
+            {supplyCategories.map((category) => (
+              <option key={category} value={category}>{category}</option>
+            ))}
+          </select>
+        </div>
+
+        {filteredSupplies.length === 0 ? (
+          <p className="mt-4 text-sm text-muted-foreground">No supplies assigned for the selected filter.</p>
+        ) : (
+          <div className="mt-4 space-y-4">
+            {Object.entries(groupedSupplies).map(([category, supplies]) => (
+              <div key={category} className="rounded-lg border border-border bg-muted/10 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {category} ({supplies.length})
+                </p>
+                <div className="mt-2 overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                        <th className="py-2 pr-3 font-medium">Supply</th>
+                        <th className="py-2 pr-3 font-medium">SDS</th>
+                        <th className="py-2 font-medium">Last Count</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {supplies.map((supply) => (
+                        <tr key={supply.id} className="border-b border-border/50">
+                          <td className="py-2 pr-3 font-medium">
+                            <Link
+                              href={`/inventory?tab=supply-catalog&search=${encodeURIComponent(supply.name)}`}
+                              className="text-blue-600 hover:underline dark:text-blue-400"
+                            >
+                              {supply.name}
+                            </Link>
+                          </td>
+                          <td className="py-2 pr-3">
+                            {supply.sds_url ? (
+                              <a href={supply.sds_url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline dark:text-blue-400">
+                                View SDS
+                              </a>
+                            ) : (
+                              <span className="text-muted-foreground">Not Set</span>
+                            )}
+                          </td>
+                          <td className="py-2 text-muted-foreground">
+                            {latestCount ? latestCount.count_date : 'Not Counted'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-4 rounded-lg border border-border bg-muted/20 p-4 text-sm">
+          <p className="font-medium text-foreground">
+            Last Inventory Count: {latestCount ? formatDate(latestCount.count_date) : 'No counts yet'}
+          </p>
+          <p className="mt-1 text-muted-foreground">
+            Counted by: {latestCountedByName ?? 'Not Set'}
+          </p>
+          <p className="mt-1 text-muted-foreground">
+            Next Due: {nextCountDueDate ? formatDate(nextCountDueDate.toISOString()) : 'Not Set'}
+            {dueLabel ? (
+              <span className="ml-2">
+                <Badge color={dueLabel.color}>{dueLabel.text}</Badge>
+              </span>
+            ) : null}
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Link
+              href={`/inventory?tab=counts&site=${encodeURIComponent(site.site_code)}`}
+              className="inline-flex items-center rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              View Full Count
+            </Link>
+            <Link
+              href={`/inventory?tab=counts&action=create-count&site=${encodeURIComponent(site.site_code)}`}
+              className="inline-flex items-center rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              Start New Count
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Related Equipment */}
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <h3 className="mb-4 text-sm font-semibold text-foreground">Related Equipment</h3>
+        {relatedEquipment.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No equipment linked to this site.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                  <th className="py-2 pr-3 font-medium">Code</th>
+                  <th className="py-2 pr-3 font-medium">Name</th>
+                  <th className="py-2 pr-3 font-medium">Type</th>
+                  <th className="py-2 pr-3 font-medium">Assigned To</th>
+                  <th className="py-2 font-medium">Condition</th>
+                </tr>
+              </thead>
+              <tbody>
+                {relatedEquipment.slice(0, 8).map((equip) => (
+                  <tr key={equip.id} className="border-b border-border/50">
+                    <td className="py-2 pr-3 font-mono text-xs">
+                      <EntityLink entityType="equipment" code={equip.equipment_code} name={equip.equipment_code} showCode={false} />
+                    </td>
+                    <td className="py-2 pr-3 font-medium">
+                      <EntityLink entityType="equipment" code={equip.equipment_code} name={equip.name} showCode={false} />
+                    </td>
+                    <td className="py-2 pr-3 text-muted-foreground">{equip.equipment_type ?? 'Not Set'}</td>
+                    <td className="py-2 pr-3 text-muted-foreground">
+                      {equip.staff?.staff_code
+                        ? <EntityLink entityType="staff" code={equip.staff.staff_code} name={equip.staff.full_name} showCode={false} />
+                        : (equip.staff?.full_name ?? 'Not Set')}
+                    </td>
+                    <td className="py-2">
+                      {equip.condition ? <Badge color="gray">{equip.condition.replace(/_/g, ' ')}</Badge> : <span className="italic text-muted-foreground">Not Set</span>}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {relatedEquipment.slice(0, 8).map((equip) => (
-                    <tr key={equip.id} className="border-b border-border/50">
-                      <td className="py-2 pr-3 font-mono text-xs">
-                        <EntityLink entityType="equipment" code={equip.equipment_code} name={equip.equipment_code} showCode={false} />
-                      </td>
-                      <td className="py-2 pr-3 font-medium">
-                        <EntityLink entityType="equipment" code={equip.equipment_code} name={equip.name} showCode={false} />
-                      </td>
-                      <td className="py-2 pr-3 text-muted-foreground">{equip.equipment_type ?? 'Not Set'}</td>
-                      <td className="py-2 pr-3 text-muted-foreground">
-                        {equip.staff?.staff_code
-                          ? <EntityLink entityType="staff" code={equip.staff.staff_code} name={equip.staff.full_name} showCode={false} />
-                          : (equip.staff?.full_name ?? 'Not Set')}
-                      </td>
-                      <td className="py-2">
-                        {equip.condition ? <Badge color="gray">{equip.condition.replace(/_/g, ' ')}</Badge> : <span className="italic text-muted-foreground">Not Set</span>}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Metadata */}

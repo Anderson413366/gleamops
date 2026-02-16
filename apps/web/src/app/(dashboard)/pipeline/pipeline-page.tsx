@@ -61,6 +61,7 @@ const TABS = [
 export default function PipelinePageClient() {
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab');
+  const action = searchParams.get('action');
   const [tab, setTab] = useState(TABS.some(t => t.key === initialTab) ? initialTab! : TABS[0].key);
   const [search, setSearch] = useState('');
 
@@ -170,6 +171,44 @@ export default function PipelinePageClient() {
 
     fetchStats();
   }, [refreshKey]);
+
+  useEffect(() => {
+    if (initialTab && TABS.some((t) => t.key === initialTab)) {
+      setTab(initialTab);
+    }
+  }, [initialTab]);
+
+  const openQuickCreate = useCallback((actionName: string | null | undefined) => {
+    if (actionName === 'create-prospect') {
+      setTab('prospects');
+      setEditProspect(null);
+      setProspectFormOpen(true);
+      return;
+    }
+    if (actionName === 'create-opportunity') {
+      setTab('opportunities');
+      setEditOpportunity(null);
+      setOpportunityFormOpen(true);
+      return;
+    }
+    if (actionName === 'create-bid') {
+      setTab('bids');
+      setWizardOpen(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    openQuickCreate(action);
+  }, [action, openQuickCreate]);
+
+  useEffect(() => {
+    function handleQuickCreate(event: Event) {
+      const detail = (event as CustomEvent<{ action?: string }>).detail;
+      openQuickCreate(detail?.action);
+    }
+    window.addEventListener('gleamops:quick-create', handleQuickCreate);
+    return () => window.removeEventListener('gleamops:quick-create', handleQuickCreate);
+  }, [openQuickCreate]);
 
   const handleAdd = () => {
     if (tab === 'prospects') {

@@ -23,6 +23,7 @@ const TABS = [
 export default function CRMPageClient() {
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab');
+  const action = searchParams.get('action');
   const [tab, setTab] = useState(TABS.some(t => t.key === initialTab) ? initialTab! : TABS[0].key);
   const [search, setSearch] = useState('');
   const [kpis, setKpis] = useState({
@@ -65,6 +66,37 @@ export default function CRMPageClient() {
   useEffect(() => {
     fetchKpis();
   }, [fetchKpis, refreshKey]);
+
+  useEffect(() => {
+    if (initialTab && TABS.some((t) => t.key === initialTab)) {
+      setTab(initialTab);
+    }
+  }, [initialTab]);
+
+  const openQuickCreate = useCallback((actionName: string | null | undefined) => {
+    if (actionName === 'create-client') {
+      setTab('clients');
+      setClientFormOpen(true);
+      return;
+    }
+    if (actionName === 'create-site') {
+      setTab('sites');
+      setSiteFormOpen(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    openQuickCreate(action);
+  }, [action, openQuickCreate]);
+
+  useEffect(() => {
+    function handleQuickCreate(event: Event) {
+      const detail = (event as CustomEvent<{ action?: string }>).detail;
+      openQuickCreate(detail?.action);
+    }
+    window.addEventListener('gleamops:quick-create', handleQuickCreate);
+    return () => window.removeEventListener('gleamops:quick-create', handleQuickCreate);
+  }, [openQuickCreate]);
 
   const handleAdd = () => {
     if (tab === 'clients') {

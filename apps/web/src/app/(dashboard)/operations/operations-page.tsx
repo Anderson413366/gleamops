@@ -59,6 +59,7 @@ export default function OperationsPageClient() {
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab');
   const initialTicketId = searchParams.get('ticket');
+  const action = searchParams.get('action');
   const [tab, setTab] = useState(
     TABS.some((t) => t.key === initialTab)
       ? initialTab!
@@ -73,6 +74,7 @@ export default function OperationsPageClient() {
   const [editGeofence, setEditGeofence] = useState<GeofenceWithSite | null>(null);
   const [selectedThread, setSelectedThread] = useState<{ id: string; subject: string; thread_type: string } | null>(null);
   const [showMessageForm, setShowMessageForm] = useState(false);
+  const [openJobCreateToken, setOpenJobCreateToken] = useState(0);
   const [focusMode, setFocusMode] = useState(false);
   const [kpis, setKpis] = useState({
     todayTickets: 0,
@@ -102,6 +104,41 @@ export default function OperationsPageClient() {
     }
     fetchKpis();
   }, [refreshKey]);
+
+  useEffect(() => {
+    if (initialTab && TABS.some((t) => t.key === initialTab)) {
+      setTab(initialTab);
+    }
+  }, [initialTab]);
+
+  const openQuickCreate = useCallback((actionName: string | null | undefined) => {
+    if (actionName === 'create-job') {
+      setTab('jobs');
+      setOpenJobCreateToken((token) => token + 1);
+      return;
+    }
+    if (actionName === 'create-inspection') {
+      setTab('inspections');
+      setShowCreateInspection(true);
+      return;
+    }
+    if (actionName === 'create-ticket') {
+      setTab('tickets');
+    }
+  }, []);
+
+  useEffect(() => {
+    openQuickCreate(action);
+  }, [action, openQuickCreate]);
+
+  useEffect(() => {
+    function handleQuickCreate(event: Event) {
+      const detail = (event as CustomEvent<{ action?: string }>).detail;
+      openQuickCreate(detail?.action);
+    }
+    window.addEventListener('gleamops:quick-create', handleQuickCreate);
+    return () => window.removeEventListener('gleamops:quick-create', handleQuickCreate);
+  }, [openQuickCreate]);
 
   // Deep link support for legacy routes like /schedule?ticket=<id>.
   // If a ticket id is present, preselect the Tickets tab and open the detail modal.
@@ -176,7 +213,13 @@ export default function OperationsPageClient() {
           onGoToServicePlans={() => setTab('jobs')}
         />
       )}
-      {tab === 'jobs' && <JobsTable key={`j-${refreshKey}`} search={search} />}
+      {tab === 'jobs' && (
+        <JobsTable
+          key={`j-${refreshKey}`}
+          search={search}
+          openCreateToken={openJobCreateToken}
+        />
+      )}
       {tab === 'inspections' && (
         <InspectionsTable
           key={`i-${refreshKey}`}

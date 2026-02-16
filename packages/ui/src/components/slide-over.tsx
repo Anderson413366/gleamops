@@ -30,6 +30,15 @@ export function SlideOver({ open, onClose, title, subtitle, children, wide = fal
     return () => document.removeEventListener('keydown', handleKey);
   }, [open, onClose]);
 
+  // Allow app-level Escape handlers to close all drawers/modals consistently.
+  useEffect(() => {
+    function handleGlobalClose() {
+      if (open) onClose();
+    }
+    window.addEventListener('gleamops:close', handleGlobalClose);
+    return () => window.removeEventListener('gleamops:close', handleGlobalClose);
+  }, [open, onClose]);
+
   // Prevent body scroll when open
   useEffect(() => {
     if (open) {

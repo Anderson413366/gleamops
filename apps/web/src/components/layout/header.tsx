@@ -9,6 +9,7 @@ import {
   Search,
   Building2,
   MapPin,
+  Briefcase,
   Users,
   TrendingUp,
   FileText,
@@ -19,12 +20,12 @@ import {
   AlertTriangle,
   Clock,
   X,
+  Keyboard,
 } from 'lucide-react';
 import { CommandPalette, type CommandItem, DensityToggle } from '@gleamops/ui';
 import { useAuth } from '@/hooks/use-auth';
 import { useTheme } from '@/hooks/use-theme';
 import { useDensity } from '@/hooks/use-density';
-import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { Breadcrumbs } from './breadcrumbs';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { formatRelative } from '@/lib/utils/date';
@@ -125,13 +126,57 @@ function getInitials(email: string): string {
   return name.slice(0, 2).toUpperCase();
 }
 
+type QuickCreateAction = 'create-client' | 'create-site' | 'create-job' | 'create-prospect';
+type GoNavKey = 'h' | 'c' | 'o' | 'w';
+
+const QUICK_CREATE_ROUTES: Record<QuickCreateAction, string> = {
+  'create-client': '/crm?tab=clients&action=create-client',
+  'create-site': '/crm?tab=sites&action=create-site',
+  'create-job': '/operations?tab=jobs&action=create-job',
+  'create-prospect': '/pipeline?tab=prospects&action=create-prospect',
+};
+
+const GO_NAV_ROUTES: Record<GoNavKey, string> = {
+  h: '/home',
+  c: '/crm',
+  o: '/operations',
+  w: '/workforce',
+};
+
+interface ShortcutRow {
+  keys: string;
+  description: string;
+}
+
+const SHORTCUT_ROWS: ShortcutRow[] = [
+  { keys: 'Cmd/Ctrl + K', description: 'Open command palette' },
+  { keys: '?', description: 'Open keyboard shortcuts help' },
+  { keys: 'Cmd/Ctrl + Shift + C', description: 'New Client' },
+  { keys: 'Cmd/Ctrl + Shift + S', description: 'New Site' },
+  { keys: 'Cmd/Ctrl + Shift + J', description: 'New Job' },
+  { keys: 'Cmd/Ctrl + Shift + P', description: 'New Prospect' },
+  { keys: 'G then H', description: 'Go to Home' },
+  { keys: 'G then C', description: 'Go to CRM' },
+  { keys: 'G then O', description: 'Go to Operations' },
+  { keys: 'G then W', description: 'Go to Workforce' },
+  { keys: 'Esc', description: 'Close modal / drawer / palette' },
+];
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  const tag = target.tagName.toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
+  if (target.isContentEditable) return true;
+  return false;
+}
+
 export function Header() {
   const { user, role, signOut } = useAuth();
   const { resolvedTheme, trueBlack, setTheme, setTrueBlack, mounted } = useTheme();
   const { density, setDensity, mounted: densityMounted } = useDensity();
-  useKeyboardShortcuts();
   const router = useRouter();
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [items, setItems] = useState<CommandItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -142,9 +187,38 @@ export function Header() {
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
   const themeRef = useRef<HTMLDivElement>(null);
+  const goSequenceRef = useRef(false);
+  const goSequenceTimerRef = useRef<number | null>(null);
 
   const unreadCount = feedItems.filter((n) => !n.read_at).length;
   const unreadUrgentCount = feedItems.filter((n) => !n.read_at && getFeedTone(n) === 'urgent').length;
+
+  const clearGoSequence = useCallback(() => {
+    goSequenceRef.current = false;
+    if (goSequenceTimerRef.current != null) {
+      window.clearTimeout(goSequenceTimerRef.current);
+      goSequenceTimerRef.current = null;
+    }
+  }, []);
+
+  const triggerQuickCreate = useCallback(
+    (action: QuickCreateAction) => {
+      window.dispatchEvent(new CustomEvent('gleamops:quick-create', { detail: { action } }));
+      router.push(QUICK_CREATE_ROUTES[action]);
+      setPaletteOpen(false);
+      setShortcutsOpen(false);
+    },
+    [router]
+  );
+
+  const goToSection = useCallback(
+    (key: GoNavKey) => {
+      router.push(GO_NAV_ROUTES[key]);
+      setPaletteOpen(false);
+      setShortcutsOpen(false);
+    },
+    [router]
+  );
 
   // Fetch notifications + alerts on mount + when dropdown opens
   const fetchFeed = useCallback(async () => {
@@ -293,40 +367,97 @@ export function Header() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  // Close dropdowns on Escape
+  // Global keyboard shortcuts: palette/help/create/navigation + close behavior.
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
+      const editable = isEditableTarget(e.target);
+      const key = e.key.toLowerCase();
+      const hasModifier = e.metaKey || e.ctrlKey;
+
       if (e.key === 'Escape') {
         setNotifOpen(false);
         setProfileOpen(false);
         setThemeOpen(false);
+        setPaletteOpen(false);
+        setShortcutsOpen(false);
+        clearGoSequence();
+        window.dispatchEvent(new CustomEvent('gleamops:close'));
+        return;
       }
-    }
-    document.addEventListener('keydown', handleKey);
-    return () => document.removeEventListener('keydown', handleKey);
-  }, []);
 
-  // Open palette with Cmd+K / Ctrl+K
-  useEffect(() => {
-    function isInsideFormField(e: KeyboardEvent): boolean {
-      const target = e.target;
-      if (!(target instanceof HTMLElement)) return false;
-      const tag = target.tagName.toLowerCase();
-      if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
-      if (target.isContentEditable) return true;
-      return false;
-    }
-
-    function handleKey(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        if (isInsideFormField(e)) return;
+      if (hasModifier && key === 'k') {
+        if (editable) return;
         e.preventDefault();
         setPaletteOpen((prev) => !prev);
+        setShortcutsOpen(false);
+        clearGoSequence();
+        return;
+      }
+
+      if (hasModifier && e.shiftKey && !editable) {
+        if (key === 'c') {
+          e.preventDefault();
+          triggerQuickCreate('create-client');
+          clearGoSequence();
+          return;
+        }
+        if (key === 's') {
+          e.preventDefault();
+          triggerQuickCreate('create-site');
+          clearGoSequence();
+          return;
+        }
+        if (key === 'j') {
+          e.preventDefault();
+          triggerQuickCreate('create-job');
+          clearGoSequence();
+          return;
+        }
+        if (key === 'p') {
+          e.preventDefault();
+          triggerQuickCreate('create-prospect');
+          clearGoSequence();
+          return;
+        }
+      }
+
+      if (!hasModifier && !e.altKey && !editable) {
+        if (e.key === '?' || (e.key === '/' && e.shiftKey)) {
+          e.preventDefault();
+          setShortcutsOpen((prev) => !prev);
+          setPaletteOpen(false);
+          clearGoSequence();
+          return;
+        }
+
+        if (goSequenceRef.current) {
+          if (key === 'h' || key === 'c' || key === 'o' || key === 'w') {
+            e.preventDefault();
+            goToSection(key as GoNavKey);
+            clearGoSequence();
+            return;
+          }
+          clearGoSequence();
+        }
+
+        if (key === 'g') {
+          goSequenceRef.current = true;
+          if (goSequenceTimerRef.current != null) {
+            window.clearTimeout(goSequenceTimerRef.current);
+          }
+          goSequenceTimerRef.current = window.setTimeout(() => {
+            clearGoSequence();
+          }, 1000);
+        }
       }
     }
+
     document.addEventListener('keydown', handleKey);
-    return () => document.removeEventListener('keydown', handleKey);
-  }, []);
+    return () => {
+      document.removeEventListener('keydown', handleKey);
+      clearGoSequence();
+    };
+  }, [clearGoSequence, goToSection, triggerQuickCreate]);
 
   // Allow non-header UI (for example sidebar search) to open the command palette.
   useEffect(() => {
@@ -339,8 +470,98 @@ export function Header() {
 
   // Search across entities when palette opens
   const handleSearch = useCallback(async (query: string) => {
-    if (!query || query.length < 2) {
-      setItems([]);
+    const normalized = query.trim().toLowerCase();
+    const staticItems: Array<CommandItem & { keywords: string[] }> = [
+      {
+        id: 'quick-create-client',
+        label: 'New Client',
+        sublabel: 'Create a new client record',
+        category: 'Quick Actions',
+        icon: <Building2 className="h-4 w-4" />,
+        keywords: ['new client', 'create client', 'add client', 'client'],
+        onSelect: () => triggerQuickCreate('create-client'),
+      },
+      {
+        id: 'quick-create-site',
+        label: 'New Site',
+        sublabel: 'Create a new client site',
+        category: 'Quick Actions',
+        icon: <MapPin className="h-4 w-4" />,
+        keywords: ['new site', 'create site', 'add site', 'site'],
+        onSelect: () => triggerQuickCreate('create-site'),
+      },
+      {
+        id: 'quick-create-job',
+        label: 'New Job',
+        sublabel: 'Create a new service plan',
+        category: 'Quick Actions',
+        icon: <Briefcase className="h-4 w-4" />,
+        keywords: ['new job', 'create job', 'add job', 'service plan'],
+        onSelect: () => triggerQuickCreate('create-job'),
+      },
+      {
+        id: 'quick-create-prospect',
+        label: 'New Prospect',
+        sublabel: 'Create a new pipeline prospect',
+        category: 'Quick Actions',
+        icon: <TrendingUp className="h-4 w-4" />,
+        keywords: ['new prospect', 'create prospect', 'add prospect', 'lead'],
+        onSelect: () => triggerQuickCreate('create-prospect'),
+      },
+      {
+        id: 'goto-home',
+        label: 'Go to Home',
+        sublabel: 'Navigate to Home dashboard',
+        category: 'Go To',
+        icon: <Building2 className="h-4 w-4" />,
+        keywords: ['go home', 'go to home', 'home'],
+        onSelect: () => goToSection('h'),
+      },
+      {
+        id: 'goto-crm',
+        label: 'Go to CRM',
+        sublabel: 'Navigate to CRM module',
+        category: 'Go To',
+        icon: <Building2 className="h-4 w-4" />,
+        keywords: ['go crm', 'go to crm', 'crm', 'clients'],
+        onSelect: () => goToSection('c'),
+      },
+      {
+        id: 'goto-operations',
+        label: 'Go to Operations',
+        sublabel: 'Navigate to Operations module',
+        category: 'Go To',
+        icon: <Clock className="h-4 w-4" />,
+        keywords: ['go operations', 'go to operations', 'operations', 'tickets', 'jobs'],
+        onSelect: () => goToSection('o'),
+      },
+      {
+        id: 'goto-workforce',
+        label: 'Go to Workforce',
+        sublabel: 'Navigate to Workforce module',
+        category: 'Go To',
+        icon: <Users className="h-4 w-4" />,
+        keywords: ['go workforce', 'go to workforce', 'workforce', 'staff', 'team'],
+        onSelect: () => goToSection('w'),
+      },
+    ];
+
+    const staticMatches = normalized
+      ? staticItems.filter((item) => {
+          const searchable = `${item.label} ${item.sublabel ?? ''} ${item.category} ${item.keywords.join(' ')}`.toLowerCase();
+          return searchable.includes(normalized);
+        })
+      : staticItems;
+
+    if (!normalized) {
+      setItems(staticMatches);
+      setLoading(false);
+      return;
+    }
+
+    if (normalized.length < 2) {
+      setItems(staticMatches);
+      setLoading(false);
       return;
     }
 
@@ -376,7 +597,7 @@ export function Header() {
         .limit(5),
     ]);
 
-    const results: CommandItem[] = [];
+    const results: CommandItem[] = [...staticMatches];
 
     if (clients.data) {
       for (const c of clients.data) {
@@ -445,14 +666,17 @@ export function Header() {
 
     setItems(results);
     setLoading(false);
-  }, []);
+  }, [goToSection, triggerQuickCreate]);
 
   const handleSelect = useCallback(
     (item: CommandItem) => {
+      if (item.onSelect) {
+        item.onSelect();
+        return;
+      }
       if (item.href) {
         router.push(item.href);
       }
-      item.onSelect?.();
     },
     [router]
   );
@@ -479,6 +703,22 @@ export function Header() {
             <span className="hidden sm:inline text-sm">Search...</span>
             <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
               ⌘K
+            </kbd>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setShortcutsOpen(true);
+              setPaletteOpen(false);
+            }}
+            className="rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out inline-flex items-center gap-2"
+            aria-label="Keyboard shortcuts"
+          >
+            <Keyboard className="h-4 w-4" />
+            <span className="hidden sm:inline text-sm">Shortcuts</span>
+            <kbd className="hidden sm:inline-flex items-center rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+              ?
             </kbd>
           </button>
 
@@ -706,6 +946,48 @@ export function Header() {
         </div>
       </header>
 
+      {shortcutsOpen && (
+        <div className="fixed inset-0 z-50">
+          <div
+            className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm animate-fade-in"
+            onClick={() => setShortcutsOpen(false)}
+          />
+          <div className="fixed left-1/2 top-[16%] w-full max-w-xl -translate-x-1/2 px-4 animate-scale-in">
+            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
+              <div className="flex items-center justify-between border-b border-border px-5 py-4">
+                <div className="flex items-center gap-2">
+                  <Keyboard className="h-4 w-4 text-module-accent" />
+                  <h2 className="text-base font-semibold text-foreground">Keyboard Shortcuts</h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShortcutsOpen(false)}
+                  className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  aria-label="Close keyboard shortcuts"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="max-h-[60vh] overflow-y-auto px-5 py-4">
+                <div className="space-y-2">
+                  {SHORTCUT_ROWS.map((row) => (
+                    <div
+                      key={row.keys}
+                      className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5"
+                    >
+                      <span className="text-sm text-foreground">{row.description}</span>
+                      <kbd className="rounded-md border border-border bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground">
+                        {row.keys}
+                      </kbd>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <CommandPalette
         open={paletteOpen}
         onClose={() => setPaletteOpen(false)}
@@ -713,7 +995,7 @@ export function Header() {
         onSelect={handleSelect}
         onSearch={handleSearch}
         loading={loading}
-        placeholder="Search clients, sites, prospects, bids, staff..."
+        placeholder="Search records, type 'new client', or 'go to operations'..."
       />
     </>
   );

@@ -33,6 +33,7 @@ interface JobWithRelations extends SiteJob {
 
 interface JobsTableProps {
   search: string;
+  openCreateToken?: number;
 }
 
 function formatCurrency(n: number | null) {
@@ -40,7 +41,7 @@ function formatCurrency(n: number | null) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
 }
 
-export default function JobsTable({ search }: JobsTableProps) {
+export default function JobsTable({ search, openCreateToken }: JobsTableProps) {
   const router = useRouter();
   const [rows, setRows] = useState<JobWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,6 +66,12 @@ export default function JobsTable({ search }: JobsTableProps) {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  useEffect(() => {
+    if (!openCreateToken || openCreateToken < 1) return;
+    setEditItem(null);
+    setFormOpen(true);
+  }, [openCreateToken]);
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = { all: rows.length };

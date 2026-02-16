@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { ClipboardCheck, Plus } from 'lucide-react';
+import { ClipboardCheck, Plus, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
@@ -92,10 +92,25 @@ export default function InspectionsTable({ search, onSelect, onCreateNew }: Insp
 
       {filtered.length === 0 ? (
         <EmptyState
-          icon={<ClipboardCheck className="h-12 w-12" />}
+          icon={(
+            <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+              <ClipboardCheck className="h-10 w-10" />
+              <Sparkles className="absolute -right-1 -top-1 h-4 w-4" />
+            </div>
+          )}
           title="No inspections"
-          description={search ? 'Try a different search term.' : 'Create your first inspection to start tracking quality.'}
-        />
+          description={search ? 'Try a different search term.' : 'Start quality control with your first inspection.'}
+          actionLabel={search ? undefined : '+ Add Your First Inspection'}
+          onAction={search ? undefined : onCreateNew}
+        >
+          {!search && (
+            <ul className="space-y-2 text-left text-sm text-muted-foreground">
+              <li>Score site quality with standardized checklists and templates.</li>
+              <li>Catch service issues early before they impact client retention.</li>
+              <li>Track pass trends over time for coaching and accountability.</li>
+            </ul>
+          )}
+        </EmptyState>
       ) : (
         <>
           <Table>

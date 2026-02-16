@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { TrendingUp } from 'lucide-react';
+import { Handshake, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
@@ -12,6 +12,7 @@ import type { SalesProspect } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 import { ProspectForm } from '@/components/forms/prospect-form';
+import { PipelineFlowHint } from '@/components/empty-states/pipeline-flow-hint';
 
 interface ProspectsTableProps {
   search: string;
@@ -82,6 +83,11 @@ export default function ProspectsTable({ search, onSelect }: ProspectsTableProps
     setFormOpen(true);
   };
 
+  const handleAdd = () => {
+    setEditItem(null);
+    setFormOpen(true);
+  };
+
   const handleRowSelect = (item: SalesProspect) => {
     if (onSelect) {
       onSelect(item);
@@ -96,10 +102,28 @@ export default function ProspectsTable({ search, onSelect }: ProspectsTableProps
     return (
       <>
         <EmptyState
-          icon={<TrendingUp className="h-12 w-12" />}
+          icon={(
+            <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-300">
+              <Handshake className="h-10 w-10" />
+              <Sparkles className="absolute -right-1 -top-1 h-4 w-4" />
+            </div>
+          )}
           title="No prospects"
-          description={search ? 'Try a different search term.' : 'Add your first prospect to build the pipeline.'}
-        />
+          description={search ? 'Try a different search term.' : 'Start your pipeline by capturing your first lead.'}
+          actionLabel={search ? undefined : '+ Add Your First Prospect'}
+          onAction={search ? undefined : handleAdd}
+        >
+          {!search && (
+            <div className="space-y-4 text-left">
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>Track every lead from first contact to signed contract.</li>
+                <li>Capture source, notes, and next steps so follow-up never slips.</li>
+                <li>Build a reliable pipeline your team can work from daily.</li>
+              </ul>
+              <PipelineFlowHint />
+            </div>
+          )}
+        </EmptyState>
         <ProspectForm
           open={formOpen}
           onClose={() => { setFormOpen(false); setEditItem(null); }}

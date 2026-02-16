@@ -374,6 +374,7 @@ export default function PipelinePageClient() {
           key={`bids-${refreshKey}`}
           search={search}
           onSelect={setSelectedBid}
+          onCreateNew={() => setWizardOpen(true)}
         />
       )}
       {tab === 'proposals' && (
@@ -381,6 +382,7 @@ export default function PipelinePageClient() {
           key={`proposals-${refreshKey}`}
           search={search}
           onSelect={setSelectedProposal}
+          onGoToBids={() => setTab('bids')}
         />
       )}
       {tab === 'analytics' && (

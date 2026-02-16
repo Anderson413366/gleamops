@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { FileText } from 'lucide-react';
+import { FileText, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
@@ -300,10 +300,25 @@ export default function SafetyDocumentsTable({ search, autoCreate, onAutoCreateH
     return (
       <>
         <EmptyState
-          icon={<FileText className="h-12 w-12" />}
+          icon={(
+            <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+              <FileText className="h-10 w-10" />
+              <Sparkles className="absolute -right-1 -top-1 h-4 w-4" />
+            </div>
+          )}
           title="No safety documents found"
-          description={search ? 'Try a different search term.' : 'Add your first safety document to get started.'}
-        />
+          description={search ? 'Try a different search term.' : 'Build a living safety library for field teams and supervisors.'}
+          actionLabel={search ? undefined : '+ Add Your First Safety Document'}
+          onAction={search ? undefined : handleAdd}
+        >
+          {!search && (
+            <ul className="space-y-2 text-left text-sm text-muted-foreground">
+              <li>Centralize SDS files, procedures, and policy updates.</li>
+              <li>Track review and expiry dates before they become risks.</li>
+              <li>Give crews one trusted source of current safety guidance.</li>
+            </ul>
+          )}
+        </EmptyState>
         <SlideOver open={formOpen} onClose={handleClose} title={isEdit ? 'Edit Document' : 'New Safety Document'}>
           {renderForm()}
         </SlideOver>

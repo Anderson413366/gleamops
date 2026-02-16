@@ -9,13 +9,15 @@ interface EmptyStateProps {
   actionLabel?: string;
   onAction?: () => void;
   icon?: React.ReactNode;
+  className?: string;
+  children?: React.ReactNode;
 }
 
-export function EmptyState({ title, description, actionLabel, onAction, icon }: EmptyStateProps) {
+export function EmptyState({ title, description, actionLabel, onAction, icon, className, children }: EmptyStateProps) {
   return (
     <div
       data-testid="empty-state"
-      className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border px-6 py-16 text-center"
+      className={`flex flex-col items-center justify-center rounded-2xl border border-dashed border-border px-6 py-16 text-center ${className ?? ''}`}
     >
       {icon && (
         <div className="mb-4 text-muted-foreground">
@@ -24,6 +26,11 @@ export function EmptyState({ title, description, actionLabel, onAction, icon }: 
       )}
       <h3 className="text-base font-semibold text-foreground">{title}</h3>
       <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">{description}</p>
+      {children && (
+        <div className="mt-5 w-full max-w-2xl">
+          {children}
+        </div>
+      )}
       {actionLabel && onAction && (
         <button
           type="button"

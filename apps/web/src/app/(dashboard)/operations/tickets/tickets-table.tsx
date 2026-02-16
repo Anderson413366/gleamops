@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { ClipboardList } from 'lucide-react';
+import { Building2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
@@ -21,9 +21,10 @@ interface TicketWithRelations extends WorkTicket {
 interface TicketsTableProps {
   search: string;
   onSelect?: (ticket: TicketWithRelations) => void;
+  onGoToServicePlans?: () => void;
 }
 
-export default function TicketsTable({ search, onSelect }: TicketsTableProps) {
+export default function TicketsTable({ search, onSelect, onGoToServicePlans }: TicketsTableProps) {
   const [rows, setRows] = useState<TicketWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -68,10 +69,25 @@ export default function TicketsTable({ search, onSelect }: TicketsTableProps) {
   if (filtered.length === 0) {
     return (
       <EmptyState
-        icon={<ClipboardList className="h-12 w-12" />}
+        icon={(
+          <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-300">
+            <Building2 className="h-10 w-10" />
+            <Sparkles className="absolute -right-1 -top-1 h-4 w-4" />
+          </div>
+        )}
         title="No work tickets"
-        description={search ? 'Try a different search term.' : 'Win a bid to generate your first work tickets.'}
-      />
+        description={search ? 'Try a different search term.' : 'Service tickets will appear here as active work gets scheduled.'}
+        actionLabel={search ? undefined : '+ Create Your First Service Plan'}
+        onAction={search ? undefined : onGoToServicePlans}
+      >
+        {!search && (
+          <ul className="space-y-2 text-left text-sm text-muted-foreground">
+            <li>Track every scheduled visit with clear dates and site context.</li>
+            <li>Give supervisors one queue for assignments and completion status.</li>
+            <li>Reduce missed service windows with visible daily workload.</li>
+          </ul>
+        )}
+      </EmptyState>
     );
   }
 

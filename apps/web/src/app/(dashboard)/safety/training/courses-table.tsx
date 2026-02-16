@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
@@ -67,6 +67,11 @@ export default function CoursesTable({ search, formOpen, onFormClose, onRefresh 
     setCreateOpen(true);
   };
 
+  const handleAdd = () => {
+    setEditItem(null);
+    setCreateOpen(true);
+  };
+
   const handleFormClose = () => {
     setCreateOpen(false);
     setEditItem(null);
@@ -104,10 +109,25 @@ export default function CoursesTable({ search, formOpen, onFormClose, onRefresh 
     return (
       <>
         <EmptyState
-          icon={<BookOpen className="h-12 w-12" />}
+          icon={(
+            <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300">
+              <BookOpen className="h-10 w-10" />
+              <Sparkles className="absolute -right-1 -top-1 h-4 w-4" />
+            </div>
+          )}
           title="No training courses found"
-          description={search ? 'Try a different search term.' : 'Add your first training course to get started.'}
-        />
+          description={search ? 'Try a different search term.' : 'Define safety training programs your crews must complete.'}
+          actionLabel={search ? undefined : '+ Add Your First Training Course'}
+          onAction={search ? undefined : handleAdd}
+        >
+          {!search && (
+            <ul className="space-y-2 text-left text-sm text-muted-foreground">
+              <li>Create reusable course records with duration and recurrence.</li>
+              <li>Standardize onboarding and refresher expectations.</li>
+              <li>Make completion tracking and compliance follow-through easier.</li>
+            </ul>
+          )}
+        </EmptyState>
         <TrainingCourseForm
           open={createOpen}
           onClose={handleFormClose}

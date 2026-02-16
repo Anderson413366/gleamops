@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Award } from 'lucide-react';
+import { Award, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
@@ -293,10 +293,25 @@ export default function CertificationsTable({ search, autoCreate, onAutoCreateHa
     return (
       <>
         <EmptyState
-          icon={<Award className="h-12 w-12" />}
+          icon={(
+            <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300">
+              <Award className="h-10 w-10" />
+              <Sparkles className="absolute -right-1 -top-1 h-4 w-4" />
+            </div>
+          )}
           title="No certifications found"
-          description={search ? 'Try a different search term.' : 'Add your first certification to get started.'}
-        />
+          description={search ? 'Try a different search term.' : 'Track mandatory and optional staff certifications in one place.'}
+          actionLabel={search ? undefined : '+ Add Your First Certification'}
+          onAction={search ? undefined : handleAdd}
+        >
+          {!search && (
+            <ul className="space-y-2 text-left text-sm text-muted-foreground">
+              <li>Keep proof of compliance organized by staff member.</li>
+              <li>Identify expirations early to avoid scheduling disruptions.</li>
+              <li>Reduce audit prep time with a complete certification ledger.</li>
+            </ul>
+          )}
+        </EmptyState>
         <SlideOver open={formOpen} onClose={handleClose} title={isEdit ? 'Edit Certification' : 'New Certification'}>
           {renderForm()}
         </SlideOver>

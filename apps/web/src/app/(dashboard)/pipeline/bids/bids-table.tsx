@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { FileText } from 'lucide-react';
+import { FileText, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
@@ -11,6 +11,7 @@ import {
 import type { SalesBid } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { PipelineFlowHint } from '@/components/empty-states/pipeline-flow-hint';
 
 interface BidWithClient extends SalesBid {
   client?: { name: string; client_code: string } | null;
@@ -20,6 +21,7 @@ interface BidWithClient extends SalesBid {
 interface BidsTableProps {
   search: string;
   onSelect?: (bid: BidWithClient) => void;
+  onCreateNew?: () => void;
 }
 
 function formatCurrency(n: number | null) {
@@ -27,7 +29,7 @@ function formatCurrency(n: number | null) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
 }
 
-export default function BidsTable({ search, onSelect }: BidsTableProps) {
+export default function BidsTable({ search, onSelect, onCreateNew }: BidsTableProps) {
   const [rows, setRows] = useState<BidWithClient[]>([]);
   const [loading, setLoading] = useState(true);
   // UX requirement: default to Active when available; move "all" to the end.
@@ -88,10 +90,28 @@ export default function BidsTable({ search, onSelect }: BidsTableProps) {
   if (filtered.length === 0) {
     return (
       <EmptyState
-        icon={<FileText className="h-12 w-12" />}
+        icon={(
+          <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-300">
+            <FileText className="h-10 w-10" />
+            <Sparkles className="absolute -right-1 -top-1 h-4 w-4" />
+          </div>
+        )}
         title="No bids"
-        description={search ? 'Try a different search term.' : 'Create your first bid to start pricing jobs.'}
-      />
+        description={search ? 'Try a different search term.' : 'Price your first opportunity to move it toward contract.'}
+        actionLabel={search ? undefined : '+ Create Your First Bid'}
+        onAction={search ? undefined : onCreateNew}
+      >
+        {!search && (
+          <div className="space-y-4 text-left">
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li>Build clean scopes and pricing options in one place.</li>
+              <li>Standardize assumptions so estimates are consistent across reps.</li>
+              <li>Move from opportunity to client-ready proposal quickly.</li>
+            </ul>
+            <PipelineFlowHint />
+          </div>
+        )}
+      </EmptyState>
     );
   }
 

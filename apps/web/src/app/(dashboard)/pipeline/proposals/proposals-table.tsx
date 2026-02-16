@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { FileCheck } from 'lucide-react';
+import { FileCheck, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
@@ -11,6 +11,7 @@ import {
 import type { SalesProposal } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { PipelineFlowHint } from '@/components/empty-states/pipeline-flow-hint';
 
 interface ProposalWithRelations extends SalesProposal {
   bid_version?: {
@@ -27,9 +28,10 @@ interface ProposalWithRelations extends SalesProposal {
 interface ProposalsTableProps {
   search: string;
   onSelect?: (proposal: ProposalWithRelations) => void;
+  onGoToBids?: () => void;
 }
 
-export default function ProposalsTable({ search, onSelect }: ProposalsTableProps) {
+export default function ProposalsTable({ search, onSelect, onGoToBids }: ProposalsTableProps) {
   const [rows, setRows] = useState<ProposalWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   // UX requirement: default to Active when available; move "all" to the end.
@@ -103,10 +105,28 @@ export default function ProposalsTable({ search, onSelect }: ProposalsTableProps
   if (filtered.length === 0) {
     return (
       <EmptyState
-        icon={<FileCheck className="h-12 w-12" />}
+        icon={(
+          <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-300">
+            <FileCheck className="h-10 w-10" />
+            <Sparkles className="absolute -right-1 -top-1 h-4 w-4" />
+          </div>
+        )}
         title="No proposals"
-        description={search ? 'Try a different search term.' : 'Generate a proposal from a priced bid.'}
-      />
+        description={search ? 'Try a different search term.' : 'Generate polished proposals from approved bids and send for signature.'}
+        actionLabel={search ? undefined : '+ Go To Bids'}
+        onAction={search ? undefined : onGoToBids}
+      >
+        {!search && (
+          <div className="space-y-4 text-left">
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li>Turn finalized pricing into client-ready documents.</li>
+              <li>Track sent, viewed, and signed states from one queue.</li>
+              <li>Keep deal momentum with clear follow-up visibility.</li>
+            </ul>
+            <PipelineFlowHint />
+          </div>
+        )}
+      </EmptyState>
     );
   }
 

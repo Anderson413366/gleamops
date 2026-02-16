@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { CalendarCheck } from 'lucide-react';
+import { CalendarCheck, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
@@ -327,10 +327,25 @@ export default function CompletionsTable({ search, autoCreate, onAutoCreateHandl
     return (
       <>
         <EmptyState
-          icon={<CalendarCheck className="h-12 w-12" />}
+          icon={(
+            <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-300">
+              <CalendarCheck className="h-10 w-10" />
+              <Sparkles className="absolute -right-1 -top-1 h-4 w-4" />
+            </div>
+          )}
           title="No training completions found"
-          description={search ? 'Try a different search term.' : 'Record your first training completion to get started.'}
-        />
+          description={search ? 'Try a different search term.' : 'Record completed training events and keep compliance current.'}
+          actionLabel={search ? undefined : '+ Record First Completion'}
+          onAction={search ? undefined : handleAdd}
+        >
+          {!search && (
+            <ul className="space-y-2 text-left text-sm text-muted-foreground">
+              <li>Log who completed each course and when.</li>
+              <li>Track scores, pass status, and instructor notes.</li>
+              <li>Auto-calculate renewal windows to prevent lapses.</li>
+            </ul>
+          )}
+        </EmptyState>
         <SlideOver open={formOpen} onClose={handleClose} title={isEdit ? 'Edit Completion' : 'Record Completion'}>
           {renderForm()}
         </SlideOver>

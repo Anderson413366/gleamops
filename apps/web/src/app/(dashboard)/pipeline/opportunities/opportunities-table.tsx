@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Target } from 'lucide-react';
+import { Sparkles, Target } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
@@ -13,6 +13,7 @@ import type { SalesOpportunity } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 import { OpportunityForm } from '@/components/forms/opportunity-form';
+import { PipelineFlowHint } from '@/components/empty-states/pipeline-flow-hint';
 
 interface OpportunityWithProspect extends SalesOpportunity {
   prospect?: { company_name: string; prospect_code: string } | null;
@@ -80,16 +81,39 @@ export default function OpportunitiesTable({ search, onSelect }: OpportunitiesTa
     }
   };
 
+  const handleAdd = () => {
+    setEditItem(null);
+    setFormOpen(true);
+  };
+
   if (loading) return <TableSkeleton rows={6} cols={7} />;
 
   if (filtered.length === 0) {
     return (
       <>
         <EmptyState
-          icon={<Target className="h-12 w-12" />}
+          icon={(
+            <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-300">
+              <Target className="h-10 w-10" />
+              <Sparkles className="absolute -right-1 -top-1 h-4 w-4" />
+            </div>
+          )}
           title="No opportunities"
-          description={search ? 'Try a different search term.' : 'Create your first opportunity to start tracking the pipeline.'}
-        />
+          description={search ? 'Try a different search term.' : 'Turn qualified leads into active opportunities.'}
+          actionLabel={search ? undefined : '+ Add Your First Opportunity'}
+          onAction={search ? undefined : handleAdd}
+        >
+          {!search && (
+            <div className="space-y-4 text-left">
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>Estimate monthly value and close timing for every deal.</li>
+                <li>Prioritize opportunities by stage so reps know what to do next.</li>
+                <li>Keep your revenue forecast visible and up to date.</li>
+              </ul>
+              <PipelineFlowHint />
+            </div>
+          )}
+        </EmptyState>
         <OpportunityForm
           open={formOpen}
           onClose={() => { setFormOpen(false); setEditItem(null); }}

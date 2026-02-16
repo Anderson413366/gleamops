@@ -1,22 +1,23 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
   Car,
   Pencil,
-  Trash2,
+  Archive,
   AlertTriangle,
   Clock3,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { Badge, Skeleton } from '@gleamops/ui';
+import { ArchiveDialog, Badge, Skeleton } from '@gleamops/ui';
 import type { Vehicle } from '@gleamops/shared';
 import { VEHICLE_STATUS_COLORS } from '@gleamops/shared';
 import { VehicleForm } from '@/components/forms/vehicle-form';
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
+import { toast } from 'sonner';
 
 interface VehicleWithAssigned extends Vehicle {
   assigned?: { full_name: string; staff_code: string } | null;
@@ -39,9 +40,12 @@ function getMaintenanceUrgency(nextServiceDate: string | null): { label: string;
 
 export default function VehicleDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [vehicle, setVehicle] = useState<VehicleWithAssigned | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archiveLoading, setArchiveLoading] = useState(false);
   const [vehicleFormFocus, setVehicleFormFocus] = useState<'basics' | 'details' | 'notes' | undefined>(undefined);
   const [maintenance, setMaintenance] = useState<VehicleMaintenanceSummary | null>(null);
 
@@ -72,6 +76,35 @@ export default function VehicleDetailPage() {
   useEffect(() => {
     fetchVehicle();
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleArchive = async (reason: string) => {
+    if (!vehicle) return;
+    setArchiveLoading(true);
+    const supabase = getSupabaseBrowserClient();
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('vehicles')
+        .update({
+          archived_at: new Date().toISOString(),
+          archived_by: authData.user?.id ?? null,
+          archive_reason: reason,
+        })
+        .eq('id', vehicle.id)
+        .eq('version_etag', vehicle.version_etag);
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
+      toast.success('Vehicle archived');
+      router.push('/assets');
+    } finally {
+      setArchiveLoading(false);
+      setArchiveOpen(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -153,9 +186,13 @@ export default function VehicleDetailPage() {
             <Pencil className="h-3.5 w-3.5" />
             Edit
           </button>
-          <button type="button" className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950">
-            <Trash2 className="h-3.5 w-3.5" />
-            Deactivate
+          <button
+            type="button"
+            onClick={() => setArchiveOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950"
+          >
+            <Archive className="h-3.5 w-3.5" />
+            Archive
           </button>
         </div>
       </div>
@@ -292,6 +329,14 @@ export default function VehicleDetailPage() {
         initialData={vehicle}
         onSuccess={fetchVehicle}
         focusSection={vehicleFormFocus}
+      />
+
+      <ArchiveDialog
+        open={archiveOpen}
+        onClose={() => setArchiveOpen(false)}
+        onConfirm={handleArchive}
+        entityName="Vehicle"
+        loading={archiveLoading}
       />
     </div>
   );

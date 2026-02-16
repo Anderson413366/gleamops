@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
   ClipboardList,
   Pencil,
-  Trash2,
+  Archive,
   AlertTriangle,
   Gauge,
   Layers,
@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { Badge, Skeleton } from '@gleamops/ui';
+import { ArchiveDialog, Badge, Skeleton } from '@gleamops/ui';
 import type { Task } from '@gleamops/shared';
 import { TaskForm } from '@/components/forms/task-form';
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
@@ -62,9 +62,12 @@ function formatRelativeDateTime(dateStr: string): string {
 
 export default function TaskDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archiveLoading, setArchiveLoading] = useState(false);
   const [taskFormFocus, setTaskFormFocus] = useState<'basics' | 'classification' | 'production' | 'descriptions' | 'status' | undefined>(undefined);
   const [serviceCount, setServiceCount] = useState(0);
 
@@ -93,18 +96,32 @@ export default function TaskDetailPage() {
     setLoading(false);
   };
 
-  const handleDeactivate = async () => {
+  const handleArchive = async (reason: string) => {
     if (!task) return;
+    setArchiveLoading(true);
     const supabase = getSupabaseBrowserClient();
-    const { error } = await supabase
-      .from('tasks')
-      .update({ is_active: false })
-      .eq('id', task.id);
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success('Task deactivated');
-      fetchTask();
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('tasks')
+        .update({
+          archived_at: new Date().toISOString(),
+          archived_by: authData.user?.id ?? null,
+          archive_reason: reason,
+        })
+        .eq('id', task.id)
+        .eq('version_etag', task.version_etag);
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
+      toast.success('Task archived');
+      router.push('/services');
+    } finally {
+      setArchiveLoading(false);
+      setArchiveOpen(false);
     }
   };
 
@@ -199,15 +216,13 @@ export default function TaskDetailPage() {
             <Pencil className="h-3.5 w-3.5" />
             Edit
           </button>
-          {task.is_active && (
-            <button
-              onClick={handleDeactivate}
-              className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              Deactivate
-            </button>
-          )}
+          <button
+            onClick={() => setArchiveOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950"
+          >
+            <Archive className="h-3.5 w-3.5" />
+            Archive
+          </button>
         </div>
       </div>
 
@@ -389,6 +404,14 @@ export default function TaskDetailPage() {
         initialData={task}
         onSuccess={fetchTask}
         focusSection={taskFormFocus}
+      />
+
+      <ArchiveDialog
+        open={archiveOpen}
+        onClose={() => setArchiveOpen(false)}
+        onConfirm={handleArchive}
+        entityName="Task"
+        loading={archiveLoading}
       />
     </div>
   );

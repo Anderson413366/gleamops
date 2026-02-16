@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import { ArrowLeft, Building2, CreditCard, FileText, ShoppingCart, Store, Truck } from 'lucide-react';
+import { useParams, useRouter } from 'next/navigation';
+import { Archive, ArrowLeft, Building2, CreditCard, FileText, ShoppingCart, Store, Truck } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { Badge, Button, EmptyState, Input, Select, SlideOver, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Textarea } from '@gleamops/ui';
+import { ArchiveDialog, Badge, Button, EmptyState, Input, Select, SlideOver, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Textarea } from '@gleamops/ui';
 import { SupplyVendorForm } from '@/components/forms/supply-vendor-form';
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
 import {
@@ -69,6 +69,7 @@ function statusColor(status: string | null | undefined): 'green' | 'gray' | 'yel
 
 export default function SupplyVendorDetailPage() {
   const { slug } = useParams<{ slug: string }>();
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [profile, setProfile] = useState<SupplyVendorProfile | null>(null);
@@ -85,6 +86,8 @@ export default function SupplyVendorDetailPage() {
   const [orderNotes, setOrderNotes] = useState('');
   const [orderSubmitting, setOrderSubmitting] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archiveLoading, setArchiveLoading] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -233,6 +236,43 @@ export default function SupplyVendorDetailPage() {
     }
   };
 
+  const handleArchive = async (reason: string) => {
+    if (!profile) return;
+    setArchiveLoading(true);
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { data: authData } = await supabase.auth.getUser();
+      const actor = authData.user?.email ?? authData.user?.id ?? 'unknown user';
+      const reasonLine = `Archived by ${actor} on ${new Date().toISOString()}: ${reason}`;
+      const notes = [profile.notes, reasonLine].filter(Boolean).join('\n\n');
+
+      const saved = upsertSupplyVendorProfile({
+        id: profile.id,
+        company_name: profile.company_name,
+        account_number: profile.account_number,
+        contact_person: profile.contact_person,
+        phone: profile.phone,
+        email: profile.email,
+        website: profile.website,
+        payment_terms: profile.payment_terms,
+        order_minimum: profile.order_minimum,
+        delivery_schedule: profile.delivery_schedule,
+        categories_supplied: profile.categories_supplied,
+        account_status: 'INACTIVE',
+        notes,
+      });
+
+      setProfile(saved);
+      toast.success('Supply vendor archived');
+      router.push('/vendors?tab=vendors');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to archive supply vendor');
+    } finally {
+      setArchiveLoading(false);
+      setArchiveOpen(false);
+    }
+  };
+
   if (loading) {
     return <div className="p-6 text-sm text-muted-foreground">Loading vendor details...</div>;
   }
@@ -274,6 +314,14 @@ export default function SupplyVendorDetailPage() {
             <ShoppingCart className="h-4 w-4" />
             Place Order
           </Button>
+          <button
+            type="button"
+            onClick={() => setArchiveOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950"
+          >
+            <Archive className="h-3.5 w-3.5" />
+            Archive
+          </button>
         </div>
       </div>
 
@@ -416,6 +464,14 @@ export default function SupplyVendorDetailPage() {
           </div>
         </form>
       </SlideOver>
+
+      <ArchiveDialog
+        open={archiveOpen}
+        onClose={() => setArchiveOpen(false)}
+        onConfirm={handleArchive}
+        entityName="Supply Vendor"
+        loading={archiveLoading}
+      />
     </div>
   );
 }

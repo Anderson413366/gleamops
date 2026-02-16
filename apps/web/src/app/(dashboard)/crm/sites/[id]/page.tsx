@@ -3,13 +3,13 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useState, type ReactNode } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
   MapPin,
   Pencil,
-  Trash2,
+  Archive,
   Building2,
   Shield,
   AlertTriangle,
@@ -19,12 +19,13 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { Badge, Skeleton } from '@gleamops/ui';
+import { ArchiveDialog, Badge, Skeleton } from '@gleamops/ui';
 import type { Site, Contact, Staff, KeyInventory } from '@gleamops/shared';
 import { SITE_STATUS_COLORS } from '@gleamops/shared';
 import { SiteForm } from '@/components/forms/site-form';
 import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
+import { toast } from 'sonner';
 
 interface SiteWithClient extends Site {
   client?: { name: string; client_code: string } | null;
@@ -90,9 +91,12 @@ const RISK_BADGE: Record<string, 'red' | 'orange' | 'blue' | 'gray' | 'yellow'> 
 
 export default function SiteDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [site, setSite] = useState<SiteWithClient | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archiveLoading, setArchiveLoading] = useState(false);
   const [siteFormFocus, setSiteFormFocus] = useState<'basics' | 'address' | 'access' | 'service' | 'facility' | 'notes' | undefined>(undefined);
 
   // Related data
@@ -162,6 +166,35 @@ export default function SiteDetailPage() {
   useEffect(() => {
     fetchSite();
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleArchive = async (reason: string) => {
+    if (!site) return;
+    setArchiveLoading(true);
+    const supabase = getSupabaseBrowserClient();
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('sites')
+        .update({
+          archived_at: new Date().toISOString(),
+          archived_by: authData.user?.id ?? null,
+          archive_reason: reason,
+        })
+        .eq('id', site.id)
+        .eq('version_etag', site.version_etag);
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
+      toast.success('Site archived');
+      router.push('/crm?tab=sites');
+    } finally {
+      setArchiveLoading(false);
+      setArchiveOpen(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -261,10 +294,11 @@ export default function SiteDetailPage() {
             </button>
             <button
               type="button"
+              onClick={() => setArchiveOpen(true)}
               className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-background/80 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950"
             >
-              <Trash2 className="h-3.5 w-3.5" />
-              Deactivate
+              <Archive className="h-3.5 w-3.5" />
+              Archive
             </button>
           </div>
         </div>
@@ -617,6 +651,14 @@ export default function SiteDetailPage() {
         initialData={site}
         onSuccess={fetchSite}
         focusSection={siteFormFocus}
+      />
+
+      <ArchiveDialog
+        open={archiveOpen}
+        onClose={() => setArchiveOpen(false)}
+        onConfirm={handleArchive}
+        entityName="Site"
+        loading={archiveLoading}
       />
     </div>
   );

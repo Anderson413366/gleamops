@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
   Briefcase,
   Pencil,
-  Trash2,
+  Archive,
   Calendar,
   DollarSign,
   ClipboardList,
@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { Badge, Skeleton } from '@gleamops/ui';
+import { ArchiveDialog, Badge, Skeleton } from '@gleamops/ui';
 import type { SiteJob } from '@gleamops/shared';
 import { JOB_STATUS_COLORS } from '@gleamops/shared';
 import { JobForm } from '@/components/forms/job-form';
@@ -109,9 +109,12 @@ function formatRelativeDateTime(dateStr: string): string {
 
 export default function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [job, setJob] = useState<JobWithRelations | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archiveLoading, setArchiveLoading] = useState(false);
   const [jobFormFocus, setJobFormFocus] = useState<'assignment' | 'schedule' | 'tasks' | undefined>(undefined);
 
   // Related data
@@ -246,6 +249,35 @@ export default function JobDetailPage() {
     fetchJob();
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const handleArchive = async (reason: string) => {
+    if (!job) return;
+    setArchiveLoading(true);
+    const supabase = getSupabaseBrowserClient();
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('site_jobs')
+        .update({
+          archived_at: new Date().toISOString(),
+          archived_by: authData.user?.id ?? null,
+          archive_reason: reason,
+        })
+        .eq('id', job.id)
+        .eq('version_etag', job.version_etag);
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
+      toast.success('Job archived');
+      router.push('/operations');
+    } finally {
+      setArchiveLoading(false);
+      setArchiveOpen(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-6 p-6">
@@ -338,9 +370,13 @@ export default function JobDetailPage() {
             <Pencil className="h-3.5 w-3.5" />
             Edit
           </button>
-          <button type="button" className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950">
-            <Trash2 className="h-3.5 w-3.5" />
-            Deactivate
+          <button
+            type="button"
+            onClick={() => setArchiveOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950"
+          >
+            <Archive className="h-3.5 w-3.5" />
+            Archive
           </button>
         </div>
       </div>
@@ -736,6 +772,14 @@ export default function JobDetailPage() {
         initialData={job}
         onSuccess={fetchJob}
         focusSection={jobFormFocus}
+      />
+
+      <ArchiveDialog
+        open={archiveOpen}
+        onClose={() => setArchiveOpen(false)}
+        onConfirm={handleArchive}
+        entityName="Job"
+        loading={archiveLoading}
       />
     </div>
   );

@@ -1,22 +1,23 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
   KeyRound,
   Pencil,
-  Trash2,
+  Archive,
   AlertTriangle,
   ShieldAlert,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { Badge, Skeleton } from '@gleamops/ui';
+import { ArchiveDialog, Badge, Skeleton } from '@gleamops/ui';
 import type { KeyInventory } from '@gleamops/shared';
 import { KEY_STATUS_COLORS } from '@gleamops/shared';
 import { KeyForm } from '@/components/forms/key-form';
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
+import { toast } from 'sonner';
 
 interface KeyWithRelations extends KeyInventory {
   site?: { name: string; site_code: string } | null;
@@ -33,9 +34,12 @@ function getKeyRisk(status: KeyInventory['status']): { label: string; color: 'gr
 
 export default function KeyDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [key, setKey] = useState<KeyWithRelations | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archiveLoading, setArchiveLoading] = useState(false);
   const [keyFormFocus, setKeyFormFocus] = useState<'details' | undefined>(undefined);
 
   const fetchKey = async () => {
@@ -57,6 +61,35 @@ export default function KeyDetailPage() {
   useEffect(() => {
     fetchKey();
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleArchive = async (reason: string) => {
+    if (!key) return;
+    setArchiveLoading(true);
+    const supabase = getSupabaseBrowserClient();
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('key_inventory')
+        .update({
+          archived_at: new Date().toISOString(),
+          archived_by: authData.user?.id ?? null,
+          archive_reason: reason,
+        })
+        .eq('id', key.id)
+        .eq('version_etag', key.version_etag);
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
+      toast.success('Key archived');
+      router.push('/assets?tab=keys');
+    } finally {
+      setArchiveLoading(false);
+      setArchiveOpen(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -135,9 +168,13 @@ export default function KeyDetailPage() {
             <Pencil className="h-3.5 w-3.5" />
             Edit
           </button>
-          <button type="button" className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950">
-            <Trash2 className="h-3.5 w-3.5" />
-            Deactivate
+          <button
+            type="button"
+            onClick={() => setArchiveOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950"
+          >
+            <Archive className="h-3.5 w-3.5" />
+            Archive
           </button>
         </div>
       </div>
@@ -269,6 +306,14 @@ export default function KeyDetailPage() {
         initialData={key}
         onSuccess={fetchKey}
         focusSection={keyFormFocus}
+      />
+
+      <ArchiveDialog
+        open={archiveOpen}
+        onClose={() => setArchiveOpen(false)}
+        onConfirm={handleArchive}
+        entityName="Key"
+        loading={archiveLoading}
       />
     </div>
   );

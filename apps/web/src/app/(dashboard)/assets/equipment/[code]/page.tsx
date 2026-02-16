@@ -1,16 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { AlertTriangle, ArrowLeft, Pencil, Wrench } from 'lucide-react';
+import { AlertTriangle, Archive, ArrowLeft, Pencil, Wrench } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { Badge, Skeleton } from '@gleamops/ui';
+import { ArchiveDialog, Badge, Skeleton } from '@gleamops/ui';
 import type { Equipment, StatusColor } from '@gleamops/shared';
 import { EQUIPMENT_CONDITION_COLORS } from '@gleamops/shared';
 import { EquipmentForm } from '@/components/forms/equipment-form';
 import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
+import { toast } from 'sonner';
 
 interface EquipmentWithRelations extends Equipment {
   staff?: { full_name: string; staff_code: string } | null;
@@ -29,9 +30,12 @@ function formatDate(d: string | null) {
 
 export default function EquipmentDetailPage() {
   const { code } = useParams<{ code: string }>();
+  const router = useRouter();
   const [equipment, setEquipment] = useState<EquipmentWithRelations | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archiveLoading, setArchiveLoading] = useState(false);
   const [equipmentFormFocus, setEquipmentFormFocus] = useState<'basics' | 'model' | 'purchase' | 'maintenance' | 'notes' | undefined>(undefined);
 
   const fetchEquipment = async () => {
@@ -51,6 +55,35 @@ export default function EquipmentDetailPage() {
   useEffect(() => {
     fetchEquipment();
   }, [code]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleArchive = async (reason: string) => {
+    if (!equipment) return;
+    setArchiveLoading(true);
+    const supabase = getSupabaseBrowserClient();
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('equipment')
+        .update({
+          archived_at: new Date().toISOString(),
+          archived_by: authData.user?.id ?? null,
+          archive_reason: reason,
+        })
+        .eq('id', equipment.id)
+        .eq('version_etag', equipment.version_etag);
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
+      toast.success('Equipment archived');
+      router.push('/assets?tab=equipment');
+    } finally {
+      setArchiveLoading(false);
+      setArchiveOpen(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -123,6 +156,14 @@ export default function EquipmentDetailPage() {
           >
             <Pencil className="h-3.5 w-3.5" />
             Edit
+          </button>
+          <button
+            type="button"
+            onClick={() => setArchiveOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950"
+          >
+            <Archive className="h-3.5 w-3.5" />
+            Archive
           </button>
         </div>
       </div>
@@ -245,6 +286,14 @@ export default function EquipmentDetailPage() {
           await fetchEquipment();
         }}
         focusSection={equipmentFormFocus}
+      />
+
+      <ArchiveDialog
+        open={archiveOpen}
+        onClose={() => setArchiveOpen(false)}
+        onConfirm={handleArchive}
+        entityName="Equipment"
+        loading={archiveLoading}
       />
     </div>
   );

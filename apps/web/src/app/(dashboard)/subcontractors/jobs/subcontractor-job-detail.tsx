@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { Briefcase, Building2, MapPin, Calendar, DollarSign, Star, FileText } from 'lucide-react';
-import { SlideOver, Badge, Button, Card, CardContent } from '@gleamops/ui';
+import { SlideOver, ArchiveDialog, Badge, Button, Card, CardContent } from '@gleamops/ui';
 import type { SubcontractorJobAssignment } from '@gleamops/shared';
 import { formatDate } from '@/lib/utils/date';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -35,21 +36,34 @@ interface SubcontractorJobDetailProps {
 }
 
 export function SubcontractorJobDetail({ assignment, open, onClose, onEdit, onRefresh }: SubcontractorJobDetailProps) {
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archiveLoading, setArchiveLoading] = useState(false);
   if (!assignment) return null;
 
-  const handleArchive = async () => {
+  const handleArchive = async (reason: string) => {
+    setArchiveLoading(true);
     const supabase = getSupabaseBrowserClient();
-    const { error } = await supabase
-      .from('subcontractor_jobs')
-      .update({ archived_at: new Date().toISOString() })
-      .eq('id', assignment.id);
-    if (error) {
-      toast.error('Failed to archive assignment');
-      return;
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('subcontractor_jobs')
+        .update({
+          archived_at: new Date().toISOString(),
+          archived_by: authData.user?.id ?? null,
+          archive_reason: reason,
+        })
+        .eq('id', assignment.id);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      toast.success('Assignment archived');
+      onRefresh?.();
+      onClose();
+    } finally {
+      setArchiveLoading(false);
+      setArchiveOpen(false);
     }
-    toast.success('Assignment archived');
-    onRefresh?.();
-    onClose();
   };
 
   return (
@@ -64,9 +78,13 @@ export function SubcontractorJobDetail({ assignment, open, onClose, onEdit, onRe
                 Edit
               </Button>
             )}
-            <Button size="sm" variant="secondary" onClick={handleArchive}>
+            <button
+              type="button"
+              onClick={() => setArchiveOpen(true)}
+              className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950"
+            >
               Archive
-            </Button>
+            </button>
           </div>
         </div>
 
@@ -181,6 +199,14 @@ export function SubcontractorJobDetail({ assignment, open, onClose, onEdit, onRe
           {assignment.last_service_date && <p>Last service: {formatDate(assignment.last_service_date)}</p>}
         </div>
       </div>
+
+      <ArchiveDialog
+        open={archiveOpen}
+        onClose={() => setArchiveOpen(false)}
+        onConfirm={handleArchive}
+        entityName="Subcontractor Assignment"
+        loading={archiveLoading}
+      />
     </SlideOver>
   );
 }

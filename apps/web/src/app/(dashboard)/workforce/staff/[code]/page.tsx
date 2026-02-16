@@ -13,6 +13,7 @@ import {
   MapPin,
   ArrowLeft,
   Pencil,
+  Archive,
   AlertTriangle,
   CalendarDays,
   ShieldCheck,
@@ -22,6 +23,7 @@ import {
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Badge,
+  ArchiveDialog,
   Button,
   Card,
   CardContent,
@@ -210,6 +212,8 @@ export default function StaffDetailPage() {
   const [certifications, setCertifications] = useState<StaffCertification[]>([]);
   const [ticketAssignments, setTicketAssignments] = useState<TicketAssignmentRow[]>([]);
   const [formOpen, setFormOpen] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archiveLoading, setArchiveLoading] = useState(false);
   const [staffFormFocus, setStaffFormFocus] = useState<'personal' | 'employment' | 'contact' | 'hr' | undefined>(undefined);
   const [supervisedTeamCount, setSupervisedTeamCount] = useState(0);
   const [assignJobOpen, setAssignJobOpen] = useState(false);
@@ -414,6 +418,35 @@ export default function StaffDetailPage() {
     await fetchStaff();
   };
 
+  const handleArchive = async (reason: string) => {
+    if (!staff) return;
+    setArchiveLoading(true);
+    const supabase = getSupabaseBrowserClient();
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('staff')
+        .update({
+          archived_at: new Date().toISOString(),
+          archived_by: authData.user?.id ?? null,
+          archive_reason: reason,
+        })
+        .eq('id', staff.id)
+        .eq('version_etag', staff.version_etag);
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
+      toast.success('Staff archived');
+      router.push('/workforce');
+    } finally {
+      setArchiveLoading(false);
+      setArchiveOpen(false);
+    }
+  };
+
   useEffect(() => {
     fetchStaff();
   }, [code]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -499,6 +532,14 @@ export default function StaffDetailPage() {
           <Button variant="secondary" size="sm" onClick={() => setFormOpen(true)}>
             <Pencil className="h-3.5 w-3.5" /> Edit
           </Button>
+          <button
+            type="button"
+            onClick={() => setArchiveOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950"
+          >
+            <Archive className="h-3.5 w-3.5" />
+            Archive
+          </button>
         </div>
       </div>
 
@@ -949,6 +990,14 @@ export default function StaffDetailPage() {
         initialData={staff}
         onSuccess={fetchStaff}
         focusSection={staffFormFocus}
+      />
+
+      <ArchiveDialog
+        open={archiveOpen}
+        onClose={() => setArchiveOpen(false)}
+        onConfirm={handleArchive}
+        entityName="Staff"
+        loading={archiveLoading}
       />
     </div>
   );

@@ -3,12 +3,12 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
   Pencil,
-  Trash2,
+  Archive,
   Globe,
   MapPin,
   Mail,
@@ -17,13 +17,14 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { Badge, Skeleton } from '@gleamops/ui';
+import { ArchiveDialog, Badge, Skeleton } from '@gleamops/ui';
 import type { Client, Contact } from '@gleamops/shared';
 import { CLIENT_STATUS_COLORS } from '@gleamops/shared';
 import { ClientForm } from '@/components/forms/client-form';
 import { ContactForm } from '@/components/forms/contact-form';
 import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
+import { toast } from 'sonner';
 
 function formatCurrency(n: number | null) {
   if (n == null) return '\u2014';
@@ -73,9 +74,12 @@ function getContractHealth(start: string | null, end: string | null): { label: s
 
 export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archiveLoading, setArchiveLoading] = useState(false);
   const [clientFormFocus, setClientFormFocus] = useState<'basics' | 'billing' | 'contract' | 'notes' | undefined>(undefined);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [contactsLoading, setContactsLoading] = useState(false);
@@ -159,6 +163,35 @@ export default function ClientDetailPage() {
   useEffect(() => {
     fetchClient();
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleArchive = async (reason: string) => {
+    if (!client) return;
+    setArchiveLoading(true);
+    const supabase = getSupabaseBrowserClient();
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('clients')
+        .update({
+          archived_at: new Date().toISOString(),
+          archived_by: authData.user?.id ?? null,
+          archive_reason: reason,
+        })
+        .eq('id', client.id)
+        .eq('version_etag', client.version_etag);
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
+      toast.success('Client archived');
+      router.push('/crm');
+    } finally {
+      setArchiveLoading(false);
+      setArchiveOpen(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -271,9 +304,13 @@ export default function ClientDetailPage() {
             <Pencil className="h-3.5 w-3.5" />
             Edit
           </button>
-          <button type="button" className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950">
-            <Trash2 className="h-3.5 w-3.5" />
-            Deactivate
+          <button
+            type="button"
+            onClick={() => setArchiveOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950"
+          >
+            <Archive className="h-3.5 w-3.5" />
+            Archive
           </button>
         </div>
       </div>
@@ -747,6 +784,14 @@ export default function ClientDetailPage() {
         initialData={editContact}
         preselectedClientId={client.id}
         onSuccess={fetchClient}
+      />
+
+      <ArchiveDialog
+        open={archiveOpen}
+        onClose={() => setArchiveOpen(false)}
+        onConfirm={handleArchive}
+        entityName="Client"
+        loading={archiveLoading}
       />
     </div>
   );

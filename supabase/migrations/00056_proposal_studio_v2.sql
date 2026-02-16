@@ -18,29 +18,54 @@ COMMENT ON COLUMN sales_proposals.layout_config IS
 --      Storage → documents → Policies
 -- ---------------------------------------------------------------------------
 
--- Allow authenticated users to upload files scoped to their tenant
-CREATE POLICY IF NOT EXISTS "tenant_upload_documents"
-  ON storage.objects FOR INSERT
-  TO authenticated
-  WITH CHECK (
-    bucket_id = 'documents'
-    AND (storage.foldername(name))[1] = (auth.jwt() ->> 'tenant_id')
-  );
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_policies
+    WHERE schemaname = 'storage'
+      AND tablename = 'objects'
+      AND policyname = 'tenant_upload_documents'
+  ) THEN
+    CREATE POLICY "tenant_upload_documents"
+      ON storage.objects FOR INSERT
+      TO authenticated
+      WITH CHECK (
+        bucket_id = 'documents'
+        AND (storage.foldername(name))[1] = (auth.jwt() ->> 'tenant_id')
+      );
+  END IF;
 
--- Allow authenticated users to read their tenant's files
-CREATE POLICY IF NOT EXISTS "tenant_read_documents"
-  ON storage.objects FOR SELECT
-  TO authenticated
-  USING (
-    bucket_id = 'documents'
-    AND (storage.foldername(name))[1] = (auth.jwt() ->> 'tenant_id')
-  );
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_policies
+    WHERE schemaname = 'storage'
+      AND tablename = 'objects'
+      AND policyname = 'tenant_read_documents'
+  ) THEN
+    CREATE POLICY "tenant_read_documents"
+      ON storage.objects FOR SELECT
+      TO authenticated
+      USING (
+        bucket_id = 'documents'
+        AND (storage.foldername(name))[1] = (auth.jwt() ->> 'tenant_id')
+      );
+  END IF;
 
--- Allow authenticated users to delete their tenant's files
-CREATE POLICY IF NOT EXISTS "tenant_delete_documents"
-  ON storage.objects FOR DELETE
-  TO authenticated
-  USING (
-    bucket_id = 'documents'
-    AND (storage.foldername(name))[1] = (auth.jwt() ->> 'tenant_id')
-  );
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_policies
+    WHERE schemaname = 'storage'
+      AND tablename = 'objects'
+      AND policyname = 'tenant_delete_documents'
+  ) THEN
+    CREATE POLICY "tenant_delete_documents"
+      ON storage.objects FOR DELETE
+      TO authenticated
+      USING (
+        bucket_id = 'documents'
+        AND (storage.foldername(name))[1] = (auth.jwt() ->> 'tenant_id')
+      );
+  END IF;
+END;
+$$;

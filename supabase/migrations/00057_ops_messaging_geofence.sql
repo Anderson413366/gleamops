@@ -3,6 +3,8 @@
 -- P1/P2: Site PIN codes, messaging tables, geofence auto-evaluation
 -- ==========================================================================
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
+
 -- ===========================================================================
 -- 1. site_pin_codes — per-site PIN for kiosk/tablet check-in
 -- ===========================================================================
@@ -118,7 +120,7 @@ AS $$
       AND is_active = true
       AND archived_at IS NULL
       AND (expires_at IS NULL OR expires_at > now())
-      AND pin_hash = crypt(p_pin, pin_hash)
+      AND pin_hash = extensions.crypt(p_pin, pin_hash)
   );
 $$;
 

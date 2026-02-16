@@ -190,7 +190,7 @@ SELECT
       SELECT AVG(stf.pay_rate)
       FROM job_staff_assignments jsa
         JOIN staff stf ON stf.id = jsa.staff_id
-      WHERE jsa.site_job_id = j.id
+      WHERE jsa.job_id = j.id
         AND jsa.archived_at IS NULL
         AND stf.pay_rate IS NOT NULL
     ),
@@ -204,7 +204,7 @@ SELECT
   (
     SELECT COUNT(*)
     FROM job_staff_assignments jsa
-    WHERE jsa.site_job_id = j.id
+    WHERE jsa.job_id = j.id
       AND jsa.archived_at IS NULL
   ) AS assigned_staff_count,
 

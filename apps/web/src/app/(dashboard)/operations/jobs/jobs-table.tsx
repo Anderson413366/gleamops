@@ -16,12 +16,12 @@ import { useViewPreference } from '@/hooks/use-view-preference';
 import { JobForm } from '@/components/forms/job-form';
 import { JobsCardGrid } from './jobs-card-grid';
 
-const PRIORITY_COLORS: Record<string, 'red' | 'blue' | 'yellow' | 'gray'> = {
+const PRIORITY_COLORS: Record<string, 'red' | 'blue' | 'orange' | 'gray'> = {
   CRITICAL: 'red',
-  HIGH: 'blue',
-  MEDIUM: 'yellow',
+  HIGH: 'orange',
+  MEDIUM: 'blue',
   LOW: 'gray',
-  STANDARD: 'gray',
+  STANDARD: 'blue',
 };
 
 // UX requirement: default to Active, show Active first, and move All to the end.

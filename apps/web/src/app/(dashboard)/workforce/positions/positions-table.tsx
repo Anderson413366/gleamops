@@ -30,6 +30,20 @@ function renderNotSet() {
   return <span className="italic text-muted-foreground">Not Set</span>;
 }
 
+function departmentDisplay(position: StaffPosition): string | null {
+  if (position.department?.trim()) return position.department.trim();
+  const match = position.notes?.match(/department\s*:\s*([^\n\r]+)/i);
+  return match?.[1]?.trim() || null;
+}
+
+function briefDescription(position: StaffPosition): string | null {
+  const note = position.notes?.trim();
+  if (!note) return null;
+  const firstLine = note.split(/\r?\n/)[0]?.trim() ?? '';
+  if (!firstLine) return null;
+  return firstLine;
+}
+
 export default function PositionsTable({ search }: Props) {
   const [rows, setRows] = useState<StaffPosition[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,7 +91,8 @@ export default function PositionsTable({ search }: Props) {
     return rows.filter((r) =>
       r.title.toLowerCase().includes(q) ||
       r.position_code.toLowerCase().includes(q) ||
-      (r.department ?? '').toLowerCase().includes(q)
+      (departmentDisplay(r) ?? '').toLowerCase().includes(q) ||
+      (briefDescription(r) ?? '').toLowerCase().includes(q)
     );
   }, [rows, search]);
 
@@ -94,9 +109,9 @@ export default function PositionsTable({ search }: Props) {
         <ExportButton
           data={filtered.map((row) => ({
             ...row,
-            department_display: row.department ?? 'Not Set',
+            department_display: departmentDisplay(row) ?? 'Not Set',
             staff_count: staffCountByPositionId[row.id] ?? 0,
-            description: row.notes ?? '',
+            description: briefDescription(row) ?? '',
           })) as unknown as Record<string, unknown>[]}
           filename="positions"
           columns={[
@@ -117,6 +132,7 @@ export default function PositionsTable({ search }: Props) {
             <TableHead sortable sorted={sortKey === 'department' && sortDir} onSort={() => onSort('department')}>Department</TableHead>
             <TableHead>Pay Grade</TableHead>
             <TableHead>Staff Count</TableHead>
+            <TableHead>Description</TableHead>
           </tr>
         </TableHeader>
         <TableBody>
@@ -136,12 +152,17 @@ export default function PositionsTable({ search }: Props) {
                 </div>
               </TableCell>
               <TableCell>
-                <span className="inline-block max-w-[180px] truncate text-muted-foreground" title={row.department ?? 'Not Set'}>
-                  {row.department ?? 'Not Set'}
+                <span className="inline-block max-w-[180px] truncate text-muted-foreground" title={departmentDisplay(row) ?? 'Not Set'}>
+                  {departmentDisplay(row) ?? 'Not Set'}
                 </span>
               </TableCell>
               <TableCell>{row.pay_grade ?? renderNotSet()}</TableCell>
               <TableCell className="tabular-nums text-muted-foreground">{staffCountByPositionId[row.id] ?? 0}</TableCell>
+              <TableCell className="text-muted-foreground">
+                <span className="inline-block max-w-[280px] truncate" title={briefDescription(row) ?? 'Not Set'}>
+                  {briefDescription(row) ?? 'Not Set'}
+                </span>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -169,7 +190,7 @@ export default function PositionsTable({ search }: Props) {
             </div>
             <div className="flex items-center justify-between gap-4">
               <span className="text-muted-foreground">Department</span>
-              <span className="font-medium text-right">{selected.department ?? renderNotSet()}</span>
+              <span className="font-medium text-right">{departmentDisplay(selected) ?? renderNotSet()}</span>
             </div>
             <div className="flex items-center justify-between gap-4">
               <span className="text-muted-foreground">Pay Grade</span>

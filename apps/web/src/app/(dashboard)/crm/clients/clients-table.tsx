@@ -13,13 +13,33 @@ import type { Client } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 import { useViewPreference } from '@/hooks/use-view-preference';
-import { ClientsCardGrid } from './clients-card-grid';
+import { ClientsCardGrid, type ClientCardMeta } from './clients-card-grid';
 
 // UX requirement: default to Active, show Active first, and move All to the end.
 const STATUS_OPTIONS = ['ACTIVE', 'INACTIVE', 'PROSPECT', 'ON_HOLD', 'CANCELED', 'all'] as const;
 
 interface ClientsTableProps {
   search: string;
+}
+
+interface SiteLite {
+  id: string;
+  client_id: string;
+  status: string | null;
+  address: { city?: string; state?: string } | null;
+}
+
+interface JobLite {
+  site_id: string;
+  status: string | null;
+  billing_amount: number | null;
+}
+
+interface ContactLite {
+  id: string;
+  client_id: string | null;
+  name: string | null;
+  is_primary: boolean | null;
 }
 
 function formatDate(d: string | null) {
@@ -32,6 +52,7 @@ export default function ClientsTable({ search }: ClientsTableProps) {
   const [rows, setRows] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('ACTIVE');
+  const [cardMetaByClientId, setCardMetaByClientId] = useState<Record<string, ClientCardMeta>>({});
   const { view, setView } = useViewPreference('clients');
 
   const fetchData = useCallback(async () => {
@@ -42,7 +63,99 @@ export default function ClientsTable({ search }: ClientsTableProps) {
       .select('*')
       .is('archived_at', null)
       .order('name');
-    if (!error && data) setRows(data as unknown as Client[]);
+
+    if (error || !data) {
+      setRows([]);
+      setCardMetaByClientId({});
+      setLoading(false);
+      return;
+    }
+
+    const clients = data as unknown as Client[];
+    setRows(clients);
+
+    if (clients.length === 0) {
+      setCardMetaByClientId({});
+      setLoading(false);
+      return;
+    }
+
+    const clientIds = clients.map((c) => c.id);
+
+    const { data: sitesData } = await supabase
+      .from('sites')
+      .select('id, client_id, status, address')
+      .is('archived_at', null)
+      .in('client_id', clientIds);
+
+    const sites = (sitesData ?? []) as unknown as SiteLite[];
+    const siteIds = sites.map((s) => s.id);
+    const siteToClient = new Map<string, string>(sites.map((s) => [s.id, s.client_id]));
+
+    let jobs: JobLite[] = [];
+    if (siteIds.length > 0) {
+      const { data: jobsData } = await supabase
+        .from('site_jobs')
+        .select('site_id, status, billing_amount')
+        .is('archived_at', null)
+        .in('site_id', siteIds);
+      jobs = (jobsData ?? []) as unknown as JobLite[];
+    }
+
+    const { data: contactsData } = await supabase
+      .from('contacts')
+      .select('id, client_id, name, is_primary')
+      .is('archived_at', null)
+      .in('client_id', clientIds)
+      .order('name', { ascending: true });
+
+    const contacts = (contactsData ?? []) as unknown as ContactLite[];
+
+    const contactsByClient = new Map<string, ContactLite[]>();
+    for (const c of contacts) {
+      if (!c.client_id) continue;
+      const list = contactsByClient.get(c.client_id) ?? [];
+      list.push(c);
+      contactsByClient.set(c.client_id, list);
+    }
+
+    const sitesByClient = new Map<string, SiteLite[]>();
+    for (const site of sites) {
+      const list = sitesByClient.get(site.client_id) ?? [];
+      list.push(site);
+      sitesByClient.set(site.client_id, list);
+    }
+
+    const monthlyRevenueByClient = new Map<string, number>();
+    for (const job of jobs) {
+      if ((job.status ?? '').toUpperCase() !== 'ACTIVE') continue;
+      const clientId = siteToClient.get(job.site_id);
+      if (!clientId) continue;
+      monthlyRevenueByClient.set(clientId, (monthlyRevenueByClient.get(clientId) ?? 0) + (job.billing_amount ?? 0));
+    }
+
+    const nextMeta: Record<string, ClientCardMeta> = {};
+    for (const client of clients) {
+      const clientSites = sitesByClient.get(client.id) ?? [];
+      const activeSites = clientSites.filter((s) => (s.status ?? '').toUpperCase() === 'ACTIVE').length;
+      const preferredContact = (contactsByClient.get(client.id) ?? []).find((c) => c.id === client.primary_contact_id)
+        ?? (contactsByClient.get(client.id) ?? []).find((c) => c.is_primary)
+        ?? (contactsByClient.get(client.id) ?? [])[0];
+
+      const billingLocation = [client.billing_address?.city, client.billing_address?.state].filter(Boolean).join(', ');
+      const siteLocation = clientSites
+        .map((s) => [s.address?.city, s.address?.state].filter(Boolean).join(', '))
+        .find(Boolean);
+
+      nextMeta[client.id] = {
+        activeSites,
+        monthlyRevenue: monthlyRevenueByClient.get(client.id) ?? 0,
+        location: billingLocation || siteLocation || null,
+        primaryContactName: preferredContact?.name ?? null,
+      };
+    }
+
+    setCardMetaByClientId(nextMeta);
     setLoading(false);
   }, []);
 
@@ -144,7 +257,7 @@ export default function ClientsTable({ search }: ClientsTableProps) {
         ))}
       </div>
       {view === 'card' ? (
-        <ClientsCardGrid rows={pag.page} onSelect={handleRowClick} />
+        <ClientsCardGrid rows={pag.page} onSelect={handleRowClick} metaByClientId={cardMetaByClientId} />
       ) : (
       <Table>
         <TableHeader>

@@ -2,18 +2,19 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { MapPin } from 'lucide-react';
+import { MapPin, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, ViewToggle, StatusDot, statusRowAccentClass, cn,
+  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, ViewToggle, StatusDot, statusRowAccentClass, cn, Button,
 } from '@gleamops/ui';
 import type { Site } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 import { useViewPreference } from '@/hooks/use-view-preference';
 import { SitesCardGrid } from './sites-card-grid';
+import { SiteForm } from '@/components/forms/site-form';
 
 const PRIORITY_COLORS: Record<string, 'red' | 'blue' | 'orange' | 'gray'> = {
   CRITICAL: 'red',
@@ -53,6 +54,7 @@ export default function SitesTable({ search }: SitesTableProps) {
   const router = useRouter();
   const [rows, setRows] = useState<SiteWithClient[]>([]);
   const [loading, setLoading] = useState(true);
+  const [formOpen, setFormOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('ACTIVE');
   const [activeJobsBySite, setActiveJobsBySite] = useState<Record<string, number>>({});
   const [monthlyRevenueBySite, setMonthlyRevenueBySite] = useState<Record<string, number>>({});
@@ -137,6 +139,7 @@ export default function SitesTable({ search }: SitesTableProps) {
   const handleRowClick = (row: SiteWithClient) => {
     router.push(`/crm/sites/${row.site_code}`);
   };
+  const handleAdd = () => setFormOpen(true);
   const selectedStatusLabel = statusFilter === 'all'
     ? 'all statuses'
     : statusFilter.toLowerCase().replace(/_/g, ' ');
@@ -154,29 +157,34 @@ export default function SitesTable({ search }: SitesTableProps) {
 
   return (
     <div>
-      <div className="flex items-center justify-end gap-3 mb-4">
-        <ViewToggle view={view} onChange={setView} />
-        <ExportButton
-          data={filtered.map((row) => ({
-            ...row,
-            client_name: row.client?.name ?? 'Not Set',
-            city_state: row.address ? [row.address.city, row.address.state].filter(Boolean).join(', ') : 'Not Set',
-            active_jobs: activeJobsBySite[row.id] ?? 0,
-            monthly_revenue: monthlyRevenueBySite[row.id] ?? 0,
-            priority_display: row.priority_level ?? 'Not Set',
-          })) as unknown as Record<string, unknown>[]}
-          filename="sites"
-          columns={[
-            { key: 'site_code', label: 'Code' },
-            { key: 'name', label: 'Name' },
-            { key: 'client_name', label: 'Client' },
-            { key: 'city_state', label: 'City/State' },
-            { key: 'active_jobs', label: 'Active Jobs' },
-            { key: 'monthly_revenue', label: 'Monthly Revenue' },
-            { key: 'priority_display', label: 'Priority' },
-          ]}
-          onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
-        />
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <Button size="sm" onClick={handleAdd}>
+          <Plus className="h-4 w-4" /> New Site
+        </Button>
+        <div className="flex items-center gap-3">
+          <ViewToggle view={view} onChange={setView} />
+          <ExportButton
+            data={filtered.map((row) => ({
+              ...row,
+              client_name: row.client?.name ?? 'Not Set',
+              city_state: row.address ? [row.address.city, row.address.state].filter(Boolean).join(', ') : 'Not Set',
+              active_jobs: activeJobsBySite[row.id] ?? 0,
+              monthly_revenue: monthlyRevenueBySite[row.id] ?? 0,
+              priority_display: row.priority_level ?? 'Not Set',
+            })) as unknown as Record<string, unknown>[]}
+            filename="sites"
+            columns={[
+              { key: 'site_code', label: 'Code' },
+              { key: 'name', label: 'Name' },
+              { key: 'client_name', label: 'Client' },
+              { key: 'city_state', label: 'City/State' },
+              { key: 'active_jobs', label: 'Active Jobs' },
+              { key: 'monthly_revenue', label: 'Monthly Revenue' },
+              { key: 'priority_display', label: 'Priority' },
+            ]}
+            onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
+          />
+        </div>
       </div>
       <div className="flex items-center gap-2 mb-4 flex-wrap">
         {STATUS_OPTIONS.map((status) => (
@@ -212,7 +220,7 @@ export default function SitesTable({ search }: SitesTableProps) {
             title={emptyTitle}
             description={emptyDescription}
             actionLabel={showGuidedEmptyState ? '+ Add Your First Site' : undefined}
-            onAction={showGuidedEmptyState ? () => router.push('/crm?tab=sites&action=create-site') : undefined}
+            onAction={showGuidedEmptyState ? handleAdd : undefined}
           >
             {showGuidedEmptyState && (
               <ul className="mx-auto max-w-lg list-disc space-y-1.5 pl-5 text-left text-sm text-muted-foreground">
@@ -294,7 +302,7 @@ export default function SitesTable({ search }: SitesTableProps) {
                 title={emptyTitle}
                 description={emptyDescription}
                 actionLabel={showGuidedEmptyState ? '+ Add Your First Site' : undefined}
-                onAction={showGuidedEmptyState ? () => router.push('/crm?tab=sites&action=create-site') : undefined}
+                onAction={showGuidedEmptyState ? handleAdd : undefined}
               >
                 {showGuidedEmptyState && (
                   <ul className="mx-auto max-w-lg list-disc space-y-1.5 pl-5 text-left text-sm text-muted-foreground">
@@ -315,6 +323,11 @@ export default function SitesTable({ search }: SitesTableProps) {
           onNext={pag.nextPage} onPrev={pag.prevPage}
         />
       )}
+      <SiteForm
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        onSuccess={fetchData}
+      />
     </div>
   );
 }

@@ -7,9 +7,9 @@ import type { Subcontractor } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
 
-import SubcontractorsTable from '../subcontractors/directory/subcontractors-table';
+import SubcontractorsTable from './subcontractors/subcontractors-table';
 import { SubcontractorForm } from '@/components/forms/subcontractor-form';
-import SubcontractorJobsTable from '../subcontractors/jobs/subcontractor-jobs-table';
+import SubcontractorJobsTable from './jobs/subcontractor-jobs-table';
 import VendorsTable from './vendor-directory/vendors-table';
 
 const TABS = [

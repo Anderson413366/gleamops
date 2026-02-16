@@ -17,7 +17,7 @@ export function useSyncedTab({ tabKeys, defaultTab, aliases }: UseSyncedTabOptio
 
   const validTabKeys = useMemo(
     () => Array.from(new Set(tabKeys.filter(Boolean))),
-    [tabKeys.join('|')]
+    [tabKeys]
   );
 
   const resolveTab = useCallback((candidate?: string | null) => {
@@ -29,15 +29,15 @@ export function useSyncedTab({ tabKeys, defaultTab, aliases }: UseSyncedTabOptio
 
   const [tab, setTab] = useState<string>(() => resolveTab(null));
 
-  // On first mount, read the URL query directly to avoid hydration timing races.
+  // Initialize from URL once to avoid tab flicker caused by repeated re-initialization.
   useEffect(() => {
     const rawTab = typeof window === 'undefined'
-      ? searchParams.get('tab')
+      ? null
       : new URLSearchParams(window.location.search).get('tab');
     const initial = resolveTab(rawTab);
     setTab((prev) => (prev === initial ? prev : initial));
     setReady(true);
-  }, [resolveTab, searchParams]);
+  }, [resolveTab]);
 
   // Keep state valid when tab set changes (for example, simple view hides tabs).
   useEffect(() => {
@@ -60,12 +60,13 @@ export function useSyncedTab({ tabKeys, defaultTab, aliases }: UseSyncedTabOptio
   // Keep URL tab in sync with state changes.
   useEffect(() => {
     if (!ready || !tab) return;
-    const current = searchParams.get('tab');
+    if (typeof window === 'undefined') return;
+    const current = new URLSearchParams(window.location.search).get('tab');
     if (current === tab) return;
-    const next = new URLSearchParams(searchParams.toString());
+    const next = new URLSearchParams(window.location.search);
     next.set('tab', tab);
     router.replace(`${pathname}?${next.toString()}`, { scroll: false });
-  }, [pathname, ready, router, searchParams, tab]);
+  }, [pathname, ready, router, tab]);
 
   return [tab, setTab] as const;
 }

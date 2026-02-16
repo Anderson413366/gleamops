@@ -296,35 +296,10 @@ export default function SafetyDocumentsTable({ search, autoCreate, onAutoCreateH
 
   if (loading) return <TableSkeleton rows={8} cols={6} />;
 
-  if (filtered.length === 0) {
-    return (
-      <>
-        <EmptyState
-          icon={(
-            <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
-              <FileText className="h-10 w-10" />
-              <Sparkles className="absolute -right-1 -top-1 h-4 w-4" />
-            </div>
-          )}
-          title="No safety documents found"
-          description={search ? 'Try a different search term.' : 'Build a living safety library for field teams and supervisors.'}
-          actionLabel={search ? undefined : '+ Add Your First Safety Document'}
-          onAction={search ? undefined : handleAdd}
-        >
-          {!search && (
-            <ul className="space-y-2 text-left text-sm text-muted-foreground">
-              <li>Centralize SDS files, procedures, and policy updates.</li>
-              <li>Track review and expiry dates before they become risks.</li>
-              <li>Give crews one trusted source of current safety guidance.</li>
-            </ul>
-          )}
-        </EmptyState>
-        <SlideOver open={formOpen} onClose={handleClose} title={isEdit ? 'Edit Document' : 'New Safety Document'}>
-          {renderForm()}
-        </SlideOver>
-      </>
-    );
-  }
+  const emptyTitle = 'No safety documents found';
+  const emptyDescription = search
+    ? 'Try a different search term.'
+    : 'Build a living safety library for field teams and supervisors.';
 
   return (
     <div>
@@ -368,16 +343,42 @@ export default function SafetyDocumentsTable({ search, autoCreate, onAutoCreateH
           ))}
         </TableBody>
       </Table>
-      <Pagination
-        currentPage={pag.currentPage}
-        totalPages={pag.totalPages}
-        totalItems={pag.totalItems}
-        pageSize={pag.pageSize}
-        hasNext={pag.hasNext}
-        hasPrev={pag.hasPrev}
-        onNext={pag.nextPage}
-        onPrev={pag.prevPage}
-      />
+      {filtered.length === 0 && (
+        <div className="mt-4">
+          <EmptyState
+            icon={(
+              <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+                <FileText className="h-10 w-10" />
+                <Sparkles className="absolute -right-1 -top-1 h-4 w-4" />
+              </div>
+            )}
+            title={emptyTitle}
+            description={emptyDescription}
+            actionLabel={search ? undefined : '+ Add Your First Safety Document'}
+            onAction={search ? undefined : handleAdd}
+          >
+            {!search && (
+              <ul className="space-y-2 text-left text-sm text-muted-foreground">
+                <li>Centralize SDS files, procedures, and policy updates.</li>
+                <li>Track review and expiry dates before they become risks.</li>
+                <li>Give crews one trusted source of current safety guidance.</li>
+              </ul>
+            )}
+          </EmptyState>
+        </div>
+      )}
+      {filtered.length > 0 && (
+        <Pagination
+          currentPage={pag.currentPage}
+          totalPages={pag.totalPages}
+          totalItems={pag.totalItems}
+          pageSize={pag.pageSize}
+          hasNext={pag.hasNext}
+          hasPrev={pag.hasPrev}
+          onNext={pag.nextPage}
+          onPrev={pag.prevPage}
+        />
+      )}
 
       <SlideOver open={formOpen} onClose={handleClose} title={isEdit ? 'Edit Document' : 'New Safety Document'}>
         {renderForm()}

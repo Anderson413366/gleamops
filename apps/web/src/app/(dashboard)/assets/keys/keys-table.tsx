@@ -2,13 +2,13 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { KeyRound } from 'lucide-react';
+import { KeyRound, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
   EmptyState, Badge, Pagination, TableSkeleton,
-  ExportButton, StatusDot, statusRowAccentClass, cn,
+  ExportButton, StatusDot, statusRowAccentClass, cn, Button,
 } from '@gleamops/ui';
 import type { KeyInventory } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
@@ -27,10 +27,13 @@ interface KeysTableProps {
   onRefresh?: () => void;
 }
 
+const STATUS_OPTIONS = ['all', 'AVAILABLE', 'ASSIGNED', 'LOST', 'RETURNED'] as const;
+
 export default function KeysTable({ search, formOpen, onFormClose, onRefresh }: KeysTableProps) {
   const [rows, setRows] = useState<KeyWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const router = useRouter();
 
   const supabase = getSupabaseBrowserClient();
@@ -69,10 +72,23 @@ export default function KeysTable({ search, formOpen, onFormClose, onRefresh }: 
     router.push(`/assets/keys/${row.key_code}`);
   };
 
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: rows.length };
+    for (const row of rows) {
+      const status = row.status ?? 'AVAILABLE';
+      counts[status] = (counts[status] || 0) + 1;
+    }
+    return counts;
+  }, [rows]);
+
   const filtered = useMemo(() => {
-    if (!search) return rows;
+    let result = rows;
+    if (statusFilter !== 'all') {
+      result = result.filter((r) => (r.status ?? 'AVAILABLE') === statusFilter);
+    }
+    if (!search) return result;
     const q = search.toLowerCase();
-    return rows.filter(
+    return result.filter(
       (r) =>
         r.key_code.toLowerCase().includes(q) ||
         (r.label?.toLowerCase().includes(q) ?? false) ||
@@ -80,7 +96,7 @@ export default function KeysTable({ search, formOpen, onFormClose, onRefresh }: 
         (r.site?.name?.toLowerCase().includes(q) ?? false) ||
         (r.assigned?.full_name?.toLowerCase().includes(q) ?? false)
     );
-  }, [rows, search]);
+  }, [rows, statusFilter, search]);
 
   const { sorted, sortKey, sortDir, onSort } = useTableSort(
     filtered as unknown as Record<string, unknown>[], 'key_code', 'asc'
@@ -90,26 +106,24 @@ export default function KeysTable({ search, formOpen, onFormClose, onRefresh }: 
 
   if (loading) return <TableSkeleton rows={6} cols={6} />;
 
-  if (filtered.length === 0) {
-    return (
-      <>
-        <EmptyState
-          icon={<KeyRound className="h-12 w-12" />}
-          title="No keys found"
-          description={search ? 'Try a different search term.' : 'Add your first key to get started.'}
-        />
-        <KeyForm
-          open={createOpen}
-          onClose={handleCreateClose}
-          onSuccess={handleCreateSuccess}
-        />
-      </>
-    );
-  }
+  const selectedStatusLabel = statusFilter === 'all'
+    ? 'all statuses'
+    : statusFilter.toLowerCase().replace(/_/g, ' ');
+  const emptyTitle = statusFilter === 'all'
+    ? 'No keys yet'
+    : `No ${selectedStatusLabel} keys`;
+  const emptyDescription = search
+    ? 'Try a different search term.'
+    : statusFilter === 'all'
+      ? 'Track key inventory and assignments by site and staff.'
+      : `All keys are currently in other statuses.`;
 
   return (
     <div>
-      <div className="flex justify-end mb-4">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <Button size="sm" onClick={() => setCreateOpen(true)}>
+          <Plus className="h-4 w-4" /> New Key
+        </Button>
         <ExportButton
           data={filtered as unknown as Record<string, unknown>[]}
           filename="keys"
@@ -121,6 +135,31 @@ export default function KeysTable({ search, formOpen, onFormClose, onRefresh }: 
           ]}
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
+      </div>
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        {STATUS_OPTIONS.map((status) => (
+          <button
+            key={status}
+            type="button"
+            onClick={() => setStatusFilter(status)}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors',
+              statusFilter === status
+                ? 'bg-module-accent text-module-accent-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80',
+            )}
+          >
+            {status === 'all' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase().replace(/_/g, ' ')}
+            <span
+              className={cn(
+                'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+                statusFilter === status ? 'bg-white/20' : 'bg-background'
+              )}
+            >
+              {statusCounts[status] || 0}
+            </span>
+          </button>
+        ))}
       </div>
       <Table>
         <TableHeader>
@@ -161,11 +200,22 @@ export default function KeysTable({ search, formOpen, onFormClose, onRefresh }: 
           ))}
         </TableBody>
       </Table>
-      <Pagination
-        currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
-        pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
-        onNext={pag.nextPage} onPrev={pag.prevPage}
-      />
+      {filtered.length === 0 && (
+        <div className="mt-4">
+          <EmptyState
+            icon={<KeyRound className="h-12 w-12" />}
+            title={emptyTitle}
+            description={emptyDescription}
+          />
+        </div>
+      )}
+      {filtered.length > 0 && (
+        <Pagination
+          currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
+          pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
+          onNext={pag.nextPage} onPrev={pag.prevPage}
+        />
+      )}
 
       <KeyForm
         open={createOpen}

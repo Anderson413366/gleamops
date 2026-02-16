@@ -20,6 +20,7 @@ import {
   Textarea,
   Button,
   ExportButton,
+  cn,
 } from '@gleamops/ui';
 import type { StaffCertification } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
@@ -31,6 +32,7 @@ const STATUS_OPTIONS = [
   { value: 'REVOKED', label: 'Revoked' },
   { value: 'PENDING', label: 'Pending' },
 ];
+const FILTER_STATUS_OPTIONS = ['all', 'ACTIVE', 'EXPIRED', 'REVOKED', 'PENDING'] as const;
 
 interface CertificationsTableProps {
   search: string;
@@ -45,6 +47,7 @@ interface CertRow extends StaffCertification {
 export default function CertificationsTable({ search, autoCreate, onAutoCreateHandled }: CertificationsTableProps) {
   const [rows, setRows] = useState<CertRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   // SlideOver form state
   const [formOpen, setFormOpen] = useState(false);
@@ -99,16 +102,29 @@ export default function CertificationsTable({ search, autoCreate, onAutoCreateHa
   }, [autoCreate, loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = useMemo(() => {
-    if (!search) return rows;
+    let result = rows;
+    if (statusFilter !== 'all') {
+      result = result.filter((r) => (r.status ?? 'ACTIVE') === statusFilter);
+    }
+    if (!search) return result;
     const q = search.toLowerCase();
-    return rows.filter(
+    return result.filter(
       (r) =>
         r.certification_name.toLowerCase().includes(q) ||
         (r.staff?.full_name?.toLowerCase().includes(q)) ||
         (r.issuing_authority?.toLowerCase().includes(q)) ||
         (r.certification_number?.toLowerCase().includes(q))
     );
-  }, [rows, search]);
+  }, [rows, statusFilter, search]);
+
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: rows.length };
+    for (const row of rows) {
+      const status = row.status ?? 'ACTIVE';
+      counts[status] = (counts[status] || 0) + 1;
+    }
+    return counts;
+  }, [rows]);
 
   const { sorted, sortKey, sortDir, onSort } = useTableSort(
     filtered as unknown as Record<string, unknown>[],
@@ -289,38 +305,45 @@ export default function CertificationsTable({ search, autoCreate, onAutoCreateHa
 
   if (loading) return <TableSkeleton rows={8} cols={5} />;
 
-  if (filtered.length === 0) {
-    return (
-      <>
-        <EmptyState
-          icon={(
-            <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300">
-              <Award className="h-10 w-10" />
-              <Sparkles className="absolute -right-1 -top-1 h-4 w-4" />
-            </div>
-          )}
-          title="No certifications found"
-          description={search ? 'Try a different search term.' : 'Track mandatory and optional staff certifications in one place.'}
-          actionLabel={search ? undefined : '+ Add Your First Certification'}
-          onAction={search ? undefined : handleAdd}
-        >
-          {!search && (
-            <ul className="space-y-2 text-left text-sm text-muted-foreground">
-              <li>Keep proof of compliance organized by staff member.</li>
-              <li>Identify expirations early to avoid scheduling disruptions.</li>
-              <li>Reduce audit prep time with a complete certification ledger.</li>
-            </ul>
-          )}
-        </EmptyState>
-        <SlideOver open={formOpen} onClose={handleClose} title={isEdit ? 'Edit Certification' : 'New Certification'}>
-          {renderForm()}
-        </SlideOver>
-      </>
-    );
-  }
+  const selectedStatusLabel = statusFilter === 'all'
+    ? 'all statuses'
+    : statusFilter.toLowerCase().replace(/_/g, ' ');
+  const emptyTitle = statusFilter === 'all'
+    ? 'No certifications yet'
+    : `No ${selectedStatusLabel} certifications`;
+  const emptyDescription = search
+    ? 'Try a different search term.'
+    : statusFilter === 'all'
+      ? 'Track certification records and expiration timelines across staff.'
+      : 'All certifications are currently in other statuses.';
 
   return (
     <div>
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        {FILTER_STATUS_OPTIONS.map((status) => (
+          <button
+            key={status}
+            type="button"
+            onClick={() => setStatusFilter(status)}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors',
+              statusFilter === status
+                ? 'bg-module-accent text-module-accent-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80',
+            )}
+          >
+            {status === 'all' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase()}
+            <span
+              className={cn(
+                'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+                statusFilter === status ? 'bg-white/20' : 'bg-background'
+              )}
+            >
+              {statusCounts[status] || 0}
+            </span>
+          </button>
+        ))}
+      </div>
       <div className="flex justify-end mb-4">
         <ExportButton
           data={filtered as unknown as Record<string, unknown>[]}
@@ -357,16 +380,42 @@ export default function CertificationsTable({ search, autoCreate, onAutoCreateHa
           ))}
         </TableBody>
       </Table>
-      <Pagination
-        currentPage={pag.currentPage}
-        totalPages={pag.totalPages}
-        totalItems={pag.totalItems}
-        pageSize={pag.pageSize}
-        hasNext={pag.hasNext}
-        hasPrev={pag.hasPrev}
-        onNext={pag.nextPage}
-        onPrev={pag.prevPage}
-      />
+      {filtered.length === 0 && (
+        <div className="mt-4">
+          <EmptyState
+            icon={(
+              <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300">
+                <Award className="h-10 w-10" />
+                <Sparkles className="absolute -right-1 -top-1 h-4 w-4" />
+              </div>
+            )}
+            title={emptyTitle}
+            description={emptyDescription}
+            actionLabel={search || statusFilter !== 'all' ? undefined : '+ Add Your First Certification'}
+            onAction={search || statusFilter !== 'all' ? undefined : handleAdd}
+          >
+            {!search && statusFilter === 'all' && (
+              <ul className="space-y-2 text-left text-sm text-muted-foreground">
+                <li>Keep proof of compliance organized by staff member.</li>
+                <li>Identify expirations early to avoid scheduling disruptions.</li>
+                <li>Reduce audit prep time with a complete certification ledger.</li>
+              </ul>
+            )}
+          </EmptyState>
+        </div>
+      )}
+      {filtered.length > 0 && (
+        <Pagination
+          currentPage={pag.currentPage}
+          totalPages={pag.totalPages}
+          totalItems={pag.totalItems}
+          pageSize={pag.pageSize}
+          hasNext={pag.hasNext}
+          hasPrev={pag.hasPrev}
+          onNext={pag.nextPage}
+          onPrev={pag.prevPage}
+        />
+      )}
 
       <SlideOver open={formOpen} onClose={handleClose} title={isEdit ? 'Edit Certification' : 'New Certification'}>
         {renderForm()}

@@ -13,8 +13,6 @@ import {
   Package,
   Truck,
   Wrench,
-  Layers,
-  HardHat,
   ShieldCheck,
   Settings,
   LogOut,
@@ -46,8 +44,6 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Truck,
   Wrench,
   Settings,
-  Layers,
-  HardHat,
   ShieldCheck,
 };
 

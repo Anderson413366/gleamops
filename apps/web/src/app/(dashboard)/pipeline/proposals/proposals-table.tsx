@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { FileCheck, Sparkles } from 'lucide-react';
+import { FileCheck, Sparkles, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Pagination, TableSkeleton, ExportButton, StatusDot, statusRowAccentClass, cn,
+  EmptyState, Pagination, TableSkeleton, ExportButton, StatusDot, statusRowAccentClass, cn, Button,
 } from '@gleamops/ui';
 import type { SalesProposal } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
@@ -31,11 +31,22 @@ interface ProposalsTableProps {
   onGoToBids?: () => void;
 }
 
+const STATUS_OPTIONS = [
+  'all',
+  'DRAFT',
+  'GENERATED',
+  'SENT',
+  'DELIVERED',
+  'OPENED',
+  'WON',
+  'LOST',
+  'EXPIRED',
+] as const;
+
 export default function ProposalsTable({ search, onSelect, onGoToBids }: ProposalsTableProps) {
   const [rows, setRows] = useState<ProposalWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
-  // UX requirement: default to Active when available; move "all" to the end.
-  const [statusFilter, setStatusFilter] = useState<string>('ACTIVE');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -63,26 +74,19 @@ export default function ProposalsTable({ search, onSelect, onGoToBids }: Proposa
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const statusOptions = useMemo(() => {
-    const unique = Array.from(new Set(rows.map((r) => r.status).filter(Boolean)));
-    const hasActive = unique.includes('ACTIVE');
-    const ordered = hasActive
-      ? ['ACTIVE', ...unique.filter((s) => s !== 'ACTIVE'), 'all']
-      : [...unique, 'all'];
-    return ordered;
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: rows.length };
+    for (const row of rows) {
+      const status = row.status ?? 'DRAFT';
+      counts[status] = (counts[status] || 0) + 1;
+    }
+    return counts;
   }, [rows]);
-
-  const effectiveStatusFilter = useMemo(() => {
-    if (statusFilter === 'all') return 'all';
-    if (statusOptions.includes(statusFilter)) return statusFilter;
-    if (statusOptions.includes('ACTIVE')) return 'ACTIVE';
-    return statusOptions.find((s) => s !== 'all') ?? 'all';
-  }, [statusFilter, statusOptions]);
 
   const filtered = useMemo(() => {
     let result = rows;
-    if (effectiveStatusFilter !== 'all') {
-      result = result.filter((r) => r.status === effectiveStatusFilter);
+    if (statusFilter !== 'all') {
+      result = result.filter((r) => (r.status ?? 'DRAFT') === statusFilter);
     }
     if (!search) return result;
     const q = search.toLowerCase();
@@ -92,22 +96,22 @@ export default function ProposalsTable({ search, onSelect, onGoToBids }: Proposa
         r.bid_version?.bid?.bid_code?.toLowerCase().includes(q) ||
         r.bid_version?.bid?.client?.name?.toLowerCase().includes(q)
     );
-  }, [rows, search, effectiveStatusFilter]);
+  }, [rows, search, statusFilter]);
 
   const { sorted, sortKey, sortDir, onSort } = useTableSort(
     filtered as unknown as Record<string, unknown>[], 'proposal_code', 'asc'
   );
   const sortedRows = sorted as unknown as ProposalWithRelations[];
   const pag = usePagination(sortedRows, 25);
-  const selectedStatusLabel = effectiveStatusFilter === 'all'
+  const selectedStatusLabel = statusFilter === 'all'
     ? 'all statuses'
-    : effectiveStatusFilter.toLowerCase().replace(/_/g, ' ');
-  const emptyTitle = effectiveStatusFilter === 'all'
+    : statusFilter.toLowerCase().replace(/_/g, ' ');
+  const emptyTitle = statusFilter === 'all'
     ? 'No proposals'
     : `No ${selectedStatusLabel} proposals found`;
   const emptyDescription = search
     ? 'Try a different search term.'
-    : effectiveStatusFilter === 'all'
+    : statusFilter === 'all'
       ? 'Generate polished proposals from approved bids and send for signature.'
       : 'All proposals are currently in other statuses.';
 
@@ -115,7 +119,10 @@ export default function ProposalsTable({ search, onSelect, onGoToBids }: Proposa
 
   return (
     <div>
-      <div className="flex justify-end mb-4">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <Button size="sm" onClick={() => onGoToBids?.()} disabled={!onGoToBids}>
+          <Plus className="h-4 w-4" /> New Proposal
+        </Button>
         <ExportButton
           data={filtered as unknown as Record<string, unknown>[]}
           filename="proposals"
@@ -129,17 +136,23 @@ export default function ProposalsTable({ search, onSelect, onGoToBids }: Proposa
         />
       </div>
       <div className="mb-4 flex flex-wrap gap-2">
-        {statusOptions.map((status) => (
+        {STATUS_OPTIONS.map((status) => (
           <button
             key={status}
             type="button"
             onClick={() => setStatusFilter(status)}
             className={cn(
-              'inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors',
-              effectiveStatusFilter === status ? 'bg-module-accent text-module-accent-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80',
+              'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors',
+              statusFilter === status ? 'bg-module-accent text-module-accent-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80',
             )}
           >
-            {status === 'all' ? 'All' : status.replace(/_/g, ' ')}
+            {status === 'all' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase().replace(/_/g, ' ')}
+            <span className={cn(
+              'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+              statusFilter === status ? 'bg-white/20' : 'bg-background'
+            )}>
+              {statusCounts[status] || 0}
+            </span>
           </button>
         ))}
       </div>

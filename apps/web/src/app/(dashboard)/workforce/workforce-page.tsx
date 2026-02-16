@@ -7,13 +7,12 @@ import { useFeatureFlag } from '@/hooks/use-feature-flag';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
 
-// Import existing tables from /people/ subdirectories
-import StaffTable from '../people/staff/staff-table';
-import TimeEntriesTable from '../people/timekeeping/time-entries-table';
-import TimesheetsTable from '../people/timesheets/timesheets-table';
-import ExceptionsTable from '../people/exceptions/exceptions-table';
-import PositionsTable from '../people/positions/positions-table';
-import PayrollTable from '../people/payroll/payroll-table';
+import StaffTable from './staff/staff-table';
+import TimeEntriesTable from './timekeeping/time-entries-table';
+import TimesheetsTable from './timesheets/timesheets-table';
+import ExceptionsTable from './exceptions/exceptions-table';
+import PositionsTable from './positions/positions-table';
+import PayrollTable from './payroll/payroll-table';
 import MessagesTab from './messages/messages-tab';
 
 const BASE_TABS = [

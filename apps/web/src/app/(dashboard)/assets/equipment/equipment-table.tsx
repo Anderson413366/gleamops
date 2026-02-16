@@ -38,11 +38,14 @@ interface Props {
   onRefresh?: () => void;
 }
 
+const STATUS_OPTIONS = ['all', 'GOOD', 'FAIR', 'POOR', 'OUT_OF_SERVICE'] as const;
+
 export default function EquipmentTable({ search, onSelect, formOpen, onFormClose, onRefresh }: Props) {
   const router = useRouter();
   const [rows, setRows] = useState<EquipmentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const { view, setView } = useViewPreference('equipment');
 
   const fetchData = useCallback(async () => {
@@ -117,10 +120,23 @@ export default function EquipmentTable({ search, onSelect, formOpen, onFormClose
     onRefresh?.();
   };
 
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: rows.length };
+    for (const row of rows) {
+      const condition = row.condition ?? 'GOOD';
+      counts[condition] = (counts[condition] || 0) + 1;
+    }
+    return counts;
+  }, [rows]);
+
   const filtered = useMemo(() => {
-    if (!search) return rows;
+    let result = rows;
+    if (statusFilter !== 'all') {
+      result = result.filter((r) => (r.condition ?? 'GOOD') === statusFilter);
+    }
+    if (!search) return result;
     const q = search.toLowerCase();
-    return rows.filter((r) =>
+    return result.filter((r) =>
       r.name.toLowerCase().includes(q) ||
       r.equipment_code.toLowerCase().includes(q) ||
       (r.equipment_type ?? '').toLowerCase().includes(q) ||
@@ -128,7 +144,7 @@ export default function EquipmentTable({ search, onSelect, formOpen, onFormClose
       (r.manufacturer ?? '').toLowerCase().includes(q) ||
       (r.brand ?? '').toLowerCase().includes(q)
     );
-  }, [rows, search]);
+  }, [rows, statusFilter, search]);
 
   const { sorted, sortKey, sortDir, onSort } = useTableSort(
     filtered as unknown as Record<string, unknown>[], 'name', 'asc'
@@ -160,6 +176,29 @@ export default function EquipmentTable({ search, onSelect, formOpen, onFormClose
           ]}
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
+      </div>
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        {STATUS_OPTIONS.map((status) => (
+          <button
+            key={status}
+            type="button"
+            onClick={() => setStatusFilter(status)}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors',
+              statusFilter === status
+                ? 'bg-module-accent text-module-accent-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            )}
+          >
+            {status === 'all' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase().replace(/_/g, ' ')}
+            <span className={cn(
+              'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+              statusFilter === status ? 'bg-white/20' : 'bg-background'
+            )}>
+              {statusCounts[status] || 0}
+            </span>
+          </button>
+        ))}
       </div>
       {view === 'card' ? (
         <EquipmentCardGrid rows={pag.page} onSelect={(item) => handleRowClick(item)} />

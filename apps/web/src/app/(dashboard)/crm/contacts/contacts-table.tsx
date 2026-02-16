@@ -2,16 +2,19 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Users, Star } from 'lucide-react';
+import { Users, Star, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, ExportButton,
+  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, ViewToggle, Button,
 } from '@gleamops/ui';
 import type { Contact } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { useViewPreference } from '@/hooks/use-view-preference';
+import { ContactsCardGrid } from './contacts-card-grid';
+import { ContactForm } from '@/components/forms/contact-form';
 
 const CONTACT_TYPE_COLORS: Record<string, 'blue' | 'green' | 'purple' | 'orange' | 'gray'> = {
   PRIMARY: 'blue',
@@ -34,6 +37,8 @@ export default function ContactsTable({ search }: ContactsTableProps) {
   const router = useRouter();
   const [rows, setRows] = useState<ContactWithParent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [formOpen, setFormOpen] = useState(false);
+  const { view, setView } = useViewPreference('contacts');
 
   const handleRowClick = useCallback((row: ContactWithParent) => {
     // TODO: Create detail page for contacts at /crm/contacts/[contact_code].
@@ -76,81 +81,97 @@ export default function ContactsTable({ search }: ContactsTableProps) {
   );
   const sortedRows = sorted as unknown as ContactWithParent[];
   const pag = usePagination(sortedRows, 25);
+  const handleAdd = () => setFormOpen(true);
 
   if (loading) return <TableSkeleton rows={8} cols={8} />;
 
-  if (filtered.length === 0) {
-    return (
-      <EmptyState
-        icon={<Users className="h-12 w-12" />}
-        title="No contacts found"
-        description={search ? 'Try a different search term.' : 'Add a contact to a client or site.'}
-      />
-    );
-  }
-
   return (
     <div>
-      <div className="flex justify-end mb-4">
-        <ExportButton
-          data={filtered as unknown as Record<string, unknown>[]}
-          filename="contacts"
-          columns={[
-            { key: 'contact_code', label: 'Code' },
-            { key: 'name', label: 'Name' },
-            { key: 'contact_type', label: 'Type' },
-            { key: 'role', label: 'Role' },
-            { key: 'company_name', label: 'Company' },
-            { key: 'email', label: 'Email' },
-            { key: 'phone', label: 'Phone' },
-            { key: 'preferred_contact_method', label: 'Preferred Method' },
-          ]}
-          onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
-        />
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <Button size="sm" onClick={handleAdd}>
+          <Plus className="h-4 w-4" /> New Contact
+        </Button>
+        <div className="flex items-center gap-3">
+          <ViewToggle view={view} onChange={setView} />
+          <ExportButton
+            data={filtered as unknown as Record<string, unknown>[]}
+            filename="contacts"
+            columns={[
+              { key: 'contact_code', label: 'Code' },
+              { key: 'name', label: 'Name' },
+              { key: 'contact_type', label: 'Type' },
+              { key: 'role', label: 'Role' },
+              { key: 'company_name', label: 'Company' },
+              { key: 'email', label: 'Email' },
+              { key: 'phone', label: 'Phone' },
+              { key: 'preferred_contact_method', label: 'Preferred Method' },
+            ]}
+            onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
+          />
+        </div>
       </div>
-      <Table>
-        <TableHeader>
-          <tr>
-            <TableHead sortable sorted={sortKey === 'contact_code' && sortDir} onSort={() => onSort('contact_code')}>Code</TableHead>
-            <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Name</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead>Company</TableHead>
-            <TableHead>Client / Site</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Phone</TableHead>
-          </tr>
-        </TableHeader>
-        <TableBody>
-          {pag.page.map((row) => (
-            <TableRow key={row.id} onClick={() => handleRowClick(row)} className="cursor-pointer">
-              <TableCell className="font-mono text-xs">{row.contact_code}</TableCell>
-              <TableCell>
-                <span className="font-medium">{row.name}</span>
-                {row.is_primary && (
-                  <Star className="inline ml-1.5 h-3.5 w-3.5 text-warning fill-warning" />
-                )}
-              </TableCell>
-              <TableCell>
-                {row.contact_type ? (
-                  <Badge color={CONTACT_TYPE_COLORS[row.contact_type] ?? 'gray'}>{row.contact_type}</Badge>
-                ) : <span className="text-muted-foreground">—</span>}
-              </TableCell>
-              <TableCell className="text-muted-foreground">{row.role_title ?? row.role ?? '—'}</TableCell>
-              <TableCell className="text-muted-foreground">{row.company_name ?? '—'}</TableCell>
-              <TableCell className="text-muted-foreground">
-                {row.client?.name ?? row.site?.name ?? '—'}
-              </TableCell>
-              <TableCell className="text-muted-foreground">{row.email ?? '—'}</TableCell>
-              <TableCell className="text-muted-foreground">{row.mobile_phone ?? row.phone ?? '—'}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      <Pagination
-        currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
-        pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
-        onNext={pag.nextPage} onPrev={pag.prevPage}
+      {filtered.length === 0 ? (
+        <EmptyState
+          icon={<Users className="h-12 w-12" />}
+          title="No contacts found"
+          description={search ? 'Try a different search term.' : 'Add a contact to a client or site.'}
+        />
+      ) : (
+        <>
+          {view === 'card' ? (
+            <ContactsCardGrid rows={pag.page} onSelect={handleRowClick} />
+          ) : (
+            <Table>
+              <TableHeader>
+                <tr>
+                  <TableHead sortable sorted={sortKey === 'contact_code' && sortDir} onSort={() => onSort('contact_code')}>Code</TableHead>
+                  <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Name</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Company</TableHead>
+                  <TableHead>Client / Site</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Phone</TableHead>
+                </tr>
+              </TableHeader>
+              <TableBody>
+                {pag.page.map((row) => (
+                  <TableRow key={row.id} onClick={() => handleRowClick(row)} className="cursor-pointer">
+                    <TableCell className="font-mono text-xs">{row.contact_code}</TableCell>
+                    <TableCell>
+                      <span className="font-medium">{row.name}</span>
+                      {row.is_primary && (
+                        <Star className="inline ml-1.5 h-3.5 w-3.5 text-warning fill-warning" />
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {row.contact_type ? (
+                        <Badge color={CONTACT_TYPE_COLORS[row.contact_type] ?? 'gray'}>{row.contact_type}</Badge>
+                      ) : <span className="text-muted-foreground">—</span>}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{row.role_title ?? row.role ?? '—'}</TableCell>
+                    <TableCell className="text-muted-foreground">{row.company_name ?? '—'}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {row.client?.name ?? row.site?.name ?? '—'}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{row.email ?? '—'}</TableCell>
+                    <TableCell className="text-muted-foreground">{row.mobile_phone ?? row.phone ?? '—'}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+          <Pagination
+            currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
+            pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
+            onNext={pag.nextPage} onPrev={pag.prevPage}
+          />
+        </>
+      )}
+      <ContactForm
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        onSuccess={fetchData}
       />
     </div>
   );

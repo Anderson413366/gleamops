@@ -24,10 +24,13 @@ interface TicketsTableProps {
   onGoToServicePlans?: () => void;
 }
 
+const STATUS_OPTIONS = ['all', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'VERIFIED', 'CANCELED'] as const;
+
 export default function TicketsTable({ search, onGoToServicePlans }: TicketsTableProps) {
   const router = useRouter();
   const [rows, setRows] = useState<TicketWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const handleRowClick = useCallback((row: TicketWithRelations) => {
     // TODO: Create dedicated detail page route at /operations/tickets/[ticket_code].
@@ -52,17 +55,30 @@ export default function TicketsTable({ search, onGoToServicePlans }: TicketsTabl
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: rows.length };
+    for (const row of rows) {
+      const status = row.status ?? 'SCHEDULED';
+      counts[status] = (counts[status] || 0) + 1;
+    }
+    return counts;
+  }, [rows]);
+
   const filtered = useMemo(() => {
-    if (!search) return rows;
+    let result = rows;
+    if (statusFilter !== 'all') {
+      result = result.filter((r) => (r.status ?? 'SCHEDULED') === statusFilter);
+    }
+    if (!search) return result;
     const q = search.toLowerCase();
-    return rows.filter(
+    return result.filter(
       (r) =>
         r.ticket_code.toLowerCase().includes(q) ||
         r.job?.job_code?.toLowerCase().includes(q) ||
         r.site?.name?.toLowerCase().includes(q) ||
         r.site?.client?.name?.toLowerCase().includes(q)
     );
-  }, [rows, search]);
+  }, [rows, statusFilter, search]);
 
   const { sorted, sortKey, sortDir, onSort } = useTableSort(
     filtered as unknown as Record<string, unknown>[], 'scheduled_date', 'asc'
@@ -72,30 +88,17 @@ export default function TicketsTable({ search, onGoToServicePlans }: TicketsTabl
 
   if (loading) return <TableSkeleton rows={6} cols={5} />;
 
-  if (filtered.length === 0) {
-    return (
-      <EmptyState
-        icon={(
-          <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-300">
-            <Building2 className="h-10 w-10" />
-            <Sparkles className="absolute -right-1 -top-1 h-4 w-4" />
-          </div>
-        )}
-        title="No work tickets"
-        description={search ? 'Try a different search term.' : 'Service tickets will appear here as active work gets scheduled.'}
-        actionLabel={search ? undefined : '+ Create Your First Service Plan'}
-        onAction={search ? undefined : onGoToServicePlans}
-      >
-        {!search && (
-          <ul className="space-y-2 text-left text-sm text-muted-foreground">
-            <li>Track every scheduled visit with clear dates and site context.</li>
-            <li>Give supervisors one queue for assignments and completion status.</li>
-            <li>Reduce missed service windows with visible daily workload.</li>
-          </ul>
-        )}
-      </EmptyState>
-    );
-  }
+  const selectedStatusLabel = statusFilter === 'all'
+    ? 'all statuses'
+    : statusFilter.toLowerCase().replace(/_/g, ' ');
+  const emptyTitle = statusFilter === 'all'
+    ? 'No work tickets yet'
+    : `No ${selectedStatusLabel} work tickets`;
+  const emptyDescription = search
+    ? 'Try a different search term.'
+    : statusFilter === 'all'
+      ? 'Track every scheduled visit, assignment, and completion status.'
+      : 'All work tickets are currently in other statuses.';
 
   return (
     <div>
@@ -109,6 +112,31 @@ export default function TicketsTable({ search, onGoToServicePlans }: TicketsTabl
           ]}
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
+      </div>
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        {STATUS_OPTIONS.map((status) => (
+          <button
+            key={status}
+            type="button"
+            onClick={() => setStatusFilter(status)}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors',
+              statusFilter === status
+                ? 'bg-module-accent text-module-accent-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80',
+            )}
+          >
+            {status === 'all' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase().replace(/_/g, ' ')}
+            <span
+              className={cn(
+                'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+                statusFilter === status ? 'bg-white/20' : 'bg-background'
+              )}
+            >
+              {statusCounts[status] || 0}
+            </span>
+          </button>
+        ))}
       </div>
       <Table>
         <TableHeader>
@@ -141,11 +169,37 @@ export default function TicketsTable({ search, onGoToServicePlans }: TicketsTabl
           ))}
         </TableBody>
       </Table>
-      <Pagination
-        currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
-        pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
-        onNext={pag.nextPage} onPrev={pag.prevPage}
-      />
+      {filtered.length === 0 && (
+        <div className="mt-4">
+          <EmptyState
+            icon={(
+              <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-300">
+                <Building2 className="h-10 w-10" />
+                <Sparkles className="absolute -right-1 -top-1 h-4 w-4" />
+              </div>
+            )}
+            title={emptyTitle}
+            description={emptyDescription}
+            actionLabel={search || statusFilter !== 'all' ? undefined : '+ Create Your First Service Plan'}
+            onAction={search || statusFilter !== 'all' ? undefined : onGoToServicePlans}
+          >
+            {!search && statusFilter === 'all' && (
+              <ul className="space-y-2 text-left text-sm text-muted-foreground">
+                <li>Track every scheduled visit with clear dates and site context.</li>
+                <li>Give supervisors one queue for assignments and completion status.</li>
+                <li>Reduce missed service windows with visible daily workload.</li>
+              </ul>
+            )}
+          </EmptyState>
+        </div>
+      )}
+      {filtered.length > 0 && (
+        <Pagination
+          currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
+          pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
+          onNext={pag.nextPage} onPrev={pag.prevPage}
+        />
+      )}
     </div>
   );
 }

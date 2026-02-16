@@ -14,9 +14,9 @@ GleamOps is a **B2B SaaS ERP for commercial cleaning** that replaces spreadsheet
 - **Frontend**: Next.js 15 (App Router), React 19, TypeScript 5.7, Tailwind CSS 4
 - **Backend**: Supabase (PostgreSQL + RLS + Auth + Storage + Realtime)
 - **Math Engine**: CleanFlow (packages/cleanflow) — pure functions, no DB calls
-- **UI Library**: @gleamops/ui — 27 components, semantic HSL token system
+- **UI Library**: @gleamops/ui — 31 components, semantic HSL token system
 - **Deploy**: Vercel (web), worker TBD
-- **Status**: Milestones A–C complete. 10 navigation modules, 33 routes, 10 detail pages, 21 forms, 49 migrations.
+- **Status**: Milestones A–C complete. 10 navigation modules, 33 routes, 15 detail pages, 27 forms, 49 migrations.
 
 ---
 
@@ -106,7 +106,7 @@ gleamops_dev_pack/
 │   │       │       │   └── sites/[id]/    # Site detail page
 │   │       │       ├── operations/        # Jobs, Tickets, Inspections
 │   │       │       │   └── jobs/[id]/     # Job detail page
-│   │       │       ├── people/            # Staff, Payroll, Positions, Timekeeping
+│   │       │       ├── workforce/         # Staff, Payroll, Positions, Timekeeping
 │   │       │       │   └── staff/[code]/  # Staff detail page
 │   │       │       ├── inventory/         # Supplies, Kits, Counts, Orders
 │   │       │       │   └── supplies/[id]/ # Supply detail page
@@ -122,11 +122,12 @@ gleamops_dev_pack/
 │   │       │       ├── reports/           # Dashboards + reports
 │   │       │       ├── schedule/          # Calendar views
 │   │       │       ├── settings/          # User settings
-│   │       │       └── subcontractors/    # Subcontractor directory + jobs
+│   │       │       ├── people/            # Legacy redirect + staff detail route alias
+│   │       │       └── subcontractors/    # Legacy redirect to /vendors
 │   │       ├── components/
-│   │       │   ├── forms/         # 21 entity form components
+│   │       │   ├── forms/         # 27 entity form components
 │   │       │   └── layout/        # AppShell, Header, Sidebar
-│   │       ├── hooks/             # 11 custom hooks
+│   │       ├── hooks/             # 15 custom hooks
 │   │       └── lib/               # Supabase clients, utils
 │   ├── worker/                    # Background jobs (PDFs, follow-ups)
 │   └── mobile/                    # Expo React Native (future)
@@ -134,7 +135,7 @@ gleamops_dev_pack/
 │   ├── shared/                    # Types, Zod schemas, constants, error catalog
 │   ├── domain/                    # Pure business rules (status machine, RBAC)
 │   ├── cleanflow/                 # Bid math engine (pure functions)
-│   └── ui/                        # Design system (27 components)
+│   └── ui/                        # Design system (31 components)
 ├── supabase/
 │   ├── migrations/                # 49 SQL migration files (7,015 lines)
 │   └── functions/                 # Edge Functions (Deno) — TBD
@@ -153,7 +154,7 @@ gleamops_dev_pack/
 | 2 | **Pipeline** | `/pipeline` | Prospects, Opportunities, Bids, Proposals |
 | 3 | **CRM** | `/crm` | Clients, Sites, Contacts |
 | 4 | **Operations** | `/operations` | Jobs, Tickets, Inspections |
-| 5 | **People** | `/people` | Staff, Positions, Payroll, Timekeeping, Timesheets |
+| 5 | **Workforce** | `/workforce` | Staff, Positions, Payroll, Timekeeping, Timesheets |
 | 6 | **Inventory** | `/inventory` | Supplies, Kits, Site Assignments, Counts, Orders |
 | 7 | **Assets** | `/assets` | Equipment, Eq. Assignments, Vehicles, Keys, Maintenance |
 | 8 | **Vendors** | `/vendors` | Subcontractors, Supply Vendors |
@@ -164,7 +165,7 @@ Additional: `/reports`, `/schedule`, `/services`, `/settings`, `/subcontractors`
 
 ---
 
-## Detail Pages (10 dynamic routes)
+## Detail Pages (15 dynamic routes)
 
 Every detail page follows the same layout: Back link → Avatar circle → Stat cards → Section cards (`<dl>` key-value) → Edit + Deactivate buttons → Metadata footer.
 
@@ -173,13 +174,18 @@ Every detail page follows the same layout: Back link → Avatar circle → Stat 
 | Client | `/crm/clients/[id]` | client_code | `clients` |
 | Site | `/crm/sites/[id]` | site_code | `sites` + client join |
 | Job | `/operations/jobs/[id]` | job_code | `site_jobs` + site/client join |
-| Staff | `/people/staff/[code]` | staff_code | `staff` |
+| Staff (legacy redirect) | `/people/staff/[code]` | staff_code | redirect → `/workforce/staff/[code]` |
 | Supply | `/inventory/supplies/[id]` | code | `supply_catalog` |
 | Vehicle | `/assets/vehicles/[id]` | vehicle_code | `vehicles` + assigned join |
 | Key | `/assets/keys/[id]` | key_code | `key_inventory` + site/assigned join |
 | Task | `/services/tasks/[id]` | task_code | `tasks` + service_tasks count |
 | Task (admin) | `/admin/services/tasks/[id]` | task_code | `tasks` + service_tasks count |
 | Staff (workforce) | `/workforce/staff/[code]` | staff_code | `staff` |
+| Prospect | `/pipeline/prospects/[id]` | prospect_code | `sales_prospects` |
+| Opportunity | `/pipeline/opportunities/[id]` | opportunity_code | `sales_opportunities` + prospect join |
+| Equipment | `/assets/equipment/[code]` | equipment_code | `equipment` + staff/site joins |
+| Subcontractor | `/vendors/subcontractors/[code]` | subcontractor_code | `subcontractors` |
+| Supply Vendor | `/vendors/supply-vendors/[slug]` | slug | `subcontractors` (VEN-* supplier records) |
 
 ---
 
@@ -397,7 +403,7 @@ export function EntityForm({ open, onClose, initialData, onSuccess }) {
 
 ---
 
-## UI Components (@gleamops/ui — 27 components)
+## UI Components (@gleamops/ui — 31 components)
 
 | Component | Purpose |
 |-----------|---------|
@@ -416,6 +422,8 @@ export function EntityForm({ open, onClose, initialData, onSuccess }) {
 | `density-toggle` | Comfortable/compact density toggle |
 | `empty-state` | Empty state placeholder |
 | `export-button` | CSV export with toast feedback |
+| `file-dropzone.tsx` | File upload zone |
+| `form-section.tsx` | Form section layout |
 | `form-wizard` | Multi-step form wizard with step indicator |
 | `input` | Text input |
 | `pagination` | Pagination with prev/next, item count |
@@ -425,13 +433,15 @@ export function EntityForm({ open, onClose, initialData, onSuccess }) {
 | `slide-over` | Slide-over panel (right drawer or centered modal) |
 | `stat-card` | Dashboard stat display card |
 | `status-pill` | Status pill badge |
+| `table-row-visuals.tsx` | Table row styling utilities |
 | `textarea` | Textarea input |
 | `tooltip` | Help icon tooltip |
+| `utils.ts` | Component utilities (`cn`) |
 | `view-toggle` | List/Card view toggle |
 
 ---
 
-## Form Components (21 forms)
+## Form Components (27 forms)
 
 Located at `apps/web/src/components/forms/`:
 
@@ -439,29 +449,35 @@ Located at `apps/web/src/components/forms/`:
 |------|-------------|-------|
 | `client-form` | `clients` | Wizard in create mode |
 | `contact-form` | `contacts` | Client/site contacts |
+| `equipment-assignment-form.tsx` | `equipment_assignments` | |
 | `equipment-form` | `equipment` | |
+| `geofence-form.tsx` | `geofences` | |
 | `inventory-count-form` | `inventory_counts` | |
 | `job-form` | `site_jobs` | Wizard in create mode |
 | `job-log-form` | `job_logs` | |
 | `key-form` | `key_inventory` | |
 | `lookup-form` | `lookups` | |
 | `maintenance-form` | `vehicle_maintenance` | |
+| `message-form.tsx` | `message_threads` | |
 | `opportunity-form` | `opportunities` | |
 | `position-form` | `staff_positions` | |
 | `production-rate-form` | `production_rates` | |
 | `prospect-form` | `prospects` | |
 | `service-form` | `services` | |
 | `site-form` | `sites` | |
+| `site-pin-form.tsx` | `site_pin_codes` | |
 | `staff-form` | `staff` | |
 | `subcontractor-form` | `subcontractors` | |
 | `supply-form` | `supply_catalog` | |
 | `supply-order-form` | `supply_orders` | |
+| `supply-vendor-form.tsx` | `supply vendors` | |
 | `task-form` | `tasks` | |
+| `training-course-form.tsx` | `training_courses` | |
 | `vehicle-form` | `vehicles` | |
 
 ---
 
-## Custom Hooks (11 hooks)
+## Custom Hooks (15 hooks)
 
 Located at `apps/web/src/hooks/`:
 
@@ -470,13 +486,17 @@ Located at `apps/web/src/hooks/`:
 | `useAuth` | `{ user, tenantId, role, loading, signOut }` | Auth state from Supabase |
 | `useBulkSelect` | `{ selected, toggle, selectAll, clear }` | Multi-row selection |
 | `useDensity` | `{ density, setDensity }` | Comfortable/compact toggle |
+| `use-feature-flag.ts` | `boolean` | Feature flag management |
 | `useForm` | `{ values, errors, loading, setValue, handleSubmit, onBlur }` | Form state + Zod validation |
+| `use-keyboard-shortcuts.ts` | — | Keyboard shortcut handling |
+| `use-locale.ts` | `{ locale, setLocale, t }` | Internationalization |
 | `usePagination` | `{ page, currentPage, totalPages, ... }` | Client-side pagination (default 25/page) |
 | `useRealtime` | — | Supabase realtime channel subscriptions |
 | `useRole` | `{ can, isAtLeast, isAdmin, isManager }` | RBAC permission checks |
 | `useServerPagination` | `{ ... }` | Server-side pagination |
 | `useTableSort` | `{ sorted, sortKey, sortDir, onSort }` | Client-side column sorting |
 | `useTheme` | `{ theme, resolvedTheme, setTheme }` | Dark/light/system theme |
+| `use-ui-preferences.ts` | `{ preferences, setPreference }` | UI state preferences |
 | `useViewPreference` | `{ view, setView }` | List/card view (localStorage) |
 
 ---
@@ -487,8 +507,8 @@ Located at `apps/web/src/hooks/`:
 |--------|------|
 | Clients | `crm/clients/clients-card-grid.tsx` |
 | Sites | `crm/sites/sites-card-grid.tsx` |
-| Staff | `people/staff/staff-card-grid.tsx` |
-| Subcontractors | `subcontractors/directory/subcontractors-card-grid.tsx` |
+| Staff | `workforce/staff/staff-card-grid.tsx` |
+| Subcontractors | `vendors/subcontractors/subcontractors-card-grid.tsx` |
 | Jobs | `operations/jobs/jobs-card-grid.tsx` |
 | Equipment | `assets/equipment/equipment-card-grid.tsx` |
 | Vehicles | `assets/vehicles/vehicles-card-grid.tsx` |
@@ -605,16 +625,16 @@ prospectSchema, bidSchema, convertBidSchema, loginSchema
 ## Git History (Key Commits)
 
 ```
-ace336e neuro-opt: replace all remaining drawers with full detail pages
-ba5bee7 redesign: 14-phase blueprint alignment — detail pages, filter chips, card grids, navigation
-ce2e1b6 redesign: frosted-glass header + sidebar active-state dot
-3ea201e UI: add density toggle (comfortable/compact)
-345def8 UI: reskin app shell (sidebar/header) to Anderson style
-3dd0bb4 UI: adopt semantic HSL-channel tokens + compatibility aliases
-c12aae1 feat: add List/Card view toggle to all 8 entity tables
-77cd1db feat: full module restructuring — 12 sidebar modules, 8 new DB tables, 37 new components
-50cfd14 feat: complete bidding module + pipeline enhancements — 8 phases
-fcad2fe feat: port Anderson frontend to GleamOps — dark mode, forms, dashboard, CSV export
+43d135f batch-12: standardize row-click navigation with router.push
+c1e9f9f batch-12: isolate VEN-coded supply vendors from subcontractor flows
+8718087 batch-12: refactor supply vendor form to standard useForm pattern
+d399fad batch-12: fix staff row navigation to detail pages
+9029da0 batch-12: enrich detail pages layout and data coverage
+6dd149e batch-12: navigation naming consistency + reports + tab sync
+234c772 batch-12: supabase data population fixes + null-state standardization
+7918bd2 batch-12: directory column layouts redesign + scannability metrics
+f2494f8 batch-12b: fix system-wide filter trap and persistent table chrome
+3b52e5b batch-12: filter-trap hardening + liquid forms + soft deactivate
 ```
 
 ---

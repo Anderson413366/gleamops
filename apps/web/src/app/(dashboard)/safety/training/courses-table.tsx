@@ -16,6 +16,7 @@ import {
   Pagination,
   TableSkeleton,
   ExportButton,
+  cn,
 } from '@gleamops/ui';
 import type { TrainingCourse } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
@@ -29,11 +30,14 @@ interface CoursesTableProps {
   onRefresh?: () => void;
 }
 
+const STATUS_OPTIONS = ['all', 'REQUIRED', 'OPTIONAL'] as const;
+
 export default function CoursesTable({ search, formOpen, onFormClose, onRefresh }: CoursesTableProps) {
   const [rows, setRows] = useState<TrainingCourse[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [editItem, setEditItem] = useState<TrainingCourse | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -84,16 +88,30 @@ export default function CoursesTable({ search, formOpen, onFormClose, onRefresh 
   };
 
   const filtered = useMemo(() => {
-    if (!search) return rows;
+    let result = rows;
+    if (statusFilter !== 'all') {
+      result = result.filter((r) => (statusFilter === 'REQUIRED' ? r.is_required : !r.is_required));
+    }
+    if (!search) return result;
     const q = search.toLowerCase();
-    return rows.filter(
+    return result.filter(
       (r) =>
         r.name.toLowerCase().includes(q) ||
         r.course_code.toLowerCase().includes(q) ||
         (r.category?.toLowerCase().includes(q)) ||
         (r.provider?.toLowerCase().includes(q))
     );
-  }, [rows, search]);
+  }, [rows, statusFilter, search]);
+
+  const statusCounts = useMemo(() => {
+    const requiredCount = rows.filter((row) => row.is_required).length;
+    const optionalCount = rows.length - requiredCount;
+    return {
+      all: rows.length,
+      REQUIRED: requiredCount,
+      OPTIONAL: optionalCount,
+    };
+  }, [rows]);
 
   const { sorted, sortKey, sortDir, onSort } = useTableSort(
     filtered as unknown as Record<string, unknown>[],
@@ -105,41 +123,45 @@ export default function CoursesTable({ search, formOpen, onFormClose, onRefresh 
 
   if (loading) return <TableSkeleton rows={8} cols={7} />;
 
-  if (filtered.length === 0) {
-    return (
-      <>
-        <EmptyState
-          icon={(
-            <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300">
-              <BookOpen className="h-10 w-10" />
-              <Sparkles className="absolute -right-1 -top-1 h-4 w-4" />
-            </div>
-          )}
-          title="No training courses found"
-          description={search ? 'Try a different search term.' : 'Define safety training programs your crews must complete.'}
-          actionLabel={search ? undefined : '+ Add Your First Training Course'}
-          onAction={search ? undefined : handleAdd}
-        >
-          {!search && (
-            <ul className="space-y-2 text-left text-sm text-muted-foreground">
-              <li>Create reusable course records with duration and recurrence.</li>
-              <li>Standardize onboarding and refresher expectations.</li>
-              <li>Make completion tracking and compliance follow-through easier.</li>
-            </ul>
-          )}
-        </EmptyState>
-        <TrainingCourseForm
-          open={createOpen}
-          onClose={handleFormClose}
-          initialData={editItem}
-          onSuccess={handleFormSuccess}
-        />
-      </>
-    );
-  }
+  const selectedStatusLabel = statusFilter === 'all'
+    ? 'all courses'
+    : statusFilter.toLowerCase();
+  const emptyTitle = statusFilter === 'all'
+    ? 'No training courses yet'
+    : `No ${selectedStatusLabel} training courses`;
+  const emptyDescription = search
+    ? 'Try a different search term.'
+    : statusFilter === 'all'
+      ? 'Build your training catalog for onboarding and recurring compliance.'
+      : 'All training courses are currently in the other requirement group.';
 
   return (
     <div>
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        {STATUS_OPTIONS.map((status) => (
+          <button
+            key={status}
+            type="button"
+            onClick={() => setStatusFilter(status)}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors',
+              statusFilter === status
+                ? 'bg-module-accent text-module-accent-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80',
+            )}
+          >
+            {status === 'all' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase()}
+            <span
+              className={cn(
+                'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+                statusFilter === status ? 'bg-white/20' : 'bg-background'
+              )}
+            >
+              {statusCounts[status] || 0}
+            </span>
+          </button>
+        ))}
+      </div>
       <div className="flex justify-end mb-4">
         <ExportButton
           data={filtered as unknown as Record<string, unknown>[]}
@@ -192,16 +214,42 @@ export default function CoursesTable({ search, formOpen, onFormClose, onRefresh 
           ))}
         </TableBody>
       </Table>
-      <Pagination
-        currentPage={pag.currentPage}
-        totalPages={pag.totalPages}
-        totalItems={pag.totalItems}
-        pageSize={pag.pageSize}
-        hasNext={pag.hasNext}
-        hasPrev={pag.hasPrev}
-        onNext={pag.nextPage}
-        onPrev={pag.prevPage}
-      />
+      {filtered.length === 0 && (
+        <div className="mt-4">
+          <EmptyState
+            icon={(
+              <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300">
+                <BookOpen className="h-10 w-10" />
+                <Sparkles className="absolute -right-1 -top-1 h-4 w-4" />
+              </div>
+            )}
+            title={emptyTitle}
+            description={emptyDescription}
+            actionLabel={search || statusFilter !== 'all' ? undefined : '+ Add Your First Training Course'}
+            onAction={search || statusFilter !== 'all' ? undefined : handleAdd}
+          >
+            {!search && statusFilter === 'all' && (
+              <ul className="space-y-2 text-left text-sm text-muted-foreground">
+                <li>Create reusable course records with duration and recurrence.</li>
+                <li>Standardize onboarding and refresher expectations.</li>
+                <li>Make completion tracking and compliance follow-through easier.</li>
+              </ul>
+            )}
+          </EmptyState>
+        </div>
+      )}
+      {filtered.length > 0 && (
+        <Pagination
+          currentPage={pag.currentPage}
+          totalPages={pag.totalPages}
+          totalItems={pag.totalItems}
+          pageSize={pag.pageSize}
+          hasNext={pag.hasNext}
+          hasPrev={pag.hasPrev}
+          onNext={pag.nextPage}
+          onPrev={pag.prevPage}
+        />
+      )}
 
       <TrainingCourseForm
         open={createOpen}

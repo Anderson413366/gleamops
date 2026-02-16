@@ -30,7 +30,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.push('/pipeline');
+    router.push('/home');
   }
 
   return (

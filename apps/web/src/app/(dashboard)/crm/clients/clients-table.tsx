@@ -2,18 +2,19 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Building2 } from 'lucide-react';
+import { Building2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Pagination, TableSkeleton, ExportButton, ViewToggle, StatusDot, statusRowAccentClass, cn,
+  EmptyState, Pagination, TableSkeleton, ExportButton, ViewToggle, StatusDot, statusRowAccentClass, cn, Button,
 } from '@gleamops/ui';
 import type { Client } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 import { useViewPreference } from '@/hooks/use-view-preference';
 import { ClientsCardGrid, type ClientCardMeta } from './clients-card-grid';
+import { ClientForm } from '@/components/forms/client-form';
 
 // UX requirement: default to Active, show Active first, and move All to the end.
 const STATUS_OPTIONS = ['ACTIVE', 'INACTIVE', 'PROSPECT', 'ON_HOLD', 'CANCELED', 'all'] as const;
@@ -90,6 +91,7 @@ export default function ClientsTable({ search }: ClientsTableProps) {
   const router = useRouter();
   const [rows, setRows] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
+  const [formOpen, setFormOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('ACTIVE');
   const [cardMetaByClientId, setCardMetaByClientId] = useState<Record<string, ClientCardMeta>>({});
   const { view, setView } = useViewPreference('clients');
@@ -241,6 +243,7 @@ export default function ClientsTable({ search }: ClientsTableProps) {
   const handleRowClick = (row: Client) => {
     router.push(`/crm/clients/${row.client_code}`);
   };
+  const handleAdd = () => setFormOpen(true);
   const selectedStatusLabel = statusFilter === 'all'
     ? 'all statuses'
     : statusFilter.toLowerCase().replace(/_/g, ' ');
@@ -256,30 +259,35 @@ export default function ClientsTable({ search }: ClientsTableProps) {
 
   return (
     <div>
-      <div className="flex items-center justify-end gap-3 mb-4">
-        <ViewToggle view={view} onChange={setView} />
-        <ExportButton
-          data={filtered.map((row) => ({
-            ...row,
-            industry_display: row.industry ?? 'Not Set',
-            city_state: cardMetaByClientId[row.id]?.location ?? 'Not Set',
-            active_sites: cardMetaByClientId[row.id]?.activeSites ?? 0,
-            active_jobs: cardMetaByClientId[row.id]?.activeJobs ?? 0,
-            monthly_revenue: cardMetaByClientId[row.id]?.monthlyRevenue ?? 0,
-            profile_percent: Math.round(cardMetaByClientId[row.id]?.profilePercent ?? clientProfilePercent(row)),
-          })) as unknown as Record<string, unknown>[]}
-          filename="clients"
-          columns={[
-            { key: 'client_code', label: 'Code' },
-            { key: 'name', label: 'Name' },
-            { key: 'industry_display', label: 'Industry' },
-            { key: 'city_state', label: 'City/State' },
-            { key: 'active_jobs', label: 'Active Jobs' },
-            { key: 'monthly_revenue', label: 'Monthly Revenue' },
-            { key: 'profile_percent', label: 'Profile %' },
-          ]}
-          onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
-        />
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <Button size="sm" onClick={handleAdd}>
+          <Plus className="h-4 w-4" /> New Client
+        </Button>
+        <div className="flex items-center gap-3">
+          <ViewToggle view={view} onChange={setView} />
+          <ExportButton
+            data={filtered.map((row) => ({
+              ...row,
+              industry_display: row.industry ?? 'Not Set',
+              city_state: cardMetaByClientId[row.id]?.location ?? 'Not Set',
+              active_sites: cardMetaByClientId[row.id]?.activeSites ?? 0,
+              active_jobs: cardMetaByClientId[row.id]?.activeJobs ?? 0,
+              monthly_revenue: cardMetaByClientId[row.id]?.monthlyRevenue ?? 0,
+              profile_percent: Math.round(cardMetaByClientId[row.id]?.profilePercent ?? clientProfilePercent(row)),
+            })) as unknown as Record<string, unknown>[]}
+            filename="clients"
+            columns={[
+              { key: 'client_code', label: 'Code' },
+              { key: 'name', label: 'Name' },
+              { key: 'industry_display', label: 'Industry' },
+              { key: 'city_state', label: 'City/State' },
+              { key: 'active_jobs', label: 'Active Jobs' },
+              { key: 'monthly_revenue', label: 'Monthly Revenue' },
+              { key: 'profile_percent', label: 'Profile %' },
+            ]}
+            onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
+          />
+        </div>
       </div>
       <div className="flex items-center gap-2 mb-4 flex-wrap">
         {STATUS_OPTIONS.map((status) => (
@@ -315,7 +323,7 @@ export default function ClientsTable({ search }: ClientsTableProps) {
             title={emptyTitle}
             description={emptyDescription}
             actionLabel={showGuidedEmptyState ? '+ Add Your First Client' : undefined}
-            onAction={showGuidedEmptyState ? () => router.push('/crm?tab=clients&action=create-client') : undefined}
+            onAction={showGuidedEmptyState ? handleAdd : undefined}
           >
             {showGuidedEmptyState && (
               <ul className="mx-auto max-w-lg list-disc space-y-1.5 pl-5 text-left text-sm text-muted-foreground">
@@ -391,7 +399,7 @@ export default function ClientsTable({ search }: ClientsTableProps) {
                 title={emptyTitle}
                 description={emptyDescription}
                 actionLabel={showGuidedEmptyState ? '+ Add Your First Client' : undefined}
-                onAction={showGuidedEmptyState ? () => router.push('/crm?tab=clients&action=create-client') : undefined}
+                onAction={showGuidedEmptyState ? handleAdd : undefined}
               >
                 {showGuidedEmptyState && (
                   <ul className="mx-auto max-w-lg list-disc space-y-1.5 pl-5 text-left text-sm text-muted-foreground">
@@ -412,6 +420,11 @@ export default function ClientsTable({ search }: ClientsTableProps) {
           onNext={pag.nextPage} onPrev={pag.prevPage}
         />
       )}
+      <ClientForm
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        onSuccess={fetchData}
+      />
     </div>
   );
 }

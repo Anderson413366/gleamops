@@ -24,7 +24,7 @@ export function EquipmentCardGrid({ rows, onSelect }: EquipmentCardGridProps) {
         <div
           key={item.id}
           onClick={() => onSelect(item)}
-          className="rounded-xl border border-border bg-card shadow-sm cursor-pointer transition-all duration-150 hover:border-blue-200 hover:shadow-md dark:hover:border-blue-800 flex flex-col items-center p-6 text-center"
+          className="rounded-xl border border-border bg-card shadow-sm cursor-pointer transition-all duration-150 hover:border-module-accent/40 hover:shadow-md flex flex-col items-center p-6 text-center"
         >
           {item.photo_url ? (
             <img
@@ -33,7 +33,7 @@ export function EquipmentCardGrid({ rows, onSelect }: EquipmentCardGridProps) {
               className="h-20 w-20 rounded-full object-cover"
             />
           ) : (
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-blue-100 text-2xl font-bold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-module-accent/15 text-2xl font-bold text-module-accent">
               <Wrench className="h-8 w-8" />
             </div>
           )}

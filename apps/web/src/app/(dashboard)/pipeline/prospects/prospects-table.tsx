@@ -7,13 +7,15 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Pagination, TableSkeleton, ExportButton, StatusDot, statusRowAccentClass, cn,
+  EmptyState, Pagination, TableSkeleton, ExportButton, StatusDot, statusRowAccentClass, cn, ViewToggle,
 } from '@gleamops/ui';
 import type { SalesProspect } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 import { ProspectForm } from '@/components/forms/prospect-form';
 import { PipelineFlowHint } from '@/components/empty-states/pipeline-flow-hint';
+import { useViewPreference } from '@/hooks/use-view-preference';
+import { ProspectsCardGrid } from './prospects-card-grid';
 
 interface ProspectsTableProps {
   search: string;
@@ -24,6 +26,7 @@ export default function ProspectsTable({ search }: ProspectsTableProps) {
   const [rows, setRows] = useState<SalesProspect[]>([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
+  const { view, setView } = useViewPreference('prospects');
   // UX requirement: default to Active when available; move "all" to the end.
   const [statusFilter, setStatusFilter] = useState<string>('ACTIVE');
 
@@ -93,11 +96,16 @@ export default function ProspectsTable({ search }: ProspectsTableProps) {
     setFormOpen(true);
   };
 
+  const handleRowClick = useCallback((row: SalesProspect) => {
+    router.push(`/pipeline/prospects/${encodeURIComponent(row.prospect_code)}`);
+  }, [router]);
+
   if (loading) return <TableSkeleton rows={6} cols={4} />;
 
   return (
     <div>
-      <div className="flex justify-end mb-4">
+      <div className="mb-4 flex items-center justify-end gap-3">
+        <ViewToggle view={view} onChange={setView} />
         <ExportButton
           data={filtered as unknown as Record<string, unknown>[]}
           filename="prospects"
@@ -126,35 +134,39 @@ export default function ProspectsTable({ search }: ProspectsTableProps) {
           </button>
         ))}
       </div>
-      <Table>
-        <TableHeader>
-          <tr>
-            <TableHead sortable sorted={sortKey === 'prospect_code' && sortDir} onSort={() => onSort('prospect_code')}>Code</TableHead>
-            <TableHead sortable sorted={sortKey === 'company_name' && sortDir} onSort={() => onSort('company_name')}>Company</TableHead>
-            <TableHead>Source</TableHead>
-            <TableHead sortable sorted={sortKey === 'created_at' && sortDir} onSort={() => onSort('created_at')}>Created</TableHead>
-          </tr>
-        </TableHeader>
-        <TableBody>
-          {pag.page.map((row) => (
-            <TableRow
-              key={row.id}
-              onClick={() => router.push(`/pipeline/prospects/${encodeURIComponent(row.prospect_code)}`)}
-              className={cn('cursor-pointer', statusRowAccentClass(row.prospect_status_code))}
-            >
-              <TableCell className="font-mono text-xs">
-                <div className="flex items-center gap-2">
-                  <StatusDot status={row.prospect_status_code} />
-                  <span>{row.prospect_code}</span>
-                </div>
-              </TableCell>
-              <TableCell className="font-medium">{row.company_name}</TableCell>
-              <TableCell className="text-muted-foreground">{row.source ?? '—'}</TableCell>
-              <TableCell className="text-muted-foreground">{new Date(row.created_at).toLocaleDateString()}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      {view === 'card' ? (
+        filtered.length === 0 ? null : <ProspectsCardGrid rows={pag.page} onSelect={handleRowClick} />
+      ) : (
+        <Table>
+          <TableHeader>
+            <tr>
+              <TableHead sortable sorted={sortKey === 'prospect_code' && sortDir} onSort={() => onSort('prospect_code')}>Code</TableHead>
+              <TableHead sortable sorted={sortKey === 'company_name' && sortDir} onSort={() => onSort('company_name')}>Company</TableHead>
+              <TableHead>Source</TableHead>
+              <TableHead sortable sorted={sortKey === 'created_at' && sortDir} onSort={() => onSort('created_at')}>Created</TableHead>
+            </tr>
+          </TableHeader>
+          <TableBody>
+            {pag.page.map((row) => (
+              <TableRow
+                key={row.id}
+                onClick={() => handleRowClick(row)}
+                className={cn('cursor-pointer', statusRowAccentClass(row.prospect_status_code))}
+              >
+                <TableCell className="font-mono text-xs">
+                  <div className="flex items-center gap-2">
+                    <StatusDot status={row.prospect_status_code} />
+                    <span>{row.prospect_code}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="font-medium">{row.company_name}</TableCell>
+                <TableCell className="text-muted-foreground">{row.source ?? '—'}</TableCell>
+                <TableCell className="text-muted-foreground">{new Date(row.created_at).toLocaleDateString()}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
       {filtered.length === 0 && (
         <div className="mt-4">
           <EmptyState

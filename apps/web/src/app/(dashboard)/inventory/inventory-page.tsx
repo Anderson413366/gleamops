@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Package, Box, MapPin, ClipboardList, ShoppingCart,
   Plus, Sparkles,
@@ -31,6 +32,8 @@ const ADD_LABELS: Record<string, string> = {
 };
 
 export default function InventoryPageClient() {
+  const searchParams = useSearchParams();
+  const action = searchParams.get('action');
   const [simpleView, setSimpleView] = useState(false);
   const visibleTabs = useMemo(() => {
     if (!simpleView) return TABS;
@@ -67,15 +70,20 @@ export default function InventoryPageClient() {
   useEffect(() => {
     async function fetchKpis() {
       const supabase = getSupabaseBrowserClient();
-      const [activeRes, replenishmentRes, openOrdersRes, pendingCountsRes] = await Promise.all([
-        supabase.from('supply_catalog').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('supply_status', 'ACTIVE'),
+      const [statusRes, replenishmentRes, openOrdersRes, pendingCountsRes] = await Promise.all([
+        supabase.from('supply_catalog').select('supply_status').is('archived_at', null),
         supabase.from('supply_catalog').select('id', { count: 'exact', head: true }).is('archived_at', null).not('min_stock_level', 'is', null),
         supabase.from('supply_orders').select('id', { count: 'exact', head: true }).is('archived_at', null).in('status', ['ORDERED', 'SHIPPED']),
         supabase.from('inventory_counts').select('id', { count: 'exact', head: true }).is('archived_at', null).in('status', ['DRAFT', 'IN_PROGRESS']),
       ]);
 
+      const activeSupplies = (statusRes.data ?? []).filter((row) => {
+        const status = (row as { supply_status?: string | null }).supply_status;
+        return status == null || status.toUpperCase() === 'ACTIVE';
+      }).length;
+
       setKpis({
-        activeSupplies: activeRes.count ?? 0,
+        activeSupplies,
         replenishmentWatch: replenishmentRes.count ?? 0,
         openOrders: openOrdersRes.count ?? 0,
         pendingCounts: pendingCountsRes.count ?? 0,
@@ -95,6 +103,33 @@ export default function InventoryPageClient() {
   };
 
   const addLabel = ADD_LABELS[tab];
+
+  const openQuickCreate = useCallback((actionName: string | null | undefined) => {
+    if (!actionName) return;
+    if (actionName === 'create-supply') {
+      setTab('supplies');
+      setAutoCreateSupply(true);
+      return;
+    }
+    if (actionName === 'create-kit') {
+      setTab('kits');
+      setAutoCreateKit(true);
+      return;
+    }
+    if (actionName === 'create-count') {
+      setTab('counts');
+      setFormOpen(true);
+      return;
+    }
+    if (actionName === 'create-order') {
+      setTab('orders');
+      setFormOpen(true);
+    }
+  }, [setTab]);
+
+  useEffect(() => {
+    openQuickCreate(action);
+  }, [action, openQuickCreate]);
 
   return (
     <div className="space-y-6">

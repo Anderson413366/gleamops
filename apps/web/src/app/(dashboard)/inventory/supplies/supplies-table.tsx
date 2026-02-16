@@ -42,6 +42,11 @@ const UNIT_OPTIONS = [
 // UX requirement: default to Active, show Active first, and move All to the end.
 const STATUS_OPTIONS = ['ACTIVE', 'DISCONTINUED', 'all'] as const;
 
+function normalizeSupplyStatus(value: string | null | undefined): string {
+  if (!value) return 'ACTIVE';
+  return value.toUpperCase();
+}
+
 interface SuppliesTableProps {
   search: string;
   autoCreate?: boolean;
@@ -97,7 +102,7 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = { all: rows.length };
     for (const row of rows) {
-      const status = row.supply_status ?? 'ACTIVE';
+      const status = normalizeSupplyStatus(row.supply_status);
       counts[status] = (counts[status] || 0) + 1;
     }
     return counts;
@@ -106,7 +111,7 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
   const filtered = useMemo(() => {
     let result = rows;
     if (statusFilter !== 'all') {
-      result = result.filter((row) => (row.supply_status ?? 'ACTIVE') === statusFilter);
+      result = result.filter((row) => normalizeSupplyStatus(row.supply_status) === statusFilter);
     }
     if (!search) return result;
     const q = search.toLowerCase();
@@ -408,11 +413,11 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
                 <TableRow
                   key={row.id}
                   onClick={() => handleRowClick(row)}
-                  className={statusRowAccentClass(row.supply_status ?? 'ACTIVE')}
+                  className={statusRowAccentClass(normalizeSupplyStatus(row.supply_status))}
                 >
                   <TableCell className="font-mono text-xs">
                     <div className="flex items-center gap-2">
-                      <StatusDot status={row.supply_status ?? 'ACTIVE'} />
+                      <StatusDot status={normalizeSupplyStatus(row.supply_status)} />
                       <span>{row.code}</span>
                     </div>
                   </TableCell>

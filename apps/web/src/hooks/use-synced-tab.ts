@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 interface UseSyncedTabOptions {
@@ -28,6 +28,7 @@ export function useSyncedTab({ tabKeys, defaultTab, aliases }: UseSyncedTabOptio
 
   // Initialize directly from URL to avoid first-render tab flicker.
   const [tab, setTab] = useState<string>(() => resolveTab(searchParams.get('tab')));
+  const pendingUrlSyncTab = useRef<string | null>(null);
 
   // Keep state valid when tab set changes (for example, simple view hides tabs).
   useEffect(() => {
@@ -40,6 +41,13 @@ export function useSyncedTab({ tabKeys, defaultTab, aliases }: UseSyncedTabOptio
   useEffect(() => {
     const urlTab = searchParams.get('tab');
     const resolved = resolveTab(urlTab);
+    if (pendingUrlSyncTab.current) {
+      // Ignore stale URL values while waiting for router.replace() to finish.
+      if (resolved === pendingUrlSyncTab.current) {
+        pendingUrlSyncTab.current = null;
+      }
+      return;
+    }
     if (resolved && resolved !== tab) {
       setTab(resolved);
     }
@@ -50,6 +58,7 @@ export function useSyncedTab({ tabKeys, defaultTab, aliases }: UseSyncedTabOptio
     if (!tab) return;
     const current = searchParams.get('tab');
     if (current === tab) return;
+    pendingUrlSyncTab.current = tab;
     const next = new URLSearchParams(searchParams.toString());
     next.set('tab', tab);
     router.replace(`${pathname}?${next.toString()}`, { scroll: false });

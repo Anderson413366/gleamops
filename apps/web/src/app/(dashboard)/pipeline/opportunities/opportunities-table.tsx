@@ -17,6 +17,7 @@ import { PipelineFlowHint } from '@/components/empty-states/pipeline-flow-hint';
 
 interface OpportunityWithProspect extends SalesOpportunity {
   prospect?: { company_name: string; prospect_code: string } | null;
+  probability_pct?: number | null;
 }
 
 interface OpportunitiesTableProps {
@@ -135,6 +136,7 @@ export default function OpportunitiesTable({ search, onSelect }: OpportunitiesTa
             { key: 'name', label: 'Name' },
             { key: 'stage_code', label: 'Stage' },
             { key: 'estimated_monthly_value', label: 'Est. Monthly Value' },
+            { key: 'probability_pct', label: 'Probability (%)' },
             { key: 'expected_close_date', label: 'Close Date' },
           ]}
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
@@ -148,7 +150,7 @@ export default function OpportunitiesTable({ search, onSelect }: OpportunitiesTa
             <TableHead>Prospect</TableHead>
             <TableHead sortable sorted={sortKey === 'stage_code' && sortDir} onSort={() => onSort('stage_code')}>Stage</TableHead>
             <TableHead sortable sorted={sortKey === 'estimated_monthly_value' && sortDir} onSort={() => onSort('estimated_monthly_value')}>Est. Value</TableHead>
-            <TableHead>Probability</TableHead>
+            <TableHead sortable sorted={sortKey === 'probability_pct' && sortDir} onSort={() => onSort('probability_pct')}>Probability</TableHead>
             <TableHead sortable sorted={sortKey === 'expected_close_date' && sortDir} onSort={() => onSort('expected_close_date')}>Close Date</TableHead>
           </tr>
         </TableHeader>
@@ -175,7 +177,9 @@ export default function OpportunitiesTable({ search, onSelect }: OpportunitiesTa
                 </Badge>
               </TableCell>
               <TableCell className="text-muted-foreground">{formatCurrency(row.estimated_monthly_value)}</TableCell>
-              <TableCell className="text-muted-foreground">{'\u2014'}</TableCell>
+              <TableCell className="text-muted-foreground">
+                {row.probability_pct != null ? `${row.probability_pct}%` : '\u2014'}
+              </TableCell>
               <TableCell className="text-muted-foreground">{formatDate(row.expected_close_date)}</TableCell>
             </TableRow>
           ))}

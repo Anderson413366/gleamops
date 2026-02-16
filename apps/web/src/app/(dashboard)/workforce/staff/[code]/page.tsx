@@ -17,6 +17,7 @@ import {
   CalendarDays,
   ShieldCheck,
   BadgeCheck,
+  Plus,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
@@ -27,10 +28,20 @@ import {
   CardHeader,
   CardTitle,
   ChipTabs,
+  Input,
+  Select,
   Skeleton,
+  SlideOver,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@gleamops/ui';
 import type { Staff, StaffCertification, WorkTicket } from '@gleamops/shared';
 import { StaffForm } from '@/components/forms/staff-form';
+import { toast } from 'sonner';
 
 const STATUS_COLORS: Record<string, 'green' | 'gray' | 'yellow' | 'red'> = {
   ACTIVE: 'green',
@@ -44,19 +55,38 @@ interface JobAssignment {
   role: string | null;
   start_date: string | null;
   end_date: string | null;
-  job?: { job_code: string; job_name: string | null; status: string; schedule_days?: string | null } | null;
+  job?: {
+    job_code: string;
+    job_name: string | null;
+    status: string;
+    frequency: string | null;
+    schedule_days?: string | null;
+    site?: { name: string; client?: { name: string } | null } | null;
+  } | null;
 }
 
 interface EquipmentRow {
   id: string;
+  equipment_id: string;
   assigned_date: string;
-  equipment?: { name: string; equipment_code: string; condition: string | null } | null;
+  returned_date: string | null;
+  equipment?: { name: string; equipment_code: string; equipment_type: string | null; condition: string | null } | null;
 }
 
 interface TicketAssignmentRow {
   id: string;
   role: string | null;
   ticket?: Pick<WorkTicket, 'ticket_code' | 'scheduled_date' | 'status'> | null;
+}
+
+interface AssignableJobOption {
+  id: string;
+  label: string;
+}
+
+interface AssignableEquipmentOption {
+  id: string;
+  label: string;
 }
 
 function formatDate(d: string | null) {
@@ -137,6 +167,30 @@ function formatRelativeDateTime(dateStr: string): string {
   return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
 }
 
+function titleFromCode(value: string | null | undefined): string {
+  if (!value) return '\u2014';
+  return value
+    .split(/[_\s]+/g)
+    .filter(Boolean)
+    .map((chunk) => chunk.charAt(0).toUpperCase() + chunk.slice(1).toLowerCase())
+    .join(' ');
+}
+
+function assignmentRoleLabel(role: string | null | undefined): string {
+  const normalized = (role ?? '').trim().toUpperCase();
+  if (normalized === 'LEAD') return 'Lead';
+  if (normalized === 'SUPPORT' || normalized === 'CLEANER') return 'Support';
+  return 'Support';
+}
+
+function statusBadgeColor(status: string | null | undefined): 'green' | 'yellow' | 'red' | 'gray' {
+  const normalized = (status ?? '').toUpperCase();
+  if (normalized === 'ACTIVE' || normalized === 'COMPLETED') return 'green';
+  if (normalized === 'ON_HOLD' || normalized === 'IN_PROGRESS' || normalized === 'PENDING') return 'yellow';
+  if (normalized === 'CANCELED' || normalized === 'CANCELLED' || normalized === 'TERMINATED') return 'red';
+  return 'gray';
+}
+
 const TABS = [
   { key: 'overview', label: 'Overview', icon: <User className="h-4 w-4" /> },
   { key: 'jobs', label: 'Assigned Jobs', icon: <Briefcase className="h-4 w-4" /> },
@@ -155,6 +209,24 @@ export default function StaffDetailPage() {
   const [ticketAssignments, setTicketAssignments] = useState<TicketAssignmentRow[]>([]);
   const [formOpen, setFormOpen] = useState(false);
   const [supervisedTeamCount, setSupervisedTeamCount] = useState(0);
+  const [assignJobOpen, setAssignJobOpen] = useState(false);
+  const [assignEquipmentOpen, setAssignEquipmentOpen] = useState(false);
+  const [assignableJobs, setAssignableJobs] = useState<AssignableJobOption[]>([]);
+  const [assignableEquipment, setAssignableEquipment] = useState<AssignableEquipmentOption[]>([]);
+  const [assignJobLoading, setAssignJobLoading] = useState(false);
+  const [assignEquipmentLoading, setAssignEquipmentLoading] = useState(false);
+  const [assignJobSubmitting, setAssignJobSubmitting] = useState(false);
+  const [assignEquipmentSubmitting, setAssignEquipmentSubmitting] = useState(false);
+  const [assignJobForm, setAssignJobForm] = useState({
+    job_id: '',
+    role: 'SUPPORT',
+    start_date: new Date().toISOString().slice(0, 10),
+    end_date: '',
+  });
+  const [assignEquipmentForm, setAssignEquipmentForm] = useState({
+    equipment_id: '',
+    assigned_date: new Date().toISOString().slice(0, 10),
+  });
 
   const fetchStaff = async () => {
     setLoading(true);
@@ -172,14 +244,15 @@ export default function StaffDetailPage() {
       Promise.all([
         supabase
           .from('job_staff_assignments')
-          .select('id, role, start_date, end_date, job:job_id(job_code, job_name, status, schedule_days)')
+          .select('id, role, start_date, end_date, job:job_id(job_code, job_name, status, frequency, schedule_days, site:site_id(name, client:client_id(name)))')
           .eq('staff_id', data.id)
           .is('archived_at', null)
           .order('start_date', { ascending: false }),
         supabase
           .from('equipment_assignments')
-          .select('id, assigned_date, equipment:equipment_id(name, equipment_code, condition)')
+          .select('id, equipment_id, assigned_date, returned_date, equipment:equipment_id(name, equipment_code, equipment_type, condition)')
           .eq('staff_id', data.id)
+          .is('returned_date', null)
           .is('archived_at', null)
           .order('assigned_date', { ascending: false }),
         supabase
@@ -208,6 +281,134 @@ export default function StaffDetailPage() {
       });
     }
     setLoading(false);
+  };
+
+  const loadAssignableJobs = async () => {
+    if (!staff) return;
+    setAssignJobLoading(true);
+    const supabase = getSupabaseBrowserClient();
+    const assignedJobCodes = new Set((jobs ?? []).map((j) => j.job?.job_code).filter(Boolean));
+    const { data } = await supabase
+      .from('site_jobs')
+      .select('id, job_code, job_name, site:site_id(name, client:client_id(name))')
+      .eq('status', 'ACTIVE')
+      .is('archived_at', null)
+      .order('job_code', { ascending: true });
+
+    const rows = (data ?? []) as unknown as Array<{
+      id: string;
+      job_code: string;
+      job_name: string | null;
+      site?: { name?: string; client?: { name?: string } | Array<{ name?: string }> | null } | Array<{ name?: string; client?: { name?: string } | Array<{ name?: string }> | null }> | null;
+    }>;
+
+    const options = rows
+      .filter((j) => !assignedJobCodes.has(j.job_code))
+      .map((j) => {
+        const site = Array.isArray(j.site) ? j.site[0] : j.site;
+        const clientRaw = site?.client;
+        const client = Array.isArray(clientRaw) ? clientRaw[0] : clientRaw;
+        return {
+          id: j.id,
+          label: `${j.job_code}${j.job_name ? ` \u00B7 ${j.job_name}` : ''}${site?.name ? ` \u00B7 ${site.name}` : ''}${client?.name ? ` (${client.name})` : ''}`,
+        };
+      });
+
+    setAssignableJobs(options);
+    setAssignJobForm((prev) => ({ ...prev, job_id: options[0]?.id ?? '' }));
+    setAssignJobLoading(false);
+  };
+
+  const loadAssignableEquipment = async () => {
+    setAssignEquipmentLoading(true);
+    const supabase = getSupabaseBrowserClient();
+    const assignedEquipmentIds = new Set((equipment ?? []).map((e) => e.equipment_id));
+    const { data } = await supabase
+      .from('equipment')
+      .select('id, equipment_code, name, equipment_type')
+      .is('archived_at', null)
+      .order('name', { ascending: true });
+
+    const options = ((data ?? []) as Array<{ id: string; equipment_code: string; name: string; equipment_type: string | null }>)
+      .filter((e) => !assignedEquipmentIds.has(e.id))
+      .map((e) => ({
+        id: e.id,
+        label: `${e.name} \u00B7 ${e.equipment_code}${e.equipment_type ? ` \u00B7 ${titleFromCode(e.equipment_type)}` : ''}`,
+      }));
+
+    setAssignableEquipment(options);
+    setAssignEquipmentForm((prev) => ({ ...prev, equipment_id: options[0]?.id ?? '' }));
+    setAssignEquipmentLoading(false);
+  };
+
+  const handleAssignJob = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!staff) return;
+    if (!assignJobForm.job_id) {
+      toast.error('Select a job to assign.');
+      return;
+    }
+
+    setAssignJobSubmitting(true);
+    const supabase = getSupabaseBrowserClient();
+    const auth = await supabase.auth.getUser();
+    const tenantId = auth.data.user?.app_metadata?.tenant_id;
+
+    const { error } = await supabase.from('job_staff_assignments').insert({
+      tenant_id: tenantId,
+      job_id: assignJobForm.job_id,
+      staff_id: staff.id,
+      role: assignJobForm.role,
+      start_date: assignJobForm.start_date || null,
+      end_date: assignJobForm.end_date || null,
+      notes: null,
+    });
+
+    setAssignJobSubmitting(false);
+
+    if (error) {
+      toast.error(error.message.includes('uq_job_staff_assignment') ? 'This staff member is already assigned to that job.' : error.message);
+      return;
+    }
+
+    toast.success('Job assigned.');
+    setAssignJobOpen(false);
+    await fetchStaff();
+  };
+
+  const handleAssignEquipment = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!staff) return;
+    if (!assignEquipmentForm.equipment_id) {
+      toast.error('Select equipment to assign.');
+      return;
+    }
+
+    setAssignEquipmentSubmitting(true);
+    const supabase = getSupabaseBrowserClient();
+    const auth = await supabase.auth.getUser();
+    const tenantId = auth.data.user?.app_metadata?.tenant_id;
+
+    const { error } = await supabase.from('equipment_assignments').insert({
+      tenant_id: tenantId,
+      equipment_id: assignEquipmentForm.equipment_id,
+      staff_id: staff.id,
+      site_id: null,
+      assigned_date: assignEquipmentForm.assigned_date || new Date().toISOString().slice(0, 10),
+      returned_date: null,
+      notes: null,
+    });
+
+    setAssignEquipmentSubmitting(false);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    toast.success('Equipment assigned.');
+    setAssignEquipmentOpen(false);
+    await fetchStaff();
   };
 
   useEffect(() => {
@@ -495,33 +696,59 @@ export default function StaffDetailPage() {
       {/* Assigned Jobs Tab */}
       {tab === 'jobs' && (
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between gap-2">
             <CardTitle>
               <span className="inline-flex items-center gap-2">
                 Assigned Jobs <Badge color="blue">{jobs.length}</Badge>
               </span>
             </CardTitle>
+            <Button
+              size="sm"
+              onClick={() => {
+                setAssignJobOpen(true);
+                void loadAssignableJobs();
+              }}
+            >
+              <Plus className="h-4 w-4" />
+              Assign Job
+            </Button>
           </CardHeader>
           <CardContent>
             {jobs.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No job assignments.</p>
+              <p className="text-sm text-muted-foreground">No jobs assigned — Assign a job to this team member.</p>
             ) : (
-              <ul className="divide-y divide-border">
-                {jobs.map((j) => (
-                  <li key={j.id} className="py-3 flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">{j.job?.job_name ?? j.job?.job_code ?? '\u2014'}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {j.job?.job_code} {j.role && `\u00B7 ${j.role}`}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDate(j.start_date)} \u2013 {formatDate(j.end_date)}
-                      </p>
-                    </div>
-                    <Badge color={j.job?.status === 'ACTIVE' ? 'green' : 'gray'}>{j.job?.status ?? '\u2014'}</Badge>
-                  </li>
-                ))}
-              </ul>
+              <Table>
+                <TableHeader>
+                  <tr>
+                    <TableHead>Job Name</TableHead>
+                    <TableHead>Site</TableHead>
+                    <TableHead>Client</TableHead>
+                    <TableHead>Frequency</TableHead>
+                    <TableHead>Schedule Days</TableHead>
+                    <TableHead>Role on Job</TableHead>
+                    <TableHead>Status</TableHead>
+                  </tr>
+                </TableHeader>
+                <TableBody>
+                  {jobs.map((j) => (
+                    <TableRow key={j.id}>
+                      <TableCell className="font-medium">{j.job?.job_name ?? j.job?.job_code ?? '\u2014'}</TableCell>
+                      <TableCell className="text-muted-foreground">{j.job?.site?.name ?? '\u2014'}</TableCell>
+                      <TableCell className="text-muted-foreground">{j.job?.site?.client?.name ?? '\u2014'}</TableCell>
+                      <TableCell className="text-muted-foreground">{titleFromCode(j.job?.frequency ?? null)}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {parseScheduleDays(j.job?.schedule_days).length
+                          ? parseScheduleDays(j.job?.schedule_days).join(', ')
+                          : '\u2014'}
+                      </TableCell>
+                      <TableCell>{assignmentRoleLabel(j.role)}</TableCell>
+                      <TableCell>
+                        <Badge color={statusBadgeColor(j.job?.status)}>{titleFromCode(j.job?.status)}</Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
           </CardContent>
         </Card>
@@ -530,36 +757,151 @@ export default function StaffDetailPage() {
       {/* Equipment Tab */}
       {tab === 'equipment' && (
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between gap-2">
             <CardTitle>
               <span className="inline-flex items-center gap-2">
                 Assigned Equipment <Badge color="blue">{equipment.length}</Badge>
               </span>
             </CardTitle>
+            <Button
+              size="sm"
+              onClick={() => {
+                setAssignEquipmentOpen(true);
+                void loadAssignableEquipment();
+              }}
+            >
+              <Plus className="h-4 w-4" />
+              Assign Equipment
+            </Button>
           </CardHeader>
           <CardContent>
             {equipment.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No equipment assigned.</p>
+              <p className="text-sm text-muted-foreground">No equipment assigned — Check out equipment to this team member.</p>
             ) : (
-              <ul className="divide-y divide-border">
-                {equipment.map((e) => (
-                  <li key={e.id} className="py-3 flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">{e.equipment?.name ?? '\u2014'}</p>
-                      <p className="text-xs text-muted-foreground">{e.equipment?.equipment_code} &middot; Assigned: {formatDate(e.assigned_date)}</p>
-                    </div>
-                    {e.equipment?.condition && (
-                      <Badge color={e.equipment.condition === 'GOOD' ? 'green' : e.equipment.condition === 'FAIR' ? 'yellow' : 'red'}>
-                        {e.equipment.condition}
-                      </Badge>
-                    )}
-                  </li>
-                ))}
-              </ul>
+              <Table>
+                <TableHeader>
+                  <tr>
+                    <TableHead>Equipment Name</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Code</TableHead>
+                    <TableHead>Condition</TableHead>
+                    <TableHead>Date Assigned</TableHead>
+                  </tr>
+                </TableHeader>
+                <TableBody>
+                  {equipment.map((e) => (
+                    <TableRow key={e.id}>
+                      <TableCell className="font-medium">{e.equipment?.name ?? '\u2014'}</TableCell>
+                      <TableCell className="text-muted-foreground">{titleFromCode(e.equipment?.equipment_type)}</TableCell>
+                      <TableCell className="font-mono text-xs">{e.equipment?.equipment_code ?? '\u2014'}</TableCell>
+                      <TableCell>
+                        <Badge color={statusBadgeColor(e.equipment?.condition)}>
+                          {titleFromCode(e.equipment?.condition)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{formatDate(e.assigned_date)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
           </CardContent>
         </Card>
       )}
+
+      <SlideOver
+        open={assignJobOpen}
+        onClose={() => setAssignJobOpen(false)}
+        title="Assign Job"
+        subtitle="Assign an active service plan to this team member"
+      >
+        <form className="space-y-4" onSubmit={handleAssignJob}>
+          <Select
+            label="Job"
+            value={assignJobForm.job_id}
+            onChange={(event) => setAssignJobForm((prev) => ({ ...prev, job_id: event.target.value }))}
+            options={[
+              {
+                value: '',
+                label: assignJobLoading
+                  ? 'Loading active jobs...'
+                  : assignableJobs.length
+                    ? 'Select a job...'
+                    : 'No unassigned active jobs found',
+              },
+              ...assignableJobs.map((job) => ({ value: job.id, label: job.label })),
+            ]}
+            disabled={assignJobLoading || assignableJobs.length === 0}
+            required
+          />
+          <Select
+            label="Role on Job"
+            value={assignJobForm.role}
+            onChange={(event) => setAssignJobForm((prev) => ({ ...prev, role: event.target.value }))}
+            options={[
+              { value: 'LEAD', label: 'Lead' },
+              { value: 'SUPPORT', label: 'Support' },
+            ]}
+          />
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Start Date"
+              type="date"
+              value={assignJobForm.start_date}
+              onChange={(event) => setAssignJobForm((prev) => ({ ...prev, start_date: event.target.value }))}
+            />
+            <Input
+              label="End Date"
+              type="date"
+              value={assignJobForm.end_date}
+              onChange={(event) => setAssignJobForm((prev) => ({ ...prev, end_date: event.target.value }))}
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="secondary" onClick={() => setAssignJobOpen(false)} disabled={assignJobSubmitting}>Cancel</Button>
+            <Button type="submit" loading={assignJobSubmitting} disabled={assignableJobs.length === 0}>Assign Job</Button>
+          </div>
+        </form>
+      </SlideOver>
+
+      <SlideOver
+        open={assignEquipmentOpen}
+        onClose={() => setAssignEquipmentOpen(false)}
+        title="Assign Equipment"
+        subtitle="Check out equipment to this team member"
+      >
+        <form className="space-y-4" onSubmit={handleAssignEquipment}>
+          <Select
+            label="Equipment"
+            value={assignEquipmentForm.equipment_id}
+            onChange={(event) => setAssignEquipmentForm((prev) => ({ ...prev, equipment_id: event.target.value }))}
+            options={[
+              {
+                value: '',
+                label: assignEquipmentLoading
+                  ? 'Loading equipment...'
+                  : assignableEquipment.length
+                    ? 'Select equipment...'
+                    : 'No available equipment found',
+              },
+              ...assignableEquipment.map((item) => ({ value: item.id, label: item.label })),
+            ]}
+            disabled={assignEquipmentLoading || assignableEquipment.length === 0}
+            required
+          />
+          <Input
+            label="Date Assigned"
+            type="date"
+            value={assignEquipmentForm.assigned_date}
+            onChange={(event) => setAssignEquipmentForm((prev) => ({ ...prev, assigned_date: event.target.value }))}
+            required
+          />
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="secondary" onClick={() => setAssignEquipmentOpen(false)} disabled={assignEquipmentSubmitting}>Cancel</Button>
+            <Button type="submit" loading={assignEquipmentSubmitting} disabled={assignableEquipment.length === 0}>Assign Equipment</Button>
+          </div>
+        </form>
+      </SlideOver>
 
       {/* Edit Form */}
       <StaffForm

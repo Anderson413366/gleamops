@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { renderToBuffer } from '@react-pdf/renderer';
+import { PDFDocument } from 'pdf-lib';
 import {
   createProblemDetails,
   PROPOSAL_005,
@@ -46,6 +47,78 @@ function generateFileCode(): string {
   const ts = Date.now().toString(36).toUpperCase();
   const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
   return `FIL-${ts}${rand}`;
+}
+
+type ProposalAttachmentFile = {
+  id: string;
+  original_filename: string | null;
+  storage_path: string;
+  mime_type: string | null;
+};
+
+function isPdfAttachment(file: ProposalAttachmentFile): boolean {
+  const mime = file.mime_type?.toLowerCase();
+  if (mime === 'application/pdf' || mime === 'application/x-pdf') return true;
+  return file.original_filename?.toLowerCase().endsWith('.pdf') ?? false;
+}
+
+async function appendAttachmentPdfs(
+  db: ReturnType<typeof getServiceClient>,
+  basePdfBuffer: Buffer,
+  attachments: ProposalAttachmentFile[],
+) {
+  const mergedPdf = await PDFDocument.load(basePdfBuffer);
+  const appendedAttachmentNames: string[] = [];
+
+  for (const attachment of attachments) {
+    if (!isPdfAttachment(attachment)) continue;
+
+    try {
+      const { data: signedUrlData, error: signedErr } = await db.storage
+        .from('documents')
+        .createSignedUrl(attachment.storage_path, 300);
+
+      if (signedErr || !signedUrlData?.signedUrl) {
+        console.warn(
+          `[generate-pdf] Skipping attachment ${attachment.id}: could not create signed URL`,
+          signedErr,
+        );
+        continue;
+      }
+
+      const response = await fetch(signedUrlData.signedUrl);
+      if (!response.ok) {
+        console.warn(
+          `[generate-pdf] Skipping attachment ${attachment.id}: failed to download (${response.status})`,
+        );
+        continue;
+      }
+
+      const bytes = await response.arrayBuffer();
+      const attachmentPdf = await PDFDocument.load(bytes, { ignoreEncryption: true });
+      const pages = await mergedPdf.copyPages(
+        attachmentPdf,
+        attachmentPdf.getPageIndices(),
+      );
+      pages.forEach((page) => mergedPdf.addPage(page));
+
+      appendedAttachmentNames.push(
+        attachment.original_filename ?? `Attachment ${appendedAttachmentNames.length + 1}`,
+      );
+    } catch (err) {
+      console.warn(
+        `[generate-pdf] Skipping attachment ${attachment.id}: failed to append PDF`,
+        err,
+      );
+    }
+  }
+
+  if (appendedAttachmentNames.length === 0) {
+    return { mergedBuffer: basePdfBuffer, appendedAttachmentNames };
+  }
+
+  const mergedBytes = await mergedPdf.save();
+  return { mergedBuffer: Buffer.from(mergedBytes), appendedAttachmentNames };
 }
 
 // ---------------------------------------------------------------------------
@@ -193,8 +266,12 @@ export async function POST(
       }
     }
 
-    // ----- V2: Fetch attachment filenames -----
+    const layoutConfig = (proposal.layout_config as ProposalLayoutConfig | null) ?? null;
+    const attachmentMode = layoutConfig?.attachmentMode ?? 'list_only';
+
+    // ----- V2: Fetch attachment filenames / files -----
     let attachmentNames: string[] | undefined;
+    let attachmentFiles: ProposalAttachmentFile[] = [];
     const { data: attRecords } = await db
       .from('sales_proposal_attachments')
       .select('file_id')
@@ -206,14 +283,28 @@ export async function POST(
       const fileIds = attRecords.map((a: { file_id: string }) => a.file_id);
       const { data: files } = await db
         .from('files')
-        .select('id, original_filename')
+        .select('id, original_filename, storage_path, mime_type')
         .in('id', fileIds);
 
       if (files) {
         // Maintain sort order
-        const fileMap = new Map(files.map((f: { id: string; original_filename: string }) => [f.id, f.original_filename]));
-        attachmentNames = attRecords
+        const fileMap = new Map(
+          files.map(
+            (f: {
+              id: string;
+              original_filename: string | null;
+              storage_path: string;
+              mime_type: string | null;
+            }) => [f.id, f],
+          ),
+        );
+
+        attachmentFiles = attRecords
           .map((a: { file_id: string }) => fileMap.get(a.file_id))
+          .filter((f): f is ProposalAttachmentFile => !!f);
+
+        attachmentNames = attRecords
+          .map((a: { file_id: string }) => fileMap.get(a.file_id)?.original_filename ?? null)
           .filter((n): n is string => !!n);
       }
     }
@@ -242,9 +333,9 @@ export async function POST(
       terms: undefined,
       companyName: tenant?.name ?? 'GleamOps',
       // V2 additions
-      layoutConfig: (proposal.layout_config as ProposalLayoutConfig | null) ?? undefined,
+      layoutConfig: layoutConfig ?? undefined,
       signatures: signatureData,
-      attachmentNames,
+      attachmentNames: attachmentMode === 'append' ? undefined : attachmentNames,
     };
 
     let pdfBuffer: Buffer;
@@ -258,6 +349,13 @@ export async function POST(
           API_PATH,
         ),
       );
+    }
+
+    let appendedAttachmentNames: string[] = [];
+    if (attachmentMode === 'append' && attachmentFiles.length > 0) {
+      const merged = await appendAttachmentPdfs(db, pdfBuffer, attachmentFiles);
+      pdfBuffer = merged.mergedBuffer;
+      appendedAttachmentNames = merged.appendedAttachmentNames;
     }
 
     // ----- Upload to Supabase Storage -----
@@ -333,6 +431,8 @@ export async function POST(
       success: true,
       fileId: fileRecord.id,
       storageUrl: storagePath,
+      attachmentMode,
+      appendedAttachmentNames,
     });
   } catch (err: unknown) {
     console.error('[generate-pdf] Unexpected error:', err);

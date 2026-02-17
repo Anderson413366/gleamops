@@ -164,7 +164,7 @@ export function LayoutEditor({ config, onChange }: LayoutEditorProps) {
                 />
                 List filenames only
               </label>
-              <label className="flex items-center gap-2 text-sm text-muted-foreground">
+              <label className="flex items-center gap-2 text-sm">
                 <input
                   type="radio"
                   name="attachmentMode"
@@ -174,9 +174,8 @@ export function LayoutEditor({ config, onChange }: LayoutEditorProps) {
                     onChange({ ...config, attachmentMode: 'append' })
                   }
                   className="border-border"
-                  disabled
                 />
-                Append to PDF (coming soon)
+                Append attachment PDFs
               </label>
             </div>
           </div>

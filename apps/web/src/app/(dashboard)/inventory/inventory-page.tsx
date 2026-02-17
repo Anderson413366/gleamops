@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
-  Package, Box, MapPin, ClipboardList, ShoppingCart,
+  Package, Box, MapPin, ClipboardList, ShoppingCart, BrainCircuit,
   Plus, Sparkles,
 } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
@@ -15,6 +15,7 @@ import KitsTable from './kits/kits-table';
 import SiteAssignmentsTable from './site-assignments/site-assignments-table';
 import CountsTable from './counts/counts-table';
 import OrdersTable from './orders/orders-table';
+import ForecastingPanel from './forecasting/forecasting-panel';
 
 const TABS = [
   { key: 'supplies', label: 'Supply Catalog', icon: <Package className="h-4 w-4" /> },
@@ -22,6 +23,7 @@ const TABS = [
   { key: 'site-assignments', label: 'Site Assignments', icon: <MapPin className="h-4 w-4" /> },
   { key: 'counts', label: 'Counts', icon: <ClipboardList className="h-4 w-4" /> },
   { key: 'orders', label: 'Orders', icon: <ShoppingCart className="h-4 w-4" /> },
+  { key: 'forecasting', label: 'Forecasting', icon: <BrainCircuit className="h-4 w-4" /> },
 ];
 
 const ADD_LABELS: Record<string, string> = {
@@ -39,7 +41,7 @@ export default function InventoryPageClient() {
   const [simpleView, setSimpleView] = useState(false);
   const visibleTabs = useMemo(() => {
     if (!simpleView) return TABS;
-    return TABS.filter((tabOption) => ['supplies', 'orders', 'counts'].includes(tabOption.key));
+    return TABS.filter((tabOption) => ['supplies', 'orders', 'counts', 'forecasting'].includes(tabOption.key));
   }, [simpleView]);
   const [tab, setTab] = useSyncedTab({
     tabKeys: visibleTabs.map((tabOption) => tabOption.key),
@@ -215,6 +217,12 @@ export default function InventoryPageClient() {
           formOpen={formOpen}
           onFormClose={() => setFormOpen(false)}
           onRefresh={refresh}
+        />
+      )}
+      {tab === 'forecasting' && (
+        <ForecastingPanel
+          key={`forecast-${refreshKey}`}
+          search={search}
         />
       )}
     </div>

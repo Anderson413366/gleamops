@@ -44,6 +44,23 @@ test.describe('Sidebar navigation', () => {
 // ---------------------------------------------------------------------------
 
 test.describe('Tab navigation (no route change)', () => {
+  test('CRM tab selection remains stable after click (no flicker bounce)', async ({ page }) => {
+    await page.goto('/crm?tab=clients');
+    await expect(page.getByPlaceholder('Search clients...')).toBeVisible({ timeout: 10_000 });
+
+    await page.getByRole('tab', { name: 'Sites' }).click();
+    await expect(page).toHaveURL(/\/crm\?tab=sites/);
+    await expect(page.getByPlaceholder('Search sites...')).toBeVisible({ timeout: 10_000 });
+
+    await page.waitForTimeout(350);
+    await expect(page).toHaveURL(/\/crm\?tab=sites/);
+    await expect(page.getByPlaceholder('Search sites...')).toBeVisible({ timeout: 10_000 });
+
+    await page.getByRole('tab', { name: 'Clients' }).click();
+    await expect(page).toHaveURL(/\/crm\?tab=clients/);
+    await expect(page.getByPlaceholder('Search clients...')).toBeVisible({ timeout: 10_000 });
+  });
+
   test('CRM tabs stay on /crm', async ({ page }) => {
     await page.goto('/crm');
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 10_000 });

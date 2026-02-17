@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Route, Truck, PlusCircle, MapPin, Clock3, Lock } from 'lucide-react';
-import { Badge, Button, Card, CardContent, CardHeader } from '@gleamops/ui';
+import { Route, Truck, PlusCircle, MapPin, Clock3, Lock, ShieldCheck, Gauge } from 'lucide-react';
+import { Badge, Button, Card, CardContent, CardHeader, SlideOver, Textarea } from '@gleamops/ui';
 import { toast } from 'sonner';
 import { EntityLink } from '@/components/links/entity-link';
 import { useAuth } from '@/hooks/use-auth';
@@ -56,7 +56,17 @@ type VehicleRow = {
 type VehicleCheckoutRow = {
   id: string;
   vehicle_id: string;
+  route_id: string | null;
+  staff_id: string | null;
   checked_out_at: string;
+  returned_at: string | null;
+  checkout_odometer: number | null;
+  return_odometer: number | null;
+  fuel_level_out: string | null;
+  fuel_level_in: string | null;
+  dvir_out_status: 'PENDING' | 'PASS' | 'FAIL';
+  dvir_in_status: 'PENDING' | 'PASS' | 'FAIL';
+  return_notes: string | null;
   status: string;
 };
 
@@ -65,6 +75,30 @@ type VehicleMaintenanceRow = {
   vehicle_id: string;
   service_date: string;
   next_service_date: string | null;
+};
+
+type VehicleDvirRow = {
+  id: string;
+  checkout_id: string;
+  vehicle_id: string;
+  report_type: 'CHECKOUT' | 'RETURN';
+  odometer: number | null;
+  fuel_level: string | null;
+  issues_found: boolean;
+  notes: string | null;
+  reported_at: string;
+};
+
+type VehicleFuelLogRow = {
+  id: string;
+  vehicle_id: string;
+  route_id: string | null;
+  checkout_id: string | null;
+  gallons: number;
+  total_cost: number | null;
+  odometer: number | null;
+  station_name: string | null;
+  fueled_at: string;
 };
 
 interface Props {
@@ -113,6 +147,8 @@ export default function RoutesFleetPanel({ search }: Props) {
   const [vehicles, setVehicles] = useState<VehicleRow[]>([]);
   const [checkouts, setCheckouts] = useState<VehicleCheckoutRow[]>([]);
   const [maintenance, setMaintenance] = useState<VehicleMaintenanceRow[]>([]);
+  const [dvirLogs, setDvirLogs] = useState<VehicleDvirRow[]>([]);
+  const [fuelLogs, setFuelLogs] = useState<VehicleFuelLogRow[]>([]);
 
   const [selectedRouteId, setSelectedRouteId] = useState<string>('');
   const [newRouteDate, setNewRouteDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -122,10 +158,32 @@ export default function RoutesFleetPanel({ search }: Props) {
   const [newStopJobId, setNewStopJobId] = useState('');
   const [newStopTravelMinutes, setNewStopTravelMinutes] = useState('');
 
+  const [fleetModalOpen, setFleetModalOpen] = useState(false);
+  const [fleetMode, setFleetMode] = useState<'checkout' | 'return'>('checkout');
+  const [fleetVehicleId, setFleetVehicleId] = useState('');
+  const [fleetCheckoutId, setFleetCheckoutId] = useState('');
+  const [fleetRouteId, setFleetRouteId] = useState('');
+  const [fleetStaffId, setFleetStaffId] = useState('');
+  const [fleetOdometer, setFleetOdometer] = useState('');
+  const [fleetFuelLevel, setFleetFuelLevel] = useState('HALF');
+  const [fleetFuelGallons, setFleetFuelGallons] = useState('');
+  const [fleetFuelCost, setFleetFuelCost] = useState('');
+  const [fleetStation, setFleetStation] = useState('');
+  const [fleetNotes, setFleetNotes] = useState('');
+  const [fleetSaving, setFleetSaving] = useState(false);
+  const [dvirChecklist, setDvirChecklist] = useState<Record<string, boolean>>({
+    brakes_ok: true,
+    lights_ok: true,
+    tires_ok: true,
+    fluids_ok: true,
+    mirrors_ok: true,
+    warning_lights_ok: true,
+  });
+
   const load = useCallback(async () => {
     setLoading(true);
 
-    const [routesRes, stopsRes, staffRes, jobsRes, sitesRes, vehiclesRes, checkoutsRes, maintenanceRes] = await Promise.all([
+    const [routesRes, stopsRes, staffRes, jobsRes, sitesRes, vehiclesRes, checkoutsRes, maintenanceRes, dvirRes, fuelRes] = await Promise.all([
       supabase
         .from('routes')
         .select('id, route_date, route_type, status, route_owner_staff_id, created_at')
@@ -164,15 +222,26 @@ export default function RoutesFleetPanel({ search }: Props) {
         .limit(400),
       supabase
         .from('vehicle_checkouts')
-        .select('id, vehicle_id, checked_out_at, status')
+        .select('id, vehicle_id, route_id, staff_id, checked_out_at, returned_at, checkout_odometer, return_odometer, fuel_level_out, fuel_level_in, dvir_out_status, dvir_in_status, return_notes, status')
         .is('archived_at', null)
-        .eq('status', 'OUT')
         .limit(400),
       supabase
         .from('vehicle_maintenance')
         .select('id, vehicle_id, service_date, next_service_date')
         .is('archived_at', null)
         .order('service_date', { ascending: false })
+        .limit(1200),
+      supabase
+        .from('vehicle_dvir_logs')
+        .select('id, checkout_id, vehicle_id, report_type, odometer, fuel_level, issues_found, notes, reported_at')
+        .is('archived_at', null)
+        .order('reported_at', { ascending: false })
+        .limit(1200),
+      supabase
+        .from('vehicle_fuel_logs')
+        .select('id, vehicle_id, route_id, checkout_id, gallons, total_cost, odometer, station_name, fueled_at')
+        .is('archived_at', null)
+        .order('fueled_at', { ascending: false })
         .limit(1200),
     ]);
 
@@ -185,6 +254,8 @@ export default function RoutesFleetPanel({ search }: Props) {
       vehiclesRes.error,
       checkoutsRes.error,
       maintenanceRes.error,
+      dvirRes.error,
+      fuelRes.error,
     ].filter(Boolean);
 
     if (errors.length > 0) {
@@ -199,6 +270,8 @@ export default function RoutesFleetPanel({ search }: Props) {
     setVehicles((vehiclesRes.data ?? []) as VehicleRow[]);
     setCheckouts((checkoutsRes.data ?? []) as VehicleCheckoutRow[]);
     setMaintenance((maintenanceRes.data ?? []) as VehicleMaintenanceRow[]);
+    setDvirLogs((dvirRes.data ?? []) as VehicleDvirRow[]);
+    setFuelLogs((fuelRes.data ?? []) as VehicleFuelLogRow[]);
 
     setLoading(false);
   }, [supabase]);
@@ -261,12 +334,13 @@ export default function RoutesFleetPanel({ search }: Props) {
   }, [routes, stops]);
 
   const fleetKpis = useMemo(() => {
-    const checkoutVehicleIds = new Set(checkouts.map((row) => row.vehicle_id));
+    const activeCheckouts = checkouts.filter((row) => row.status === 'OUT');
+    const checkoutVehicleIds = new Set(activeCheckouts.map((row) => row.vehicle_id));
     const readyVehicles = vehicles.filter((row) => row.status === 'ACTIVE' && !checkoutVehicleIds.has(row.id)).length;
-    const outVehicles = checkouts.length;
+    const outVehicles = activeCheckouts.length;
 
     const now = Date.now();
-    const overdueCheckouts = checkouts.filter((row) => {
+    const overdueCheckouts = activeCheckouts.filter((row) => {
       const checkedOutAt = new Date(row.checked_out_at).getTime();
       if (Number.isNaN(checkedOutAt)) return false;
       const diffHours = (now - checkedOutAt) / 1000 / 60 / 60;
@@ -294,13 +368,21 @@ export default function RoutesFleetPanel({ search }: Props) {
       return daysSince >= 30;
     }).length;
 
+    const dvirDue = activeCheckouts.filter((checkout) => checkout.dvir_out_status !== 'PASS').length;
+    const recentFuelLogs = fuelLogs.filter((log) => {
+      const hours = (Date.now() - new Date(log.fueled_at).getTime()) / 1000 / 60 / 60;
+      return Number.isFinite(hours) && hours <= 24;
+    }).length;
+
     return {
       readyVehicles,
       outVehicles,
       overdueCheckouts,
       maintenanceDue,
+      dvirDue,
+      recentFuelLogs,
     };
-  }, [checkouts, maintenance, vehicles]);
+  }, [checkouts, fuelLogs, maintenance, vehicles]);
 
   const createRoute = useCallback(async () => {
     if (!tenantId) {
@@ -394,6 +476,208 @@ export default function RoutesFleetPanel({ search }: Props) {
     await load();
   }, [load, supabase]);
 
+  const openCheckoutModal = useCallback((vehicleId: string) => {
+    setFleetMode('checkout');
+    setFleetVehicleId(vehicleId);
+    setFleetCheckoutId('');
+    setFleetRouteId(selectedRouteId);
+    setFleetStaffId(newRouteOwnerStaffId || '');
+    setFleetOdometer('');
+    setFleetFuelLevel('HALF');
+    setFleetFuelGallons('');
+    setFleetFuelCost('');
+    setFleetStation('');
+    setFleetNotes('');
+    setDvirChecklist({
+      brakes_ok: true,
+      lights_ok: true,
+      tires_ok: true,
+      fluids_ok: true,
+      mirrors_ok: true,
+      warning_lights_ok: true,
+    });
+    setFleetModalOpen(true);
+  }, [newRouteOwnerStaffId, selectedRouteId]);
+
+  const openReturnModal = useCallback((checkout: VehicleCheckoutRow) => {
+    setFleetMode('return');
+    setFleetVehicleId(checkout.vehicle_id);
+    setFleetCheckoutId(checkout.id);
+    setFleetRouteId(checkout.route_id ?? selectedRouteId);
+    setFleetStaffId(checkout.staff_id ?? newRouteOwnerStaffId ?? '');
+    setFleetOdometer(checkout.return_odometer != null ? String(checkout.return_odometer) : '');
+    setFleetFuelLevel(checkout.fuel_level_in ?? 'HALF');
+    setFleetFuelGallons('');
+    setFleetFuelCost('');
+    setFleetStation('');
+    setFleetNotes(checkout.return_notes ?? '');
+    setDvirChecklist({
+      brakes_ok: true,
+      lights_ok: true,
+      tires_ok: true,
+      fluids_ok: true,
+      mirrors_ok: true,
+      warning_lights_ok: true,
+    });
+    setFleetModalOpen(true);
+  }, [newRouteOwnerStaffId, selectedRouteId]);
+
+  const submitFleetWorkflow = useCallback(async () => {
+    if (!tenantId || !fleetVehicleId) {
+      toast.error('Select a vehicle first.');
+      return;
+    }
+    if (!fleetStaffId) {
+      toast.error('Staff member is required.');
+      return;
+    }
+    if (!fleetOdometer || Number(fleetOdometer) < 0) {
+      toast.error('Valid odometer reading is required.');
+      return;
+    }
+
+    setFleetSaving(true);
+    try {
+      const issuesFound = Object.values(dvirChecklist).some((value) => !value);
+      const dvirStatus = issuesFound ? 'FAIL' : 'PASS';
+
+      if (fleetMode === 'checkout') {
+        const { data: checkout, error: checkoutErr } = await supabase
+          .from('vehicle_checkouts')
+          .insert({
+            tenant_id: tenantId,
+            vehicle_id: fleetVehicleId,
+            route_id: fleetRouteId || null,
+            staff_id: fleetStaffId,
+            checked_out_at: new Date().toISOString(),
+            checkout_odometer: Number(fleetOdometer),
+            fuel_level_out: fleetFuelLevel,
+            condition_notes: fleetNotes || null,
+            dvir_out_status: dvirStatus,
+            status: 'OUT',
+          })
+          .select('id')
+          .single();
+
+        if (checkoutErr || !checkout) {
+          throw new Error(checkoutErr?.message ?? 'Failed to check out vehicle.');
+        }
+
+        const { error: dvirErr } = await supabase
+          .from('vehicle_dvir_logs')
+          .insert({
+            tenant_id: tenantId,
+            checkout_id: checkout.id,
+            vehicle_id: fleetVehicleId,
+            route_id: fleetRouteId || null,
+            staff_id: fleetStaffId,
+            report_type: 'CHECKOUT',
+            odometer: Number(fleetOdometer),
+            fuel_level: fleetFuelLevel,
+            checklist_json: dvirChecklist,
+            issues_found: issuesFound,
+            notes: fleetNotes || null,
+            reported_at: new Date().toISOString(),
+          });
+
+        if (dvirErr) {
+          throw new Error(dvirErr.message);
+        }
+
+        toast.success('Vehicle checked out with DVIR.');
+      } else {
+        if (!fleetCheckoutId) {
+          throw new Error('Active checkout is required for return workflow.');
+        }
+
+        const { error: checkoutErr } = await supabase
+          .from('vehicle_checkouts')
+          .update({
+            returned_at: new Date().toISOString(),
+            return_odometer: Number(fleetOdometer),
+            fuel_level_in: fleetFuelLevel,
+            dvir_in_status: dvirStatus,
+            return_notes: fleetNotes || null,
+            status: 'RETURNED',
+          })
+          .eq('id', fleetCheckoutId)
+          .eq('tenant_id', tenantId);
+
+        if (checkoutErr) {
+          throw new Error(checkoutErr.message);
+        }
+
+        const { error: dvirErr } = await supabase
+          .from('vehicle_dvir_logs')
+          .insert({
+            tenant_id: tenantId,
+            checkout_id: fleetCheckoutId,
+            vehicle_id: fleetVehicleId,
+            route_id: fleetRouteId || null,
+            staff_id: fleetStaffId,
+            report_type: 'RETURN',
+            odometer: Number(fleetOdometer),
+            fuel_level: fleetFuelLevel,
+            checklist_json: dvirChecklist,
+            issues_found: issuesFound,
+            notes: fleetNotes || null,
+            reported_at: new Date().toISOString(),
+          });
+
+        if (dvirErr) {
+          throw new Error(dvirErr.message);
+        }
+
+        if (fleetFuelGallons && Number(fleetFuelGallons) > 0) {
+          const { error: fuelErr } = await supabase
+            .from('vehicle_fuel_logs')
+            .insert({
+              tenant_id: tenantId,
+              vehicle_id: fleetVehicleId,
+              route_id: fleetRouteId || null,
+              checkout_id: fleetCheckoutId,
+              staff_id: fleetStaffId,
+              odometer: Number(fleetOdometer),
+              gallons: Number(fleetFuelGallons),
+              total_cost: fleetFuelCost ? Number(fleetFuelCost) : null,
+              station_name: fleetStation || null,
+              notes: fleetNotes || null,
+              fueled_at: new Date().toISOString(),
+            });
+
+          if (fuelErr) {
+            throw new Error(fuelErr.message);
+          }
+        }
+
+        toast.success('Vehicle return logged with DVIR and fuel data.');
+      }
+
+      setFleetModalOpen(false);
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Fleet workflow failed.');
+    } finally {
+      setFleetSaving(false);
+    }
+  }, [
+    dvirChecklist,
+    fleetCheckoutId,
+    fleetFuelCost,
+    fleetFuelGallons,
+    fleetFuelLevel,
+    fleetMode,
+    fleetNotes,
+    fleetOdometer,
+    fleetRouteId,
+    fleetStaffId,
+    fleetStation,
+    fleetVehicleId,
+    load,
+    supabase,
+    tenantId,
+  ]);
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
@@ -403,11 +687,13 @@ export default function RoutesFleetPanel({ search }: Props) {
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Locked Stops</p><p className="text-xl font-semibold text-warning">{routeKpis.lockedStops}</p></CardContent></Card>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Fleet Ready</p><p className="text-xl font-semibold text-green-600">{fleetKpis.readyVehicles}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Checked Out</p><p className="text-xl font-semibold text-blue-600">{fleetKpis.outVehicles}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Overdue Returns</p><p className="text-xl font-semibold text-red-600">{fleetKpis.overdueCheckouts}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Maintenance Due</p><p className="text-xl font-semibold text-warning">{fleetKpis.maintenanceDue}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">DVIR Needs Review</p><p className="text-xl font-semibold text-warning">{fleetKpis.dvirDue}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Fuel Logs (24h)</p><p className="text-xl font-semibold text-blue-600">{fleetKpis.recentFuelLogs}</p></CardContent></Card>
       </div>
 
       <Card>
@@ -622,13 +908,15 @@ export default function RoutesFleetPanel({ search }: Props) {
           ) : (
             <div className="space-y-2">
               {vehicles.slice(0, 12).map((vehicle) => {
-                const checkout = checkouts.find((entry) => entry.vehicle_id === vehicle.id) ?? null;
+                const checkout = checkouts.find((entry) => entry.vehicle_id === vehicle.id && entry.status === 'OUT') ?? null;
+                const latestDvir = dvirLogs.find((entry) => entry.vehicle_id === vehicle.id) ?? null;
+                const latestFuel = fuelLogs.find((entry) => entry.vehicle_id === vehicle.id) ?? null;
                 const isOverdue = checkout
                   ? ((Date.now() - new Date(checkout.checked_out_at).getTime()) / 1000 / 60 / 60) >= 12
                   : false;
 
                 return (
-                  <div key={vehicle.id} className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2">
+                  <div key={vehicle.id} className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border px-3 py-2">
                     <div>
                       <EntityLink
                         entityType="vehicle"
@@ -641,10 +929,38 @@ export default function RoutesFleetPanel({ search }: Props) {
                           ? `Checked out ${new Date(checkout.checked_out_at).toLocaleString()}`
                           : 'Available for dispatch'}
                       </p>
+                      <p className="text-xs text-muted-foreground">
+                        {checkout?.checkout_odometer != null
+                          ? `Odometer out: ${checkout.checkout_odometer.toLocaleString()}`
+                          : latestDvir?.odometer != null
+                            ? `Latest odometer: ${latestDvir.odometer.toLocaleString()}`
+                            : 'Odometer not logged'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {latestFuel
+                          ? `Fuel log: ${latestFuel.gallons.toFixed(1)} gal on ${new Date(latestFuel.fueled_at).toLocaleDateString()}`
+                          : 'No recent fuel log'}
+                      </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge color={vehicle.status === 'ACTIVE' ? 'green' : vehicle.status === 'IN_SHOP' ? 'yellow' : 'gray'}>{vehicle.status}</Badge>
                       {checkout ? <Badge color={isOverdue ? 'red' : 'blue'}>{isOverdue ? 'OVERDUE' : 'OUT'}</Badge> : <Badge color="green">READY</Badge>}
+                      {checkout?.dvir_out_status ? (
+                        <Badge color={checkout.dvir_out_status === 'PASS' ? 'green' : checkout.dvir_out_status === 'FAIL' ? 'red' : 'yellow'}>
+                          DVIR {checkout.dvir_out_status}
+                        </Badge>
+                      ) : null}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {checkout ? (
+                        <Button size="sm" variant="secondary" onClick={() => openReturnModal(checkout)}>
+                          Return + DVIR
+                        </Button>
+                      ) : (
+                        <Button size="sm" onClick={() => openCheckoutModal(vehicle.id)}>
+                          Check Out + DVIR
+                        </Button>
+                      )}
                     </div>
                   </div>
                 );
@@ -653,6 +969,153 @@ export default function RoutesFleetPanel({ search }: Props) {
           )}
         </CardContent>
       </Card>
+
+      <SlideOver
+        open={fleetModalOpen}
+        onClose={() => setFleetModalOpen(false)}
+        title={fleetMode === 'checkout' ? 'Vehicle Checkout + DVIR' : 'Vehicle Return + DVIR'}
+        subtitle={fleetVehicleId ? (vehicles.find((vehicle) => vehicle.id === fleetVehicleId)?.vehicle_code ?? undefined) : undefined}
+      >
+        <div className="space-y-5">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Route</label>
+              <select
+                value={fleetRouteId}
+                onChange={(event) => setFleetRouteId(event.target.value)}
+                className="w-full rounded-md border border-border bg-background px-2 py-2 text-sm"
+              >
+                <option value="">No route linked</option>
+                {routes.slice(0, 150).map((route) => (
+                  <option key={route.id} value={route.id}>
+                    {new Date(`${route.route_date}T00:00:00`).toLocaleDateString()} · {labelRouteType(route.route_type)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Staff</label>
+              <select
+                value={fleetStaffId}
+                onChange={(event) => setFleetStaffId(event.target.value)}
+                className="w-full rounded-md border border-border bg-background px-2 py-2 text-sm"
+              >
+                <option value="">Select staff...</option>
+                {staff.map((person) => (
+                  <option key={person.id} value={person.id}>
+                    {(person.full_name ?? person.staff_code)} ({person.staff_code})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Odometer</label>
+              <input
+                type="number"
+                min={0}
+                value={fleetOdometer}
+                onChange={(event) => setFleetOdometer(event.target.value)}
+                className="w-full rounded-md border border-border bg-background px-2 py-2 text-sm"
+                placeholder="Miles"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Fuel Level</label>
+              <select
+                value={fleetFuelLevel}
+                onChange={(event) => setFleetFuelLevel(event.target.value)}
+                className="w-full rounded-md border border-border bg-background px-2 py-2 text-sm"
+              >
+                <option value="EMPTY">Empty</option>
+                <option value="QUARTER">1/4</option>
+                <option value="HALF">1/2</option>
+                <option value="THREE_QUARTER">3/4</option>
+                <option value="FULL">Full</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-border p-3">
+            <p className="mb-2 inline-flex items-center gap-2 text-sm font-semibold text-foreground">
+              <ShieldCheck className="h-4 w-4 text-primary" />
+              DVIR Checklist
+            </p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {Object.entries(dvirChecklist).map(([key, value]) => (
+                <label key={key} className="flex items-center gap-2 text-sm text-foreground">
+                  <input
+                    type="checkbox"
+                    checked={value}
+                    onChange={(event) => setDvirChecklist((prev) => ({ ...prev, [key]: event.target.checked }))}
+                    className="rounded border-border"
+                  />
+                  {key.replace(/_/g, ' ').replace(/\\b\\w/g, (char) => char.toUpperCase())}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {fleetMode === 'return' ? (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Fuel Gallons</label>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.1"
+                  value={fleetFuelGallons}
+                  onChange={(event) => setFleetFuelGallons(event.target.value)}
+                  className="w-full rounded-md border border-border bg-background px-2 py-2 text-sm"
+                  placeholder="Optional"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Fuel Cost</label>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={fleetFuelCost}
+                  onChange={(event) => setFleetFuelCost(event.target.value)}
+                  className="w-full rounded-md border border-border bg-background px-2 py-2 text-sm"
+                  placeholder="Optional"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Station</label>
+                <input
+                  type="text"
+                  value={fleetStation}
+                  onChange={(event) => setFleetStation(event.target.value)}
+                  className="w-full rounded-md border border-border bg-background px-2 py-2 text-sm"
+                  placeholder="Optional"
+                />
+              </div>
+            </div>
+          ) : null}
+
+          <Textarea
+            label="Notes"
+            value={fleetNotes}
+            onChange={(event) => setFleetNotes(event.target.value)}
+            placeholder="Condition notes, exceptions, issues found, or return remarks"
+          />
+
+          <div className="rounded-lg border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
+            <p className="inline-flex items-center gap-2">
+              <Gauge className="h-3.5 w-3.5" />
+              This workflow records odometer readings, DVIR status, and optional fuel logs tied to vehicle and route.
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-2 border-t border-border pt-4">
+            <Button variant="secondary" onClick={() => setFleetModalOpen(false)}>Cancel</Button>
+            <Button onClick={() => void submitFleetWorkflow()} loading={fleetSaving}>
+              {fleetMode === 'checkout' ? 'Complete Checkout' : 'Complete Return'}
+            </Button>
+          </div>
+        </div>
+      </SlideOver>
     </div>
   );
 }

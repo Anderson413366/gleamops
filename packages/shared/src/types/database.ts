@@ -1356,6 +1356,7 @@ export interface PayRateHistory extends StandardColumns {
 
 export interface VehicleCheckout extends StandardColumns {
   vehicle_id: string;
+  route_id: string | null;
   ticket_id: string | null;
   staff_id: string | null;
   checked_out_at: string;
@@ -1364,8 +1365,38 @@ export interface VehicleCheckout extends StandardColumns {
   return_odometer: number | null;
   fuel_level_out: string | null;
   fuel_level_in: string | null;
+  dvir_out_status: 'PENDING' | 'PASS' | 'FAIL';
+  dvir_in_status: 'PENDING' | 'PASS' | 'FAIL';
   condition_notes: string | null;
+  return_notes: string | null;
   status: 'OUT' | 'RETURNED' | 'OVERDUE';
+}
+
+export interface VehicleDvirLog extends StandardColumns {
+  checkout_id: string;
+  vehicle_id: string;
+  route_id: string | null;
+  staff_id: string | null;
+  report_type: 'CHECKOUT' | 'RETURN';
+  odometer: number | null;
+  fuel_level: string | null;
+  checklist_json: Record<string, boolean>;
+  issues_found: boolean;
+  notes: string | null;
+  reported_at: string;
+}
+
+export interface VehicleFuelLog extends StandardColumns {
+  vehicle_id: string;
+  route_id: string | null;
+  checkout_id: string | null;
+  staff_id: string | null;
+  odometer: number | null;
+  gallons: number;
+  total_cost: number | null;
+  station_name: string | null;
+  notes: string | null;
+  fueled_at: string;
 }
 
 export interface KeyEventLog extends StandardColumns {

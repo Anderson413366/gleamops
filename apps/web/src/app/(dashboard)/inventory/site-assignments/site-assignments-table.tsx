@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { CalendarClock, MapPin, Package2, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { EntityLink } from '@/components/links/entity-link';
 import type { SiteSupply } from '@gleamops/shared';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
@@ -444,12 +445,7 @@ export default function SiteAssignmentsTable({ search }: Props) {
                 </TableCell>
                 <TableCell className="w-full font-medium">
                   {enriched?.code ? (
-                    <Link
-                      href={`/inventory/supplies/${encodeURIComponent(enriched.code)}`}
-                      className="text-blue-600 hover:underline dark:text-blue-400"
-                    >
-                      {row.name}
-                    </Link>
+                    <EntityLink entityType="supply" code={enriched.code} name={row.name} showCode={false} />
                   ) : (
                     <Link
                       href={`/inventory?tab=supplies&search=${encodeURIComponent(row.name)}`}
@@ -636,12 +632,11 @@ export default function SiteAssignmentsTable({ search }: Props) {
               <div key={siteCode} className="rounded-xl border border-border bg-card p-4">
                 <p className="mb-3 text-sm font-semibold text-foreground">
                   {siteCode !== 'UNASSIGNED' && siteRows[0]?.site?.site_code ? (
-                    <Link
-                      href={`/crm/sites/${siteRows[0].site.site_code}`}
-                      className="text-blue-600 hover:underline dark:text-blue-400"
-                    >
-                      {siteName} ({siteRows[0].site.site_code})
-                    </Link>
+                    <EntityLink
+                      entityType="site"
+                      code={siteRows[0].site.site_code}
+                      name={siteName}
+                    />
                   ) : siteName}
                 </p>
                 <p className="mb-3 text-xs text-muted-foreground">

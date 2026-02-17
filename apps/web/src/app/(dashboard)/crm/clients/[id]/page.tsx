@@ -141,11 +141,11 @@ function formatFrequency(value: string | null): string {
     WEEKLY: 'Weekly',
     BIWEEKLY: 'Biweekly',
     MONTHLY: 'Monthly',
-    '2X_WEEK': '2x/Week',
-    '3X_WEEK': '3x/Week',
-    '4X_WEEK': '4x/Week',
-    '5X_WEEK': '5x/Week',
-    '6X_WEEK': '6x/Week',
+    '2X_WEEK': '2×/Week',
+    '3X_WEEK': '3×/Week',
+    '4X_WEEK': '4×/Week',
+    '5X_WEEK': '5×/Week',
+    '6X_WEEK': '6×/Week',
     AS_NEEDED: 'As Needed',
   };
   return map[normalized] ?? normalized.replace(/_/g, ' ');

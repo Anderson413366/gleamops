@@ -20,15 +20,17 @@ interface EntityCardProps {
   imageUrl?: string | null;
 }
 
-const INITIALS_BG_CLASSES = [
-  'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-200',
-  'bg-sky-100 text-sky-700 dark:bg-sky-950/50 dark:text-sky-200',
-  'bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-200',
-  'bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-200',
-  'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-200',
-  'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-950/50 dark:text-fuchsia-200',
-  'bg-teal-100 text-teal-700 dark:bg-teal-950/50 dark:text-teal-200',
-  'bg-orange-100 text-orange-700 dark:bg-orange-950/50 dark:text-orange-200',
+const INITIALS_BG_COLORS = [
+  '#3b82f6',
+  '#ef4444',
+  '#10b981',
+  '#f59e0b',
+  '#8b5cf6',
+  '#ec4899',
+  '#14b8a6',
+  '#f97316',
+  '#6366f1',
+  '#84cc16',
 ];
 
 const STATUS_TONE_CLASSES: Record<CardTone, { dot: string; badge: string }> = {
@@ -63,7 +65,12 @@ function hashIndex(seed: string, size: number): number {
 }
 
 export function getEntityInitials(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean);
+  const stopWords = new Set(['&', 'and', 'of', 'the', 'for', 'to', 'at', 'a', 'an']);
+  const words = name
+    .trim()
+    .split(/\s+/)
+    .map((word) => word.replace(/[^A-Za-z0-9]/g, ''))
+    .filter((word) => word.length > 0 && !stopWords.has(word.toLowerCase()));
   if (words.length >= 2) {
     return `${words[0][0]}${words[1][0]}`.toUpperCase();
   }
@@ -84,24 +91,27 @@ export function EntityCard({
   onClick,
   imageUrl,
 }: EntityCardProps) {
-  const initialsClass = INITIALS_BG_CLASSES[hashIndex(initialsSeed, INITIALS_BG_CLASSES.length)];
+  const initialsColor = INITIALS_BG_COLORS[hashIndex(initialsSeed, INITIALS_BG_COLORS.length)];
   const tone = STATUS_TONE_CLASSES[statusTone];
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className="group flex w-full cursor-pointer flex-col rounded-2xl border border-border bg-card p-4 text-left shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:border-module-accent/40 hover:shadow-md"
+      className="group flex w-full cursor-pointer flex-col rounded-xl border border-border bg-card p-5 text-left shadow-sm transition-all duration-200 hover:scale-[1.02] hover:border-module-accent/40 hover:shadow-md"
     >
       <div className="flex items-start justify-between gap-3">
         {imageUrl ? (
           <img
             src={imageUrl}
             alt={name}
-            className="h-16 w-16 shrink-0 rounded-full border border-border object-cover"
+            className="h-20 w-20 shrink-0 rounded-full border border-border object-cover"
           />
         ) : (
-          <div className={cn('flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-lg font-semibold', initialsClass)}>
+          <div
+            className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full text-2xl font-bold text-white"
+            style={{ backgroundColor: initialsColor }}
+          >
             {initials}
           </div>
         )}
@@ -113,7 +123,7 @@ export function EntityCard({
       </div>
 
       <div className="mt-4 min-w-0">
-        <p className="truncate text-base font-semibold text-foreground">{name}</p>
+        <p className="line-clamp-2 text-base font-semibold leading-tight text-foreground">{name}</p>
         <p className="mt-1 truncate text-sm text-muted-foreground">{subtitle || 'Not Set'}</p>
         {secondaryLine ? <p className="mt-0.5 truncate text-sm text-muted-foreground">{secondaryLine}</p> : null}
       </div>
@@ -121,7 +131,7 @@ export function EntityCard({
       <p className="mt-4 text-[13px] text-muted-foreground">{metricsLine}</p>
 
       <div className="mt-4 border-t border-border pt-3">
-        <p className="text-xs uppercase tracking-wide text-muted-foreground">{code}</p>
+        <p className="font-mono text-xs uppercase tracking-wide text-muted-foreground">{code}</p>
       </div>
     </button>
   );

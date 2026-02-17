@@ -11,6 +11,7 @@ import {
   Pencil,
   PauseCircle,
   PlayCircle,
+  Wrench,
   Building2,
   Shield,
   AlertTriangle,
@@ -117,6 +118,7 @@ interface CountSummary {
   counted_by: string | null;
   counted_by_name?: string | null;
   submitted_at?: string | null;
+  public_token?: string | null;
 }
 
 interface CountDetailSummary {
@@ -170,11 +172,11 @@ function formatFrequency(value: string | null): string {
     WEEKLY: 'Weekly',
     BIWEEKLY: 'Biweekly',
     MONTHLY: 'Monthly',
-    '2X_WEEK': '2x/Week',
-    '3X_WEEK': '3x/Week',
-    '4X_WEEK': '4x/Week',
-    '5X_WEEK': '5x/Week',
-    '6X_WEEK': '6x/Week',
+    '2X_WEEK': '2×/Week',
+    '3X_WEEK': '3×/Week',
+    '4X_WEEK': '4×/Week',
+    '5X_WEEK': '5×/Week',
+    '6X_WEEK': '6×/Week',
     AS_NEEDED: 'As Needed',
   };
   return map[normalized] ?? normalized.replace(/_/g, ' ');
@@ -329,7 +331,7 @@ export default function SiteDetailPage() {
           .order('name'),
         supabase
           .from('inventory_counts')
-          .select('id, count_code, count_date, status, counted_by, counted_by_name, submitted_at')
+          .select('id, count_code, count_date, status, counted_by, counted_by_name, submitted_at, public_token')
           .eq('site_id', s.id)
           .is('archived_at', null)
           .order('count_date', { ascending: false })
@@ -499,6 +501,17 @@ export default function SiteDetailPage() {
     () => relatedJobs.filter((job) => job.status === 'ACTIVE'),
     [relatedJobs]
   );
+  const assignedStaffCount = useMemo(() => {
+    const assigned = new Set<string>();
+    for (const job of activeServicePlans) {
+      const staff = jobStaffByJob[job.id] ?? [];
+      for (const row of staff) {
+        const key = row.staff?.staff_code ?? row.staff?.full_name ?? null;
+        if (key) assigned.add(key);
+      }
+    }
+    return assigned.size;
+  }, [activeServicePlans, jobStaffByJob]);
 
   const supplyCategories = useMemo(() => {
     const values = new Set<string>();
@@ -626,6 +639,20 @@ export default function SiteDetailPage() {
   const primaryContactName = site.primary_contact?.name ?? site.primary_contact_name ?? null;
   const primaryContactEmail = site.primary_contact?.email ?? site.primary_contact_email ?? null;
   const primaryContactPhone = site.primary_contact?.mobile_phone || site.primary_contact?.work_phone || site.primary_contact?.phone || site.primary_contact_phone || null;
+  const copyPublicCountLink = async (token: string | null | undefined) => {
+    if (!token) {
+      toast.error('Public count link is not available for this record.');
+      return;
+    }
+    if (typeof window === 'undefined') return;
+    const publicUrl = `${window.location.origin}/count/${token}`;
+    try {
+      await navigator.clipboard.writeText(publicUrl);
+      toast.success('Public count link copied to clipboard.');
+    } catch {
+      toast.error('Could not copy link. Please copy it manually.');
+    }
+  };
   const emergencyContactName = site.emergency_contact?.name ?? site.emergency_contact_name ?? null;
   const emergencyContactEmail = site.emergency_contact?.email ?? site.emergency_contact_email ?? null;
   const emergencyContactPhone = site.emergency_contact?.mobile_phone || site.emergency_contact?.work_phone || site.emergency_contact?.phone || site.emergency_contact_phone || null;
@@ -1088,19 +1115,29 @@ export default function SiteDetailPage() {
               Service Plans &amp; Scope of Work
             </span>
           </h3>
-          <Badge color="blue">{`${activeServicePlans.length} active`}</Badge>
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/operations?tab=jobs&site=${encodeURIComponent(site.site_code)}&action=new`}
+              className="inline-flex items-center rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              + Assign Job
+            </Link>
+            <Badge color="blue">{`${activeServicePlans.length} active`}</Badge>
+          </div>
         </div>
 
-        {relatedJobs.length === 0 ? (
+        {activeServicePlans.length === 0 ? (
           <p className="mt-4 text-sm text-muted-foreground">
-            No service plans assigned to this site. Create one from Operations → Service Plans.
+            No active jobs at this site. Click &quot;+ Assign Job&quot; to create one.
           </p>
         ) : (
           <div className="mt-4 space-y-3">
-            {relatedJobs.map((job) => {
+            {activeServicePlans.map((job) => {
               const tasks = jobTasksByJob[job.id] ?? [];
               const jobStaff = jobStaffByJob[job.id] ?? [];
               const isExpanded = expandedJobs.includes(job.id);
+              const totalMinutes = tasks.reduce((sum, task) => sum + (task.planned_minutes ?? 0), 0);
+              const estHours = totalMinutes > 0 ? `${(totalMinutes / 60).toFixed(1)} hrs/service` : 'Not Set';
               return (
                 <div key={job.id} className="rounded-lg border border-border bg-muted/10 p-4">
                   <div className="flex items-start justify-between gap-3">
@@ -1138,7 +1175,13 @@ export default function SiteDetailPage() {
                         ) : (
                           <span>Assigned to: {job.job_assigned_to || 'Not Set'}</span>
                         )}
-                        {' · '}Schedule: {job.schedule_days || 'Days not set'} · {formatTime(job.start_time)} - {formatTime(job.end_time)}
+                        {' · '}Priority: {job.priority_level ?? 'Standard'}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Schedule: {job.schedule_days || 'Days not set'} · {formatTime(job.start_time)} - {formatTime(job.end_time)}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Est. Time: {estHours}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -1178,15 +1221,24 @@ export default function SiteDetailPage() {
                       )}
                     </div>
                   )}
+
+                  <div className="mt-3 border-t border-border/70 pt-2">
+                    <EntityLink entityType="job" code={job.job_code} name="View Job Details →" showCode={false} />
+                  </div>
                 </div>
               );
             })}
+            <p className="text-sm font-medium text-foreground">
+              Total Site Revenue: {formatCurrency(
+                activeServicePlans.reduce((sum, job) => sum + (job.billing_amount ?? 0), 0)
+              )}/mo
+            </p>
           </div>
         )}
       </div>
 
       {/* Assigned Supplies & Inventory */}
-      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+      <div id="assigned-supplies-section" className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-sm font-semibold text-foreground">
             <span className="inline-flex items-center gap-2">
@@ -1393,6 +1445,13 @@ export default function SiteDetailPage() {
                         >
                           View Full Count Report
                         </Link>
+                        <button
+                          type="button"
+                          onClick={() => copyPublicCountLink(count.public_token)}
+                          className="text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
+                        >
+                          Copy Link
+                        </button>
                       </div>
                     </div>
                     {expanded && (
@@ -1434,7 +1493,7 @@ export default function SiteDetailPage() {
       </div>
 
       {/* Related Equipment */}
-      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+      <div id="related-equipment-section" className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <h3 className="mb-4 text-sm font-semibold text-foreground">Related Equipment</h3>
         {relatedEquipment.length === 0 ? (
           <p className="text-sm text-muted-foreground">No equipment linked to this site.</p>
@@ -1474,6 +1533,52 @@ export default function SiteDetailPage() {
             </table>
           </div>
         )}
+      </div>
+
+      {/* Assigned Resources */}
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <h3 className="text-sm font-semibold text-foreground">Assigned Resources</h3>
+        <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+          <Link
+            href={`/inventory?tab=site-assignments&site=${encodeURIComponent(site.site_code)}`}
+            className="rounded-lg border border-border bg-muted/10 p-4 text-center transition-colors hover:bg-muted"
+          >
+            <Package className="mx-auto h-5 w-5 text-muted-foreground" />
+            <p className="mt-2 text-2xl font-semibold text-foreground tabular-nums">{siteSupplies.length}</p>
+            <p className="text-xs text-muted-foreground">Supplies</p>
+            <p className="mt-1 text-xs font-medium text-blue-600 hover:underline">View</p>
+          </Link>
+
+          <Link
+            href={`/assets?tab=equipment&site=${encodeURIComponent(site.site_code)}`}
+            className="rounded-lg border border-border bg-muted/10 p-4 text-center transition-colors hover:bg-muted"
+          >
+            <Wrench className="mx-auto h-5 w-5 text-muted-foreground" />
+            <p className="mt-2 text-2xl font-semibold text-foreground tabular-nums">{equipmentCount}</p>
+            <p className="text-xs text-muted-foreground">Equipment</p>
+            <p className="mt-1 text-xs font-medium text-blue-600 hover:underline">View</p>
+          </Link>
+
+          <Link
+            href={`/assets?tab=keys&site=${encodeURIComponent(site.site_code)}`}
+            className="rounded-lg border border-border bg-muted/10 p-4 text-center transition-colors hover:bg-muted"
+          >
+            <KeyRound className="mx-auto h-5 w-5 text-muted-foreground" />
+            <p className="mt-2 text-2xl font-semibold text-foreground tabular-nums">{keys.length}</p>
+            <p className="text-xs text-muted-foreground">Keys</p>
+            <p className="mt-1 text-xs font-medium text-blue-600 hover:underline">View</p>
+          </Link>
+
+          <Link
+            href={`/operations?tab=jobs&site=${encodeURIComponent(site.site_code)}`}
+            className="rounded-lg border border-border bg-muted/10 p-4 text-center transition-colors hover:bg-muted"
+          >
+            <Users className="mx-auto h-5 w-5 text-muted-foreground" />
+            <p className="mt-2 text-2xl font-semibold text-foreground tabular-nums">{assignedStaffCount}</p>
+            <p className="text-xs text-muted-foreground">Staff</p>
+            <p className="mt-1 text-xs font-medium text-blue-600 hover:underline">View</p>
+          </Link>
+        </div>
       </div>
 
       {/* Metadata */}

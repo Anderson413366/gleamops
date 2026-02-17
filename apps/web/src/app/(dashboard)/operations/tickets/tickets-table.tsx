@@ -34,8 +34,7 @@ export default function TicketsTable({ search, onGoToServicePlans }: TicketsTabl
   const [statusFilter, setStatusFilter] = useState<string>('SCHEDULED');
 
   const handleRowClick = useCallback((row: TicketWithRelations) => {
-    // TODO: Create dedicated detail page route at /operations/tickets/[ticket_code].
-    router.push(`/operations?tab=tickets&ticket=${encodeURIComponent(row.id)}`);
+    router.push(`/operations/tickets/${encodeURIComponent(row.ticket_code)}`);
   }, [router]);
 
   const fetchData = useCallback(async () => {

@@ -426,7 +426,7 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
                   <TableCell className="text-muted-foreground">{row.brand ?? '—'}</TableCell>
                   <TableCell>{row.unit}</TableCell>
                   <TableCell className="font-mono text-xs">
-                    {row.unit_cost != null ? `$${Number(row.unit_cost).toFixed(2)}` : '—'}
+                    {row.unit_cost != null ? `$${Number(row.unit_cost).toFixed(2)}` : '$0.00'}
                   </TableCell>
                   <TableCell className="text-muted-foreground">{row.preferred_vendor ?? '—'}</TableCell>
                   <TableCell>

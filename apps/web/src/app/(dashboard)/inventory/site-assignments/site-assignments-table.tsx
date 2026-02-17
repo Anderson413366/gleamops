@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { MapPin, Plus, Trash2 } from 'lucide-react';
+import { CalendarClock, MapPin, Package2, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { SiteSupply } from '@gleamops/shared';
@@ -31,6 +31,26 @@ interface SupplyOption {
   unit: string;
   preferred_vendor: string | null;
   sds_url: string | null;
+  image_url: string | null;
+}
+
+interface InventoryCountSummary {
+  id: string;
+  site_id: string | null;
+  count_date: string;
+  counter?: { full_name: string | null } | null;
+}
+
+interface InventoryCountDetailSummary {
+  count_id: string;
+  supply_id: string;
+  actual_qty: number | null;
+}
+
+interface LatestCountMeta {
+  countId: string;
+  countDate: string;
+  countedBy: string | null;
 }
 
 interface Props {
@@ -45,6 +65,26 @@ function keyByName(rows: SupplyOption[]): Record<string, SupplyOption> {
   return map;
 }
 
+function formatDateLabel(value: string | null | undefined): string {
+  if (!value) return 'Not Set';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return 'Not Set';
+  return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function dueBadgeLabel(value: string | null | undefined): { label: string; tone: 'green' | 'yellow' | 'red' | 'gray' } {
+  if (!value) return { label: 'No schedule', tone: 'gray' };
+  const base = new Date(value);
+  if (Number.isNaN(base.getTime())) return { label: 'No schedule', tone: 'gray' };
+  const due = new Date(base);
+  due.setDate(due.getDate() + 30);
+  const ms = due.getTime() - Date.now();
+  const diffDays = Math.ceil(ms / (1000 * 60 * 60 * 24));
+  if (diffDays < 0) return { label: `Overdue by ${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? '' : 's'}`, tone: 'red' };
+  if (diffDays <= 7) return { label: `Due in ${diffDays} day${diffDays === 1 ? '' : 's'}`, tone: 'yellow' };
+  return { label: `Due in ${diffDays} days`, tone: 'green' };
+}
+
 export default function SiteAssignmentsTable({ search }: Props) {
   const searchParams = useSearchParams();
   const siteQueryCode = searchParams.get('site');
@@ -52,6 +92,8 @@ export default function SiteAssignmentsTable({ search }: Props) {
   const [rows, setRows] = useState<SiteSupplyRow[]>([]);
   const [sites, setSites] = useState<SiteOption[]>([]);
   const [catalogRows, setCatalogRows] = useState<SupplyOption[]>([]);
+  const [latestCountBySite, setLatestCountBySite] = useState<Record<string, LatestCountMeta>>({});
+  const [lastQtyBySiteSupply, setLastQtyBySiteSupply] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
   const [siteFilter, setSiteFilter] = useState<string>('all');
@@ -69,7 +111,7 @@ export default function SiteAssignmentsTable({ search }: Props) {
   const fetchData = useCallback(async () => {
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
-    const [assignRes, sitesRes, catalogRes] = await Promise.all([
+    const [assignRes, sitesRes, catalogRes, countsRes] = await Promise.all([
       supabase
         .from('site_supplies')
         .select('*, site:site_id(id, name, site_code)')
@@ -82,18 +124,67 @@ export default function SiteAssignmentsTable({ search }: Props) {
         .order('name'),
       supabase
         .from('supply_catalog')
-        .select('id, code, name, category, unit, preferred_vendor, sds_url')
+        .select('id, code, name, category, unit, preferred_vendor, sds_url, image_url')
         .is('archived_at', null)
         .order('name'),
+      supabase
+        .from('inventory_counts')
+        .select('id, site_id, count_date, counter:counted_by(full_name)')
+        .is('archived_at', null)
+        .order('count_date', { ascending: false }),
     ]);
 
     if (assignRes.error) toast.error(assignRes.error.message);
     if (sitesRes.error) toast.error(sitesRes.error.message);
     if (catalogRes.error) toast.error(catalogRes.error.message);
+    if (countsRes.error) toast.error(countsRes.error.message);
 
     setRows((assignRes.data as unknown as SiteSupplyRow[]) ?? []);
     setSites((sitesRes.data as unknown as SiteOption[]) ?? []);
     setCatalogRows((catalogRes.data as unknown as SupplyOption[]) ?? []);
+
+    const latestBySite: Record<string, LatestCountMeta> = {};
+    const countIdToSite: Record<string, string> = {};
+    for (const count of ((countsRes.data ?? []) as unknown as InventoryCountSummary[])) {
+      if (!count.site_id) continue;
+      if (latestBySite[count.site_id]) continue;
+      latestBySite[count.site_id] = {
+        countId: count.id,
+        countDate: count.count_date,
+        countedBy: count.counter?.full_name ?? null,
+      };
+      countIdToSite[count.id] = count.site_id;
+    }
+    setLatestCountBySite(latestBySite);
+
+    const latestCountIds = Object.values(latestBySite).map((entry) => entry.countId);
+    if (latestCountIds.length === 0) {
+      setLastQtyBySiteSupply({});
+      setLoading(false);
+      return;
+    }
+
+    const { data: detailsData, error: detailsError } = await supabase
+      .from('inventory_count_details')
+      .select('count_id, supply_id, actual_qty')
+      .is('archived_at', null)
+      .in('count_id', latestCountIds);
+
+    if (detailsError) {
+      toast.error(detailsError.message);
+      setLastQtyBySiteSupply({});
+      setLoading(false);
+      return;
+    }
+
+    const qtyMap: Record<string, number> = {};
+    for (const detail of ((detailsData ?? []) as unknown as InventoryCountDetailSummary[])) {
+      const siteId = countIdToSite[detail.count_id];
+      if (!siteId) continue;
+      const key = `${siteId}:${detail.supply_id}`;
+      qtyMap[key] = Number(detail.actual_qty ?? 0);
+    }
+    setLastQtyBySiteSupply(qtyMap);
     setLoading(false);
   }, []);
 
@@ -174,6 +265,10 @@ export default function SiteAssignmentsTable({ search }: Props) {
   const selectedSite = useMemo(
     () => sites.find((site) => site.id === siteFilter) ?? null,
     [siteFilter, sites]
+  );
+  const selectedSiteLastCount = useMemo(
+    () => (selectedSite ? latestCountBySite[selectedSite.id] ?? null : null),
+    [latestCountBySite, selectedSite]
   );
 
   const assignmentSupplyOptions = useMemo(() => {
@@ -283,10 +378,12 @@ export default function SiteAssignmentsTable({ search }: Props) {
     <Table>
       <TableHeader>
         <tr>
+          <TableHead>Img</TableHead>
           <TableHead>Supply</TableHead>
           <TableHead>Category</TableHead>
           <TableHead>Type</TableHead>
           <TableHead>Vendor</TableHead>
+          <TableHead>Last Cnt</TableHead>
           <TableHead>SDS</TableHead>
           <TableHead>Action</TableHead>
         </tr>
@@ -298,8 +395,21 @@ export default function SiteAssignmentsTable({ search }: Props) {
           const unit = enriched?.unit ?? 'Not Set';
           const vendor = enriched?.preferred_vendor ?? 'Not Set';
           const sdsUrl = row.sds_url ?? enriched?.sds_url ?? null;
+          const imageUrl = enriched?.image_url ?? null;
+          const supplyId = enriched?.id ?? null;
+          const qtyKey = supplyId ? `${row.site_id}:${supplyId}` : '';
+          const lastCountQty = qtyKey ? lastQtyBySiteSupply[qtyKey] : undefined;
           return (
             <TableRow key={row.id}>
+              <TableCell>
+                <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-md border border-border bg-muted/30">
+                  {imageUrl ? (
+                    <div className="h-full w-full bg-cover bg-center" style={{ backgroundImage: `url(${imageUrl})` }} />
+                  ) : (
+                    <Package2 className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </div>
+              </TableCell>
               <TableCell className="font-medium">
                 {enriched?.code ? (
                   <Link
@@ -320,6 +430,9 @@ export default function SiteAssignmentsTable({ search }: Props) {
               <TableCell className="text-muted-foreground">{category}</TableCell>
               <TableCell className="text-muted-foreground">{unit}</TableCell>
               <TableCell className="text-muted-foreground">{vendor}</TableCell>
+              <TableCell className="tabular-nums text-muted-foreground">
+                {lastCountQty != null ? lastCountQty.toLocaleString() : 'Not Counted'}
+              </TableCell>
               <TableCell>
                 {sdsUrl ? (
                   <a
@@ -408,6 +521,24 @@ export default function SiteAssignmentsTable({ search }: Props) {
             Currently viewing: {selectedSite.name} ({selectedSite.site_code})
           </p>
           <p className="mt-1 text-xs text-muted-foreground">{filtered.length} supplies assigned.</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              <CalendarClock className="h-3.5 w-3.5" />
+              Last count: {formatDateLabel(selectedSiteLastCount?.countDate)}
+            </span>
+            {selectedSiteLastCount?.countedBy && <span>Counted by: {selectedSiteLastCount.countedBy}</span>}
+            <span
+              className={cn(
+                'rounded-full px-2 py-0.5 font-medium',
+                dueBadgeLabel(selectedSiteLastCount?.countDate).tone === 'green' && 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
+                dueBadgeLabel(selectedSiteLastCount?.countDate).tone === 'yellow' && 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300',
+                dueBadgeLabel(selectedSiteLastCount?.countDate).tone === 'red' && 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+                dueBadgeLabel(selectedSiteLastCount?.countDate).tone === 'gray' && 'bg-muted text-muted-foreground'
+              )}
+            >
+              {dueBadgeLabel(selectedSiteLastCount?.countDate).label}
+            </span>
+          </div>
         </div>
       ) : null}
 
@@ -416,14 +547,23 @@ export default function SiteAssignmentsTable({ search }: Props) {
           {renderRows([])}
           <EmptyState
             icon={<MapPin className="h-12 w-12" />}
-            title="No site assignments yet"
-            description="Assign supplies to sites to manage inventory by location."
+            title={siteFilter === 'all' ? 'No site assignments yet' : 'No assignments for this site'}
+            description={search
+              ? 'Try a different search term.'
+              : siteFilter === 'all'
+                ? 'Assign supplies to sites to manage inventory by location.'
+                : 'Assign supplies to this site to start tracking usage and counts.'}
+            actionLabel={search ? undefined : '+ Assign Supply'}
+            onAction={search ? undefined : openAssignModal}
           />
         </>
       ) : siteFilter === 'all' ? (
         <div className="space-y-4">
           {groupedBySite.map(([siteCode, siteRows]) => {
             const siteName = siteRows[0]?.site?.name ?? 'Unassigned Site';
+            const siteId = siteRows[0]?.site_id ?? '';
+            const lastCount = siteId ? latestCountBySite[siteId] : null;
+            const due = dueBadgeLabel(lastCount?.countDate);
             return (
               <div key={siteCode} className="rounded-xl border border-border bg-card p-4">
                 <p className="mb-3 text-sm font-semibold text-foreground">
@@ -435,6 +575,21 @@ export default function SiteAssignmentsTable({ search }: Props) {
                       {siteName} ({siteRows[0].site.site_code})
                     </Link>
                   ) : siteName}
+                </p>
+                <p className="mb-3 text-xs text-muted-foreground">
+                  Last count: {formatDateLabel(lastCount?.countDate)}
+                  {lastCount?.countedBy ? ` · Counted by ${lastCount.countedBy}` : ''}
+                  <span
+                    className={cn(
+                      'ml-2 rounded-full px-2 py-0.5 font-medium',
+                      due.tone === 'green' && 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
+                      due.tone === 'yellow' && 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300',
+                      due.tone === 'red' && 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+                      due.tone === 'gray' && 'bg-muted text-muted-foreground'
+                    )}
+                  >
+                    {due.label}
+                  </span>
                 </p>
                 {renderRows(siteRows)}
               </div>

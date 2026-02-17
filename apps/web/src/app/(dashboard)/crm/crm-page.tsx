@@ -80,7 +80,7 @@ export default function CRMPageClient() {
       setTab('sites');
       setSiteFormOpen(true);
     }
-  }, []);
+  }, [setTab]);
 
   useEffect(() => {
     openQuickCreate(action);

@@ -118,7 +118,7 @@ export default function OperationsPageClient() {
     if (actionName === 'create-ticket') {
       setTab('tickets');
     }
-  }, []);
+  }, [setTab]);
 
   useEffect(() => {
     openQuickCreate(action);
@@ -163,7 +163,7 @@ export default function OperationsPageClient() {
     return () => {
       ignore = true;
     };
-  }, [initialTicketId]);
+  }, [initialTicketId, setTab]);
 
   return (
     <div className={`space-y-6 ${focusMode ? 'mx-auto max-w-5xl' : ''}`}>

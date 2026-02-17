@@ -192,7 +192,7 @@ export default function PipelinePageClient() {
       setTab('bids');
       setWizardOpen(true);
     }
-  }, []);
+  }, [setTab]);
 
   useEffect(() => {
     openQuickCreate(action);
@@ -273,7 +273,7 @@ export default function PipelinePageClient() {
     setSelectedBid(null);
     setTab('proposals');
     refresh();
-  }, [refresh]);
+  }, [refresh, setTab]);
 
   const handleMarkWon = useCallback(async (proposal: ProposalWithRelations) => {
     const { getSupabaseBrowserClient } = await import('@/lib/supabase/client');

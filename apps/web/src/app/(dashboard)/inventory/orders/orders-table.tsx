@@ -6,7 +6,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { SupplyOrder } from '@gleamops/shared';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Pagination, TableSkeleton,
+  EmptyState, Pagination, TableSkeleton, Button,
   StatusDot, statusRowAccentClass, cn,
 } from '@gleamops/ui';
 import { useTableSort } from '@/hooks/use-table-sort';
@@ -21,11 +21,14 @@ interface Props {
   onRefresh?: () => void;
 }
 
+const STATUS_OPTIONS = ['ORDERED', 'SHIPPED', 'RECEIVED', 'DRAFT', 'CANCELED', 'all'] as const;
+
 export default function OrdersTable({ search, formOpen, onFormClose, onRefresh }: Props) {
   const [rows, setRows] = useState<SupplyOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [editItem, setEditItem] = useState<SupplyOrder | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>('ORDERED');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -65,13 +68,27 @@ export default function OrdersTable({ search, formOpen, onFormClose, onRefresh }
   };
 
   const filtered = useMemo(() => {
-    if (!search) return rows;
+    let result = rows;
+    if (statusFilter !== 'all') {
+      result = result.filter((row) => (row.status ?? 'DRAFT') === statusFilter);
+    }
+    if (!search) return result;
     const q = search.toLowerCase();
-    return rows.filter((r) =>
+    return result.filter((r) =>
       r.order_code.toLowerCase().includes(q) ||
-      (r.supplier ?? '').toLowerCase().includes(q)
+      (r.supplier ?? '').toLowerCase().includes(q) ||
+      (r.notes ?? '').toLowerCase().includes(q)
     );
-  }, [rows, search]);
+  }, [rows, search, statusFilter]);
+
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: rows.length };
+    for (const row of rows) {
+      const status = row.status ?? 'DRAFT';
+      counts[status] = (counts[status] || 0) + 1;
+    }
+    return counts;
+  }, [rows]);
 
   const { sorted, sortKey, sortDir, onSort } = useTableSort(
     filtered as unknown as Record<string, unknown>[], 'order_date', 'asc'
@@ -81,29 +98,46 @@ export default function OrdersTable({ search, formOpen, onFormClose, onRefresh }
 
   if (loading) return <TableSkeleton rows={8} cols={5} />;
 
-  if (filtered.length === 0) {
-    return (
-      <>
-        <EmptyState
-          icon={<ShoppingCart className="h-12 w-12" />}
-          title="No supply orders yet"
-          description="Create a supply order to get started."
-        />
-        <SupplyOrderForm
-          open={createOpen}
-          onClose={handleFormClose}
-          initialData={editItem}
-          onSuccess={handleFormSuccess}
-        />
-      </>
-    );
-  }
-
   const dateFmt = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   const currFmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+  const selectedStatusLabel = statusFilter === 'all' ? 'all statuses' : statusFilter.toLowerCase().replace(/_/g, ' ');
+  const emptyTitle = statusFilter === 'all' ? 'No supply orders yet' : `No ${selectedStatusLabel} orders`;
+  const emptyDescription = search
+    ? 'Try a different search term.'
+    : statusFilter === 'all'
+      ? 'Create and track purchase orders from draft to received.'
+      : `There are currently no supply orders with ${selectedStatusLabel} status.`;
 
   return (
     <div>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <Button size="sm" onClick={() => { setEditItem(null); setCreateOpen(true); }}>
+          New Order
+        </Button>
+      </div>
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        {STATUS_OPTIONS.map((status) => (
+          <button
+            key={status}
+            type="button"
+            onClick={() => setStatusFilter(status)}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors',
+              statusFilter === status
+                ? 'bg-module-accent text-module-accent-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            )}
+          >
+            {status === 'all' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase().replace(/_/g, ' ')}
+            <span className={cn(
+              'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+              statusFilter === status ? 'bg-white/20' : 'bg-background'
+            )}>
+              {statusCounts[status] || 0}
+            </span>
+          </button>
+        ))}
+      </div>
       <Table>
         <TableHeader>
           <tr>
@@ -116,7 +150,9 @@ export default function OrdersTable({ search, formOpen, onFormClose, onRefresh }
             <TableHead sortable sorted={sortKey === 'order_date' && sortDir} onSort={() => onSort('order_date')}>
               Order Date
             </TableHead>
+            <TableHead>Status</TableHead>
             <TableHead>Total</TableHead>
+            <TableHead>Notes</TableHead>
           </tr>
         </TableHeader>
         <TableBody>
@@ -134,23 +170,36 @@ export default function OrdersTable({ search, formOpen, onFormClose, onRefresh }
               </TableCell>
               <TableCell className="font-medium">{row.supplier ?? '—'}</TableCell>
               <TableCell>{dateFmt.format(toSafeDate(row.order_date))}</TableCell>
+              <TableCell className="text-muted-foreground">{row.status}</TableCell>
               <TableCell className="font-mono text-xs">
-                {row.total_amount != null ? currFmt.format(row.total_amount) : '—'}
+                {row.total_amount != null ? currFmt.format(row.total_amount) : '$0'}
               </TableCell>
+              <TableCell className="text-muted-foreground">{row.notes ?? 'Not Set'}</TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
-      <Pagination
-        currentPage={pag.currentPage}
-        totalPages={pag.totalPages}
-        totalItems={pag.totalItems}
-        pageSize={pag.pageSize}
-        hasNext={pag.hasNext}
-        hasPrev={pag.hasPrev}
-        onNext={pag.nextPage}
-        onPrev={pag.prevPage}
-      />
+      {filtered.length === 0 && (
+        <div className="mt-4">
+          <EmptyState
+            icon={<ShoppingCart className="h-12 w-12" />}
+            title={emptyTitle}
+            description={emptyDescription}
+          />
+        </div>
+      )}
+      {filtered.length > 0 && (
+        <Pagination
+          currentPage={pag.currentPage}
+          totalPages={pag.totalPages}
+          totalItems={pag.totalItems}
+          pageSize={pag.pageSize}
+          hasNext={pag.hasNext}
+          hasPrev={pag.hasPrev}
+          onNext={pag.nextPage}
+          onPrev={pag.prevPage}
+        />
+      )}
 
       <SupplyOrderForm
         open={createOpen}

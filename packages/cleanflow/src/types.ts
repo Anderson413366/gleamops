@@ -4,6 +4,114 @@
  */
 
 // ---------------------------------------------------------------------------
+// Supply Pricing Types (AC-SUM-007)
+// ---------------------------------------------------------------------------
+export type CustomerTier = 'STRATEGIC' | 'CORE' | 'BASE';
+
+export type SupplyProductFamily =
+  | 'PAPER_COMMODITIES'
+  | 'HAND_SOAP_SANITIZER'
+  | 'GENERAL_CHEMICALS'
+  | 'SPECIALTY_FLOOR';
+
+export type SupplyPricingStructure = 'LINE_ITEM' | 'MONTHLY_ALLOWANCE' | 'ALL_INCLUSIVE';
+export type SupplyPricingMethod = 'MARGIN' | 'MARKUP';
+
+export interface VolumeDiscountBracket {
+  min_quantity: number;
+  max_quantity: number | null;
+  discount_pct: number;
+}
+
+export interface DeliveryFeeTier {
+  min_order: number;
+  max_order: number | null;
+  fee: number;
+}
+
+export interface SupplyItemInput {
+  id?: string;
+  code: string;
+  name: string;
+  product_family: SupplyProductFamily;
+  unit: string;
+  unit_cost: number;
+  freight_per_unit: number;
+  shrink_pct: number;
+  quantity: number;
+  override_margin_pct?: number;
+}
+
+export type SupplyMarginHealth = 'healthy' | 'caution' | 'below_floor';
+
+export interface SupplyItemResult {
+  id: string;
+  code: string;
+  name: string;
+  product_family: SupplyProductFamily;
+  unit: string;
+  unit_cost: number;
+  freight_per_unit: number;
+  shrink_pct: number;
+  quantity: number;
+  landed_cost: number;
+  target_margin_pct: number;
+  actual_margin_pct: number;
+  sale_price: number;
+  contribution: number;
+  line_total: number;
+  volume_discount_pct: number;
+  discounted_line_total: number;
+  management_fee_amount: number;
+  margin_health: SupplyMarginHealth;
+}
+
+export interface SupplyManagementFee {
+  enabled: boolean;
+  fee_pct: number;
+  mode: 'BAKED_IN' | 'SEPARATE' | 'FLAT';
+  flat_amount: number;
+}
+
+export interface SupplyPricingInput {
+  customer_tier: CustomerTier;
+  pricing_structure: SupplyPricingStructure;
+  pricing_method: SupplyPricingMethod;
+  items: SupplyItemInput[];
+  management_fee: SupplyManagementFee;
+  volume_discounts: {
+    enabled: boolean;
+    brackets: VolumeDiscountBracket[];
+  };
+  allowance?: {
+    method: 'PER_PERSON' | 'PER_SQFT';
+    occupant_count: number;
+    total_sqft: number;
+    rate: number;
+  };
+  all_inclusive?: {
+    monthly_cleaning_rate: number;
+    supply_pct: number;
+  };
+}
+
+export interface SupplyPricingResult {
+  items: SupplyItemResult[];
+  total_cost: number;
+  total_revenue: number;
+  total_contribution: number;
+  blended_margin_pct: number;
+  blended_markup_pct: number;
+  total_management_fee: number;
+  grand_total: number;
+  delivery_fee: number;
+  monthly_allowance?: number;
+  all_inclusive_budget?: number;
+  warnings: string[];
+  margin_health: SupplyMarginHealth;
+}
+
+// ---------------------------------------------------------------------------
 // Bid Type Codes
 // ---------------------------------------------------------------------------
 export type BidTypeCode =

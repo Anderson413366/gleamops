@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Users, Target, FileText, Send, Plus, Zap, BarChart3 } from 'lucide-react';
+import { Users, Target, FileText, Send, Plus, Zap, BarChart3, Calculator } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import type {
   SalesProspect,
@@ -211,6 +211,13 @@ export default function PipelinePageClient() {
           <p className="text-sm text-muted-foreground mt-1">Manage prospects, opportunities, bids, and proposals</p>
         </div>
         <div className="flex gap-2">
+          <Link
+            href="/pipeline/supply-calculator"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-card px-4 py-2.5 text-sm font-medium text-foreground ring-1 ring-inset ring-border shadow-sm transition-all hover:bg-muted hover:shadow-md"
+          >
+            <Calculator className="h-4 w-4" />
+            Supply Calculator
+          </Link>
           <Link
             href="/pipeline/admin"
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-card px-4 py-2.5 text-sm font-medium text-foreground ring-1 ring-inset ring-border shadow-sm transition-all hover:bg-muted hover:shadow-md"

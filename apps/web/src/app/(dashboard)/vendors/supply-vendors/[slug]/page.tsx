@@ -2,14 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
-import { Archive, ArrowLeft, Building2, CreditCard, FileText, ShoppingCart, Store, Truck } from 'lucide-react';
+import { useParams } from 'next/navigation';
+import { ArrowLeft, Building2, CreditCard, FileText, PauseCircle, PlayCircle, ShoppingCart, Store, Truck } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { ArchiveDialog, Badge, Button, EmptyState, Input, Select, Skeleton, SlideOver, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Textarea } from '@gleamops/ui';
+import { Badge, Button, EmptyState, Input, Select, Skeleton, SlideOver, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Textarea } from '@gleamops/ui';
 import { SupplyVendorForm } from '@/components/forms/supply-vendor-form';
 import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
+import { StatusToggleDialog } from '@/components/detail/status-toggle-dialog';
 import {
   findVendorProfileBySlug,
   slugifyVendorName,
@@ -72,7 +73,6 @@ function statusColor(status: string | null | undefined): 'green' | 'gray' | 'yel
 
 export default function SupplyVendorDetailPage() {
   const { slug } = useParams<{ slug: string }>();
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [profile, setProfile] = useState<SupplyVendorProfile | null>(null);
@@ -239,16 +239,11 @@ export default function SupplyVendorDetailPage() {
     }
   };
 
-  const handleArchive = async (reason: string) => {
+  const handleStatusToggle = async () => {
     if (!profile) return;
     setArchiveLoading(true);
     try {
-      const supabase = getSupabaseBrowserClient();
-      const { data: authData } = await supabase.auth.getUser();
-      const actor = authData.user?.email ?? authData.user?.id ?? 'unknown user';
-      const reasonLine = `Archived by ${actor} on ${new Date().toISOString()}: ${reason}`;
-      const notes = [profile.notes, reasonLine].filter(Boolean).join('\n\n');
-
+      const isInactive = (profile.account_status ?? 'ACTIVE').toUpperCase() === 'INACTIVE';
       const saved = upsertSupplyVendorProfile({
         id: profile.id,
         company_name: profile.company_name,
@@ -261,15 +256,14 @@ export default function SupplyVendorDetailPage() {
         order_minimum: profile.order_minimum,
         delivery_schedule: profile.delivery_schedule,
         categories_supplied: profile.categories_supplied,
-        account_status: 'INACTIVE',
-        notes,
+        account_status: isInactive ? 'ACTIVE' : 'INACTIVE',
+        notes: profile.notes,
       });
 
       setProfile(saved);
-      toast.success('Supply vendor archived');
-      router.push('/vendors?tab=vendors');
+      toast.success(`Successfully ${isInactive ? 'reactivated' : 'deactivated'} ${profile.company_name}`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to archive supply vendor');
+      toast.error(error instanceof Error ? error.message : 'Failed to update supply vendor status');
     } finally {
       setArchiveLoading(false);
       setArchiveOpen(false);
@@ -303,6 +297,7 @@ export default function SupplyVendorDetailPage() {
       </div>
     );
   }
+  const isInactive = (profile.account_status ?? 'ACTIVE').toUpperCase() === 'INACTIVE';
 
   return (
     <div className="space-y-6">
@@ -328,14 +323,17 @@ export default function SupplyVendorDetailPage() {
             <ShoppingCart className="h-4 w-4" />
             Place Order
           </Button>
-          <button
+          <Button
             type="button"
+            variant="secondary"
             onClick={() => setArchiveOpen(true)}
-            className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950"
+            className={isInactive
+              ? 'border-green-300 text-green-700 hover:bg-green-50'
+              : 'border-gray-300 text-gray-600 hover:bg-gray-50'}
           >
-            <Archive className="h-3.5 w-3.5" />
-            Archive
-          </button>
+            {isInactive ? <PlayCircle className="h-3.5 w-3.5" /> : <PauseCircle className="h-3.5 w-3.5" />}
+            {isInactive ? 'Reactivate' : 'Deactivate'}
+          </Button>
         </div>
       </div>
 
@@ -526,11 +524,13 @@ export default function SupplyVendorDetailPage() {
         </form>
       </SlideOver>
 
-      <ArchiveDialog
+      <StatusToggleDialog
         open={archiveOpen}
         onClose={() => setArchiveOpen(false)}
-        onConfirm={handleArchive}
-        entityName="Supply Vendor"
+        onConfirm={handleStatusToggle}
+        entityLabel="Supply Vendor"
+        entityName={profile.company_name}
+        mode={isInactive ? 'reactivate' : 'deactivate'}
         loading={archiveLoading}
       />
     </div>

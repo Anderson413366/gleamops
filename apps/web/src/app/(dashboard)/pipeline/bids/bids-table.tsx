@@ -13,6 +13,7 @@ import type { SalesBid } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 import { PipelineFlowHint } from '@/components/empty-states/pipeline-flow-hint';
+import { EntityLink } from '@/components/links/entity-link';
 
 interface BidWithClient extends SalesBid {
   client?: { name: string; client_code: string } | null;
@@ -148,37 +149,51 @@ export default function BidsTable({ search, onCreateNew }: BidsTableProps) {
           </button>
         ))}
       </div>
-      <Table>
-        <TableHeader>
-          <tr>
-            <TableHead sortable sorted={sortKey === 'bid_code' && sortDir} onSort={() => onSort('bid_code')}>Code</TableHead>
-            <TableHead>Client</TableHead>
-            <TableHead>Service</TableHead>
-            <TableHead sortable sorted={sortKey === 'total_sqft' && sortDir} onSort={() => onSort('total_sqft')}>Sq Ft</TableHead>
-            <TableHead sortable sorted={sortKey === 'bid_monthly_price' && sortDir} onSort={() => onSort('bid_monthly_price')}>Monthly Price</TableHead>
-          </tr>
-        </TableHeader>
-        <TableBody>
-          {pag.page.map((row) => (
-            <TableRow
-              key={row.id}
-              onClick={() => handleRowClick(row)}
-              className={cn('cursor-pointer', statusRowAccentClass(row.status))}
-            >
-              <TableCell className="font-mono text-xs">
-                <div className="flex items-center gap-2">
-                  <StatusDot status={row.status} />
-                  <span>{row.bid_code}</span>
-                </div>
-              </TableCell>
-              <TableCell className="font-medium">{row.client?.name ?? '—'}</TableCell>
-              <TableCell className="text-muted-foreground">{row.service?.name ?? '—'}</TableCell>
-              <TableCell className="text-right tabular-nums">{row.total_sqft?.toLocaleString() ?? '—'}</TableCell>
-              <TableCell className="text-right tabular-nums font-medium">{formatCurrency(row.bid_monthly_price)}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <div className="w-full overflow-x-auto">
+        <Table className="w-full min-w-full">
+          <TableHeader>
+            <tr>
+              <TableHead sortable sorted={sortKey === 'bid_code' && sortDir} onSort={() => onSort('bid_code')}>Code</TableHead>
+              <TableHead>Client</TableHead>
+              <TableHead>Service</TableHead>
+              <TableHead sortable sorted={sortKey === 'total_sqft' && sortDir} onSort={() => onSort('total_sqft')}>Sq Ft</TableHead>
+              <TableHead sortable sorted={sortKey === 'bid_monthly_price' && sortDir} onSort={() => onSort('bid_monthly_price')}>Monthly Price</TableHead>
+            </tr>
+          </TableHeader>
+          <TableBody>
+            {pag.page.map((row) => (
+              <TableRow
+                key={row.id}
+                onClick={() => handleRowClick(row)}
+                className={cn('cursor-pointer', statusRowAccentClass(row.status))}
+              >
+                <TableCell className="font-mono text-xs">
+                  <div className="flex items-center gap-2">
+                    <StatusDot status={row.status} />
+                    <span>{row.bid_code}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="font-medium">
+                  {row.client?.client_code ? (
+                    <EntityLink
+                      entityType="client"
+                      code={row.client.client_code}
+                      name={row.client.name ?? row.client.client_code}
+                      showCode={false}
+                      stopPropagation
+                    />
+                  ) : (
+                    row.client?.name ?? '—'
+                  )}
+                </TableCell>
+                <TableCell className="text-muted-foreground">{row.service?.name ?? '—'}</TableCell>
+                <TableCell className="text-right tabular-nums">{row.total_sqft?.toLocaleString() ?? '—'}</TableCell>
+                <TableCell className="text-right tabular-nums font-medium">{formatCurrency(row.bid_monthly_price)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
       {filtered.length === 0 && (
         <div className="mt-4">
           <EmptyState

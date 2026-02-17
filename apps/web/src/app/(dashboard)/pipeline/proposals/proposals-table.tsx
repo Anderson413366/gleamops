@@ -13,17 +13,18 @@ import type { SalesProposal } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 import { PipelineFlowHint } from '@/components/empty-states/pipeline-flow-hint';
+import { EntityLink } from '@/components/links/entity-link';
 
 interface ProposalWithRelations extends SalesProposal {
   bid_version?: {
-    bid?: {
-      bid_code: string;
-      total_sqft?: number | null;
-      bid_monthly_price?: number | null;
-      client?: { name: string } | null;
-      service?: { name: string } | null;
+      bid?: {
+        bid_code: string;
+        total_sqft?: number | null;
+        bid_monthly_price?: number | null;
+        client?: { name: string; client_code?: string | null } | null;
+        service?: { name: string } | null;
+      } | null;
     } | null;
-  } | null;
 }
 
 interface ProposalsTableProps {
@@ -62,7 +63,7 @@ export default function ProposalsTable({ search, onGoToBids }: ProposalsTablePro
             client_id,
             total_sqft,
             bid_monthly_price,
-            client:client_id(name),
+            client:client_id(name, client_code),
             service:service_id(name)
           )
         )
@@ -161,45 +162,57 @@ export default function ProposalsTable({ search, onGoToBids }: ProposalsTablePro
           </button>
         ))}
       </div>
-      <Table>
-        <TableHeader>
-          <tr>
-            <TableHead sortable sorted={sortKey === 'proposal_code' && sortDir} onSort={() => onSort('proposal_code')}>Code</TableHead>
-            <TableHead>Bid</TableHead>
-            <TableHead>Client</TableHead>
-            <TableHead sortable sorted={sortKey === 'created_at' && sortDir} onSort={() => onSort('created_at')}>Created</TableHead>
-            <TableHead>Sent</TableHead>
-          </tr>
-        </TableHeader>
-        <TableBody>
-          {pag.page.map((row) => (
-            <TableRow
-              key={row.id}
-              onClick={() => handleRowClick(row)}
-              className={cn('cursor-pointer', statusRowAccentClass(row.status))}
-            >
-              <TableCell className="font-mono text-xs">
-                <div className="flex items-center gap-2">
-                  <StatusDot status={row.status} />
-                  <span>{row.proposal_code}</span>
-                </div>
-              </TableCell>
-              <TableCell className="font-mono text-xs text-muted-foreground">
-                {row.bid_version?.bid?.bid_code ?? '—'}
-              </TableCell>
-              <TableCell className="font-medium">
-                {row.bid_version?.bid?.client?.name ?? '—'}
-              </TableCell>
-              <TableCell className="text-muted-foreground">
-                {new Date(row.created_at).toLocaleDateString()}
-              </TableCell>
-              <TableCell className="text-muted-foreground">
-                {row.pdf_generated_at ? new Date(row.pdf_generated_at).toLocaleDateString() : '—'}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <div className="w-full overflow-x-auto">
+        <Table className="w-full min-w-full">
+          <TableHeader>
+            <tr>
+              <TableHead sortable sorted={sortKey === 'proposal_code' && sortDir} onSort={() => onSort('proposal_code')}>Code</TableHead>
+              <TableHead>Bid</TableHead>
+              <TableHead>Client</TableHead>
+              <TableHead sortable sorted={sortKey === 'created_at' && sortDir} onSort={() => onSort('created_at')}>Created</TableHead>
+              <TableHead>Sent</TableHead>
+            </tr>
+          </TableHeader>
+          <TableBody>
+            {pag.page.map((row) => (
+              <TableRow
+                key={row.id}
+                onClick={() => handleRowClick(row)}
+                className={cn('cursor-pointer', statusRowAccentClass(row.status))}
+              >
+                <TableCell className="font-mono text-xs">
+                  <div className="flex items-center gap-2">
+                    <StatusDot status={row.status} />
+                    <span>{row.proposal_code}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="font-mono text-xs text-muted-foreground">
+                  {row.bid_version?.bid?.bid_code ?? '—'}
+                </TableCell>
+                <TableCell className="font-medium">
+                  {row.bid_version?.bid?.client?.client_code ? (
+                    <EntityLink
+                      entityType="client"
+                      code={row.bid_version.bid.client.client_code}
+                      name={row.bid_version.bid.client.name ?? row.bid_version.bid.client.client_code}
+                      showCode={false}
+                      stopPropagation
+                    />
+                  ) : (
+                    row.bid_version?.bid?.client?.name ?? '—'
+                  )}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {new Date(row.created_at).toLocaleDateString()}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {row.pdf_generated_at ? new Date(row.pdf_generated_at).toLocaleDateString() : '—'}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
       {filtered.length === 0 && (
         <div className="mt-4">
           <EmptyState

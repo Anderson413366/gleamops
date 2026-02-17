@@ -15,6 +15,7 @@ import { usePagination } from '@/hooks/use-pagination';
 import { useViewPreference } from '@/hooks/use-view-preference';
 import { ContactsCardGrid } from './contacts-card-grid';
 import { ContactForm } from '@/components/forms/contact-form';
+import { EntityLink } from '@/components/links/entity-link';
 
 const CONTACT_TYPE_COLORS: Record<string, 'blue' | 'green' | 'purple' | 'orange' | 'gray'> = {
   PRIMARY: 'blue',
@@ -109,20 +110,22 @@ export default function ContactsTable({ search }: ContactsTableProps) {
           />
         </div>
       </div>
-      {filtered.length === 0 ? (
-        <EmptyState
-          icon={<Users className="h-12 w-12" />}
-          title="No contacts yet"
-          description={search ? 'Try a different search term.' : 'Add primary contacts so teams always know who to call.'}
-          actionLabel={search ? undefined : '+ Add Your First Contact'}
-          onAction={search ? undefined : handleAdd}
-        />
+      {view === 'card' ? (
+        filtered.length === 0 ? (
+          <EmptyState
+            icon={<Users className="h-12 w-12" />}
+            title="No contacts yet"
+            description={search ? 'Try a different search term.' : 'Add primary contacts so teams always know who to call.'}
+            actionLabel={search ? undefined : '+ Add Your First Contact'}
+            onAction={search ? undefined : handleAdd}
+          />
+        ) : (
+          <ContactsCardGrid rows={pag.page} onSelect={handleRowClick} />
+        )
       ) : (
         <>
-          {view === 'card' ? (
-            <ContactsCardGrid rows={pag.page} onSelect={handleRowClick} />
-          ) : (
-            <Table>
+          <div className="w-full overflow-x-auto">
+            <Table className="w-full min-w-full">
               <TableHeader>
                 <tr>
                   <TableHead sortable sorted={sortKey === 'contact_code' && sortDir} onSort={() => onSort('contact_code')}>Code</TableHead>
@@ -153,7 +156,29 @@ export default function ContactsTable({ search }: ContactsTableProps) {
                     <TableCell className="text-muted-foreground">{row.role_title ?? row.role ?? '—'}</TableCell>
                     <TableCell className="text-muted-foreground">{row.company_name ?? '—'}</TableCell>
                     <TableCell className="text-muted-foreground">
-                      {row.client?.name ?? row.site?.name ?? '—'}
+                      <div className="flex flex-col gap-1">
+                        {row.client?.client_code && (
+                          <EntityLink
+                            entityType="client"
+                            code={row.client.client_code}
+                            name={row.client.name ?? row.client.client_code}
+                            showCode={false}
+                            stopPropagation
+                          />
+                        )}
+                        {row.site?.site_code && (
+                          <EntityLink
+                            entityType="site"
+                            code={row.site.site_code}
+                            name={row.site.name ?? row.site.site_code}
+                            showCode={false}
+                            stopPropagation
+                          />
+                        )}
+                        {!row.client?.client_code && !row.site?.site_code && (
+                          <span className="text-muted-foreground">Not Set</span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{row.email ?? '—'}</TableCell>
                     <TableCell className="text-muted-foreground">{row.mobile_phone ?? row.phone ?? '—'}</TableCell>
@@ -161,13 +186,26 @@ export default function ContactsTable({ search }: ContactsTableProps) {
                 ))}
               </TableBody>
             </Table>
+          </div>
+          {filtered.length === 0 && (
+            <div className="mt-4">
+              <EmptyState
+                icon={<Users className="h-12 w-12" />}
+                title="No contacts yet"
+                description={search ? 'Try a different search term.' : 'Add primary contacts so teams always know who to call.'}
+                actionLabel={search ? undefined : '+ Add Your First Contact'}
+                onAction={search ? undefined : handleAdd}
+              />
+            </div>
           )}
-          <Pagination
-            currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
-            pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
-            onNext={pag.nextPage} onPrev={pag.prevPage}
-          />
         </>
+      )}
+      {filtered.length > 0 && (
+        <Pagination
+          currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
+          pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
+          onNext={pag.nextPage} onPrev={pag.prevPage}
+        />
       )}
       <ContactForm
         open={formOpen}

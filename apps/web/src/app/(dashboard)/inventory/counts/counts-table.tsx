@@ -13,6 +13,7 @@ import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 import { toSafeDate } from '@/lib/utils/date';
 import { InventoryCountForm } from '@/components/forms/inventory-count-form';
+import { EntityLink } from '@/components/links/entity-link';
 
 const STATUS_OPTIONS = ['IN_PROGRESS', 'DRAFT', 'SUBMITTED', 'COMPLETED', 'CANCELLED', 'all'] as const;
 
@@ -301,7 +302,19 @@ export default function CountsTable({ search, formOpen, onFormClose, onRefresh }
                       <span>{row.count_code}</span>
                     </div>
                   </TableCell>
-                  <TableCell>{row.site?.name ?? 'Not Set'}</TableCell>
+                  <TableCell>
+                    {row.site?.site_code ? (
+                      <EntityLink
+                        entityType="site"
+                        code={row.site.site_code}
+                        name={row.site.name ?? row.site.site_code}
+                        showCode={false}
+                        stopPropagation
+                      />
+                    ) : (
+                      'Not Set'
+                    )}
+                  </TableCell>
                   <TableCell>{dateFmt.format(toSafeDate(row.count_date))}</TableCell>
                   <TableCell className="text-muted-foreground">{row.status}</TableCell>
                   <TableCell>{row.counter?.full_name ?? row.counted_by_name ?? 'Not Set'}</TableCell>

@@ -235,6 +235,9 @@ export interface Task extends StandardColumns {
   default_minutes: number | null;
   production_rate_sqft_per_hour: number | null;
   unit_code: string; // SQFT_1000 | EACH
+  production_rate: string | null;
+  description: string | null;
+  status: string | null;
   spec_description: string | null;
   work_description: string | null;
   tools_materials: string | null;

@@ -25,6 +25,7 @@ const DEFAULTS: TaskFormData = {
   task_code: '',
   name: '',
   production_rate_sqft_per_hour: null,
+  production_rate: null,
   category: null,
   subcategory: null,
   area_type: null,
@@ -32,6 +33,7 @@ const DEFAULTS: TaskFormData = {
   priority_level: null,
   default_minutes: null,
   unit_code: 'SQFT_1000',
+  description: null,
   spec_description: null,
   work_description: null,
   tools_materials: null,
@@ -58,6 +60,7 @@ export function TaskForm({ open, onClose, initialData, onSuccess, focusSection }
           task_code: initialData.task_code,
           name: initialData.name,
           production_rate_sqft_per_hour: initialData.production_rate_sqft_per_hour,
+          production_rate: initialData.production_rate,
           category: initialData.category,
           subcategory: initialData.subcategory,
           area_type: initialData.area_type,
@@ -65,6 +68,7 @@ export function TaskForm({ open, onClose, initialData, onSuccess, focusSection }
           priority_level: initialData.priority_level,
           default_minutes: initialData.default_minutes,
           unit_code: initialData.unit_code as 'SQFT_1000' | 'EACH',
+          description: initialData.description,
           spec_description: initialData.spec_description,
           work_description: initialData.work_description,
           tools_materials: initialData.tools_materials,
@@ -204,8 +208,16 @@ export function TaskForm({ open, onClose, initialData, onSuccess, focusSection }
               onChange={(e) => setValue('production_rate_sqft_per_hour', e.target.value ? Number(e.target.value) : null)}
             />
             <Input
+              label="Production Rate Text"
+              value={values.production_rate ?? ''}
+              onChange={(e) => setValue('production_rate', e.target.value || null)}
+              placeholder="e.g., 1,200 Per Thousand Sq. Ft."
+            />
+            <Input
               label="Default Minutes"
               type="number"
+              min={0}
+              step="0.25"
               value={values.default_minutes ?? ''}
               onChange={(e) => setValue('default_minutes', e.target.value ? Number(e.target.value) : null)}
             />
@@ -215,6 +227,13 @@ export function TaskForm({ open, onClose, initialData, onSuccess, focusSection }
 
         <div data-task-form-section="descriptions" tabIndex={-1}>
           <FormSection title="Descriptions" icon={<FileText className="h-4 w-4" />} description="What clients see vs. internal instructions for staff.">
+          <Textarea
+            label="Description"
+            value={values.description ?? ''}
+            onChange={(e) => setValue('description', e.target.value || null)}
+            placeholder="Task overview and quality expectations."
+            rows={2}
+          />
           <Textarea
             label="Spec Description"
             value={values.spec_description ?? ''}

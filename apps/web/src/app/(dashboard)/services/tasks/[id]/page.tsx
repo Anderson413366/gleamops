@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -21,6 +21,15 @@ import type { Task } from '@gleamops/shared';
 import { TaskForm } from '@/components/forms/task-form';
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
 import { StatusToggleDialog } from '@/components/detail/status-toggle-dialog';
+
+interface JobUsageRow {
+  job?: {
+    id: string;
+    job_code: string;
+    job_name: string | null;
+    status: string;
+  } | null;
+}
 
 const CATEGORY_COLORS: Record<string, 'green' | 'blue' | 'yellow' | 'purple' | 'orange' | 'gray'> = {
   RESTROOM: 'blue',
@@ -64,6 +73,10 @@ function formatRelativeDateTime(dateStr: string): string {
 
 export default function TaskDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
+  const from = searchParams.get('from');
+  const backHref = from === 'operations' ? '/operations?tab=task-catalog' : '/services';
+  const backLabel = from === 'operations' ? 'Back to Operations Task Catalog' : 'Back to Services Library';
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
@@ -71,6 +84,7 @@ export default function TaskDetailPage() {
   const [statusLoading, setStatusLoading] = useState(false);
   const [taskFormFocus, setTaskFormFocus] = useState<'basics' | 'classification' | 'production' | 'descriptions' | 'status' | undefined>(undefined);
   const [serviceCount, setServiceCount] = useState(0);
+  const [jobUsage, setJobUsage] = useState<JobUsageRow[]>([]);
 
   const fetchTask = async () => {
     setLoading(true);
@@ -93,6 +107,18 @@ export default function TaskDetailPage() {
         .eq('task_id', t.id)
         .is('archived_at', null);
       setServiceCount(count ?? 0);
+
+      const { data: jobsData } = await supabase
+        .from('job_tasks')
+        .select('job:job_id(id, job_code, job_name, status)')
+        .eq('task_id', t.id)
+        .is('archived_at', null);
+
+      const uniqueJobs = new Map<string, JobUsageRow['job']>();
+      for (const row of (jobsData as JobUsageRow[] | null) ?? []) {
+        if (row.job?.id) uniqueJobs.set(row.job.id, row.job);
+      }
+      setJobUsage(Array.from(uniqueJobs.values()).map((job) => ({ job })));
     }
     setLoading(false);
   };
@@ -143,14 +169,20 @@ export default function TaskDetailPage() {
         <AlertTriangle className="h-12 w-12 text-muted-foreground" />
         <p className="text-lg text-muted-foreground">Task not found.</p>
         <Link
-          href="/services"
+          href={backHref}
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
-          <ArrowLeft className="h-4 w-4" /> Back to Services Library
+          <ArrowLeft className="h-4 w-4" /> {backLabel}
         </Link>
       </div>
     );
   }
+
+  const productionRateDisplay =
+    task.production_rate ??
+    (task.production_rate_sqft_per_hour != null
+      ? `${task.production_rate_sqft_per_hour.toLocaleString()} ${task.unit_code === 'SQFT_1000' ? 'Per Thousand Sq. Ft.' : 'Each'}`
+      : '\u2014');
 
   const taskCompletenessItems: CompletenessItem[] = [
     { key: 'name', label: 'Task Name', isComplete: isFieldComplete(task.name), section: 'basics' },
@@ -169,11 +201,11 @@ export default function TaskDetailPage() {
     <div className="space-y-6">
       {/* Back Link */}
       <Link
-        href="/services"
+        href={backHref}
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to Services Library
+        {backLabel}
       </Link>
 
       {/* Header */}
@@ -241,28 +273,22 @@ export default function TaskDetailPage() {
       {/* Stat Cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <p className="text-2xl font-bold text-foreground">
-            {task.production_rate_sqft_per_hour != null
-              ? `${task.production_rate_sqft_per_hour.toLocaleString()}`
-              : '\u2014'}
-          </p>
-          <p className="text-xs text-muted-foreground">Prod. Rate (sqft/hr)</p>
+          <p className="text-sm font-semibold text-foreground">{formatCategory(task.category)}</p>
+          <p className="text-xs text-muted-foreground">Category</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <p className="text-2xl font-bold text-foreground">
-            {UNIT_LABELS[task.unit_code] ?? task.unit_code}
-          </p>
-          <p className="text-xs text-muted-foreground">Unit of Measure</p>
+          <p className="text-2xl font-bold text-foreground">{task.priority_level ?? '\u2014'}</p>
+          <p className="text-xs text-muted-foreground">Priority</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <p className="text-2xl font-bold text-foreground">
             {task.default_minutes != null ? `${task.default_minutes} min` : '\u2014'}
           </p>
-          <p className="text-xs text-muted-foreground">Default Minutes</p>
+          <p className="text-xs text-muted-foreground">Est. Minutes</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <p className="text-2xl font-bold text-foreground">{serviceCount}</p>
-          <p className="text-xs text-muted-foreground">Used in Services</p>
+          <p className="text-sm font-semibold text-foreground">{productionRateDisplay}</p>
+          <p className="text-xs text-muted-foreground">Production Rate</p>
         </div>
       </div>
 
@@ -389,6 +415,45 @@ export default function TaskDetailPage() {
             )}
           </dl>
         </div>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <h3 className="mb-4 text-sm font-semibold text-foreground">
+          <span className="inline-flex items-center gap-2">
+            <ClipboardList className="h-4 w-4 text-muted-foreground" />
+            Usage in Jobs ({jobUsage.length})
+          </span>
+        </h3>
+        <p className="mb-3 text-xs text-muted-foreground">
+          This task is used in {jobUsage.length} active job scope{jobUsage.length === 1 ? '' : 's'} and {serviceCount} service template{serviceCount === 1 ? '' : 's'}.
+        </p>
+        {jobUsage.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No jobs currently reference this task.</p>
+        ) : (
+          <ul className="divide-y divide-border">
+            {jobUsage.map((item, index) => (
+              <li key={`${item.job?.id ?? 'job'}-${index}`} className="flex items-center justify-between py-2.5">
+                <div className="min-w-0">
+                  {item.job?.job_code ? (
+                    <Link
+                      href={`/operations/jobs/${encodeURIComponent(item.job.job_code)}`}
+                      className="truncate text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                    >
+                      {item.job.job_name ?? item.job.job_code} ({item.job.job_code})
+                    </Link>
+                  ) : (
+                    <p className="text-sm font-medium">Unknown Job</p>
+                  )}
+                </div>
+                {item.job?.status && (
+                  <Badge color={item.job.status === 'ACTIVE' ? 'green' : 'gray'}>
+                    {item.job.status}
+                  </Badge>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       {/* Metadata */}

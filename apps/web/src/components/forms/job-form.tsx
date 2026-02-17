@@ -156,6 +156,9 @@ interface TaskCatalogRow {
   id: string;
   task_code: string;
   name: string;
+  category: string | null;
+  subcategory: string | null;
+  priority_level: string | null;
   default_minutes: number | null;
 }
 
@@ -229,6 +232,9 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
   const [selectedTasks, setSelectedTasks] = useState<SelectedTask[]>([]);
   const [taskSelectId, setTaskSelectId] = useState<string>('');
   const [taskQuantity, setTaskQuantity] = useState<number>(1);
+  const [taskCatalogOpen, setTaskCatalogOpen] = useState(false);
+  const [taskCatalogSearch, setTaskCatalogSearch] = useState('');
+  const [selectedCatalogTaskIds, setSelectedCatalogTaskIds] = useState<string[]>([]);
   const [hourlyCostRate, setHourlyCostRate] = useState<number>(25);
   const [loadingServiceTemplate, setLoadingServiceTemplate] = useState(false);
   const [codeGenerationFailed, setCodeGenerationFailed] = useState(false);
@@ -320,6 +326,9 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
     setCodeGenerationFailed(false);
     setTaskSelectId('');
     setTaskQuantity(1);
+    setTaskCatalogOpen(false);
+    setTaskCatalogSearch('');
+    setSelectedCatalogTaskIds([]);
     setSelectedTasks([]);
     setHourlyCostRate(25);
   }, [open, reset, initialValues]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -339,7 +348,7 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
         .order('full_name'),
       supabase
         .from('tasks')
-        .select('id, task_code, name, default_minutes')
+        .select('id, task_code, name, category, subcategory, priority_level, default_minutes')
         .is('archived_at', null)
         .eq('is_active', true)
         .order('name'),
@@ -460,6 +469,17 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
     [taskCatalog]
   );
 
+  const filteredCatalogRows = useMemo(() => {
+    if (!taskCatalogSearch.trim()) return taskCatalog;
+    const q = taskCatalogSearch.trim().toLowerCase();
+    return taskCatalog.filter((task) =>
+      task.name.toLowerCase().includes(q) ||
+      task.task_code.toLowerCase().includes(q) ||
+      (task.category ?? '').toLowerCase().includes(q) ||
+      (task.subcategory ?? '').toLowerCase().includes(q)
+    );
+  }, [taskCatalog, taskCatalogSearch]);
+
   const liveEstimate = useMemo(() => {
     const totalQuantity = selectedTasks.reduce((sum, t) => sum + t.quantity, 0);
     const totalMinutesPerVisit = selectedTasks.reduce((sum, t) => sum + t.minutesPerVisit * t.quantity, 0);
@@ -556,6 +576,29 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
     toast.success('Loaded tasks from service template.');
   };
 
+  const addSelectedCatalogTasks = () => {
+    if (selectedCatalogTaskIds.length === 0) return;
+    setSelectedTasks((prev) => {
+      const byId = new Map(prev.map((task) => [task.taskId, task]));
+      for (const taskId of selectedCatalogTaskIds) {
+        if (byId.has(taskId)) continue;
+        const task = taskCatalog.find((row) => row.id === taskId);
+        if (!task) continue;
+        byId.set(taskId, {
+          taskId: task.id,
+          taskCode: task.task_code,
+          name: task.name,
+          minutesPerVisit: task.default_minutes ?? 30,
+          quantity: 1,
+        });
+      }
+      return Array.from(byId.values());
+    });
+    setSelectedCatalogTaskIds([]);
+    setTaskCatalogOpen(false);
+    toast.success('Selected catalog tasks added.');
+  };
+
   const validateStep = (step: number): boolean => {
     if (step === 0) {
       return Boolean(selectedClientId && values.site_id && values.job_name.trim());
@@ -573,6 +616,9 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
     setSelectedClientId('');
     setTaskSelectId('');
     setTaskQuantity(1);
+    setTaskCatalogOpen(false);
+    setTaskCatalogSearch('');
+    setSelectedCatalogTaskIds([]);
     setCodeGenerationFailed(false);
     onClose();
   };
@@ -678,7 +724,8 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
   }
 
   return (
-    <SlideOver open={open} onClose={handleClose} title="New Service Plan" wide>
+    <>
+      <SlideOver open={open} onClose={handleClose} title="New Service Plan" wide>
       <FormWizard
         steps={WIZARD_STEPS}
         currentStep={wizard.currentStep}
@@ -877,10 +924,15 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
                     value={taskQuantity}
                     onChange={(e) => setTaskQuantity(e.target.value ? Number(e.target.value) : 1)}
                   />
-                  <Button type="button" onClick={addTaskFromCatalog}>
-                    <Plus className="h-4 w-4" />
-                    Add
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button type="button" onClick={addTaskFromCatalog}>
+                      <Plus className="h-4 w-4" />
+                      Add
+                    </Button>
+                    <Button type="button" variant="secondary" onClick={() => setTaskCatalogOpen(true)}>
+                      Add from Task Catalog
+                    </Button>
+                  </div>
                 </div>
 
                 {values.service_id && (
@@ -1047,6 +1099,71 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
           </div>
         )}
       </FormWizard>
-    </SlideOver>
+      </SlideOver>
+      <SlideOver
+        open={taskCatalogOpen}
+        onClose={() => setTaskCatalogOpen(false)}
+        title="Task Catalog"
+        subtitle="Select one or more standardized tasks"
+        wide
+      >
+        <div className="space-y-4">
+          <Input
+            label="Search Tasks"
+            value={taskCatalogSearch}
+            onChange={(e) => setTaskCatalogSearch(e.target.value)}
+            placeholder="Search by name, code, or category..."
+          />
+
+          <div className="max-h-[62vh] space-y-2 overflow-y-auto pr-1">
+            {filteredCatalogRows.map((task) => {
+              const checked = selectedCatalogTaskIds.includes(task.id);
+              return (
+                <label
+                  key={task.id}
+                  className={cn(
+                    'flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-colors',
+                    checked ? 'border-module-accent bg-module-accent/5' : 'border-border hover:bg-muted/40'
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={(e) =>
+                      setSelectedCatalogTaskIds((prev) =>
+                        e.target.checked
+                          ? [...prev, task.id]
+                          : prev.filter((id) => id !== task.id)
+                      )
+                    }
+                    className="mt-1 h-4 w-4"
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold">{task.name}</p>
+                    <p className="text-xs text-muted-foreground font-mono">{task.task_code}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {(task.category ?? 'General')}{task.subcategory ? ` - ${task.subcategory}` : ''} · {task.default_minutes ?? 30} min
+                      {task.priority_level ? ` · ${task.priority_level}` : ''}
+                    </p>
+                  </div>
+                </label>
+              );
+            })}
+            {filteredCatalogRows.length === 0 && (
+              <p className="text-sm text-muted-foreground">No tasks match this search.</p>
+            )}
+          </div>
+
+          <div className="flex items-center justify-end gap-3 border-t border-border pt-4">
+            <Button type="button" variant="secondary" onClick={() => setTaskCatalogOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={addSelectedCatalogTasks} disabled={selectedCatalogTaskIds.length === 0}>
+              Add Selected ({selectedCatalogTaskIds.length})
+            </Button>
+          </div>
+        </div>
+      </SlideOver>
+    </>
   );
 }

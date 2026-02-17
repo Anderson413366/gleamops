@@ -111,16 +111,18 @@ export type ContactFormData = z.infer<typeof contactSchema>;
 // Service DNA
 // ---------------------------------------------------------------------------
 export const taskSchema = z.object({
-  task_code: z.string().regex(/^TSK-\d{3,}$/, 'Must be TSK-XXX format'),
+  task_code: z.string().regex(/^[A-Z0-9-]{3,20}$/, 'Use 3-20 uppercase letters, numbers, or hyphen'),
   name: z.string().min(1, 'Name is required'),
   production_rate_sqft_per_hour: z.number().positive().nullable().default(null),
+  production_rate: z.string().nullable().default(null),
   category: z.string().nullable().default(null),
   subcategory: z.string().nullable().default(null),
   area_type: z.string().nullable().default(null),
   floor_type: z.string().nullable().default(null),
   priority_level: z.string().nullable().default(null),
-  default_minutes: z.number().int().positive().nullable().default(null),
+  default_minutes: z.number().positive().nullable().default(null),
   unit_code: z.enum(['SQFT_1000', 'EACH']).default('SQFT_1000'),
+  description: z.string().nullable().default(null),
   spec_description: z.string().nullable().default(null),
   work_description: z.string().nullable().default(null),
   tools_materials: z.string().nullable().default(null),

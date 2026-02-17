@@ -16,6 +16,7 @@ import SiteAssignmentsTable from './site-assignments/site-assignments-table';
 import CountsTable from './counts/counts-table';
 import OrdersTable from './orders/orders-table';
 import ForecastingPanel from './forecasting/forecasting-panel';
+import WarehousePanel from './warehouse/warehouse-panel';
 
 const TABS = [
   { key: 'supplies', label: 'Supply Catalog', icon: <Package className="h-4 w-4" /> },
@@ -24,6 +25,7 @@ const TABS = [
   { key: 'counts', label: 'Counts', icon: <ClipboardList className="h-4 w-4" /> },
   { key: 'orders', label: 'Orders', icon: <ShoppingCart className="h-4 w-4" /> },
   { key: 'forecasting', label: 'Forecasting', icon: <BrainCircuit className="h-4 w-4" /> },
+  { key: 'warehouse', label: 'Warehouse', icon: <Box className="h-4 w-4" /> },
 ];
 
 const ADD_LABELS: Record<string, string> = {
@@ -41,7 +43,7 @@ export default function InventoryPageClient() {
   const [simpleView, setSimpleView] = useState(false);
   const visibleTabs = useMemo(() => {
     if (!simpleView) return TABS;
-    return TABS.filter((tabOption) => ['supplies', 'orders', 'counts', 'forecasting'].includes(tabOption.key));
+    return TABS.filter((tabOption) => ['supplies', 'orders', 'counts', 'forecasting', 'warehouse'].includes(tabOption.key));
   }, [simpleView]);
   const [tab, setTab] = useSyncedTab({
     tabKeys: visibleTabs.map((tabOption) => tabOption.key),
@@ -222,6 +224,12 @@ export default function InventoryPageClient() {
       {tab === 'forecasting' && (
         <ForecastingPanel
           key={`forecast-${refreshKey}`}
+          search={search}
+        />
+      )}
+      {tab === 'warehouse' && (
+        <WarehousePanel
+          key={`warehouse-${refreshKey}`}
           search={search}
         />
       )}

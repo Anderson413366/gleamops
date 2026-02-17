@@ -107,6 +107,7 @@ export default function OrdersTable({ search, formOpen, onFormClose, onRefresh }
     : statusFilter === 'all'
       ? 'Create and track purchase orders from draft to received.'
       : `There are currently no supply orders with ${selectedStatusLabel} status.`;
+  const showGuidedEmptyState = !search && statusFilter === 'all';
 
   return (
     <div>
@@ -185,7 +186,17 @@ export default function OrdersTable({ search, formOpen, onFormClose, onRefresh }
             icon={<ShoppingCart className="h-12 w-12" />}
             title={emptyTitle}
             description={emptyDescription}
-          />
+            actionLabel={showGuidedEmptyState ? '+ Create Your First Supply Order' : undefined}
+            onAction={showGuidedEmptyState ? () => { setEditItem(null); setCreateOpen(true); } : undefined}
+          >
+            {showGuidedEmptyState && (
+              <ul className="mx-auto max-w-lg list-disc space-y-1.5 pl-5 text-left text-sm text-muted-foreground">
+                <li>Build vendor orders with expected delivery dates and totals.</li>
+                <li>Track ordered, shipped, and received statuses in one list.</li>
+                <li>Keep purchasing notes attached to each order for operations.</li>
+              </ul>
+            )}
+          </EmptyState>
         </div>
       )}
       {filtered.length > 0 && (

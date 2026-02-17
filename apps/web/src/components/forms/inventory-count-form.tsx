@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { ClipboardList, FileText } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
@@ -29,9 +30,24 @@ interface InventoryCountFormProps {
   onSuccess?: () => void;
 }
 
+interface SiteOption {
+  id: string;
+  name: string;
+  site_code: string;
+}
+
+interface StaffOption {
+  id: string;
+  full_name: string;
+  staff_code: string;
+  user_id: string | null;
+}
+
 export function InventoryCountForm({ open, onClose, initialData, onSuccess }: InventoryCountFormProps) {
   const isEdit = !!initialData?.id;
   const supabase = getSupabaseBrowserClient();
+  const [siteOptions, setSiteOptions] = useState<Array<{ value: string; label: string }>>([]);
+  const [counterOptions, setCounterOptions] = useState<Array<{ value: string; label: string }>>([]);
 
   const { values, errors, loading, setValue, onBlur, handleSubmit, reset } = useForm<InventoryCountFormData>({
     schema: inventoryCountSchema,
@@ -77,6 +93,59 @@ export function InventoryCountForm({ open, onClose, initialData, onSuccess }: In
     onClose();
   };
 
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    async function preloadOptions() {
+      const [{ data: sitesData }, { data: staffData }, auth] = await Promise.all([
+        supabase
+          .from('sites')
+          .select('id, name, site_code')
+          .is('archived_at', null)
+          .order('name'),
+        supabase
+          .from('staff')
+          .select('id, full_name, staff_code, user_id')
+          .is('archived_at', null)
+          .order('full_name'),
+        supabase.auth.getUser(),
+      ]);
+
+      if (cancelled) return;
+
+      const siteRows = (sitesData ?? []) as SiteOption[];
+      const staffRows = (staffData ?? []) as StaffOption[];
+
+      setSiteOptions([
+        { value: '', label: 'Not set' },
+        ...siteRows.map((site) => ({ value: site.id, label: `${site.name} (${site.site_code})` })),
+      ]);
+
+      setCounterOptions([
+        { value: '', label: 'Not set' },
+        ...staffRows.map((staff) => ({ value: staff.id, label: `${staff.full_name} (${staff.staff_code})` })),
+      ]);
+
+      if (!isEdit) {
+        const currentStaff = staffRows.find((staff) => staff.user_id === auth.data.user?.id);
+        if (currentStaff && !values.counted_by) {
+          setValue('counted_by', currentStaff.id);
+        }
+        if (!values.count_code) {
+          const { data: generatedCode } = await supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'CNT' });
+          if (!cancelled && generatedCode) {
+            setValue('count_code', generatedCode as string);
+          }
+        }
+      }
+    }
+
+    void preloadOptions();
+    return () => {
+      cancelled = true;
+    };
+  }, [isEdit, open, setValue, supabase, values.count_code, values.counted_by]);
+
   return (
     <SlideOver
       open={open}
@@ -96,6 +165,18 @@ export function InventoryCountForm({ open, onClose, initialData, onSuccess }: In
             required
             readOnly={isEdit}
             disabled={isEdit}
+          />
+          <Select
+            label="Site"
+            value={values.site_id ?? ''}
+            onChange={(e) => setValue('site_id', e.target.value || null)}
+            options={siteOptions}
+          />
+          <Select
+            label="Counted By"
+            value={values.counted_by ?? ''}
+            onChange={(e) => setValue('counted_by', e.target.value || null)}
+            options={counterOptions}
           />
           <Input
             label="Count Date"

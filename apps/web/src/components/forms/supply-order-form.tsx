@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { CalendarDays, FileText, ShoppingCart } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
@@ -81,6 +82,26 @@ export function SupplyOrderForm({ open, onClose, initialData, onSuccess }: Suppl
     reset();
     onClose();
   };
+
+  useEffect(() => {
+    if (!open || isEdit) return;
+    let cancelled = false;
+    async function preloadCode() {
+      if (!values.order_code) {
+        const { data: generatedCode } = await supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'ORD' });
+        if (!cancelled && generatedCode) {
+          setValue('order_code', generatedCode as string);
+        }
+      }
+      if (!values.order_date) {
+        setValue('order_date', new Date().toISOString().slice(0, 10));
+      }
+    }
+    void preloadCode();
+    return () => {
+      cancelled = true;
+    };
+  }, [isEdit, open, setValue, supabase, values.order_code, values.order_date]);
 
   return (
     <SlideOver

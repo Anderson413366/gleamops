@@ -32,6 +32,7 @@ interface SupplyOption {
   preferred_vendor: string | null;
   sds_url: string | null;
   image_url: string | null;
+  min_stock_level: number | null;
 }
 
 interface InventoryCountSummary {
@@ -108,6 +109,7 @@ export default function SiteAssignmentsTable({ search }: Props) {
   const [assignSupplySearch, setAssignSupplySearch] = useState('');
   const [selectedSupplyIds, setSelectedSupplyIds] = useState<string[]>([]);
   const [assigning, setAssigning] = useState(false);
+  const [parSavingId, setParSavingId] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [removeTarget, setRemoveTarget] = useState<SiteSupplyRow | null>(null);
 
@@ -127,7 +129,7 @@ export default function SiteAssignmentsTable({ search }: Props) {
         .order('name'),
       supabase
         .from('supply_catalog')
-        .select('id, code, name, category, unit, preferred_vendor, sds_url, image_url')
+        .select('id, code, name, category, unit, preferred_vendor, sds_url, image_url, min_stock_level')
         .is('archived_at', null)
         .order('name'),
       supabase
@@ -325,8 +327,10 @@ export default function SiteAssignmentsTable({ search }: Props) {
       .map((supply) => ({
         tenant_id: tenantId,
         site_id: assignSiteId,
+        supply_id: supply.id,
         name: supply.name,
         category: supply.category,
+        par_level: supply.min_stock_level ?? 0,
         sds_url: supply.sds_url,
         notes: `Assigned from supply catalog (${supply.code})`,
       }));
@@ -348,6 +352,27 @@ export default function SiteAssignmentsTable({ search }: Props) {
     setAssigning(false);
     setAssignOpen(false);
     await fetchData();
+  };
+
+  const updateParLevel = async (row: SiteSupplyRow, nextValue: number) => {
+    setParSavingId(row.id);
+    const supabase = getSupabaseBrowserClient();
+    const { error } = await supabase
+      .from('site_supplies')
+      .update({ par_level: nextValue })
+      .eq('id', row.id)
+      .is('archived_at', null);
+
+    if (error) {
+      toast.error(error.message);
+      setParSavingId(null);
+      return;
+    }
+
+    setRows((prev) => prev.map((item) => (
+      item.id === row.id ? { ...item, par_level: nextValue } : item
+    )));
+    setParSavingId(null);
   };
 
   const handleRemoveAssignment = async () => {
@@ -389,6 +414,7 @@ export default function SiteAssignmentsTable({ search }: Props) {
             <TableHead>Type</TableHead>
             <TableHead>Vendor</TableHead>
             <TableHead>Last Cnt</TableHead>
+            <TableHead>Par Level</TableHead>
             <TableHead>Assigned Date</TableHead>
             <TableHead>SDS</TableHead>
             <TableHead>Action</TableHead>
@@ -438,6 +464,26 @@ export default function SiteAssignmentsTable({ search }: Props) {
                 <TableCell className="text-muted-foreground">{vendor}</TableCell>
                 <TableCell className="tabular-nums text-muted-foreground">
                   {lastCountQty != null ? lastCountQty.toLocaleString() : 'Not Counted'}
+                </TableCell>
+                <TableCell>
+                  <input
+                    type="number"
+                    min={0}
+                    step="1"
+                    disabled={parSavingId === row.id}
+                    value={String(Number(row.par_level ?? enriched?.min_stock_level ?? 0))}
+                    onChange={(event) => {
+                      const value = Number(event.target.value);
+                      setRows((prev) => prev.map((item) => (
+                        item.id === row.id ? { ...item, par_level: Number.isFinite(value) ? value : 0 } : item
+                      )));
+                    }}
+                    onBlur={(event) => {
+                      const value = Number(event.target.value);
+                      void updateParLevel(row, Number.isFinite(value) ? Math.max(0, value) : 0);
+                    }}
+                    className="h-8 w-24 rounded-md border border-border bg-background px-2 text-sm"
+                  />
                 </TableCell>
                 <TableCell className="text-muted-foreground">{formatDateLabel(row.created_at)}</TableCell>
                 <TableCell>

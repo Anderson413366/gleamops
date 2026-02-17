@@ -325,11 +325,15 @@ export type VehicleMaintenanceFormData = z.infer<typeof vehicleMaintenanceSchema
 // ---------------------------------------------------------------------------
 export const supplyOrderSchema = z.object({
   order_code: z.string().min(1, 'Code is required'),
+  site_id: z.string().uuid().nullable().default(null),
   supplier: z.string().nullable().default(null),
+  vendor_id: z.string().nullable().default(null),
   order_date: z.string().min(1, 'Order date is required'),
   expected_delivery: z.string().nullable().default(null),
-  status: z.enum(['DRAFT', 'ORDERED', 'SHIPPED', 'RECEIVED', 'CANCELED']).default('DRAFT'),
+  delivery_date_est: z.string().nullable().default(null),
+  status: z.enum(['DRAFT', 'SUBMITTED', 'ORDERED', 'SHIPPED', 'DELIVERED', 'RECEIVED', 'CANCELED']).default('DRAFT'),
   total_amount: z.number().positive().nullable().default(null),
+  delivery_instructions: z.string().nullable().default(null),
   notes: z.string().nullable().default(null),
 });
 export type SupplyOrderFormData = z.infer<typeof supplyOrderSchema>;

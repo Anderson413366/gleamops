@@ -912,11 +912,25 @@ export interface VehicleMaintenance extends StandardColumns {
 // ---------------------------------------------------------------------------
 export interface SupplyOrder extends StandardColumns {
   order_code: string;
+  site_id: string | null;
   supplier: string | null;
+  vendor_id: string | null;
   order_date: string;
   expected_delivery: string | null;
+  delivery_date_est: string | null;
   status: string; // DRAFT | ORDERED | SHIPPED | RECEIVED | CANCELED
   total_amount: number | null;
+  delivery_instructions: string | null;
+  submitted_at: string | null;
+  notes: string | null;
+}
+
+export interface SupplyOrderItem extends StandardColumns {
+  order_id: string;
+  supply_id: string;
+  quantity_ordered: number;
+  unit_price: number;
+  line_total: number;
   notes: string | null;
 }
 
@@ -1056,8 +1070,10 @@ export interface UserClientAccess {
 // ---------------------------------------------------------------------------
 export interface SiteSupply extends StandardColumns {
   site_id: string;
+  supply_id: string | null;
   name: string;
   category: string | null;
+  par_level: number | null;
   sds_url: string | null;
   notes: string | null;
 }

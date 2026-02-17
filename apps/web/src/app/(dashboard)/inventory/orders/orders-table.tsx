@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { ShoppingCart } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { SupplyOrder } from '@gleamops/shared';
@@ -24,6 +25,8 @@ interface Props {
 const STATUS_OPTIONS = ['ORDERED', 'SHIPPED', 'RECEIVED', 'DRAFT', 'CANCELED', 'all'] as const;
 
 export default function OrdersTable({ search, formOpen, onFormClose, onRefresh }: Props) {
+  const searchParams = useSearchParams();
+  const siteQueryCode = searchParams.get('site');
   const [rows, setRows] = useState<SupplyOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
@@ -228,6 +231,7 @@ export default function OrdersTable({ search, formOpen, onFormClose, onRefresh }
         open={createOpen}
         onClose={handleFormClose}
         initialData={editItem}
+        initialSiteCode={siteQueryCode}
         onSuccess={handleFormSuccess}
       />
     </div>

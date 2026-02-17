@@ -18,6 +18,12 @@ export default function SettingsPage() {
   const [companyPhone, setCompanyPhone] = useState('');
   const [companyEmail, setCompanyEmail] = useState('');
   const [saving, setSaving] = useState(false);
+  const [notificationLoading, setNotificationLoading] = useState(false);
+  const [notificationSaving, setNotificationSaving] = useState(false);
+  const [defaultChannel, setDefaultChannel] = useState<'IN_APP' | 'SMS' | 'EMAIL' | 'PUSH'>('IN_APP');
+  const [quietHoursEnabled, setQuietHoursEnabled] = useState(false);
+  const [quietHoursStart, setQuietHoursStart] = useState('21:00');
+  const [quietHoursEnd, setQuietHoursEnd] = useState('07:00');
 
   const fetchTenant = useCallback(async () => {
     const supabase = getSupabaseBrowserClient();
@@ -39,6 +45,46 @@ export default function SettingsPage() {
   useEffect(() => {
     if (tenantId) fetchTenant();
   }, [tenantId, fetchTenant]);
+
+  const fetchNotificationPreferences = useCallback(async () => {
+    if (!tenantId || !user?.id) return;
+    setNotificationLoading(true);
+    const supabase = getSupabaseBrowserClient();
+
+    const { data, error } = await supabase
+      .from('notification_preferences')
+      .select('default_channel, quiet_hours_enabled, quiet_hours_start, quiet_hours_end')
+      .eq('tenant_id', tenantId)
+      .eq('user_id', user.id)
+      .is('archived_at', null)
+      .maybeSingle();
+
+    if (error) {
+      toast.error(error.message);
+      setNotificationLoading(false);
+      return;
+    }
+
+    if (data) {
+      const row = data as {
+        default_channel?: 'IN_APP' | 'SMS' | 'EMAIL' | 'PUSH' | null;
+        quiet_hours_enabled?: boolean | null;
+        quiet_hours_start?: string | null;
+        quiet_hours_end?: string | null;
+      };
+
+      setDefaultChannel(row.default_channel ?? 'IN_APP');
+      setQuietHoursEnabled(Boolean(row.quiet_hours_enabled));
+      setQuietHoursStart((row.quiet_hours_start ?? '21:00').slice(0, 5));
+      setQuietHoursEnd((row.quiet_hours_end ?? '07:00').slice(0, 5));
+    }
+
+    setNotificationLoading(false);
+  }, [tenantId, user?.id]);
+
+  useEffect(() => {
+    void fetchNotificationPreferences();
+  }, [fetchNotificationPreferences]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -62,6 +108,36 @@ export default function SettingsPage() {
       toast.error(message, { duration: Infinity });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveNotifications = async () => {
+    if (!tenantId || !user?.id) {
+      toast.error('User context missing');
+      return;
+    }
+
+    setNotificationSaving(true);
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase
+        .from('notification_preferences')
+        .upsert({
+          tenant_id: tenantId,
+          user_id: user.id,
+          default_channel: defaultChannel,
+          quiet_hours_enabled: quietHoursEnabled,
+          quiet_hours_start: quietHoursEnabled ? quietHoursStart : null,
+          quiet_hours_end: quietHoursEnabled ? quietHoursEnd : null,
+        }, { onConflict: 'tenant_id,user_id' });
+
+      if (error) throw error;
+      toast.success('Notification preferences saved');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to save notification preferences';
+      toast.error(message, { duration: Infinity });
+    } finally {
+      setNotificationSaving(false);
     }
   };
 
@@ -334,7 +410,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Notifications (placeholder) */}
+        {/* Notifications */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -342,8 +418,60 @@ export default function SettingsPage() {
               Notifications
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">Notification preferences coming soon.</p>
+          <CardContent className="space-y-4">
+            {notificationLoading ? (
+              <p className="text-sm text-muted-foreground">Loading notification preferences...</p>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-foreground">Default Channel</p>
+                  <select
+                    value={defaultChannel}
+                    onChange={(event) => setDefaultChannel(event.target.value as 'IN_APP' | 'SMS' | 'EMAIL' | 'PUSH')}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  >
+                    <option value="IN_APP">In-App</option>
+                    <option value="EMAIL">Email</option>
+                    <option value="SMS">SMS</option>
+                    <option value="PUSH">Push</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                    <input
+                      type="checkbox"
+                      checked={quietHoursEnabled}
+                      onChange={(event) => setQuietHoursEnabled(event.target.checked)}
+                    />
+                    Enable Quiet Hours
+                  </label>
+                  {quietHoursEnabled && (
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      <Input
+                        type="time"
+                        label="Quiet Start"
+                        value={quietHoursStart}
+                        onChange={(event) => setQuietHoursStart(event.target.value)}
+                      />
+                      <Input
+                        type="time"
+                        label="Quiet End"
+                        value={quietHoursEnd}
+                        onChange={(event) => setQuietHoursEnd(event.target.value)}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <Button onClick={handleSaveNotifications} loading={notificationSaving}>
+                    <Save className="h-4 w-4" />
+                    Save Notification Preferences
+                  </Button>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

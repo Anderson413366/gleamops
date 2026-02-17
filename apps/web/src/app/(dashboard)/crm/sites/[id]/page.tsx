@@ -104,7 +104,9 @@ interface SupplyLookupRow {
   id: string;
   code: string;
   name: string;
+  category: string | null;
   unit: string;
+  preferred_vendor: string | null;
 }
 
 interface CountSummary {
@@ -269,6 +271,8 @@ export default function SiteDetailPage() {
   const [expandedJobs, setExpandedJobs] = useState<string[]>([]);
   const [siteSupplies, setSiteSupplies] = useState<SiteSupplyRow[]>([]);
   const [supplyCategoryFilter, setSupplyCategoryFilter] = useState('all');
+  const [supplyTypeFilter, setSupplyTypeFilter] = useState('all');
+  const [supplyVendorFilter, setSupplyVendorFilter] = useState('all');
   const [latestCount, setLatestCount] = useState<CountSummary | null>(null);
   const [latestCountedByName, setLatestCountedByName] = useState<string | null>(null);
   const [supplyLookupByName, setSupplyLookupByName] = useState<Record<string, SupplyLookupRow>>({});
@@ -332,7 +336,7 @@ export default function SiteDetailPage() {
           .limit(5),
         supabase
           .from('supply_catalog')
-          .select('id, code, name, unit')
+          .select('id, code, name, category, unit, preferred_vendor')
           .is('archived_at', null),
       ]);
 
@@ -499,15 +503,43 @@ export default function SiteDetailPage() {
   const supplyCategories = useMemo(() => {
     const values = new Set<string>();
     for (const supply of siteSupplies) {
-      if (supply.category) values.add(supply.category);
+      const matchedSupply = supplyLookupByName[supply.name.trim().toLowerCase()];
+      const category = supply.category ?? matchedSupply?.category ?? null;
+      if (category) values.add(category);
     }
     return Array.from(values).sort((a, b) => a.localeCompare(b));
-  }, [siteSupplies]);
+  }, [siteSupplies, supplyLookupByName]);
+
+  const supplyTypes = useMemo(() => {
+    const values = new Set<string>();
+    for (const supply of siteSupplies) {
+      const matchedSupply = supplyLookupByName[supply.name.trim().toLowerCase()];
+      if (matchedSupply?.unit) values.add(matchedSupply.unit);
+    }
+    return Array.from(values).sort((a, b) => a.localeCompare(b));
+  }, [siteSupplies, supplyLookupByName]);
+
+  const supplyVendors = useMemo(() => {
+    const values = new Set<string>();
+    for (const supply of siteSupplies) {
+      const matchedSupply = supplyLookupByName[supply.name.trim().toLowerCase()];
+      if (matchedSupply?.preferred_vendor) values.add(matchedSupply.preferred_vendor);
+    }
+    return Array.from(values).sort((a, b) => a.localeCompare(b));
+  }, [siteSupplies, supplyLookupByName]);
 
   const filteredSupplies = useMemo(() => {
-    if (supplyCategoryFilter === 'all') return siteSupplies;
-    return siteSupplies.filter((supply) => supply.category === supplyCategoryFilter);
-  }, [siteSupplies, supplyCategoryFilter]);
+    return siteSupplies.filter((supply) => {
+      const matchedSupply = supplyLookupByName[supply.name.trim().toLowerCase()];
+      const category = supply.category ?? matchedSupply?.category ?? null;
+      const type = matchedSupply?.unit ?? null;
+      const vendor = matchedSupply?.preferred_vendor ?? null;
+      if (supplyCategoryFilter !== 'all' && category !== supplyCategoryFilter) return false;
+      if (supplyTypeFilter !== 'all' && type !== supplyTypeFilter) return false;
+      if (supplyVendorFilter !== 'all' && vendor !== supplyVendorFilter) return false;
+      return true;
+    });
+  }, [siteSupplies, supplyCategoryFilter, supplyLookupByName, supplyTypeFilter, supplyVendorFilter]);
 
   const groupedSupplies = useMemo(() => {
     const map: Record<string, SiteSupplyRow[]> = {};
@@ -1183,6 +1215,30 @@ export default function SiteDetailPage() {
               <option key={category} value={category}>{category}</option>
             ))}
           </select>
+          <label htmlFor="supply-type-filter" className="text-xs text-muted-foreground">Type</label>
+          <select
+            id="supply-type-filter"
+            value={supplyTypeFilter}
+            onChange={(event) => setSupplyTypeFilter(event.target.value)}
+            className="h-8 rounded-lg border border-border bg-background px-2.5 text-xs"
+          >
+            <option value="all">All Types</option>
+            {supplyTypes.map((type) => (
+              <option key={type} value={type}>{type}</option>
+            ))}
+          </select>
+          <label htmlFor="supply-vendor-filter" className="text-xs text-muted-foreground">Vendor</label>
+          <select
+            id="supply-vendor-filter"
+            value={supplyVendorFilter}
+            onChange={(event) => setSupplyVendorFilter(event.target.value)}
+            className="h-8 rounded-lg border border-border bg-background px-2.5 text-xs"
+          >
+            <option value="all">All Vendors</option>
+            {supplyVendors.map((vendor) => (
+              <option key={vendor} value={vendor}>{vendor}</option>
+            ))}
+          </select>
         </div>
 
         {filteredSupplies.length === 0 ? (
@@ -1199,6 +1255,8 @@ export default function SiteDetailPage() {
                     <thead>
                       <tr className="border-b border-border text-left text-xs text-muted-foreground">
                         <th className="py-2 pr-3 font-medium">Supply</th>
+                        <th className="py-2 pr-3 font-medium">Type</th>
+                        <th className="py-2 pr-3 font-medium">Vendor</th>
                         <th className="py-2 pr-3 font-medium">SDS</th>
                         <th className="py-2 font-medium">Last Count</th>
                       </tr>
@@ -1227,6 +1285,12 @@ export default function SiteDetailPage() {
                                 {supply.name}
                               </Link>
                             )}
+                          </td>
+                          <td className="py-2 pr-3 text-muted-foreground">
+                            {matchedSupply?.unit ?? 'Not Set'}
+                          </td>
+                          <td className="py-2 pr-3 text-muted-foreground">
+                            {matchedSupply?.preferred_vendor ?? 'Not Set'}
                           </td>
                           <td className="py-2 pr-3">
                             {supply.sds_url ? (

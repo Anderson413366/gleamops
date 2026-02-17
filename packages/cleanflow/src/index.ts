@@ -39,6 +39,11 @@ export type {
   DayPorterResult,
   ConsumableItem,
   ConsumablesResult,
+  BurdenItemized,
+  OverheadItemized,
+  PricingExplanation,
+  ShiftDifferentials,
+  ContractTerms,
 } from './types';
 export type { SpecializationAdjustment } from './specialization';
 export type { ExpressLoadInput, ExpressLoadArea, FloorMixEntry } from './express-load';

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Plus, Trash2, ChevronLeft, ChevronRight, Check, AlertTriangle, BarChart3 } from 'lucide-react';
+import { Plus, Trash2, ChevronLeft, ChevronRight, Check, AlertTriangle, DollarSign, Shield, Wrench, Lightbulb, FileText, Moon } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   SlideOver,
@@ -13,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
   Badge,
+  CollapsibleCard,
 } from '@gleamops/ui';
 import { calculateWorkload, calculatePricing, expressLoad, scopeAwareExpressLoad } from '@gleamops/cleanflow';
 import type {
@@ -24,14 +25,32 @@ import type {
   CrewMember,
   DayPorterConfig,
   ConsumableItem,
+  BurdenItemized,
+  OverheadItemized,
+  ShiftDifferentials,
+  ContractTerms,
 } from '@gleamops/cleanflow';
-import type { FacilityTypeCode, SizeTierCode } from '@gleamops/shared';
-import { SCOPE_DIFFICULTY_MODIFIERS } from '@gleamops/shared';
+import type { FacilityTypeCode, SizeTierCode, DayOfWeekCode } from '@gleamops/shared';
+import {
+  SCOPE_DIFFICULTY_MODIFIERS,
+  BURDEN_DEFAULTS,
+  BURDEN_LABELS,
+  OVERHEAD_CATEGORIES,
+  BUILDING_TASKS,
+  CONTRACT_LENGTH_OPTIONS,
+  CONTRACT_DEFAULTS,
+  SHIFT_DIFFERENTIAL_DEFAULTS,
+  EQUIPMENT_SUGGESTIONS,
+  SERVICE_WINDOW_DEFAULTS,
+} from '@gleamops/shared';
 import { SpecializationStep } from './steps/specialization-step';
 import { CrewWageStep } from './steps/crew-wage-step';
 import { DayPorterStep } from './steps/day-porter-step';
 import { ConsumablesStep } from './steps/consumables-step';
 import { ScopeBuilderStep } from './steps/scope-builder-step';
+import { ScheduleStep } from './steps/schedule-step';
+import type { ServiceWindow } from './steps/schedule-step';
+import { LiveEstimatePanel } from './steps/live-estimate-panel';
 
 // ---------------------------------------------------------------------------
 // Form state types
@@ -59,6 +78,20 @@ interface WizardAreaTask {
   custom_minutes: number | null;
 }
 
+interface WizardEquipmentItem {
+  id: string;
+  name: string;
+  monthly_depreciation: number;
+}
+
+interface WizardBuildingTask {
+  code: string;
+  label: string;
+  enabled: boolean;
+  frequency_code: string;
+  custom_minutes: number | null;
+}
+
 interface WizardState {
   // Step: Basics
   client_id: string;
@@ -73,7 +106,11 @@ interface WizardState {
   scope_selected_areas: string[];
   // Step: Areas + Tasks
   areas: WizardArea[];
+  // Building Tasks
+  building_tasks: WizardBuildingTask[];
   // Step: Schedule
+  selected_days: DayOfWeekCode[];
+  service_window: ServiceWindow;
   days_per_week: number;
   visits_per_day: number;
   hours_per_shift: number;
@@ -89,13 +126,19 @@ interface WizardState {
   workers_comp_pct: number;
   insurance_pct: number;
   other_pct: number;
+  burden_itemized: BurdenItemized;
   monthly_overhead: number;
+  overhead_items: Array<{ category: string; label: string; monthly_amount: number }>;
+  equipment_items: WizardEquipmentItem[];
   supply_allowance_sqft: number;
   consumables_monthly: number;
-  // Costs: Crew + Day Porter + Consumables
+  // Costs: Crew + Day Porter + Consumables + Shift Differentials
   crew: CrewMember[];
   day_porter: DayPorterConfig;
   consumable_items: ConsumableItem[];
+  shift_differentials: ShiftDifferentials;
+  // Contract Terms (Basics step)
+  contract_terms: ContractTerms;
   // Step: Pricing strategy
   pricing_method: 'COST_PLUS' | 'TARGET_MARGIN' | 'MARKET_RATE' | 'HYBRID';
   target_margin_pct: number;
@@ -110,6 +153,33 @@ const DAY_PORTER_DEFAULTS: DayPorterConfig = {
   hourly_rate: 16,
 };
 
+const DEFAULT_BURDEN_ITEMIZED: BurdenItemized = {
+  fica_ss_pct: BURDEN_DEFAULTS.FICA_SS,
+  fica_medicare_pct: BURDEN_DEFAULTS.FICA_MEDICARE,
+  futa_pct: BURDEN_DEFAULTS.FUTA,
+  suta_pct: BURDEN_DEFAULTS.SUTA,
+  workers_comp_pct: BURDEN_DEFAULTS.WORKERS_COMP,
+  gl_insurance_pct: BURDEN_DEFAULTS.GL_INSURANCE,
+  health_benefits_pct: BURDEN_DEFAULTS.HEALTH_BENEFITS,
+  pto_accrual_pct: BURDEN_DEFAULTS.PTO_ACCRUAL,
+  retirement_pct: BURDEN_DEFAULTS.RETIREMENT,
+  other_burden_pct: BURDEN_DEFAULTS.OTHER_BURDEN,
+};
+
+const DEFAULT_OVERHEAD_ITEMS = OVERHEAD_CATEGORIES.map((cat) => ({
+  category: cat.code,
+  label: cat.label,
+  monthly_amount: 0,
+}));
+
+const DEFAULT_BUILDING_TASKS: WizardBuildingTask[] = BUILDING_TASKS.map((bt) => ({
+  code: bt.code,
+  label: bt.label,
+  enabled: false,
+  frequency_code: bt.default_frequency,
+  custom_minutes: null,
+}));
+
 const DEFAULTS: WizardState = {
   client_id: '',
   service_id: '',
@@ -121,6 +191,9 @@ const DEFAULTS: WizardState = {
   size_tier_code: '',
   scope_selected_areas: [],
   areas: [],
+  building_tasks: DEFAULT_BUILDING_TASKS.map((bt) => ({ ...bt })),
+  selected_days: ['MON', 'TUE', 'WED', 'THU', 'FRI'] as DayOfWeekCode[],
+  service_window: { ...SERVICE_WINDOW_DEFAULTS },
   days_per_week: 5,
   visits_per_day: 1,
   hours_per_shift: 4,
@@ -134,12 +207,17 @@ const DEFAULTS: WizardState = {
   workers_comp_pct: 5,
   insurance_pct: 3,
   other_pct: 0,
+  burden_itemized: { ...DEFAULT_BURDEN_ITEMIZED },
   monthly_overhead: 0,
+  overhead_items: DEFAULT_OVERHEAD_ITEMS.map((item) => ({ ...item })),
+  equipment_items: [],
   supply_allowance_sqft: 0.01,
   consumables_monthly: 0,
   crew: [],
   day_porter: { ...DAY_PORTER_DEFAULTS },
   consumable_items: [],
+  shift_differentials: { ...SHIFT_DIFFERENTIAL_DEFAULTS, selected_days: ['MON', 'TUE', 'WED', 'THU', 'FRI'] },
+  contract_terms: { ...CONTRACT_DEFAULTS },
   pricing_method: 'TARGET_MARGIN',
   target_margin_pct: 25,
   cost_plus_pct: 30,
@@ -233,6 +311,9 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
   const [workloadResult, setWorkloadResult] = useState<WorkloadResult | null>(null);
   const [pricingResult, setPricingResult] = useState<PricingResult | null>(null);
 
+  // Equipment suggestions
+  const [dismissedSuggestions, setDismissedSuggestions] = useState(false);
+
   const supabase = getSupabaseBrowserClient();
 
   // ---------------------------------------------------------------------------
@@ -264,26 +345,50 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
     return {
       bid_version_id: previewId,
       service_code: form.service_id || null,
-      areas: form.areas.map((a) => ({
-        area_id: a.tempId,
-        name: a.name,
-        area_type_code: a.area_type_code || null,
-        floor_type_code: a.floor_type_code || null,
-        building_type_code: a.building_type_code || null,
-        difficulty_code: a.difficulty_code,
-        modifier_codes: a.modifier_codes.length > 0 ? a.modifier_codes : undefined,
-        square_footage: a.square_footage,
-        quantity: a.quantity,
-        fixtures: a.fixtures,
-        tasks: a.tasks.map((t) => ({
-          task_code: t.task_code,
-          frequency_code: t.frequency_code,
-          use_ai: t.use_ai,
-          custom_minutes: t.custom_minutes,
+      areas: [
+        ...form.areas.map((a) => ({
+          area_id: a.tempId,
+          name: a.name,
+          area_type_code: a.area_type_code || null,
+          floor_type_code: a.floor_type_code || null,
+          building_type_code: a.building_type_code || null,
+          difficulty_code: a.difficulty_code,
+          modifier_codes: a.modifier_codes.length > 0 ? a.modifier_codes : undefined,
+          square_footage: a.square_footage,
+          quantity: a.quantity,
+          fixtures: a.fixtures,
+          tasks: a.tasks.map((t) => ({
+            task_code: t.task_code,
+            frequency_code: t.frequency_code,
+            use_ai: t.use_ai,
+            custom_minutes: t.custom_minutes,
+          })),
         })),
-      })),
+        // Building-wide tasks as a special area
+        ...(form.building_tasks.some((bt) => bt.enabled)
+          ? [{
+              area_id: 'BUILDING',
+              name: 'Building',
+              area_type_code: null,
+              floor_type_code: null,
+              building_type_code: form.building_type_code || form.facility_type_code || null,
+              difficulty_code: 'STANDARD' as const,
+              square_footage: 0,
+              quantity: 1,
+              fixtures: {},
+              tasks: form.building_tasks
+                .filter((bt) => bt.enabled)
+                .map((bt) => ({
+                  task_code: bt.code,
+                  frequency_code: bt.frequency_code,
+                  use_ai: false,
+                  custom_minutes: bt.custom_minutes,
+                })),
+            }]
+          : []),
+      ],
       schedule: {
-        days_per_week: form.days_per_week,
+        days_per_week: form.selected_days.length,
         visits_per_day: form.visits_per_day,
         hours_per_shift: form.hours_per_shift,
         lead_required: form.lead_required,
@@ -305,7 +410,10 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
         allowance_per_sqft_monthly: form.supply_allowance_sqft,
         consumables_monthly: form.consumables_monthly,
       },
-      equipment: [],
+      equipment: form.equipment_items.map((e) => ({
+        name: e.name,
+        monthly_depreciation: e.monthly_depreciation,
+      })),
       production_rates: productionRates,
       pricing_strategy: {
         method: form.pricing_method,
@@ -318,6 +426,16 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
       crew: form.crew.length > 0 ? form.crew : undefined,
       day_porter: form.day_porter.enabled ? form.day_porter : undefined,
       consumable_items: form.consumable_items.length > 0 ? form.consumable_items : undefined,
+      // P2 extensions — itemized burden & overhead
+      burden_itemized: form.burden_itemized,
+      overhead_itemized: form.overhead_items.some((i) => i.monthly_amount > 0)
+        ? { items: form.overhead_items.filter((i) => i.monthly_amount > 0) }
+        : undefined,
+      // P2 Phase 2 — shift differentials + contract terms
+      shift_differentials: form.shift_differentials.enabled
+        ? { ...form.shift_differentials, selected_days: form.selected_days }
+        : undefined,
+      contract_terms: form.contract_terms,
     };
   }, [form, productionRates]);
 
@@ -330,6 +448,7 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
     setForm({ ...DEFAULTS });
     setWorkloadResult(null);
     setPricingResult(null);
+    setDismissedSuggestions(false);
 
     supabase.from('clients').select('id, name, client_code').is('archived_at', null).order('name')
       .then(({ data }) => {
@@ -415,6 +534,9 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
         size_tier_code: '',
         scope_selected_areas: [],
         areas: wizardAreas,
+        building_tasks: (snap.building_tasks as WizardBuildingTask[]) || DEFAULT_BUILDING_TASKS.map((bt) => ({ ...bt })),
+        selected_days: (snap.selected_days as DayOfWeekCode[]) || ['MON', 'TUE', 'WED', 'THU', 'FRI'],
+        service_window: (snap.service_window as ServiceWindow) || { ...SERVICE_WINDOW_DEFAULTS },
         days_per_week: (sched?.days_per_week as number) || 5,
         visits_per_day: (sched?.visits_per_day as number) || 1,
         hours_per_shift: (sched?.hours_per_shift as number) || 4,
@@ -428,12 +550,21 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
         workers_comp_pct: (burd?.workers_comp_pct as number) || 5,
         insurance_pct: (burd?.insurance_pct as number) || 3,
         other_pct: (burd?.other_pct as number) || 0,
+        burden_itemized: (snap.burden_itemized as BurdenItemized) || { ...DEFAULT_BURDEN_ITEMIZED },
         monthly_overhead: 0,
+        overhead_items: (snap.overhead_itemized as OverheadItemized)?.items || DEFAULT_OVERHEAD_ITEMS.map((item) => ({ ...item })),
+        equipment_items: ((snap.equipment as Array<{ name: string; monthly_depreciation: number }>) || []).map((e) => ({
+          id: crypto.randomUUID(),
+          name: e.name,
+          monthly_depreciation: e.monthly_depreciation,
+        })),
         supply_allowance_sqft: 0.01,
         consumables_monthly: 0,
         crew: (snap.crew as CrewMember[]) || [],
         day_porter: (snap.day_porter as DayPorterConfig) || { ...DAY_PORTER_DEFAULTS },
         consumable_items: (snap.consumable_items as ConsumableItem[]) || [],
+        shift_differentials: (snap.shift_differentials as ShiftDifferentials) || { ...SHIFT_DIFFERENTIAL_DEFAULTS },
+        contract_terms: (snap.contract_terms as ContractTerms) || { ...CONTRACT_DEFAULTS },
         pricing_method: 'TARGET_MARGIN',
         target_margin_pct: bid.target_margin_percent || 25,
         cost_plus_pct: 30,
@@ -717,6 +848,16 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
             crew: form.crew.length > 0 ? form.crew : null,
             day_porter: form.day_porter.enabled ? form.day_porter : null,
             consumable_items: form.consumable_items.length > 0 ? form.consumable_items : null,
+            burden_itemized: form.burden_itemized,
+            overhead_itemized: form.overhead_items.some((i) => i.monthly_amount > 0)
+              ? { items: form.overhead_items.filter((i) => i.monthly_amount > 0) }
+              : null,
+            equipment: form.equipment_items.map((e) => ({ name: e.name, monthly_depreciation: e.monthly_depreciation })),
+            building_tasks: form.building_tasks.filter((bt) => bt.enabled),
+            selected_days: form.selected_days,
+            service_window: form.service_window,
+            shift_differentials: form.shift_differentials.enabled ? form.shift_differentials : null,
+            contract_terms: form.contract_terms,
           },
         })
         .select('id')
@@ -761,7 +902,7 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
       await supabase.from('sales_bid_schedule').insert({
         tenant_id: tenantId,
         bid_version_id: version.id,
-        days_per_week: form.days_per_week,
+        days_per_week: form.selected_days.length,
         visits_per_day: form.visits_per_day,
         hours_per_shift: form.hours_per_shift,
         lead_required: form.lead_required,
@@ -847,7 +988,7 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
       case 'Basics': return !!form.client_id;
       case 'Areas': return form.areas.length > 0 && form.areas.every((a) => a.square_footage > 0);
       case 'Tasks': return form.areas.every((a) => a.tasks.length > 0);
-      case 'Schedule': return form.days_per_week > 0;
+      case 'Schedule': return form.selected_days.length > 0;
       case 'Specialization': return true;
       case 'Costs': return form.cleaner_rate > 0;
       case 'Pricing': return true;
@@ -900,6 +1041,90 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
           {form.service_id && serviceTasks.length > 0 && (
             <p className="text-xs text-muted-foreground">{serviceTasks.length} tasks will be pre-loaded from the template.</p>
           )}
+
+          {/* Contract Terms */}
+          <CollapsibleCard
+            id="bid-contract-terms"
+            title="Contract Terms"
+            icon={<FileText className="h-4 w-4" />}
+            headerRight={
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {form.contract_terms.length_months} mo / {form.contract_terms.annual_escalation_pct}% esc
+                {form.contract_terms.include_deep_clean && form.contract_terms.deep_clean_price > 0
+                  ? ` / Deep Clean ${fmt(form.contract_terms.deep_clean_price)}`
+                  : ''}
+              </span>
+            }
+            defaultCollapsed
+          >
+            <div className="space-y-3">
+              <div className="grid grid-cols-3 gap-3">
+                <Select
+                  label="Contract Length"
+                  value={String(form.contract_terms.length_months)}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      contract_terms: { ...f.contract_terms, length_months: Number(e.target.value) },
+                    }))
+                  }
+                  options={CONTRACT_LENGTH_OPTIONS.map((o) => ({ value: String(o.value), label: o.label }))}
+                />
+                <Input
+                  label="Annual Escalation %"
+                  type="number"
+                  step="0.1"
+                  value={form.contract_terms.annual_escalation_pct}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      contract_terms: { ...f.contract_terms, annual_escalation_pct: Number(e.target.value) },
+                    }))
+                  }
+                />
+                <Input
+                  label="Start Date"
+                  type="date"
+                  value={form.contract_terms.start_date}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      contract_terms: { ...f.contract_terms, start_date: e.target.value },
+                    }))
+                  }
+                />
+              </div>
+
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.contract_terms.include_deep_clean}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      contract_terms: { ...f.contract_terms, include_deep_clean: e.target.checked },
+                    }))
+                  }
+                  className="rounded border-border"
+                />
+                <span className="font-medium">Include initial deep clean?</span>
+              </label>
+
+              {form.contract_terms.include_deep_clean && (
+                <Input
+                  label="Deep Clean Price (one-time $)"
+                  type="number"
+                  value={form.contract_terms.deep_clean_price || ''}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      contract_terms: { ...f.contract_terms, deep_clean_price: Number(e.target.value) },
+                    }))
+                  }
+                />
+              )}
+            </div>
+          </CollapsibleCard>
         </div>
       )}
 
@@ -970,6 +1195,70 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
             </Card>
           ))}
           <Button variant="secondary" onClick={addArea}><Plus className="h-4 w-4" /> Add Area</Button>
+
+          {/* Building-Wide Tasks */}
+          <CollapsibleCard
+            id="bid-building-tasks"
+            title="Building Tasks"
+            description="Facility-level tasks not tied to a specific area"
+            defaultCollapsed
+          >
+            <div className="space-y-3">
+              {form.building_tasks.map((bt, idx) => (
+                <div key={bt.code} className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={bt.enabled}
+                      onChange={(e) => {
+                        setForm((f) => ({
+                          ...f,
+                          building_tasks: f.building_tasks.map((b, i) =>
+                            i === idx ? { ...b, enabled: e.target.checked } : b
+                          ),
+                        }));
+                      }}
+                      className="rounded border-border"
+                    />
+                    <span className={bt.enabled ? 'font-medium text-foreground' : 'text-muted-foreground'}>
+                      {bt.label}
+                    </span>
+                  </label>
+                  {bt.enabled && (
+                    <div className="ml-6 grid grid-cols-2 gap-3">
+                      <Select
+                        label="Frequency"
+                        value={bt.frequency_code}
+                        onChange={(e) => {
+                          setForm((f) => ({
+                            ...f,
+                            building_tasks: f.building_tasks.map((b, i) =>
+                              i === idx ? { ...b, frequency_code: e.target.value } : b
+                            ),
+                          }));
+                        }}
+                        options={FREQUENCY_OPTIONS}
+                      />
+                      <Input
+                        label="Custom Minutes"
+                        type="number"
+                        placeholder="Default"
+                        value={bt.custom_minutes ?? ''}
+                        onChange={(e) => {
+                          setForm((f) => ({
+                            ...f,
+                            building_tasks: f.building_tasks.map((b, i) =>
+                              i === idx ? { ...b, custom_minutes: e.target.value ? Number(e.target.value) : null } : b
+                            ),
+                          }));
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CollapsibleCard>
         </div>
       )}
 
@@ -1015,20 +1304,20 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
 
       {/* Step: Schedule */}
       {currentStepName === 'Schedule' && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Days per Week" type="number" value={form.days_per_week} onChange={(e) => setForm((f) => ({ ...f, days_per_week: Number(e.target.value) }))} />
-            <Input label="Visits per Day" type="number" value={form.visits_per_day} onChange={(e) => setForm((f) => ({ ...f, visits_per_day: Number(e.target.value) }))} />
-          </div>
-          <Input label="Hours per Shift" type="number" value={form.hours_per_shift} onChange={(e) => setForm((f) => ({ ...f, hours_per_shift: Number(e.target.value) }))} />
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={form.lead_required} onChange={(e) => setForm((f) => ({ ...f, lead_required: e.target.checked }))} className="rounded border-border" />
-            <span className="font-medium">Lead cleaner required</span>
-          </label>
-          {form.lead_required && (
-            <Input label="Supervisor Hours / Week" type="number" value={form.supervisor_hours_week} onChange={(e) => setForm((f) => ({ ...f, supervisor_hours_week: Number(e.target.value) }))} />
-          )}
-        </div>
+        <ScheduleStep
+          selectedDays={form.selected_days}
+          onSelectedDaysChange={(days) => setForm((f) => ({ ...f, selected_days: days, days_per_week: days.length }))}
+          serviceWindow={form.service_window}
+          onServiceWindowChange={(sw) => setForm((f) => ({ ...f, service_window: sw }))}
+          visitsPerDay={form.visits_per_day}
+          onVisitsPerDayChange={(v) => setForm((f) => ({ ...f, visits_per_day: v }))}
+          hoursPerShift={form.hours_per_shift}
+          onHoursPerShiftChange={(v) => setForm((f) => ({ ...f, hours_per_shift: v }))}
+          leadRequired={form.lead_required}
+          onLeadRequiredChange={(v) => setForm((f) => ({ ...f, lead_required: v }))}
+          supervisorHoursWeek={form.supervisor_hours_week}
+          onSupervisorHoursWeekChange={(v) => setForm((f) => ({ ...f, supervisor_hours_week: v }))}
+        />
       )}
 
       {/* Step: Specialization (non-JANITORIAL only) */}
@@ -1054,25 +1343,325 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
             </div>
           </div>
 
+          {/* Shift Premiums */}
+          <CollapsibleCard
+            id="bid-shift-premiums"
+            title="Shift Premiums"
+            icon={<Moon className="h-4 w-4" />}
+            headerRight={
+              form.shift_differentials.enabled
+                ? <span className="text-xs font-semibold text-primary">+{form.shift_differentials.night_pct}%</span>
+                : undefined
+            }
+            defaultCollapsed
+          >
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.shift_differentials.enabled}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      shift_differentials: { ...f.shift_differentials, enabled: e.target.checked },
+                    }))
+                  }
+                  className="rounded border-border"
+                />
+                <span className="font-medium">Evening/Night Premium</span>
+              </label>
+
+              {form.shift_differentials.enabled && (
+                <div className="grid grid-cols-3 gap-3">
+                  <Input
+                    label="Night Differential %"
+                    type="number"
+                    value={form.shift_differentials.night_pct}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        shift_differentials: { ...f.shift_differentials, night_pct: Number(e.target.value) },
+                      }))
+                    }
+                  />
+                  <div>
+                    <Input
+                      label="Weekend Premium %"
+                      type="number"
+                      value={form.shift_differentials.weekend_pct}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          shift_differentials: { ...f.shift_differentials, weekend_pct: Number(e.target.value) },
+                        }))
+                      }
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">Applied to Sat/Sun service days</p>
+                  </div>
+                  <div>
+                    <Input
+                      label="OT Threshold (hrs/wk)"
+                      type="number"
+                      value={form.shift_differentials.overtime_threshold_hours}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          shift_differentials: { ...f.shift_differentials, overtime_threshold_hours: Number(e.target.value) },
+                        }))
+                      }
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">Weekly hours before OT applies</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CollapsibleCard>
+
           {/* Crew Roster (weighted wage) */}
           <CrewWageStep
             crew={form.crew}
             onChange={(crew) => setForm((f) => ({ ...f, crew }))}
           />
 
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium text-foreground">Burden (%)</h3>
+          {/* Payroll Burden — 10 itemized categories */}
+          <CollapsibleCard
+            id="bid-burden"
+            title="Payroll Burden"
+            icon={<Shield className="h-4 w-4" />}
+            headerRight={
+              <span className="text-xs font-semibold text-primary tabular-nums">
+                Total: {(
+                  form.burden_itemized.fica_ss_pct +
+                  form.burden_itemized.fica_medicare_pct +
+                  form.burden_itemized.futa_pct +
+                  form.burden_itemized.suta_pct +
+                  form.burden_itemized.workers_comp_pct +
+                  form.burden_itemized.gl_insurance_pct +
+                  form.burden_itemized.health_benefits_pct +
+                  form.burden_itemized.pto_accrual_pct +
+                  form.burden_itemized.retirement_pct +
+                  form.burden_itemized.other_burden_pct
+                ).toFixed(2)}%
+              </span>
+            }
+            defaultCollapsed
+          >
             <div className="grid grid-cols-2 gap-3">
-              <Input label="Employer Tax %" type="number" value={form.employer_tax_pct} onChange={(e) => setForm((f) => ({ ...f, employer_tax_pct: Number(e.target.value) }))} />
-              <Input label="Workers Comp %" type="number" value={form.workers_comp_pct} onChange={(e) => setForm((f) => ({ ...f, workers_comp_pct: Number(e.target.value) }))} />
-              <Input label="Insurance %" type="number" value={form.insurance_pct} onChange={(e) => setForm((f) => ({ ...f, insurance_pct: Number(e.target.value) }))} />
-              <Input label="Other %" type="number" value={form.other_pct} onChange={(e) => setForm((f) => ({ ...f, other_pct: Number(e.target.value) }))} />
+              {(Object.keys(BURDEN_DEFAULTS) as Array<keyof typeof BURDEN_DEFAULTS>).map((key) => {
+                const fieldKey = `${key.toLowerCase()}_pct` as keyof BurdenItemized;
+                const value = form.burden_itemized[fieldKey];
+                return (
+                  <Input
+                    key={key}
+                    label={BURDEN_LABELS[key]}
+                    type="number"
+                    step="0.01"
+                    value={value || ''}
+                    onChange={(e) => {
+                      const numVal = Number(e.target.value);
+                      setForm((f) => ({
+                        ...f,
+                        burden_itemized: { ...f.burden_itemized, [fieldKey]: numVal },
+                      }));
+                    }}
+                    className={value === 0 ? 'opacity-60' : ''}
+                  />
+                );
+              })}
             </div>
-          </div>
+          </CollapsibleCard>
+
+          {/* Overhead — categorized breakdown */}
+          <CollapsibleCard
+            id="bid-overhead"
+            title="Overhead"
+            icon={<DollarSign className="h-4 w-4" />}
+            headerRight={
+              <span className="text-xs font-semibold text-primary tabular-nums">
+                Total: {fmt(form.overhead_items.reduce((sum, i) => sum + i.monthly_amount, 0))}/mo
+              </span>
+            }
+            defaultCollapsed
+          >
+            <div className="space-y-3">
+              {form.overhead_items.map((item, idx) => (
+                <div key={item.category} className="flex items-center gap-3">
+                  <span className="text-sm text-muted-foreground w-40 shrink-0">{item.label}</span>
+                  <Input
+                    type="number"
+                    value={item.monthly_amount || ''}
+                    placeholder="$0"
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setForm((f) => ({
+                        ...f,
+                        overhead_items: f.overhead_items.map((oi, i) =>
+                          i === idx ? { ...oi, monthly_amount: val } : oi
+                        ),
+                      }));
+                    }}
+                    className={item.monthly_amount === 0 ? 'opacity-60' : ''}
+                  />
+                </div>
+              ))}
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setForm((f) => ({
+                    ...f,
+                    overhead_items: [
+                      ...f.overhead_items,
+                      { category: `CUSTOM_${f.overhead_items.length}`, label: 'Custom', monthly_amount: 0 },
+                    ],
+                  }));
+                }}
+              >
+                <Plus className="h-3 w-3" /> Add Category
+              </Button>
+            </div>
+          </CollapsibleCard>
+
+          {/* Equipment — dynamic list */}
+          <CollapsibleCard
+            id="bid-equipment"
+            title="Equipment"
+            icon={<Wrench className="h-4 w-4" />}
+            headerRight={
+              <span className="text-xs font-semibold text-primary tabular-nums">
+                Total: {fmt(form.equipment_items.reduce((sum, e) => sum + e.monthly_depreciation, 0))}/mo
+              </span>
+            }
+            defaultCollapsed
+          >
+            <div className="space-y-3">
+              {form.equipment_items.map((item, idx) => (
+                <div key={item.id} className="flex items-center gap-3">
+                  <Input
+                    placeholder="e.g. Auto scrubber"
+                    value={item.name}
+                    onChange={(e) => {
+                      setForm((f) => ({
+                        ...f,
+                        equipment_items: f.equipment_items.map((ei, i) =>
+                          i === idx ? { ...ei, name: e.target.value } : ei
+                        ),
+                      }));
+                    }}
+                    className="flex-1"
+                  />
+                  <Input
+                    type="number"
+                    placeholder="$/mo"
+                    value={item.monthly_depreciation || ''}
+                    onChange={(e) => {
+                      setForm((f) => ({
+                        ...f,
+                        equipment_items: f.equipment_items.map((ei, i) =>
+                          i === idx ? { ...ei, monthly_depreciation: Number(e.target.value) } : ei
+                        ),
+                      }));
+                    }}
+                    className="w-28"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForm((f) => ({
+                        ...f,
+                        equipment_items: f.equipment_items.filter((_, i) => i !== idx),
+                      }));
+                    }}
+                    className="text-muted-foreground hover:text-destructive shrink-0"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setForm((f) => ({
+                    ...f,
+                    equipment_items: [
+                      ...f.equipment_items,
+                      { id: crypto.randomUUID(), name: '', monthly_depreciation: 0 },
+                    ],
+                  }));
+                }}
+              >
+                <Plus className="h-3 w-3" /> Add Equipment
+              </Button>
+
+              {/* Equipment Suggestions */}
+              {(() => {
+                const totalSqft = form.areas.reduce((s, a) => s + a.square_footage * a.quantity, 0);
+                const floorTypes = form.areas.map((a) => a.floor_type_code);
+                const buildingTypes = form.areas.map((a) => a.building_type_code);
+                const existingNames = form.equipment_items.map((e) => e.name);
+
+                const suggestions = EQUIPMENT_SUGGESTIONS.filter((sug) => {
+                  if (existingNames.includes(sug.name)) return false;
+                  switch (sug.trigger) {
+                    case 'sqft_gte_3000': return totalSqft >= 3000;
+                    case 'sqft_gte_10000': return totalSqft >= 10000;
+                    case 'sqft_gte_50000': return totalSqft >= 50000;
+                    case 'floor_vct_tile': return floorTypes.some((f) => f === 'VCT' || f === 'CERAMIC');
+                    case 'floor_carpet': return floorTypes.some((f) => f === 'CARPET');
+                    case 'building_industrial_restaurant': return buildingTypes.some((b) => b === 'INDUSTRIAL_MANUFACTURING' || b === 'RESTAURANT_FOOD');
+                    case 'building_medical': return buildingTypes.some((b) => b === 'MEDICAL_HEALTHCARE');
+                    default: return false;
+                  }
+                });
+
+                if (suggestions.length === 0 || dismissedSuggestions) return null;
+
+                return (
+                  <div className="rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-3 mt-1">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Lightbulb className="h-3.5 w-3.5 text-blue-500" />
+                        <span className="text-xs font-medium text-blue-700 dark:text-blue-300">Suggested for your facility</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setDismissedSuggestions(true)}
+                        className="text-[10px] text-blue-500 hover:text-blue-700 dark:hover:text-blue-300"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {suggestions.map((sug) => (
+                        <button
+                          key={sug.name}
+                          type="button"
+                          onClick={() => {
+                            setForm((f) => ({
+                              ...f,
+                              equipment_items: [
+                                ...f.equipment_items,
+                                { id: crypto.randomUUID(), name: sug.name, monthly_depreciation: sug.monthly_depreciation },
+                              ],
+                            }));
+                          }}
+                          className="inline-flex items-center gap-1 rounded-full bg-white dark:bg-blue-900 border border-blue-200 dark:border-blue-700 px-2.5 py-1 text-xs text-blue-700 dark:text-blue-200 hover:bg-blue-100 dark:hover:bg-blue-800 transition-colors"
+                        >
+                          <Plus className="h-3 w-3" />
+                          {sug.name}
+                          <span className="text-blue-400 dark:text-blue-500">${sug.monthly_depreciation}/mo</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </CollapsibleCard>
 
           <div className="space-y-4">
-            <h3 className="text-sm font-medium text-foreground">Overhead & Supplies</h3>
-            <Input label="Monthly Overhead ($)" type="number" value={form.monthly_overhead} onChange={(e) => setForm((f) => ({ ...f, monthly_overhead: Number(e.target.value) }))} />
+            <h3 className="text-sm font-medium text-foreground">Supplies</h3>
             <div className="grid grid-cols-2 gap-3">
               <Input label="Supply Allowance ($/sqft/mo)" type="number" step="0.001" value={form.supply_allowance_sqft} onChange={(e) => setForm((f) => ({ ...f, supply_allowance_sqft: Number(e.target.value) }))} />
               <Input label="Consumables ($/mo)" type="number" value={form.consumables_monthly} onChange={(e) => setForm((f) => ({ ...f, consumables_monthly: Number(e.target.value) }))} />
@@ -1109,47 +1698,12 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
         </div>
       )}
 
-      {/* Live Estimate Panel — visible on all steps except Review */}
-      {currentStepName !== 'Review' && (
-        <div className="mt-6 rounded-lg border border-border bg-muted/30 p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Live Estimate</h3>
-          </div>
-          {liveWorkload && livePricing ? (
-            <div className="grid grid-cols-4 gap-3">
-              <div>
-                <p className="text-[10px] text-muted-foreground">Monthly Hours</p>
-                <p className="text-sm font-bold">{liveWorkload.monthly_hours.toFixed(1)}</p>
-              </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground">Cleaners</p>
-                <p className="text-sm font-bold">{liveWorkload.cleaners_needed}</p>
-              </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground">Est. Monthly Price</p>
-                <p className="text-sm font-bold text-primary">{fmt(livePricing.recommended_price)}</p>
-              </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground">Margin</p>
-                <p className="text-sm font-bold">
-                  <Badge color={livePricing.effective_margin_pct >= 20 ? 'green' : livePricing.effective_margin_pct >= 10 ? 'yellow' : 'red'}>
-                    {fmtPct(livePricing.effective_margin_pct)}
-                  </Badge>
-                </p>
-              </div>
-            </div>
-          ) : (
-            <p className="text-xs text-muted-foreground">Add areas & tasks to see estimate</p>
-          )}
-          {liveWorkload && liveWorkload.warnings.length > 0 && (
-            <div className="mt-2 flex items-start gap-1.5">
-              <AlertTriangle className="h-3 w-3 text-warning mt-0.5 shrink-0" />
-              <p className="text-[10px] text-warning">{liveWorkload.warnings.join('; ')}</p>
-            </div>
-          )}
-        </div>
-      )}
+      {/* Enhanced Live Estimate Panel — visible on ALL steps */}
+      <LiveEstimatePanel
+        workload={currentStepName === 'Review' ? workloadResult : liveWorkload}
+        pricing={currentStepName === 'Review' ? pricingResult : livePricing}
+        isReviewStep={currentStepName === 'Review'}
+      />
 
       {/* Step: Review */}
       {currentStepName === 'Review' && (
@@ -1176,6 +1730,130 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Margin Intelligence */}
+              {(() => {
+                const effectiveHourlyRate = workloadResult.monthly_hours > 0
+                  ? pricingResult.recommended_price / workloadResult.monthly_hours
+                  : 0;
+                const margin = pricingResult.effective_margin_pct;
+                const minChargeThreshold = 25;
+                const isLowHourly = effectiveHourlyRate > 0 && effectiveHourlyRate < minChargeThreshold;
+
+                // Cost stack percentages
+                const total = pricingResult.recommended_price || 1;
+                const laborPct = (pricingResult.burdened_labor_cost / total) * 100;
+                const suppliesPct = (pricingResult.supplies_cost / total) * 100;
+                const equipmentPct = (pricingResult.equipment_cost / total) * 100;
+                const overheadPct = (pricingResult.overhead_cost / total) * 100;
+                const profitPct = Math.max(0, margin);
+
+                // Margin health
+                const marginColor = margin >= 25 ? 'green' : margin >= 15 ? 'yellow' : 'red';
+                const marginLabel = margin >= 25 ? 'Healthy' : margin >= 15 ? 'Tight' : 'Below Floor';
+
+                // Warnings
+                const warnings: string[] = [];
+                if (margin < 15) warnings.push(`Margin at ${fmtPct(margin)} — consider raising price or reducing costs`);
+                if (isLowHourly) warnings.push(`Effective rate ${fmt(effectiveHourlyRate)}/hr is below ${fmt(minChargeThreshold)}/hr minimum`);
+
+                return (
+                  <Card>
+                    <CardHeader><CardTitle>Margin Intelligence</CardTitle></CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Effective $/hr + Margin Health */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Effective $/hr</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xl font-bold tabular-nums">{fmt(effectiveHourlyRate)}</span>
+                            {isLowHourly && (
+                              <Badge color="red">Below Min</Badge>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Margin Health</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge color={marginColor}>{marginLabel} — {fmtPct(margin)}</Badge>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Cost Stack Waterfall Bar */}
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-2">Cost Stack</p>
+                        <div className="flex h-6 rounded-lg overflow-hidden">
+                          {laborPct > 0 && (
+                            <div
+                              className="bg-blue-500 flex items-center justify-center"
+                              style={{ width: `${laborPct}%` }}
+                              title={`Labor: ${fmtPct(laborPct)}`}
+                            >
+                              {laborPct > 10 && <span className="text-[9px] font-medium text-white">Labor</span>}
+                            </div>
+                          )}
+                          {suppliesPct > 0 && (
+                            <div
+                              className="bg-emerald-500 flex items-center justify-center"
+                              style={{ width: `${suppliesPct}%` }}
+                              title={`Supplies: ${fmtPct(suppliesPct)}`}
+                            >
+                              {suppliesPct > 10 && <span className="text-[9px] font-medium text-white">Supplies</span>}
+                            </div>
+                          )}
+                          {equipmentPct > 0 && (
+                            <div
+                              className="bg-orange-500 flex items-center justify-center"
+                              style={{ width: `${equipmentPct}%` }}
+                              title={`Equipment: ${fmtPct(equipmentPct)}`}
+                            >
+                              {equipmentPct > 10 && <span className="text-[9px] font-medium text-white">Equip</span>}
+                            </div>
+                          )}
+                          {overheadPct > 0 && (
+                            <div
+                              className="bg-purple-500 flex items-center justify-center"
+                              style={{ width: `${overheadPct}%` }}
+                              title={`Overhead: ${fmtPct(overheadPct)}`}
+                            >
+                              {overheadPct > 10 && <span className="text-[9px] font-medium text-white">Overhead</span>}
+                            </div>
+                          )}
+                          {profitPct > 0 && (
+                            <div
+                              className="bg-green-500 flex items-center justify-center"
+                              style={{ width: `${profitPct}%` }}
+                              title={`Profit: ${fmtPct(profitPct)}`}
+                            >
+                              {profitPct > 8 && <span className="text-[9px] font-medium text-white">Profit</span>}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex gap-4 mt-2 text-[10px] text-muted-foreground flex-wrap">
+                          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-blue-500" />Labor {fmtPct(laborPct)}</span>
+                          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" />Supplies {fmtPct(suppliesPct)}</span>
+                          {equipmentPct > 0 && <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-orange-500" />Equipment {fmtPct(equipmentPct)}</span>}
+                          {overheadPct > 0 && <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-purple-500" />Overhead {fmtPct(overheadPct)}</span>}
+                          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-green-500" />Profit {fmtPct(profitPct)}</span>
+                        </div>
+                      </div>
+
+                      {/* Margin Warnings */}
+                      {warnings.length > 0 && (
+                        <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800">
+                          <div className="flex items-start gap-2">
+                            <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+                            <div className="text-sm text-red-700 dark:text-red-300 space-y-1">
+                              {warnings.map((w, i) => <p key={i}>{w}</p>)}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })()}
 
               {/* Guardrail Warnings */}
               {workloadResult.warnings.length > 0 && (
@@ -1219,7 +1897,7 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Effective Margin</span>
-                    <Badge color={pricingResult.effective_margin_pct >= 20 ? 'green' : pricingResult.effective_margin_pct >= 10 ? 'yellow' : 'red'}>
+                    <Badge color={pricingResult.effective_margin_pct >= 25 ? 'green' : pricingResult.effective_margin_pct >= 15 ? 'yellow' : 'red'}>
                       {fmtPct(pricingResult.effective_margin_pct)}
                     </Badge>
                   </div>
@@ -1234,9 +1912,19 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
                   <p>Bid Type: <strong>{form.bid_type_code}</strong></p>
                   <p>Labor: {workloadResult.monthly_hours.toFixed(1)} hrs/mo at {fmt(pricingResult.explanation.cleaner_rate)}/hr{pricingResult.explanation.weighted_avg_wage != null && ' (weighted avg)'}</p>
                   <p>Burden multiplier: {pricingResult.explanation.burden_multiplier.toFixed(3)}x</p>
+                  {pricingResult.explanation.burden_itemized && (
+                    <p className="text-xs">
+                      Burden breakdown: FICA {fmtPct(pricingResult.explanation.burden_itemized.fica_ss_pct + pricingResult.explanation.burden_itemized.fica_medicare_pct)}, WC {fmtPct(pricingResult.explanation.burden_itemized.workers_comp_pct)}, GL {fmtPct(pricingResult.explanation.burden_itemized.gl_insurance_pct)}, FUTA/SUTA {fmtPct(pricingResult.explanation.burden_itemized.futa_pct + pricingResult.explanation.burden_itemized.suta_pct)}
+                    </p>
+                  )}
                   <p>Effective hourly revenue: {fmt(pricingResult.explanation.effective_hourly_revenue)}</p>
                   {pricingResult.explanation.price_per_sqft != null && (
                     <p>Price per sqft: ${pricingResult.explanation.price_per_sqft.toFixed(4)}/sqft/mo</p>
+                  )}
+                  {pricingResult.explanation.overhead_itemized && pricingResult.explanation.overhead_itemized.items.length > 0 && (
+                    <p className="text-xs">
+                      Overhead: {pricingResult.explanation.overhead_itemized.items.map((i) => `${i.label} ${fmt(i.monthly_amount)}`).join(', ')}
+                    </p>
                   )}
                   {pricingResult.explanation.day_porter && pricingResult.explanation.day_porter.monthly_cost > 0 && (
                     <p>Day porter: {fmt(pricingResult.explanation.day_porter.monthly_cost)}/mo ({pricingResult.explanation.day_porter.monthly_hours.toFixed(0)} hrs)</p>
@@ -1247,8 +1935,31 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
                   {pricingResult.explanation.specialization_adjustments && (
                     <p>Specialization ({pricingResult.explanation.specialization_adjustments.bid_type}): +{pricingResult.explanation.specialization_adjustments.extra_minutes_per_visit.toFixed(0)} min/visit</p>
                   )}
+                  {pricingResult.explanation.shift_differential_impact && pricingResult.explanation.shift_differential_impact.total_uplift > 0 && (
+                    <p>Shift differential: +{fmt(pricingResult.explanation.shift_differential_impact.total_uplift)}/mo
+                      {pricingResult.explanation.shift_differential_impact.night_uplift > 0 && ` (night +${fmt(pricingResult.explanation.shift_differential_impact.night_uplift)})`}
+                      {pricingResult.explanation.shift_differential_impact.weekend_uplift > 0 && ` (weekend +${fmt(pricingResult.explanation.shift_differential_impact.weekend_uplift)})`}
+                    </p>
+                  )}
                 </CardContent>
               </Card>
+
+              {/* Contract Terms (Review display) */}
+              {(form.contract_terms.length_months !== 12 || form.contract_terms.annual_escalation_pct !== 3.0 || form.contract_terms.start_date || form.contract_terms.include_deep_clean) && (
+                <Card>
+                  <CardHeader><CardTitle>Contract Terms</CardTitle></CardHeader>
+                  <CardContent className="text-sm text-muted-foreground space-y-1">
+                    <p>Length: <strong>{form.contract_terms.length_months} months</strong></p>
+                    <p>Annual Escalation: <strong>{form.contract_terms.annual_escalation_pct}%</strong></p>
+                    {form.contract_terms.start_date && (
+                      <p>Start Date: <strong>{form.contract_terms.start_date}</strong></p>
+                    )}
+                    {form.contract_terms.include_deep_clean && (
+                      <p>Initial Deep Clean: <strong>{fmt(form.contract_terms.deep_clean_price)}</strong></p>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
             </>
           ) : (
             <p className="text-sm text-muted-foreground">Calculating...</p>

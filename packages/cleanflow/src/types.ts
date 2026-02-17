@@ -249,6 +249,52 @@ export interface ConsumablesResult {
 }
 
 // ---------------------------------------------------------------------------
+// Itemized Burden Rate — 10 payroll burden categories
+// ---------------------------------------------------------------------------
+export interface BurdenItemized {
+  fica_ss_pct: number;
+  fica_medicare_pct: number;
+  futa_pct: number;
+  suta_pct: number;
+  workers_comp_pct: number;
+  gl_insurance_pct: number;
+  health_benefits_pct: number;
+  pto_accrual_pct: number;
+  retirement_pct: number;
+  other_burden_pct: number;
+}
+
+// ---------------------------------------------------------------------------
+// Itemized Overhead — categorized monthly breakdown
+// ---------------------------------------------------------------------------
+export interface OverheadItemized {
+  items: Array<{ category: string; label: string; monthly_amount: number }>;
+}
+
+// ---------------------------------------------------------------------------
+// Shift Differentials — night/weekend premiums
+// ---------------------------------------------------------------------------
+export interface ShiftDifferentials {
+  enabled: boolean;
+  night_pct: number;
+  weekend_pct: number;
+  overtime_threshold_hours: number;
+  /** Selected days for weekend proportion calculation */
+  selected_days?: string[];
+}
+
+// ---------------------------------------------------------------------------
+// Contract Terms — proposal metadata (no engine impact)
+// ---------------------------------------------------------------------------
+export interface ContractTerms {
+  length_months: number;
+  annual_escalation_pct: number;
+  start_date: string;
+  include_deep_clean: boolean;
+  deep_clean_price: number;
+}
+
+// ---------------------------------------------------------------------------
 // Main snapshot — extended with optional specialization, crew, day porter
 // ---------------------------------------------------------------------------
 export interface BidVersionSnapshot {
@@ -321,6 +367,14 @@ export interface BidVersionSnapshot {
   day_porter?: DayPorterConfig;
   /** Itemized consumables (optional — overrides consumables_monthly if provided) */
   consumable_items?: ConsumableItem[];
+  /** Itemized burden rate (optional — overrides flat burden if provided) */
+  burden_itemized?: BurdenItemized;
+  /** Itemized overhead (optional — overrides flat monthly_overhead_allocated if provided) */
+  overhead_itemized?: OverheadItemized;
+  /** Shift differentials — night/weekend premiums */
+  shift_differentials?: ShiftDifferentials;
+  /** Contract terms — proposal metadata */
+  contract_terms?: ContractTerms;
 }
 
 export interface WorkloadResult {
@@ -367,12 +421,14 @@ export interface PricingExplanation {
     insurance_pct: number;
     other_pct: number;
   };
+  burden_itemized?: BurdenItemized;
   supplies_breakdown: {
     allowance: number;
     consumables: number;
   };
   equipment_total: number;
   overhead_allocated: number;
+  overhead_itemized?: OverheadItemized;
   price_per_sqft: number | null;
   effective_hourly_revenue: number;
   /** Weighted average wage (if crew provided) */
@@ -387,5 +443,11 @@ export interface PricingExplanation {
     extra_minutes_per_visit: number;
     workload_multiplier: number;
     adjustments: Record<string, number>;
+  };
+  /** Shift differential impact on labor cost */
+  shift_differential_impact?: {
+    night_uplift: number;
+    weekend_uplift: number;
+    total_uplift: number;
   };
 }

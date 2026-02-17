@@ -333,6 +333,116 @@ export const SUBCONTRACTOR_STATUS_COLORS: Record<string, StatusColor> = {
   PENDING: 'yellow',
 };
 
+// ---------------------------------------------------------------------------
+// Days of Week (Schedule Day Picker)
+// ---------------------------------------------------------------------------
+export const DAYS_OF_WEEK = [
+  { code: 'MON', label: 'M', full: 'Monday' },
+  { code: 'TUE', label: 'T', full: 'Tuesday' },
+  { code: 'WED', label: 'W', full: 'Wednesday' },
+  { code: 'THU', label: 'Th', full: 'Thursday' },
+  { code: 'FRI', label: 'F', full: 'Friday' },
+  { code: 'SAT', label: 'Sa', full: 'Saturday' },
+  { code: 'SUN', label: 'Su', full: 'Sunday' },
+] as const;
+
+export type DayOfWeekCode = typeof DAYS_OF_WEEK[number]['code'];
+
+export const WEEKEND_DAYS: DayOfWeekCode[] = ['SAT', 'SUN'];
+
+// ---------------------------------------------------------------------------
+// Service Window — time options and defaults
+// ---------------------------------------------------------------------------
+export const TIME_OPTIONS = [
+  { value: '05:00', label: '5:00 AM' },
+  { value: '05:30', label: '5:30 AM' },
+  { value: '06:00', label: '6:00 AM' },
+  { value: '06:30', label: '6:30 AM' },
+  { value: '07:00', label: '7:00 AM' },
+  { value: '07:30', label: '7:30 AM' },
+  { value: '08:00', label: '8:00 AM' },
+  { value: '08:30', label: '8:30 AM' },
+  { value: '09:00', label: '9:00 AM' },
+  { value: '17:00', label: '5:00 PM' },
+  { value: '17:30', label: '5:30 PM' },
+  { value: '18:00', label: '6:00 PM' },
+  { value: '18:30', label: '6:30 PM' },
+  { value: '19:00', label: '7:00 PM' },
+  { value: '19:30', label: '7:30 PM' },
+  { value: '20:00', label: '8:00 PM' },
+  { value: '20:30', label: '8:30 PM' },
+  { value: '21:00', label: '9:00 PM' },
+  { value: '21:30', label: '9:30 PM' },
+  { value: '22:00', label: '10:00 PM' },
+  { value: '22:30', label: '10:30 PM' },
+  { value: '23:00', label: '11:00 PM' },
+] as const;
+
+export const BREAK_OPTIONS = [
+  { value: 0, label: 'No break' },
+  { value: 15, label: '15 min' },
+  { value: 30, label: '30 min' },
+] as const;
+
+export const TRAVEL_OPTIONS = [
+  { value: 0, label: 'No travel' },
+  { value: 15, label: '15 min' },
+  { value: 30, label: '30 min' },
+  { value: 45, label: '45 min' },
+  { value: 60, label: '60 min' },
+] as const;
+
+export const SERVICE_WINDOW_DEFAULTS = {
+  start_time: '18:00',
+  break_minutes: 0,
+  travel_minutes: 0,
+} as const;
+
+// ---------------------------------------------------------------------------
+// Contract Terms
+// ---------------------------------------------------------------------------
+export const CONTRACT_LENGTH_OPTIONS = [
+  { value: 6, label: '6 months' },
+  { value: 12, label: '12 months' },
+  { value: 18, label: '18 months' },
+  { value: 24, label: '24 months' },
+  { value: 36, label: '36 months' },
+] as const;
+
+export const CONTRACT_DEFAULTS = {
+  length_months: 12,
+  annual_escalation_pct: 3.0,
+  start_date: '',
+  include_deep_clean: false,
+  deep_clean_price: 0,
+} as const;
+
+// ---------------------------------------------------------------------------
+// Shift Differentials
+// ---------------------------------------------------------------------------
+export const SHIFT_DIFFERENTIAL_DEFAULTS = {
+  enabled: false,
+  night_pct: 10,
+  weekend_pct: 0,
+  overtime_threshold_hours: 40,
+} as const;
+
+// ---------------------------------------------------------------------------
+// Equipment Suggestions — trigger-based recommendations
+// ---------------------------------------------------------------------------
+export const EQUIPMENT_SUGGESTIONS = [
+  { name: 'Backpack Vacuum', monthly_depreciation: 25, trigger: 'sqft_gte_3000' },
+  { name: 'Microfiber Mop System', monthly_depreciation: 15, trigger: 'sqft_gte_3000' },
+  { name: 'Floor Buffer', monthly_depreciation: 50, trigger: 'floor_vct_tile' },
+  { name: 'Auto Scrubber (walk-behind)', monthly_depreciation: 150, trigger: 'sqft_gte_10000' },
+  { name: 'Auto Scrubber (ride-on)', monthly_depreciation: 350, trigger: 'sqft_gte_50000' },
+  { name: 'Carpet Extractor', monthly_depreciation: 75, trigger: 'floor_carpet' },
+  { name: 'Pressure Washer', monthly_depreciation: 40, trigger: 'building_industrial_restaurant' },
+  { name: 'Biohazard Cleanup Kit', monthly_depreciation: 10, trigger: 'building_medical' },
+] as const;
+
+export type EquipmentSuggestionTrigger = typeof EQUIPMENT_SUGGESTIONS[number]['trigger'];
+
 export const SUPPLY_ORDER_STATUS_COLORS: Record<string, StatusColor> = {
   DRAFT: 'gray',
   ORDERED: 'blue',
@@ -371,3 +481,49 @@ export const GENERAL_TASK_CATEGORY_COLORS: Record<string, StatusColor> = {
   MANAGEMENT: 'purple',
   OTHER: 'gray',
 };
+
+// ---------------------------------------------------------------------------
+// Burden rate defaults — 10 itemized payroll burden categories
+// ---------------------------------------------------------------------------
+export const BURDEN_DEFAULTS = {
+  FICA_SS: 6.2,
+  FICA_MEDICARE: 1.45,
+  FUTA: 0.42,
+  SUTA: 2.7,
+  WORKERS_COMP: 5.0,
+  GL_INSURANCE: 2.5,
+  HEALTH_BENEFITS: 0,
+  PTO_ACCRUAL: 0,
+  RETIREMENT: 0,
+  OTHER_BURDEN: 0,
+} as const;
+
+export const BURDEN_LABELS: Record<keyof typeof BURDEN_DEFAULTS, string> = {
+  FICA_SS: 'Social Security (FICA)',
+  FICA_MEDICARE: 'Medicare (FICA)',
+  FUTA: 'Federal Unemployment',
+  SUTA: 'State Unemployment',
+  WORKERS_COMP: 'Workers Comp',
+  GL_INSURANCE: 'General Liability',
+  HEALTH_BENEFITS: 'Health Benefits',
+  PTO_ACCRUAL: 'PTO Accrual',
+  RETIREMENT: 'Retirement (401k)',
+  OTHER_BURDEN: 'Other Burden',
+};
+
+// ---------------------------------------------------------------------------
+// Overhead categories — standard business overhead breakdown
+// ---------------------------------------------------------------------------
+export const OVERHEAD_CATEGORIES = [
+  { code: 'RENT_FACILITY', label: 'Rent / Facility' },
+  { code: 'UTILITIES', label: 'Utilities' },
+  { code: 'VEHICLE_EXPENSE', label: 'Vehicle Expense' },
+  { code: 'OFFICE_SUPPLIES', label: 'Office Supplies' },
+  { code: 'SOFTWARE_TECH', label: 'Software / Tech' },
+  { code: 'MARKETING', label: 'Marketing' },
+  { code: 'MANAGEMENT_SALARY', label: 'Management Salary' },
+  { code: 'INSURANCE_GENERAL', label: 'Insurance (General)' },
+  { code: 'OTHER_OVERHEAD', label: 'Other Overhead' },
+] as const;
+
+export type OverheadCategoryCode = typeof OVERHEAD_CATEGORIES[number]['code'];

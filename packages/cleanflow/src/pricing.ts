@@ -8,7 +8,7 @@
  * - Itemized consumables (overrides flat consumables_monthly)
  * - Bid-type specialization adjustments
  */
-import type { BidVersionSnapshot, WorkloadResult, PricingResult, DayPorterResult, ConsumablesResult } from './types';
+import type { BidVersionSnapshot, WorkloadResult, PricingResult, DayPorterResult, ConsumablesResult, BurdenItemized, OverheadItemized, ShiftDifferentials } from './types';
 import { WEEKS_PER_MONTH } from '@gleamops/shared';
 import { calculateWeightedWage } from './weighted-wage';
 import { calculateDayPorter } from './day-porter';
@@ -21,13 +21,32 @@ export function calculatePricing(
 ): PricingResult {
   const { labor_rates, burden, overhead, supplies, equipment, pricing_strategy } = snapshot;
 
-  // Burden multiplier
-  const burdenMultiplier = 1 + (
-    burden.employer_tax_pct +
-    burden.workers_comp_pct +
-    burden.insurance_pct +
-    burden.other_pct
-  ) / 100;
+  // Burden multiplier — use itemized if provided, else flat 4-field burden
+  let burdenItemizedData: BurdenItemized | undefined;
+  let burdenMultiplier: number;
+
+  if (snapshot.burden_itemized) {
+    burdenItemizedData = snapshot.burden_itemized;
+    const totalPct =
+      burdenItemizedData.fica_ss_pct +
+      burdenItemizedData.fica_medicare_pct +
+      burdenItemizedData.futa_pct +
+      burdenItemizedData.suta_pct +
+      burdenItemizedData.workers_comp_pct +
+      burdenItemizedData.gl_insurance_pct +
+      burdenItemizedData.health_benefits_pct +
+      burdenItemizedData.pto_accrual_pct +
+      burdenItemizedData.retirement_pct +
+      burdenItemizedData.other_burden_pct;
+    burdenMultiplier = 1 + totalPct / 100;
+  } else {
+    burdenMultiplier = 1 + (
+      burden.employer_tax_pct +
+      burden.workers_comp_pct +
+      burden.insurance_pct +
+      burden.other_pct
+    ) / 100;
+  }
 
   // Determine effective cleaner rate: weighted wage if crew provided, else flat rate
   let effectiveCleanerRate = labor_rates.cleaner_rate;
@@ -54,6 +73,21 @@ export function calculatePricing(
     laborCost += dayPorterResult.monthly_cost;
   }
 
+  // Shift differentials — night/weekend premiums applied before burden
+  let shiftDiffImpact: { night_uplift: number; weekend_uplift: number; total_uplift: number } | undefined;
+  const sd = snapshot.shift_differentials;
+  if (sd?.enabled) {
+    const baseLaborCost = laborCost;
+    const nightUplift = baseLaborCost * (sd.night_pct / 100);
+    let weekendUplift = 0;
+    if (sd.weekend_pct > 0 && sd.selected_days && sd.selected_days.length > 0) {
+      const weekendDayCount = sd.selected_days.filter((d) => d === 'SAT' || d === 'SUN').length;
+      weekendUplift = baseLaborCost * (sd.weekend_pct / 100) * (weekendDayCount / sd.selected_days.length);
+    }
+    laborCost += nightUplift + weekendUplift;
+    shiftDiffImpact = { night_uplift: nightUplift, weekend_uplift: weekendUplift, total_uplift: nightUplift + weekendUplift };
+  }
+
   const burdenedLabor = laborCost * burdenMultiplier;
 
   // Supplies cost — use itemized consumables if provided
@@ -78,9 +112,22 @@ export function calculatePricing(
     (sum, e) => sum + e.monthly_depreciation, 0
   );
 
+  // Overhead — use itemized if provided, else flat monthly_overhead_allocated
+  let overheadItemizedData: OverheadItemized | undefined;
+  let overheadCost: number;
+
+  if (snapshot.overhead_itemized && snapshot.overhead_itemized.items.length > 0) {
+    overheadItemizedData = snapshot.overhead_itemized;
+    overheadCost = overheadItemizedData.items.reduce(
+      (sum, item) => sum + item.monthly_amount, 0
+    );
+  } else {
+    overheadCost = overhead.monthly_overhead_allocated;
+  }
+
   // Total cost
   const totalMonthlyCost =
-    burdenedLabor + suppliesCost + equipmentCost + overhead.monthly_overhead_allocated;
+    burdenedLabor + suppliesCost + equipmentCost + overheadCost;
 
   // Price recommendation
   let recommendedPrice: number;
@@ -122,7 +169,7 @@ export function calculatePricing(
     burdened_labor_cost: burdenedLabor,
     supplies_cost: suppliesCost,
     equipment_cost: equipmentCost,
-    overhead_cost: overhead.monthly_overhead_allocated,
+    overhead_cost: overheadCost,
     total_monthly_cost: totalMonthlyCost,
     recommended_price: recommendedPrice,
     effective_margin_pct: effectiveMarginPct,
@@ -136,12 +183,14 @@ export function calculatePricing(
         insurance_pct: burden.insurance_pct,
         other_pct: burden.other_pct,
       },
+      burden_itemized: burdenItemizedData,
       supplies_breakdown: {
         allowance: totalSqft * supplies.allowance_per_sqft_monthly,
         consumables: consumablesMonthly,
       },
       equipment_total: equipmentCost,
-      overhead_allocated: overhead.monthly_overhead_allocated,
+      overhead_allocated: overheadCost,
+      overhead_itemized: overheadItemizedData,
       price_per_sqft: pricePerSqft,
       effective_hourly_revenue: effectiveHourlyRevenue,
       weighted_avg_wage: weightedAvgWage,
@@ -161,6 +210,7 @@ export function calculatePricing(
             };
           })()
         : undefined,
+      shift_differential_impact: shiftDiffImpact,
     },
   };
 }

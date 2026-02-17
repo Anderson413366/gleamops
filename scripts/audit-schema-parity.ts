@@ -137,6 +137,110 @@ function resolveFieldCandidates(field: string): string[] {
   return Array.from(candidates);
 }
 
+function extractTopLevelSelectList(selectSql: string): string {
+  let depth = 0;
+  let inSingle = false;
+  let inDouble = false;
+
+  for (let i = 0; i < selectSql.length; i += 1) {
+    const ch = selectSql[i];
+    const next = selectSql[i + 1];
+
+    if (!inDouble && ch === '\'') {
+      if (inSingle && next === '\'') {
+        i += 1;
+        continue;
+      }
+      inSingle = !inSingle;
+      continue;
+    }
+
+    if (!inSingle && ch === '"') {
+      if (inDouble && next === '"') {
+        i += 1;
+        continue;
+      }
+      inDouble = !inDouble;
+      continue;
+    }
+
+    if (inSingle || inDouble) continue;
+
+    if (ch === '(') {
+      depth += 1;
+      continue;
+    }
+    if (ch === ')' && depth > 0) {
+      depth -= 1;
+      continue;
+    }
+
+    if (depth === 0 && i + 4 <= selectSql.length) {
+      const maybeFrom = selectSql.slice(i, i + 4);
+      if (/^from$/i.test(maybeFrom)) {
+        const prev = i === 0 ? ' ' : selectSql[i - 1];
+        const after = i + 4 >= selectSql.length ? ' ' : selectSql[i + 4];
+        if (/\s|\)/.test(prev) && /\s|\(/.test(after)) {
+          return selectSql.slice(0, i);
+        }
+      }
+    }
+  }
+
+  return selectSql;
+}
+
+function splitTopLevelCsv(sqlList: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let inSingle = false;
+  let inDouble = false;
+  let start = 0;
+
+  for (let i = 0; i < sqlList.length; i += 1) {
+    const ch = sqlList[i];
+    const next = sqlList[i + 1];
+
+    if (!inDouble && ch === '\'') {
+      if (inSingle && next === '\'') {
+        i += 1;
+        continue;
+      }
+      inSingle = !inSingle;
+      continue;
+    }
+
+    if (!inSingle && ch === '"') {
+      if (inDouble && next === '"') {
+        i += 1;
+        continue;
+      }
+      inDouble = !inDouble;
+      continue;
+    }
+
+    if (inSingle || inDouble) continue;
+
+    if (ch === '(') {
+      depth += 1;
+      continue;
+    }
+    if (ch === ')' && depth > 0) {
+      depth -= 1;
+      continue;
+    }
+
+    if (depth === 0 && ch === ',') {
+      out.push(sqlList.slice(start, i).trim());
+      start = i + 1;
+    }
+  }
+
+  const last = sqlList.slice(start).trim();
+  if (last) out.push(last);
+  return out;
+}
+
 function applySqlToSchema(schema: LiveSchema, content: string): void {
   const createTableRe = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:(?:public|"public")\.)?("?[a-zA-Z0-9_]+"?)\s*\(([\s\S]*?)\);/gi;
   let createMatch: RegExpExecArray | null;
@@ -145,7 +249,7 @@ function applySqlToSchema(schema: LiveSchema, content: string): void {
     const body = createMatch[2];
     if (!schema.has(table)) schema.set(table, new Set());
 
-    const columnRe = /^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s+/gm;
+    const columnRe = /^\s*"?([a-zA-Z_][a-zA-Z0-9_]*)"?\s+/gm;
     let colMatch: RegExpExecArray | null;
     while ((colMatch = columnRe.exec(body)) !== null) {
       const col = colMatch[1];
@@ -164,20 +268,37 @@ function applySqlToSchema(schema: LiveSchema, content: string): void {
     schema.get(table)!.add(col);
   }
 
-  const viewRe = /CREATE\s+OR\s+REPLACE\s+VIEW\s+(?:(?:public|"public")\.)?("?[a-zA-Z0-9_]+"?)\s+AS\s+SELECT\s+([\s\S]*?);/gi;
+  const viewRe = /CREATE\s+(?:OR\s+REPLACE\s+)?VIEW\s+(?:(?:public|"public")\.)?("?[a-zA-Z0-9_]+"?)(?:\s*\(([\s\S]*?)\))?\s+AS\s+SELECT\s+([\s\S]*?);/gi;
   let viewMatch: RegExpExecArray | null;
   while ((viewMatch = viewRe.exec(content)) !== null) {
     const view = viewMatch[1].replace(/"/g, '');
-    const selectBlock = viewMatch[2].split(/\bFROM\b/i)[0] ?? viewMatch[2];
     if (!schema.has(view)) schema.set(view, new Set());
 
-    for (const rawItem of selectBlock.split(',')) {
+    const explicitColumns = viewMatch[2];
+    if (explicitColumns != null && explicitColumns.trim().length > 0) {
+      for (const colRaw of explicitColumns.split(',')) {
+        const col = colRaw.trim().replace(/"/g, '');
+        if (col) schema.get(view)!.add(col);
+      }
+    }
+
+    const selectSql = viewMatch[3] ?? '';
+    const selectList = extractTopLevelSelectList(selectSql);
+    const selectItems = splitTopLevelCsv(selectList);
+
+    for (const rawItem of selectItems) {
       const item = rawItem.trim().replace(/\s+/g, ' ');
       if (!item) continue;
 
-      const asMatch = item.match(/\s+AS\s+([a-zA-Z_][a-zA-Z0-9_]*)$/i);
+      const asMatch = item.match(/\s+AS\s+"?([a-zA-Z_][a-zA-Z0-9_]*)"?$/i);
       if (asMatch) {
         schema.get(view)!.add(asMatch[1]);
+        continue;
+      }
+
+      const quotedTail = item.match(/"([a-zA-Z_][a-zA-Z0-9_]*)"$/);
+      if (quotedTail) {
+        schema.get(view)!.add(quotedTail[1]);
         continue;
       }
 
@@ -296,7 +417,30 @@ function main() {
   for (const catalog of catalogs) {
     for (const table of catalog.tables) {
       const candidates = resolveTableCandidates(table.name);
-      const matchedTable = candidates.find((t) => liveSchema.has(t)) ?? null;
+      const existingCandidates = candidates.filter((t) => liveSchema.has(t));
+      let matchedTable: string | null = null;
+
+      if (existingCandidates.length > 0) {
+        let bestScore = -1;
+        let bestName = existingCandidates[0];
+
+        for (const candidate of existingCandidates) {
+          const liveFields = liveSchema.get(candidate)!;
+          let score = 0;
+          for (const field of table.fields) {
+            const fieldCandidates = resolveFieldCandidates(field);
+            if (fieldCandidates.some((f) => liveFields.has(f))) {
+              score += 1;
+            }
+          }
+          if (score > bestScore) {
+            bestScore = score;
+            bestName = candidate;
+          }
+        }
+
+        matchedTable = bestName;
+      }
 
       if (!matchedTable) {
         missingTables.push({

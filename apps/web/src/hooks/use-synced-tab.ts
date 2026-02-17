@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 interface UseSyncedTabOptions {
@@ -36,8 +36,15 @@ export function useSyncedTab({ tabKeys, defaultTab, aliases }: UseSyncedTabOptio
   const rawUrlTab = searchParams.get('tab');
   const resolvedUrlTab = resolveTab(rawUrlTab);
   const [tab, setTab] = useState<string>(resolvedUrlTab);
+  const pendingTabRef = useRef<string | null>(null);
 
   useEffect(() => {
+    // Avoid tab "bounce" while router.replace is still propagating search params.
+    // When we trigger a tab change, keep local state stable until URL catches up.
+    if (pendingTabRef.current && resolvedUrlTab !== pendingTabRef.current) return;
+    if (pendingTabRef.current && resolvedUrlTab === pendingTabRef.current) {
+      pendingTabRef.current = null;
+    }
     setTab(resolvedUrlTab);
   }, [resolvedUrlTab]);
 
@@ -57,9 +64,14 @@ export function useSyncedTab({ tabKeys, defaultTab, aliases }: UseSyncedTabOptio
   const setSyncedTab = useCallback((nextTab: string) => {
     const resolved = resolveTab(nextTab);
     if (!resolved) return;
-    setTab(resolved);
     const next = new URLSearchParams(searchParamsString);
-    if (next.get('tab') === resolved && rawUrlTab === resolved) return;
+    if (next.get('tab') === resolved && rawUrlTab === resolved) {
+      pendingTabRef.current = null;
+      setTab(resolved);
+      return;
+    }
+    pendingTabRef.current = resolved;
+    setTab(resolved);
     next.set('tab', resolved);
     const nextQuery = next.toString();
     router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });

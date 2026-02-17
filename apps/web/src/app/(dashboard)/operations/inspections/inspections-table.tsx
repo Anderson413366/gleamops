@@ -12,6 +12,7 @@ import type { Inspection } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 import { formatDate } from '@/lib/utils/date';
+import { EntityLink } from '@/components/links/entity-link';
 
 interface InspectionWithRelations extends Inspection {
   site?: { name: string; site_code: string } | null;
@@ -142,47 +143,73 @@ export default function InspectionsTable({ search, onSelect, onCreateNew }: Insp
           </button>
         ))}
       </div>
-      <Table>
-        <TableHeader>
-          <tr>
-            <TableHead sortable sorted={sortKey === 'inspection_code' && sortDir} onSort={() => onSort('inspection_code')}>Code</TableHead>
-            <TableHead>Template</TableHead>
-            <TableHead>Site</TableHead>
-            <TableHead>Inspector</TableHead>
-            <TableHead>Score</TableHead>
-            <TableHead sortable sorted={sortKey === 'created_at' && sortDir} onSort={() => onSort('created_at')}>Date</TableHead>
-          </tr>
-        </TableHeader>
-        <TableBody>
-          {pag.page.map((row) => (
-            <TableRow
-              key={row.id}
-              onClick={() => onSelect?.(row)}
-              className={cn(statusRowAccentClass(row.status))}
-            >
-              <TableCell className="font-mono text-xs">
-                <div className="flex items-center gap-2">
-                  <StatusDot status={row.status} />
-                  <span>{row.inspection_code}</span>
-                </div>
-              </TableCell>
-              <TableCell className="text-sm">{row.template?.name ?? '—'}</TableCell>
-              <TableCell className="font-medium">{row.site?.name ?? '—'}</TableCell>
-              <TableCell className="text-muted-foreground">{row.inspector?.full_name ?? '—'}</TableCell>
-              <TableCell>
-                {row.score_pct != null ? (
-                  <span className={`text-sm font-medium ${Number(row.score_pct) >= 80 ? 'text-success' : Number(row.score_pct) >= 60 ? 'text-warning' : 'text-destructive'}`}>
-                    {Number(row.score_pct).toFixed(0)}%
-                  </span>
-                ) : (
-                  <span className="text-muted-foreground">—</span>
-                )}
-              </TableCell>
-              <TableCell>{formatDate(row.created_at)}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <div className="w-full overflow-x-auto">
+        <Table className="w-full min-w-full">
+          <TableHeader>
+            <tr>
+              <TableHead sortable sorted={sortKey === 'inspection_code' && sortDir} onSort={() => onSort('inspection_code')}>Code</TableHead>
+              <TableHead>Template</TableHead>
+              <TableHead>Site</TableHead>
+              <TableHead>Inspector</TableHead>
+              <TableHead>Score</TableHead>
+              <TableHead sortable sorted={sortKey === 'created_at' && sortDir} onSort={() => onSort('created_at')}>Date</TableHead>
+            </tr>
+          </TableHeader>
+          <TableBody>
+            {pag.page.map((row) => (
+              <TableRow
+                key={row.id}
+                onClick={() => onSelect?.(row)}
+                className={cn(statusRowAccentClass(row.status))}
+              >
+                <TableCell className="font-mono text-xs">
+                  <div className="flex items-center gap-2">
+                    <StatusDot status={row.status} />
+                    <span>{row.inspection_code}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="text-sm">{row.template?.name ?? '—'}</TableCell>
+                <TableCell className="font-medium">
+                  {row.site?.site_code ? (
+                    <EntityLink
+                      entityType="site"
+                      code={row.site.site_code}
+                      name={row.site.name ?? row.site.site_code}
+                      showCode={false}
+                      stopPropagation
+                    />
+                  ) : (
+                    row.site?.name ?? '—'
+                  )}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {row.inspector?.staff_code ? (
+                    <EntityLink
+                      entityType="staff"
+                      code={row.inspector.staff_code}
+                      name={row.inspector.full_name ?? row.inspector.staff_code}
+                      showCode={false}
+                      stopPropagation
+                    />
+                  ) : (
+                    row.inspector?.full_name ?? '—'
+                  )}
+                </TableCell>
+                <TableCell>
+                  {row.score_pct != null ? (
+                    <span className={`text-sm font-medium ${Number(row.score_pct) >= 80 ? 'text-success' : Number(row.score_pct) >= 60 ? 'text-warning' : 'text-destructive'}`}>
+                      {Number(row.score_pct).toFixed(0)}%
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </TableCell>
+                <TableCell>{formatDate(row.created_at)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
       {filtered.length === 0 && (
         <div className="mt-4">
           <EmptyState

@@ -1448,6 +1448,70 @@ export interface TrainingCompletion extends StandardColumns {
   notes: string | null;
 }
 
+export interface HrPtoRequest extends StandardColumns {
+  staff_id: string;
+  start_date: string;
+  end_date: string;
+  hours_requested: number;
+  reason: string | null;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELED';
+  approved_by_user_id: string | null;
+  approved_at: string | null;
+  notes: string | null;
+}
+
+export interface HrPerformanceReview extends StandardColumns {
+  staff_id: string;
+  reviewer_staff_id: string | null;
+  review_period_start: string | null;
+  review_period_end: string | null;
+  overall_score: number | null;
+  summary: string | null;
+  strengths: string | null;
+  development_areas: string | null;
+  status: 'DRAFT' | 'SUBMITTED' | 'ACKNOWLEDGED' | 'CLOSED';
+  reviewed_at: string | null;
+  acknowledged_at: string | null;
+  notes: string | null;
+}
+
+export interface HrGoal extends StandardColumns {
+  staff_id: string;
+  title: string;
+  description: string | null;
+  target_date: string | null;
+  status: 'ACTIVE' | 'ON_TRACK' | 'AT_RISK' | 'COMPLETED' | 'CANCELED';
+  progress_pct: number;
+  created_by_user_id: string | null;
+  completed_at: string | null;
+  notes: string | null;
+}
+
+export interface HrBadge extends StandardColumns {
+  badge_code: string | null;
+  name: string;
+  description: string | null;
+  color: string | null;
+  is_active: boolean;
+}
+
+export interface HrStaffBadge extends StandardColumns {
+  staff_id: string;
+  badge_id: string;
+  awarded_at: string;
+  awarded_by_user_id: string | null;
+  notes: string | null;
+}
+
+export interface HrStaffDocument extends StandardColumns {
+  staff_id: string;
+  file_id: string;
+  document_type: string;
+  expires_on: string | null;
+  status: 'ACTIVE' | 'EXPIRING' | 'EXPIRED' | 'REVOKED';
+  notes: string | null;
+}
+
 export interface UserTeamMembership extends StandardColumns {
   team_name: string;
   user_id: string;

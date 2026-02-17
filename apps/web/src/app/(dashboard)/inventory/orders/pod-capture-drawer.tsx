@@ -7,6 +7,7 @@ import { Button, Input, SlideOver, Textarea } from '@gleamops/ui';
 import type { SupplyOrder } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { uploadToStorage } from '@/lib/upload-to-storage';
+import { executeWithOfflineQueue } from '@/lib/offline/mutation-queue';
 
 interface SupplyOrderDeliveryProof {
   id: string;
@@ -283,26 +284,36 @@ export function PodCaptureDrawer({ open, order, onClose, onSaved }: PodCaptureDr
         ...(await authHeaders()),
       };
 
-      const response = await fetch(`/api/inventory/orders/${order.id}/pod`, {
+      const requestBody = {
+        recipientName: recipientName.trim(),
+        recipientTitle: recipientTitle.trim() || null,
+        deliveredAt: new Date().toISOString(),
+        notes: notes.trim() || null,
+        signatureFileId: signatureUpload.fileId,
+        photoFileId: photoUpload.fileId,
+        gpsLat,
+        gpsLng,
+        gpsAccuracyMeters: gpsAccuracy,
+        deviceInfo: {
+          userAgent: navigator.userAgent,
+          platform: navigator.platform,
+        },
+      };
+
+      const queuedResult = await executeWithOfflineQueue({
+        url: `/api/inventory/orders/${order.id}/pod`,
         method: 'POST',
         headers,
-        body: JSON.stringify({
-          recipientName: recipientName.trim(),
-          recipientTitle: recipientTitle.trim() || null,
-          deliveredAt: new Date().toISOString(),
-          notes: notes.trim() || null,
-          signatureFileId: signatureUpload.fileId,
-          photoFileId: photoUpload.fileId,
-          gpsLat,
-          gpsLng,
-          gpsAccuracyMeters: gpsAccuracy,
-          deviceInfo: {
-            userAgent: navigator.userAgent,
-            platform: navigator.platform,
-          },
-        }),
+        body: requestBody,
       });
 
+      if (queuedResult.queued) {
+        toast.info('POD save queued. It will sync when connection returns.');
+        onClose();
+        return;
+      }
+
+      const response = queuedResult.response as Response;
       const payload = await response.json().catch(() => ({}));
       if (!response.ok || payload?.success !== true) {
         throw new Error(payload?.detail || payload?.error || 'Failed to save proof of delivery.');

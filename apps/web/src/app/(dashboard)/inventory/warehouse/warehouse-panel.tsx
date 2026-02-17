@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Warehouse, ArrowRightLeft, AlertTriangle, ClipboardList, CheckCircle2, XCircle } from 'lucide-react';
-import { Badge, Card, CardContent, CardHeader } from '@gleamops/ui';
+import { Badge, Button, Card, CardContent, CardHeader, ExportButton } from '@gleamops/ui';
 import { toast } from 'sonner';
 import { EntityLink } from '@/components/links/entity-link';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { executeWithOfflineQueue } from '@/lib/offline/mutation-queue';
 
 type InventoryLocationRow = {
   id: string;
@@ -344,18 +345,25 @@ export default function WarehousePanel({ search }: Props) {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
-      const response = await fetch('/api/inventory/approvals', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
+      const requestBody = {
           entityType,
           entityId,
           action,
-        }),
+      };
+
+      const queuedResult = await executeWithOfflineQueue({
+        url: '/api/inventory/approvals',
+        method: 'POST',
+        headers: token ? { authorization: `Bearer ${token}` } : {},
+        body: requestBody,
       });
+
+      if (queuedResult.queued) {
+        toast.info('Offline or network unavailable. Approval action queued for sync.');
+        return;
+      }
+
+      const response = queuedResult.response as Response;
       const payload = await response.json().catch(() => ({}));
       if (!response.ok || payload?.success !== true) {
         throw new Error(payload?.detail || payload?.error || `Failed to ${action} workflow.`);
@@ -460,8 +468,49 @@ export default function WarehousePanel({ search }: Props) {
     movementCount: movements.length,
   }), [locations, lowStockRows.length, movements.length, requests, workflows]);
 
+  const exportRows = useMemo(() => {
+    const lowStockExport = lowStockRows.map((row) => ({
+      record_type: 'LOW_STOCK',
+      location: row.location.name,
+      item: row.item.item_name,
+      category: row.item.item_category,
+      status: 'LOW',
+      quantity: row.available,
+      reference: row.reorderPoint,
+      notes: `Gap ${row.gap}`,
+    }));
+    const requestExport = requests.map((row) => ({
+      record_type: 'SUPPLY_REQUEST',
+      location: row.inventory_location_id ? (locationById.get(row.inventory_location_id)?.name ?? '') : '',
+      item: '',
+      category: '',
+      status: row.status,
+      quantity: '',
+      reference: row.id,
+      notes: row.notes ?? '',
+    }));
+    const purchaseExport = purchaseOrders.map((row) => ({
+      record_type: 'PURCHASE_ORDER',
+      location: '',
+      item: vendorById.get(row.vendor_id)?.vendor_name ?? '',
+      category: '',
+      status: row.status,
+      quantity: '',
+      reference: row.po_number,
+      notes: row.notes ?? '',
+    }));
+    return [...lowStockExport, ...requestExport, ...purchaseExport];
+  }, [locationById, lowStockRows, purchaseOrders, requests, vendorById]);
+
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-end gap-2">
+        <Button type="button" variant="secondary" size="sm" onClick={() => window.print()}>
+          Print PDF
+        </Button>
+        <ExportButton<Record<string, unknown>> data={exportRows as unknown as Record<string, unknown>[]} filename="inventory-warehouse" />
+      </div>
+
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Locations</p><p className="text-xl font-semibold">{metrics.locationCount}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Low Stock Slots</p><p className="text-xl font-semibold text-warning">{metrics.lowStockCount}</p></CardContent></Card>

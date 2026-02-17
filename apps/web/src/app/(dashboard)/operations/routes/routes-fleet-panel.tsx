@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Route, Truck, PlusCircle, MapPin, Clock3, Lock, ShieldCheck, Gauge } from 'lucide-react';
-import { Badge, Button, Card, CardContent, CardHeader, SlideOver, Textarea } from '@gleamops/ui';
+import { Badge, Button, Card, CardContent, CardHeader, ExportButton, SlideOver, Textarea } from '@gleamops/ui';
 import { toast } from 'sonner';
 import { EntityLink } from '@/components/links/entity-link';
 import { useAuth } from '@/hooks/use-auth';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { executeWithOfflineQueue } from '@/lib/offline/mutation-queue';
 
 type RouteRow = {
   id: string;
@@ -283,6 +284,7 @@ export default function RoutesFleetPanel({ search }: Props) {
   const staffById = useMemo(() => new Map(staff.map((row) => [row.id, row])), [staff]);
   const jobById = useMemo(() => new Map(jobs.map((row) => [row.id, row])), [jobs]);
   const siteById = useMemo(() => new Map(sites.map((row) => [row.id, row])), [sites]);
+  const vehicleById = useMemo(() => new Map(vehicles.map((row) => [row.id, row])), [vehicles]);
 
   const filteredRoutes = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -383,6 +385,40 @@ export default function RoutesFleetPanel({ search }: Props) {
       recentFuelLogs,
     };
   }, [checkouts, fuelLogs, maintenance, vehicles]);
+
+  const exportRows = useMemo(() => {
+    const routeRows = routes.map((route) => ({
+      record_type: 'ROUTE',
+      code: route.id,
+      date: route.route_date,
+      status: route.status,
+      ref_1: labelRouteType(route.route_type),
+      ref_2: route.route_owner_staff_id ? (staffById.get(route.route_owner_staff_id)?.full_name ?? '') : '',
+      metric_1: stops.filter((stop) => stop.route_id === route.id).length,
+      metric_2: '',
+    }));
+    const checkoutRows = checkouts.map((checkout) => ({
+      record_type: 'VEHICLE_CHECKOUT',
+      code: checkout.id,
+      date: checkout.checked_out_at,
+      status: checkout.status,
+      ref_1: vehicleById.get(checkout.vehicle_id)?.vehicle_code ?? '',
+      ref_2: checkout.staff_id ? (staffById.get(checkout.staff_id)?.full_name ?? '') : '',
+      metric_1: checkout.checkout_odometer ?? '',
+      metric_2: checkout.return_odometer ?? '',
+    }));
+    const fuelRows = fuelLogs.slice(0, 300).map((fuel) => ({
+      record_type: 'FUEL_LOG',
+      code: fuel.id,
+      date: fuel.fueled_at,
+      status: 'RECORDED',
+      ref_1: vehicleById.get(fuel.vehicle_id)?.vehicle_code ?? '',
+      ref_2: fuel.station_name ?? '',
+      metric_1: fuel.gallons,
+      metric_2: fuel.total_cost ?? '',
+    }));
+    return [...routeRows, ...checkoutRows, ...fuelRows];
+  }, [checkouts, fuelLogs, routes, staffById, stops, vehicleById]);
 
   const createRoute = useCallback(async () => {
     if (!tenantId) {
@@ -538,120 +574,46 @@ export default function RoutesFleetPanel({ search }: Props) {
 
     setFleetSaving(true);
     try {
-      const issuesFound = Object.values(dvirChecklist).some((value) => !value);
-      const dvirStatus = issuesFound ? 'FAIL' : 'PASS';
-
-      if (fleetMode === 'checkout') {
-        const { data: checkout, error: checkoutErr } = await supabase
-          .from('vehicle_checkouts')
-          .insert({
-            tenant_id: tenantId,
-            vehicle_id: fleetVehicleId,
-            route_id: fleetRouteId || null,
-            staff_id: fleetStaffId,
-            checked_out_at: new Date().toISOString(),
-            checkout_odometer: Number(fleetOdometer),
-            fuel_level_out: fleetFuelLevel,
-            condition_notes: fleetNotes || null,
-            dvir_out_status: dvirStatus,
-            status: 'OUT',
-          })
-          .select('id')
-          .single();
-
-        if (checkoutErr || !checkout) {
-          throw new Error(checkoutErr?.message ?? 'Failed to check out vehicle.');
-        }
-
-        const { error: dvirErr } = await supabase
-          .from('vehicle_dvir_logs')
-          .insert({
-            tenant_id: tenantId,
-            checkout_id: checkout.id,
-            vehicle_id: fleetVehicleId,
-            route_id: fleetRouteId || null,
-            staff_id: fleetStaffId,
-            report_type: 'CHECKOUT',
-            odometer: Number(fleetOdometer),
-            fuel_level: fleetFuelLevel,
-            checklist_json: dvirChecklist,
-            issues_found: issuesFound,
-            notes: fleetNotes || null,
-            reported_at: new Date().toISOString(),
-          });
-
-        if (dvirErr) {
-          throw new Error(dvirErr.message);
-        }
-
-        toast.success('Vehicle checked out with DVIR.');
-      } else {
-        if (!fleetCheckoutId) {
-          throw new Error('Active checkout is required for return workflow.');
-        }
-
-        const { error: checkoutErr } = await supabase
-          .from('vehicle_checkouts')
-          .update({
-            returned_at: new Date().toISOString(),
-            return_odometer: Number(fleetOdometer),
-            fuel_level_in: fleetFuelLevel,
-            dvir_in_status: dvirStatus,
-            return_notes: fleetNotes || null,
-            status: 'RETURNED',
-          })
-          .eq('id', fleetCheckoutId)
-          .eq('tenant_id', tenantId);
-
-        if (checkoutErr) {
-          throw new Error(checkoutErr.message);
-        }
-
-        const { error: dvirErr } = await supabase
-          .from('vehicle_dvir_logs')
-          .insert({
-            tenant_id: tenantId,
-            checkout_id: fleetCheckoutId,
-            vehicle_id: fleetVehicleId,
-            route_id: fleetRouteId || null,
-            staff_id: fleetStaffId,
-            report_type: 'RETURN',
-            odometer: Number(fleetOdometer),
-            fuel_level: fleetFuelLevel,
-            checklist_json: dvirChecklist,
-            issues_found: issuesFound,
-            notes: fleetNotes || null,
-            reported_at: new Date().toISOString(),
-          });
-
-        if (dvirErr) {
-          throw new Error(dvirErr.message);
-        }
-
-        if (fleetFuelGallons && Number(fleetFuelGallons) > 0) {
-          const { error: fuelErr } = await supabase
-            .from('vehicle_fuel_logs')
-            .insert({
-              tenant_id: tenantId,
-              vehicle_id: fleetVehicleId,
-              route_id: fleetRouteId || null,
-              checkout_id: fleetCheckoutId,
-              staff_id: fleetStaffId,
-              odometer: Number(fleetOdometer),
-              gallons: Number(fleetFuelGallons),
-              total_cost: fleetFuelCost ? Number(fleetFuelCost) : null,
-              station_name: fleetStation || null,
-              notes: fleetNotes || null,
-              fueled_at: new Date().toISOString(),
-            });
-
-          if (fuelErr) {
-            throw new Error(fuelErr.message);
-          }
-        }
-
-        toast.success('Vehicle return logged with DVIR and fuel data.');
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      const payload = {
+        mode: fleetMode,
+        vehicleId: fleetVehicleId,
+        checkoutId: fleetMode === 'return' ? fleetCheckoutId : null,
+        routeId: fleetRouteId || null,
+        staffId: fleetStaffId,
+        odometer: Number(fleetOdometer),
+        fuelLevel: fleetFuelLevel,
+        notes: fleetNotes || null,
+        checklist: dvirChecklist,
+        fuelGallons: fleetFuelGallons ? Number(fleetFuelGallons) : null,
+        fuelCost: fleetFuelCost ? Number(fleetFuelCost) : null,
+        stationName: fleetStation || null,
+      };
+      if (fleetMode === 'return' && !fleetCheckoutId) {
+        throw new Error('Active checkout is required for return workflow.');
       }
+
+      const queuedResult = await executeWithOfflineQueue({
+        url: '/api/operations/fleet/workflow',
+        method: 'POST',
+        headers: token ? { authorization: `Bearer ${token}` } : {},
+        body: payload,
+      });
+
+      if (queuedResult.queued) {
+        toast.info('Fleet workflow queued for sync once online.');
+        setFleetModalOpen(false);
+        return;
+      }
+
+      const response = queuedResult.response as Response;
+      const responsePayload = await response.json().catch(() => ({}));
+      if (!response.ok || responsePayload?.success !== true) {
+        throw new Error(responsePayload?.detail || responsePayload?.error || 'Fleet workflow failed.');
+      }
+
+      toast.success(fleetMode === 'checkout' ? 'Vehicle checked out with DVIR.' : 'Vehicle return logged with DVIR and fuel data.');
 
       setFleetModalOpen(false);
       await load();
@@ -680,6 +642,13 @@ export default function RoutesFleetPanel({ search }: Props) {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-end gap-2">
+        <Button type="button" variant="secondary" size="sm" onClick={() => window.print()}>
+          Print PDF
+        </Button>
+        <ExportButton<Record<string, unknown>> data={exportRows as unknown as Record<string, unknown>[]} filename="operations-routes-fleet" />
+      </div>
+
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Routes Today</p><p className="text-xl font-semibold">{routeKpis.todayRoutes}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Published Routes</p><p className="text-xl font-semibold">{routeKpis.publishedRoutes}</p></CardContent></Card>

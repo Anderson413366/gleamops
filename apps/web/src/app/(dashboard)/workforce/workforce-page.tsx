@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { Users, Clock, FileText, AlertTriangle, BriefcaseBusiness, DollarSign, Plus, MessageSquare } from 'lucide-react';
+import { Users, Clock, FileText, AlertTriangle, BriefcaseBusiness, DollarSign, Plus, MessageSquare, UserRoundCheck } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import { useFeatureFlag } from '@/hooks/use-feature-flag';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -14,6 +14,7 @@ import ExceptionsTable from './exceptions/exceptions-table';
 import PositionsTable from './positions/positions-table';
 import PayrollTable from './payroll/payroll-table';
 import MessagesTab from './messages/messages-tab';
+import HrLitePanel from './hr/hr-lite-panel';
 
 const BASE_TABS = [
   { key: 'staff', label: 'Staff', icon: <Users className="h-4 w-4" /> },
@@ -22,6 +23,7 @@ const BASE_TABS = [
   { key: 'timesheets', label: 'Timesheets', icon: <FileText className="h-4 w-4" /> },
   { key: 'exceptions', label: 'Exceptions', icon: <AlertTriangle className="h-4 w-4" /> },
   { key: 'payroll', label: 'Payroll', icon: <DollarSign className="h-4 w-4" /> },
+  { key: 'hr-lite', label: 'HR Lite', icon: <UserRoundCheck className="h-4 w-4" /> },
 ];
 
 export default function WorkforcePageClient() {
@@ -113,6 +115,7 @@ export default function WorkforcePageClient() {
       {tab === 'timesheets' && <TimesheetsTable key={`ts-${refreshKey}`} search={search} />}
       {tab === 'exceptions' && <ExceptionsTable key={`ex-${refreshKey}`} search={search} />}
       {tab === 'payroll' && <PayrollTable key={`pay-${refreshKey}`} search={search} />}
+      {tab === 'hr-lite' && <HrLitePanel key={`hr-${refreshKey}`} search={search} />}
       {tab === 'messages' && messagingEnabled && <MessagesTab key={`msg-${refreshKey}`} search={search} />}
     </div>
   );

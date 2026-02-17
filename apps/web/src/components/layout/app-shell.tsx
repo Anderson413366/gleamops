@@ -9,6 +9,7 @@ import { OfflineBanner } from './offline-banner';
 import { Button } from '@gleamops/ui';
 import { DEFAULT_MODULE_KEY, getModuleFromPathname, MODULE_ACCENTS } from '@gleamops/shared';
 import { useUiPreferences } from '@/hooks/use-ui-preferences';
+import { useOfflineMutationSync } from '@/hooks/use-offline-mutation-sync';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -16,6 +17,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const accent = MODULE_ACCENTS[moduleKey] ?? MODULE_ACCENTS[DEFAULT_MODULE_KEY];
   const { preferences, togglePreference, mounted: prefMounted } = useUiPreferences();
   const focusMode = prefMounted && preferences.focus_mode;
+  useOfflineMutationSync();
 
   return (
     <div

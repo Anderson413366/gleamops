@@ -23,18 +23,18 @@ Branch: main
 - [x] Delivery & Proof-of-Delivery: add POD capture workflow (signature/photo/GPS stamp) tied to supply orders.
 - [x] Procurement approvals: multi-step approval workflow for purchase orders and supply requests.
 - [x] Fleet execution: add DVIR + fuel log + odometer workflow linked to vehicles/routes.
-- [ ] HR Lite core: PTO requests, performance reviews, goals, badges, and employee docs vault.
-- [ ] Offline parity for newly added modules: queue/retry/conflict handling + audit events.
+- [x] HR Lite core: PTO requests, performance reviews, goals, badges, and employee docs vault.
+- [x] Offline parity for newly added modules: queue/retry/conflict handling + audit events.
 
 ### P1 (hardening)
-- [ ] Add end-to-end tests for new P0 workflows.
-- [ ] Add dashboard widgets for POD exceptions, approval backlogs, and overdue DVIR.
-- [ ] Add CSV/PDF exports for new P0 modules.
+- [x] Add end-to-end tests for new P0 workflows.
+- [x] Add dashboard widgets for POD exceptions, approval backlogs, and overdue DVIR.
+- [x] Add CSV/PDF exports for new P0 modules.
 
 ## Verification gates
-- [ ] `pnpm --filter @gleamops/web typecheck`
-- [ ] `pnpm --filter @gleamops/web lint`
-- [ ] `pnpm build:web`
-- [ ] `DATABASE_URL=linked pnpm audit:schema-parity`
-- [ ] `pnpm audit:ui-fields`
-- [ ] `vercel inspect gleamops.vercel.app --scope team_hyR74DI2FH5SWn4oawyNlltR`
+- [x] `pnpm --filter @gleamops/web typecheck`
+- [x] `pnpm --filter @gleamops/web lint`
+- [x] `pnpm build:web`
+- [x] `DATABASE_URL=linked pnpm audit:schema-parity`
+- [x] `pnpm audit:ui-fields`
+- [x] `vercel inspect gleamops.vercel.app --scope team_hyR74DI2FH5SWn4oawyNlltR`

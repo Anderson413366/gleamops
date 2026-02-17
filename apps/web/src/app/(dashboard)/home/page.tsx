@@ -92,6 +92,9 @@ interface Metrics {
   proposalsSent30d: number | null;
   winRate: number | null;
   followupsDue: number | null;
+  pendingApprovals: number | null;
+  podExceptions: number | null;
+  overdueDvir: number | null;
 }
 
 interface LowStockRow {
@@ -227,6 +230,9 @@ export default function HomePage() {
     proposalsSent30d: null,
     winRate: null,
     followupsDue: null,
+    pendingApprovals: null,
+    podExceptions: null,
+    overdueDvir: null,
   });
   const [auditEvents, setAuditEvents] = useState<AuditRow[]>([]);
   const [upcomingTickets, setUpcomingTickets] = useState<TicketRow[]>([]);
@@ -252,6 +258,7 @@ export default function HomePage() {
     const [
       clientsRes, sitesRes, jobsRes, ticketsRes, staffRes, bidsRes, revenueRes, inspRes,
       pipelineRes, proposalsSentRes, winRateRes, followupsDueRes,
+      approvalsRes, deliveredOrdersRes, podCountRes, overdueDvirRes,
     ] = await Promise.all([
       supabase
         .from('clients')
@@ -316,6 +323,27 @@ export default function HomePage() {
         .select('id', { count: 'exact', head: true })
         .eq('status', 'SCHEDULED')
         .lte('scheduled_at', new Date().toISOString()),
+      supabase
+        .from('procurement_approval_workflows')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'PENDING')
+        .is('archived_at', null),
+      supabase
+        .from('supply_orders')
+        .select('id', { count: 'exact', head: true })
+        .in('status', ['DELIVERED', 'RECEIVED'])
+        .is('archived_at', null),
+      supabase
+        .from('supply_order_deliveries')
+        .select('id', { count: 'exact', head: true })
+        .is('archived_at', null),
+      supabase
+        .from('vehicle_checkouts')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'OUT')
+        .neq('dvir_out_status', 'PASS')
+        .lt('checked_out_at', new Date(Date.now() - (12 * 60 * 60 * 1000)).toISOString())
+        .is('archived_at', null),
     ]);
 
     // Compute revenue sum
@@ -336,6 +364,10 @@ export default function HomePage() {
     const lostCount = wonLost.filter(r => r.status === 'LOST').length;
     const winRateVal = wonCount + lostCount > 0 ? Math.round((wonCount / (wonCount + lostCount)) * 100) : 0;
 
+    const deliveredCount = deliveredOrdersRes.count ?? 0;
+    const podCount = podCountRes.count ?? 0;
+    const podExceptions = Math.max(deliveredCount - podCount, 0);
+
     setMetrics({
       activeClients: clientsRes.count ?? 0,
       activeSites: sitesRes.count ?? 0,
@@ -349,6 +381,9 @@ export default function HomePage() {
       proposalsSent30d: proposalsSentRes.count ?? 0,
       winRate: winRateVal,
       followupsDue: followupsDueRes.count ?? 0,
+      pendingApprovals: approvalsRes.count ?? 0,
+      podExceptions,
+      overdueDvir: overdueDvirRes.count ?? 0,
     });
     setMetricsLoading(false);
 
@@ -713,6 +748,32 @@ export default function HomePage() {
             </>
           )}
         </div>
+        </div>
+      )}
+
+      {!simpleView && (
+        <div>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Operational Risk</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <StatCard
+              label="Pending Approvals"
+              value={metrics.pendingApprovals ?? 0}
+              icon={<Clock className="h-5 w-5" />}
+              href="/inventory?tab=warehouse"
+            />
+            <StatCard
+              label="POD Exceptions"
+              value={metrics.podExceptions ?? 0}
+              icon={<FileText className="h-5 w-5" />}
+              href="/inventory?tab=orders"
+            />
+            <StatCard
+              label="Overdue DVIR"
+              value={metrics.overdueDvir ?? 0}
+              icon={<AlertTriangle className="h-5 w-5" />}
+              href="/operations?tab=routes"
+            />
+          </div>
         </div>
       )}
 

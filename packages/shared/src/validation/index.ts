@@ -234,6 +234,74 @@ export const staffSchema = z.object({
 });
 export type StaffFormData = z.infer<typeof staffSchema>;
 
+export const hrPtoRequestSchema = z.object({
+  staff_id: z.string().uuid('Staff is required'),
+  start_date: z.string().min(1, 'Start date is required'),
+  end_date: z.string().min(1, 'End date is required'),
+  hours_requested: z.number().min(0),
+  reason: z.string().nullable().default(null),
+  status: z.enum(['PENDING', 'APPROVED', 'REJECTED', 'CANCELED']).default('PENDING'),
+  notes: z.string().nullable().default(null),
+}).refine((value) => new Date(value.end_date).getTime() >= new Date(value.start_date).getTime(), {
+  message: 'End date must be on or after start date',
+  path: ['end_date'],
+});
+export type HrPtoRequestFormData = z.infer<typeof hrPtoRequestSchema>;
+
+export const hrPerformanceReviewSchema = z.object({
+  staff_id: z.string().uuid('Staff is required'),
+  reviewer_staff_id: z.string().uuid().nullable().default(null),
+  review_period_start: z.string().nullable().default(null),
+  review_period_end: z.string().nullable().default(null),
+  overall_score: z.number().min(0).max(5).nullable().default(null),
+  summary: z.string().nullable().default(null),
+  strengths: z.string().nullable().default(null),
+  development_areas: z.string().nullable().default(null),
+  status: z.enum(['DRAFT', 'SUBMITTED', 'ACKNOWLEDGED', 'CLOSED']).default('DRAFT'),
+  reviewed_at: z.string().nullable().default(null),
+  acknowledged_at: z.string().nullable().default(null),
+  notes: z.string().nullable().default(null),
+});
+export type HrPerformanceReviewFormData = z.infer<typeof hrPerformanceReviewSchema>;
+
+export const hrGoalSchema = z.object({
+  staff_id: z.string().uuid('Staff is required'),
+  title: z.string().min(1, 'Title is required').max(240),
+  description: z.string().nullable().default(null),
+  target_date: z.string().nullable().default(null),
+  status: z.enum(['ACTIVE', 'ON_TRACK', 'AT_RISK', 'COMPLETED', 'CANCELED']).default('ACTIVE'),
+  progress_pct: z.number().min(0).max(100).default(0),
+  notes: z.string().nullable().default(null),
+});
+export type HrGoalFormData = z.infer<typeof hrGoalSchema>;
+
+export const hrBadgeSchema = z.object({
+  badge_code: z.string().max(60).nullable().default(null),
+  name: z.string().min(1, 'Badge name is required').max(160),
+  description: z.string().nullable().default(null),
+  color: z.string().max(32).nullable().default(null),
+  is_active: z.boolean().default(true),
+});
+export type HrBadgeFormData = z.infer<typeof hrBadgeSchema>;
+
+export const hrStaffBadgeSchema = z.object({
+  staff_id: z.string().uuid('Staff is required'),
+  badge_id: z.string().uuid('Badge is required'),
+  awarded_at: z.string().datetime().nullable().default(null),
+  notes: z.string().nullable().default(null),
+});
+export type HrStaffBadgeFormData = z.infer<typeof hrStaffBadgeSchema>;
+
+export const hrStaffDocumentSchema = z.object({
+  staff_id: z.string().uuid('Staff is required'),
+  file_id: z.string().uuid('File is required'),
+  document_type: z.string().min(1, 'Document type is required').max(160),
+  expires_on: z.string().nullable().default(null),
+  status: z.enum(['ACTIVE', 'EXPIRING', 'EXPIRED', 'REVOKED']).default('ACTIVE'),
+  notes: z.string().nullable().default(null),
+});
+export type HrStaffDocumentFormData = z.infer<typeof hrStaffDocumentSchema>;
+
 // ---------------------------------------------------------------------------
 // Inventory & Assets
 // ---------------------------------------------------------------------------
@@ -715,6 +783,22 @@ export const procurementApprovalActionSchema = z.object({
   notes: z.string().max(2000).nullable().default(null),
 });
 export type ProcurementApprovalActionData = z.infer<typeof procurementApprovalActionSchema>;
+
+export const fleetWorkflowSchema = z.object({
+  mode: z.enum(['checkout', 'return']),
+  vehicleId: z.string().uuid('Vehicle is required'),
+  checkoutId: z.string().uuid().nullable().default(null),
+  routeId: z.string().uuid().nullable().default(null),
+  staffId: z.string().uuid('Staff is required'),
+  odometer: z.number().min(0),
+  fuelLevel: z.enum(['EMPTY', 'QUARTER', 'HALF', 'THREE_QUARTER', 'FULL']),
+  notes: z.string().max(4000).nullable().default(null),
+  checklist: z.record(z.boolean()).default({}),
+  fuelGallons: z.number().min(0).nullable().default(null),
+  fuelCost: z.number().min(0).nullable().default(null),
+  stationName: z.string().max(240).nullable().default(null),
+});
+export type FleetWorkflowData = z.infer<typeof fleetWorkflowSchema>;
 
 export const messageThreadSchema = z.object({
   subject: z.string().min(1, 'Subject is required').max(200),

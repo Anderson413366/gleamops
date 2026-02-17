@@ -20,6 +20,7 @@ interface CountItem {
     name: string;
     category: string | null;
     unit: string | null;
+    brand: string | null;
     preferred_vendor: string | null;
     image_url: string | null;
     unit_cost: number | null;
@@ -319,7 +320,11 @@ export default function PublicInventoryCountPage() {
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-semibold text-foreground">{item.supply?.name ?? 'Unknown Supply'}</p>
                               <p className="mt-1 text-xs text-muted-foreground">
-                                Unit: {unitLabel(item.supply?.unit)} · Vendor: {item.supply?.preferred_vendor ?? 'Not Set'}
+                                Unit: {unitLabel(item.supply?.unit)}
+                                {' · '}
+                                Brand: {item.supply?.brand ?? 'Not Set'}
+                                {' · '}
+                                Vendor: {item.supply?.preferred_vendor ?? 'Not Set'}
                               </p>
                               <p className="mt-1 text-xs text-muted-foreground">
                                 Last Count: {item.previousCountQty != null ? `${item.previousCountQty} ${unitLabel(item.supply?.unit)}` : 'Not available'}

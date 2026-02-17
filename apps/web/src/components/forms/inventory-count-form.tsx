@@ -70,6 +70,7 @@ export function InventoryCountForm({ open, onClose, initialData, initialSiteId, 
   const [counterOptions, setCounterOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [siteRows, setSiteRows] = useState<SiteOption[]>([]);
   const [staffRows, setStaffRows] = useState<StaffOption[]>([]);
+  const [siteSearch, setSiteSearch] = useState('');
   const [countedByName, setCountedByName] = useState('');
   const [createStep, setCreateStep] = useState<1 | 2 | 3>(1);
   const [creatingCount, setCreatingCount] = useState(false);
@@ -249,6 +250,11 @@ export function InventoryCountForm({ open, onClose, initialData, initialSiteId, 
     () => siteOptions.find((site) => site.value === (values.site_id ?? ''))?.label ?? 'Not set',
     [siteOptions, values.site_id]
   );
+  const filteredSiteOptions = useMemo(() => {
+    const q = siteSearch.trim().toLowerCase();
+    if (!q) return siteOptions;
+    return siteOptions.filter((site) => site.label.toLowerCase().includes(q));
+  }, [siteOptions, siteSearch]);
   const selectedCounterLabel = useMemo(
     () => counterOptions.find((staff) => staff.value === (values.counted_by ?? ''))?.label ?? 'Not set',
     [counterOptions, values.counted_by]
@@ -257,6 +263,7 @@ export function InventoryCountForm({ open, onClose, initialData, initialSiteId, 
   const handleClose = () => {
     reset();
     setCountedByName('');
+    setSiteSearch('');
     setCreateStep(1);
     setCreatedResult(null);
     onClose();
@@ -404,11 +411,17 @@ export function InventoryCountForm({ open, onClose, initialData, initialSiteId, 
                 readOnly={isEdit}
                 disabled={isEdit}
               />
+              <Input
+                label="Search Site"
+                value={siteSearch}
+                onChange={(event) => setSiteSearch(event.target.value)}
+                placeholder="Search by site name or code..."
+              />
               <Select
                 label="Site"
                 value={values.site_id ?? ''}
                 onChange={(e) => setValue('site_id', e.target.value || null)}
-                options={[{ value: '', label: 'Select a site...' }, ...siteOptions]}
+                options={[{ value: '', label: 'Select a site...' }, ...filteredSiteOptions]}
                 required
               />
             </FormSection>

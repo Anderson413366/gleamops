@@ -90,7 +90,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   const supplyIds = Array.from(new Set(details.map((row) => row.supply_id).filter(Boolean)));
   const { data: supplyRows, error: supplyError } = await supabase
     .from('supply_catalog')
-    .select('id, code, name, category, unit, preferred_vendor, image_url, unit_cost')
+    .select('id, code, name, category, unit, brand, preferred_vendor, image_url, unit_cost')
     .in('id', supplyIds);
 
   if (supplyError) return json({ error: supplyError.message }, 500);
@@ -101,6 +101,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     name: string;
     category: string | null;
     unit: string | null;
+    brand: string | null;
     preferred_vendor: string | null;
     image_url: string | null;
     unit_cost: number | null;
@@ -111,6 +112,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     name: string;
     category: string | null;
     unit: string | null;
+    brand: string | null;
     preferred_vendor: string | null;
     image_url: string | null;
     unit_cost: number | null;

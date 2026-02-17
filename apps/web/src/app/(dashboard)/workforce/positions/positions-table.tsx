@@ -101,7 +101,6 @@ export default function PositionsTable({ search }: Props) {
   const pag = usePagination(sortedRows, 25);
 
   if (loading) return <TableSkeleton rows={8} cols={5} />;
-  if (filtered.length === 0) return <EmptyState icon={<BriefcaseBusiness className="h-10 w-10" />} title="No positions yet" description="Add a position to get started." />;
 
   return (
     <div>
@@ -165,14 +164,32 @@ export default function PositionsTable({ search }: Props) {
               </TableCell>
             </TableRow>
           ))}
+          {filtered.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
+                No matching positions.
+              </TableCell>
+            </TableRow>
+          )}
         </TableBody>
       </Table>
-      <Pagination
-        currentPage={pag.currentPage} totalPages={pag.totalPages}
-        totalItems={pag.totalItems} pageSize={pag.pageSize}
-        hasNext={pag.hasNext} hasPrev={pag.hasPrev}
-        onNext={pag.nextPage} onPrev={pag.prevPage} onGoTo={pag.goToPage}
-      />
+      {filtered.length > 0 && (
+        <Pagination
+          currentPage={pag.currentPage} totalPages={pag.totalPages}
+          totalItems={pag.totalItems} pageSize={pag.pageSize}
+          hasNext={pag.hasNext} hasPrev={pag.hasPrev}
+          onNext={pag.nextPage} onPrev={pag.prevPage} onGoTo={pag.goToPage}
+        />
+      )}
+      {filtered.length === 0 && (
+        <div className="mt-4">
+          <EmptyState
+            icon={<BriefcaseBusiness className="h-10 w-10" />}
+            title={search ? 'No matching positions' : 'No positions yet'}
+            description={search ? 'Try a different search term.' : 'Add a position to get started.'}
+          />
+        </div>
+      )}
 
       <SlideOver
         open={!!selected}

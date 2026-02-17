@@ -63,7 +63,6 @@ export default function PayrollTable({ search }: Props) {
   }
 
   if (loading) return <TableSkeleton rows={8} cols={5} />;
-  if (filtered.length === 0) return <EmptyState icon={<DollarSign className="h-10 w-10" />} title="No payroll data" description="Payroll information will appear here when staff records are available." />;
 
   const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
@@ -93,14 +92,32 @@ export default function PayrollTable({ search }: Props) {
               </TableCell>
             </TableRow>
           ))}
+          {filtered.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
+                No payroll rows to display.
+              </TableCell>
+            </TableRow>
+          )}
         </TableBody>
       </Table>
-      <Pagination
-        currentPage={pag.currentPage} totalPages={pag.totalPages}
-        totalItems={pag.totalItems} pageSize={pag.pageSize}
-        hasNext={pag.hasNext} hasPrev={pag.hasPrev}
-        onNext={pag.nextPage} onPrev={pag.prevPage} onGoTo={pag.goToPage}
-      />
+      {filtered.length > 0 && (
+        <Pagination
+          currentPage={pag.currentPage} totalPages={pag.totalPages}
+          totalItems={pag.totalItems} pageSize={pag.pageSize}
+          hasNext={pag.hasNext} hasPrev={pag.hasPrev}
+          onNext={pag.nextPage} onPrev={pag.prevPage} onGoTo={pag.goToPage}
+        />
+      )}
+      {filtered.length === 0 && (
+        <div className="mt-4">
+          <EmptyState
+            icon={<DollarSign className="h-10 w-10" />}
+            title={search ? 'No matching payroll rows' : 'No payroll data'}
+            description={search ? 'Try a different search term.' : 'Payroll information will appear here when staff records are available.'}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { BookOpen, Hash, GitBranch, Upload, ClipboardList, Layers, Link2, Plus } from 'lucide-react';
+import { BookOpen, Hash, GitBranch, Upload, ClipboardList, Layers, Link2, Plus, Database } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
@@ -16,12 +16,14 @@ import ImportPage from './import/import-page';
 import TasksTable from '../services/tasks/tasks-table';
 import ServiceConfig from '../services/services/service-config';
 import ServiceTaskMapping from '../services/mapping/service-task-mapping';
+import DataHubPanel from './data-hub/data-hub-panel';
 
 const TABS = [
   { key: 'tasks', label: 'Tasks', icon: <ClipboardList className="h-4 w-4" /> },
   { key: 'services', label: 'Services', icon: <Layers className="h-4 w-4" /> },
   { key: 'mapping', label: 'Mapping', icon: <Link2 className="h-4 w-4" /> },
   { key: 'lookups', label: 'Lookups', icon: <BookOpen className="h-4 w-4" /> },
+  { key: 'data-hub', label: 'Data Hub', icon: <Database className="h-4 w-4" /> },
   { key: 'sequences', label: 'Sequences', icon: <Hash className="h-4 w-4" /> },
   { key: 'rules', label: 'Status Rules', icon: <GitBranch className="h-4 w-4" /> },
   { key: 'import', label: 'Import', icon: <Upload className="h-4 w-4" /> },
@@ -80,7 +82,7 @@ export default function AdminPageClient() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Admin</h1>
-          <p className="text-sm text-muted-foreground mt-1">Services, tasks, lookups, and system configuration</p>
+          <p className="text-sm text-muted-foreground mt-1">Services, tasks, lookups, data hub, and system configuration</p>
         </div>
         {addLabel && (
           <Button onClick={handleAdd}>
@@ -130,6 +132,12 @@ export default function AdminPageClient() {
           autoCreate={autoCreate}
           onAutoCreateHandled={() => setAutoCreate(false)}
           onRefresh={refresh}
+        />
+      )}
+      {tab === 'data-hub' && (
+        <DataHubPanel
+          key={`hub-${refreshKey}`}
+          search={search}
         />
       )}
       {tab === 'sequences' && <SequencesTable key={`seq-${refreshKey}`} search={search} />}

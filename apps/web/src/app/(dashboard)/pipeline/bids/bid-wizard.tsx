@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Plus, Trash2, ChevronLeft, ChevronRight, Check, Zap, AlertTriangle, BarChart3 } from 'lucide-react';
+import { Plus, Trash2, ChevronLeft, ChevronRight, Check, AlertTriangle, BarChart3 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   SlideOver,
@@ -14,7 +14,7 @@ import {
   CardTitle,
   Badge,
 } from '@gleamops/ui';
-import { calculateWorkload, calculatePricing, expressLoad } from '@gleamops/cleanflow';
+import { calculateWorkload, calculatePricing, expressLoad, scopeAwareExpressLoad } from '@gleamops/cleanflow';
 import type {
   BidVersionSnapshot,
   WorkloadResult,
@@ -25,10 +25,13 @@ import type {
   DayPorterConfig,
   ConsumableItem,
 } from '@gleamops/cleanflow';
+import type { FacilityTypeCode, SizeTierCode } from '@gleamops/shared';
+import { SCOPE_DIFFICULTY_MODIFIERS } from '@gleamops/shared';
 import { SpecializationStep } from './steps/specialization-step';
 import { CrewWageStep } from './steps/crew-wage-step';
 import { DayPorterStep } from './steps/day-porter-step';
 import { ConsumablesStep } from './steps/consumables-step';
+import { ScopeBuilderStep } from './steps/scope-builder-step';
 
 // ---------------------------------------------------------------------------
 // Form state types
@@ -40,6 +43,7 @@ interface WizardArea {
   floor_type_code: string;
   building_type_code: string;
   difficulty_code: 'EASY' | 'STANDARD' | 'DIFFICULT';
+  modifier_codes: string[];
   square_footage: number;
   quantity: number;
   fixtures: Record<string, number>;
@@ -63,6 +67,10 @@ interface WizardState {
   opportunity_id: string;
   building_type_code: string;
   total_sqft: number;
+  // Scope Builder
+  facility_type_code: string;
+  size_tier_code: string;
+  scope_selected_areas: string[];
   // Step: Areas + Tasks
   areas: WizardArea[];
   // Step: Schedule
@@ -109,6 +117,9 @@ const DEFAULTS: WizardState = {
   opportunity_id: '',
   building_type_code: '',
   total_sqft: 0,
+  facility_type_code: '',
+  size_tier_code: '',
+  scope_selected_areas: [],
   areas: [],
   days_per_week: 5,
   visits_per_day: 1,
@@ -152,6 +163,9 @@ const FREQUENCY_OPTIONS = [
   { value: 'WEEKLY', label: 'Weekly' },
   { value: 'BIWEEKLY', label: 'Bi-Weekly' },
   { value: 'MONTHLY', label: 'Monthly' },
+  { value: 'QUARTERLY', label: 'Quarterly' },
+  { value: 'SEMIANNUAL', label: 'Semi-Annual' },
+  { value: 'ANNUAL', label: 'Annual' },
   { value: 'AS_NEEDED', label: 'As Needed' },
 ];
 
@@ -257,6 +271,7 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
         floor_type_code: a.floor_type_code || null,
         building_type_code: a.building_type_code || null,
         difficulty_code: a.difficulty_code,
+        modifier_codes: a.modifier_codes.length > 0 ? a.modifier_codes : undefined,
         square_footage: a.square_footage,
         quantity: a.quantity,
         fixtures: a.fixtures,
@@ -368,6 +383,7 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
         floor_type_code: (a.floor_type_code as string) || '',
         building_type_code: (a.building_type_code as string) || '',
         difficulty_code: (a.difficulty_code as WizardArea['difficulty_code']) || 'STANDARD',
+        modifier_codes: (a.modifier_codes as string[]) || [],
         square_footage: a.square_footage as number,
         quantity: (a.quantity as number) || 1,
         fixtures: (a.fixtures as Record<string, number>) || {},
@@ -395,6 +411,9 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
         opportunity_id: bid.opportunity_id || '',
         building_type_code: '',
         total_sqft: bid.total_sqft || 0,
+        facility_type_code: '',
+        size_tier_code: '',
+        scope_selected_areas: [],
         areas: wizardAreas,
         days_per_week: (sched?.days_per_week as number) || 5,
         visits_per_day: (sched?.visits_per_day as number) || 1,
@@ -487,6 +506,7 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
       floor_type_code: '',
       building_type_code: '',
       difficulty_code: 'STANDARD',
+      modifier_codes: [],
       square_footage: 0,
       quantity: 1,
       fixtures: {},
@@ -524,20 +544,35 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
     }));
   };
 
-  // Express Load
-  const handleExpressLoad = () => {
-    if (!form.building_type_code || form.total_sqft <= 0) return;
-    const generated = expressLoad({
-      building_type_code: form.building_type_code,
-      total_sqft: form.total_sqft,
-    });
+  // Scope-Aware Express Load (with fallback to original expressLoad)
+  const handleScopeGenerate = () => {
+    if (form.total_sqft <= 0) return;
+
+    let generated;
+    if (form.facility_type_code) {
+      generated = scopeAwareExpressLoad({
+        facility_type_code: form.facility_type_code as FacilityTypeCode,
+        total_sqft: form.total_sqft,
+        size_tier_code: (form.size_tier_code as SizeTierCode) || undefined,
+        selected_areas: form.scope_selected_areas.length > 0 ? form.scope_selected_areas : undefined,
+      });
+    } else if (form.building_type_code) {
+      generated = expressLoad({
+        building_type_code: form.building_type_code,
+        total_sqft: form.total_sqft,
+      });
+    } else {
+      return;
+    }
+
     const wizardAreas: WizardArea[] = generated.map((area) => ({
       tempId: crypto.randomUUID(),
       name: area.name,
       area_type_code: area.area_type_code,
       floor_type_code: area.floor_type_code,
-      building_type_code: form.building_type_code,
+      building_type_code: form.building_type_code || form.facility_type_code,
       difficulty_code: 'STANDARD',
+      modifier_codes: [],
       square_footage: area.square_footage,
       quantity: area.quantity,
       fixtures: area.fixtures,
@@ -871,19 +906,17 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
       {/* Step: Areas */}
       {currentStepName === 'Areas' && (
         <div className="space-y-4">
-          <Card>
-            <CardHeader><CardTitle>Express Load</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-xs text-muted-foreground">Auto-generate areas based on building type and total square footage.</p>
-              <div className="grid grid-cols-2 gap-3">
-                <Select label="Building Type" value={form.building_type_code} onChange={(e) => setForm((f) => ({ ...f, building_type_code: e.target.value }))} options={[{ value: '', label: 'Select...' }, ...BUILDING_TYPE_OPTIONS]} />
-                <Input label="Total Sq Ft" type="number" value={form.total_sqft || ''} onChange={(e) => setForm((f) => ({ ...f, total_sqft: Number(e.target.value) }))} placeholder="e.g. 25000" />
-              </div>
-              <Button variant="secondary" onClick={handleExpressLoad} disabled={!form.building_type_code || form.total_sqft <= 0}>
-                <Zap className="h-4 w-4" /> Express Load
-              </Button>
-            </CardContent>
-          </Card>
+          <ScopeBuilderStep
+            facilityTypeCode={form.facility_type_code}
+            sizeTierCode={form.size_tier_code}
+            totalSqft={form.total_sqft}
+            selectedAreas={form.scope_selected_areas}
+            onFacilityTypeChange={(code) => setForm((f) => ({ ...f, facility_type_code: code }))}
+            onSizeTierChange={(code) => setForm((f) => ({ ...f, size_tier_code: code }))}
+            onTotalSqftChange={(sqft) => setForm((f) => ({ ...f, total_sqft: sqft }))}
+            onSelectedAreasChange={(areas) => setForm((f) => ({ ...f, scope_selected_areas: areas }))}
+            onGenerate={handleScopeGenerate}
+          />
 
           {form.areas.map((area) => (
             <Card key={area.tempId}>
@@ -902,6 +935,33 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
                   <Input label="Quantity" type="number" value={area.quantity} onChange={(e) => updateArea(area.tempId, { quantity: Number(e.target.value) || 1 })} />
                 </div>
                 <Select label="Difficulty" value={area.difficulty_code} onChange={(e) => updateArea(area.tempId, { difficulty_code: e.target.value as WizardArea['difficulty_code'] })} options={DIFFICULTY_OPTIONS} />
+                {/* Scope Difficulty Modifiers */}
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1.5">Modifiers</p>
+                  <div className="flex flex-wrap gap-2">
+                    {SCOPE_DIFFICULTY_MODIFIERS.map((mod) => {
+                      const isActive = area.modifier_codes.includes(mod.code);
+                      return (
+                        <label key={mod.code} className="flex items-center gap-1.5 text-xs cursor-pointer" title={mod.description}>
+                          <input
+                            type="checkbox"
+                            checked={isActive}
+                            onChange={() => {
+                              const next = isActive
+                                ? area.modifier_codes.filter((c) => c !== mod.code)
+                                : [...area.modifier_codes, mod.code];
+                              updateArea(area.tempId, { modifier_codes: next });
+                            }}
+                            className="rounded border-border"
+                          />
+                          <span className={isActive ? 'text-foreground' : 'text-muted-foreground'}>
+                            {mod.label} ({mod.factor}x)
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <Select label="Floor Type" value={area.floor_type_code} onChange={(e) => updateArea(area.tempId, { floor_type_code: e.target.value })} options={[{ value: '', label: 'Select...' }, ...FLOOR_TYPE_OPTIONS]} />
                   <Select label="Building Type" value={area.building_type_code} onChange={(e) => updateArea(area.tempId, { building_type_code: e.target.value })} options={[{ value: '', label: 'Select...' }, ...BUILDING_TYPE_OPTIONS]} />

@@ -931,6 +931,7 @@ export interface SupplyOrder extends StandardColumns {
   order_date: string;
   expected_delivery: string | null;
   delivery_date_est: string | null;
+  delivered_at: string | null;
   status: string; // DRAFT | ORDERED | SHIPPED | RECEIVED | CANCELED
   total_amount: number | null;
   delivery_instructions: string | null;
@@ -945,6 +946,23 @@ export interface SupplyOrderItem extends StandardColumns {
   unit_price: number;
   line_total: number;
   notes: string | null;
+}
+
+export interface SupplyOrderDelivery extends StandardColumns {
+  order_id: string;
+  delivered_at: string;
+  recipient_name: string;
+  recipient_title: string | null;
+  notes: string | null;
+  signature_file_id: string | null;
+  photo_file_id: string | null;
+  gps_lat: number | null;
+  gps_lng: number | null;
+  gps_accuracy_meters: number | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  device_info: Record<string, unknown> | null;
+  captured_by_user_id: string | null;
 }
 
 export interface InventoryCount extends StandardColumns {

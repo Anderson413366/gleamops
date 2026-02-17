@@ -14,6 +14,7 @@ import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 import { toSafeDate } from '@/lib/utils/date';
 import { SupplyOrderForm } from '@/components/forms/supply-order-form';
+import { PodCaptureDrawer } from './pod-capture-drawer';
 
 interface Props {
   search: string;
@@ -22,7 +23,14 @@ interface Props {
   onRefresh?: () => void;
 }
 
-const STATUS_OPTIONS = ['ORDERED', 'SHIPPED', 'RECEIVED', 'DRAFT', 'CANCELED', 'all'] as const;
+interface SupplyOrderProofRow {
+  id: string;
+  order_id: string;
+  delivered_at: string;
+  recipient_name: string;
+}
+
+const STATUS_OPTIONS = ['ORDERED', 'SHIPPED', 'DELIVERED', 'RECEIVED', 'SUBMITTED', 'DRAFT', 'CANCELED', 'all'] as const;
 
 export default function OrdersTable({ search, formOpen, onFormClose, onRefresh }: Props) {
   const searchParams = useSearchParams();
@@ -31,6 +39,8 @@ export default function OrdersTable({ search, formOpen, onFormClose, onRefresh }
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [editItem, setEditItem] = useState<SupplyOrder | null>(null);
+  const [podOrder, setPodOrder] = useState<SupplyOrder | null>(null);
+  const [proofByOrderId, setProofByOrderId] = useState<Record<string, SupplyOrderProofRow>>({});
   const [statusFilter, setStatusFilter] = useState<string>('ORDERED');
   const [statusInitialized, setStatusInitialized] = useState(false);
 
@@ -42,7 +52,27 @@ export default function OrdersTable({ search, formOpen, onFormClose, onRefresh }
       .select('*')
       .is('archived_at', null)
       .order('order_date', { ascending: false });
-    if (!error && data) setRows(data as SupplyOrder[]);
+    if (!error && data) {
+      const orderRows = data as SupplyOrder[];
+      setRows(orderRows);
+
+      const orderIds = orderRows.map((row) => row.id);
+      if (orderIds.length > 0) {
+        const { data: proofs } = await supabase
+          .from('supply_order_deliveries')
+          .select('id, order_id, delivered_at, recipient_name')
+          .is('archived_at', null)
+          .in('order_id', orderIds);
+
+        const proofMap: Record<string, SupplyOrderProofRow> = {};
+        for (const proof of (proofs ?? []) as SupplyOrderProofRow[]) {
+          proofMap[proof.order_id] = proof;
+        }
+        setProofByOrderId(proofMap);
+      } else {
+        setProofByOrderId({});
+      }
+    }
     setLoading(false);
   }, []);
 
@@ -109,7 +139,7 @@ export default function OrdersTable({ search, formOpen, onFormClose, onRefresh }
   const sortedRows = sorted as unknown as SupplyOrder[];
   const pag = usePagination(sortedRows, 25);
 
-  if (loading) return <TableSkeleton rows={8} cols={5} />;
+  if (loading) return <TableSkeleton rows={8} cols={7} />;
 
   const dateFmt = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   const currFmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
@@ -167,6 +197,7 @@ export default function OrdersTable({ search, formOpen, onFormClose, onRefresh }
               </TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Total</TableHead>
+              <TableHead>Delivery Proof</TableHead>
               <TableHead>Notes</TableHead>
             </tr>
           </TableHeader>
@@ -188,6 +219,38 @@ export default function OrdersTable({ search, formOpen, onFormClose, onRefresh }
                 <TableCell className="text-muted-foreground">{row.status}</TableCell>
                 <TableCell className="font-mono text-xs">
                   {row.total_amount != null ? currFmt.format(row.total_amount) : '$0'}
+                </TableCell>
+                <TableCell>
+                  {proofByOrderId[row.id] ? (
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-xs text-muted-foreground">
+                        <p className="font-medium text-foreground">Captured</p>
+                        <p>{dateFmt.format(toSafeDate(proofByOrderId[row.id].delivered_at))}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setPodOrder(row);
+                        }}
+                      >
+                        View
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      size="sm"
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setPodOrder(row);
+                      }}
+                    >
+                      Capture POD
+                    </Button>
+                  )}
                 </TableCell>
                 <TableCell className="text-muted-foreground">{row.notes ?? 'Not Set'}</TableCell>
               </TableRow>
@@ -233,6 +296,17 @@ export default function OrdersTable({ search, formOpen, onFormClose, onRefresh }
         initialData={editItem}
         initialSiteCode={siteQueryCode}
         onSuccess={handleFormSuccess}
+      />
+
+      <PodCaptureDrawer
+        open={podOrder != null}
+        order={podOrder}
+        onClose={() => setPodOrder(null)}
+        onSaved={() => {
+          setPodOrder(null);
+          fetchData();
+          onRefresh?.();
+        }}
       />
     </div>
   );

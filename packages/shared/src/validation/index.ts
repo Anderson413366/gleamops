@@ -694,6 +694,20 @@ export const signatureSchema = z.object({
 });
 export type SignatureData = z.infer<typeof signatureSchema>;
 
+export const supplyOrderPodSchema = z.object({
+  recipientName: z.string().min(1, 'Recipient name is required').max(160),
+  recipientTitle: z.string().max(160).nullable().default(null),
+  deliveredAt: z.string().datetime().nullable().default(null),
+  notes: z.string().max(2000).nullable().default(null),
+  signatureFileId: z.string().uuid('Signature file is required'),
+  photoFileId: z.string().uuid('Delivery photo is required'),
+  gpsLat: z.number().min(-90).max(90).nullable().default(null),
+  gpsLng: z.number().min(-180).max(180).nullable().default(null),
+  gpsAccuracyMeters: z.number().min(0).nullable().default(null),
+  deviceInfo: z.record(z.unknown()).nullable().default(null),
+});
+export type SupplyOrderPodData = z.infer<typeof supplyOrderPodSchema>;
+
 export const messageThreadSchema = z.object({
   subject: z.string().min(1, 'Subject is required').max(200),
   thread_type: z.enum(['DIRECT', 'GROUP', 'TICKET_CONTEXT']),

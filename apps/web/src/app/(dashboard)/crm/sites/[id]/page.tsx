@@ -26,6 +26,7 @@ import { Badge, Skeleton } from '@gleamops/ui';
 import type { Site, Contact, Staff, KeyInventory } from '@gleamops/shared';
 import { SITE_STATUS_COLORS } from '@gleamops/shared';
 import { SiteForm } from '@/components/forms/site-form';
+import { InventoryCountForm } from '@/components/forms/inventory-count-form';
 import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
 import { StatusToggleDialog } from '@/components/detail/status-toggle-dialog';
@@ -253,6 +254,7 @@ export default function SiteDetailPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archiveLoading, setArchiveLoading] = useState(false);
+  const [countFormOpen, setCountFormOpen] = useState(false);
   const [siteFormFocus, setSiteFormFocus] = useState<'basics' | 'address' | 'access' | 'service' | 'facility' | 'notes' | undefined>(undefined);
 
   // Related data
@@ -1276,18 +1278,20 @@ export default function SiteDetailPage() {
             >
               View Full Count
             </Link>
-            <Link
-              href={`/inventory?tab=counts&action=create-count&site=${encodeURIComponent(site.site_code)}`}
+            <button
+              type="button"
+              onClick={() => setCountFormOpen(true)}
               className="inline-flex items-center rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             >
               Start New Count
-            </Link>
-            <Link
-              href={`/inventory?tab=counts&action=create-count&site=${encodeURIComponent(site.site_code)}`}
+            </button>
+            <button
+              type="button"
+              onClick={() => setCountFormOpen(true)}
               className="inline-flex items-center rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             >
               Generate Count URL
-            </Link>
+            </button>
           </div>
         </div>
 
@@ -1434,6 +1438,14 @@ export default function SiteDetailPage() {
         initialData={site}
         onSuccess={fetchSite}
         focusSection={siteFormFocus}
+      />
+
+      <InventoryCountForm
+        open={countFormOpen}
+        onClose={() => setCountFormOpen(false)}
+        initialData={null}
+        initialSiteId={site.id}
+        onSuccess={fetchSite}
       />
 
       <StatusToggleDialog

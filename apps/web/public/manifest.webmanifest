@@ -1,0 +1,17 @@
+{
+  "name": "GleamOps",
+  "short_name": "GleamOps",
+  "description": "Anderson Cleaning operations platform",
+  "start_url": "/home",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#2563EB",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "16x16 32x32 48x48",
+      "type": "image/x-icon"
+    }
+  ]
+}

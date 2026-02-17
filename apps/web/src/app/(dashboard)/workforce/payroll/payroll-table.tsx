@@ -11,6 +11,7 @@ import {
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 import { useAuth } from '@/hooks/use-auth';
+import { normalizeRoleCode } from '@gleamops/shared';
 
 interface Props {
   search: string;
@@ -51,8 +52,8 @@ export default function PayrollTable({ search }: Props) {
   // Wait for auth to load before checking role
   if (authLoading) return <TableSkeleton rows={8} cols={5} />;
 
-  // Only OWNER_ADMIN can see payroll
-  if (role !== 'OWNER_ADMIN') {
+  // Only Admin can see payroll (legacy OWNER_ADMIN or Anderson ADMIN alias).
+  if (normalizeRoleCode(role) !== 'OWNER_ADMIN') {
     return (
       <div className="rounded-xl border border-border bg-card p-12 text-center">
         <DollarSign className="h-12 w-12 mx-auto text-muted-foreground mb-4" />

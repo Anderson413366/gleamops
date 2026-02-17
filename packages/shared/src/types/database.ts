@@ -77,6 +77,13 @@ export interface AuditEvent {
   before: Record<string, unknown> | null;
   after: Record<string, unknown> | null;
   actor_user_id: string;
+  reason: string | null;
+  request_path: string | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  device_id: string | null;
+  geo_lat: number | null;
+  geo_long: number | null;
   created_at: string;
 }
 

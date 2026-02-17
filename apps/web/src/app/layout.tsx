@@ -25,8 +25,10 @@ const atkinsonHyperlegible = Atkinson_Hyperlegible({
 export const metadata: Metadata = {
   title: 'GleamOps',
   description: 'Commercial cleaning operations platform',
+  manifest: '/manifest.webmanifest',
   icons: {
-    icon: 'data:,',
+    icon: '/favicon.ico',
+    apple: '/favicon.ico',
   },
 };
 
@@ -62,6 +64,17 @@ export default function RootLayout({
                   document.documentElement.dataset.simpleView = p.simple_view ? 'true' : 'false';
                 }
               } catch(e) {}
+            `,
+          }}
+        />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+                window.addEventListener('load', function () {
+                  navigator.serviceWorker.register('/sw.js').catch(function () {});
+                });
+              }
             `,
           }}
         />

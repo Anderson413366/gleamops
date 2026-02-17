@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Save, Building2, Bell, Shield, Sun, Moon, Palette, Brain, Focus, Clock3, Sparkles, ScanLine, Type, Highlighter, Contrast, TextCursor, Rabbit } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardHeader, CardTitle, CardContent, Input, Button } from '@gleamops/ui';
+import { roleDisplayName } from '@gleamops/shared';
 import { useAuth } from '@/hooks/use-auth';
 import { useTheme } from '@/hooks/use-theme';
 import { useUiPreferences } from '@/hooks/use-ui-preferences';
@@ -328,7 +329,7 @@ export default function SettingsPage() {
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Role</p>
-              <p className="text-sm text-foreground">{role ? role.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : '—'}</p>
+              <p className="text-sm text-foreground">{role ? roleDisplayName(role) : '—'}</p>
             </div>
           </CardContent>
         </Card>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createProblemDetails } from '@gleamops/shared';
 import { extractAuth, isAuthError } from '@/lib/api/auth-guard';
+import { extractAuditContext, writeAuditMutation } from '@/lib/api/audit';
 import { getServiceClient } from '@/lib/api/service-client';
 
 const INSTANCE = '/api/payroll/runs';
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
   const auth = await extractAuth(request, INSTANCE);
   if (isAuthError(auth)) return auth;
 
-  const { tenantId } = auth;
+  const { tenantId, userId } = auth;
   const payload = await request.json();
   const db = getServiceClient();
 
@@ -59,6 +60,18 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  await writeAuditMutation({
+    db,
+    tenantId,
+    actorUserId: userId,
+    entityType: 'payroll_runs',
+    entityId: data?.id ?? null,
+    entityCode: null,
+    action: 'CREATE',
+    before: null,
+    after: (data as Record<string, unknown>) ?? null,
+    context: extractAuditContext(request, 'payroll_run_create'),
+  });
+
   return NextResponse.json({ data }, { status: 201 });
 }
-

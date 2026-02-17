@@ -2,6 +2,7 @@
 
 import { useAuth } from './use-auth';
 import { canAccess } from '@gleamops/domain';
+import { normalizeRoleCode } from '@gleamops/shared';
 import type { UserRole } from '@gleamops/shared';
 
 /**
@@ -17,10 +18,12 @@ export function useRole() {
   }
 
   function isAtLeast(minRole: UserRole): boolean {
-    if (!role) return false;
-    const hierarchy: UserRole[] = ['OWNER_ADMIN', 'MANAGER', 'SUPERVISOR', 'SALES', 'INSPECTOR', 'CLEANER'];
-    const current = hierarchy.indexOf(role);
-    const target = hierarchy.indexOf(minRole);
+    const normalizedRole = normalizeRoleCode(role);
+    const normalizedMinRole = normalizeRoleCode(minRole);
+    if (!normalizedRole || !normalizedMinRole) return false;
+    const hierarchy: string[] = ['OWNER_ADMIN', 'MANAGER', 'SUPERVISOR', 'SALES', 'INSPECTOR', 'CLEANER'];
+    const current = hierarchy.indexOf(normalizedRole);
+    const target = hierarchy.indexOf(normalizedMinRole);
     return current >= 0 && current <= target;
   }
 
@@ -29,7 +32,7 @@ export function useRole() {
     loading,
     can,
     isAtLeast,
-    isAdmin: role === 'OWNER_ADMIN',
-    isManager: role === 'OWNER_ADMIN' || role === 'MANAGER',
+    isAdmin: normalizeRoleCode(role) === 'OWNER_ADMIN',
+    isManager: ['OWNER_ADMIN', 'MANAGER'].includes(normalizeRoleCode(role) ?? ''),
   };
 }

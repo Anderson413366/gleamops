@@ -33,9 +33,10 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
+  const forcedTenantId = process.env.SINGLE_TENANT_ID ?? process.env.NEXT_PUBLIC_SINGLE_TENANT_ID ?? '';
 
   // Public routes that don't need auth
-  const publicRoutes = ['/login', '/auth/callback', '/api/webhooks', '/count', '/api/public/counts', '/api/cron'];
+  const publicRoutes = ['/login', '/offline', '/auth/callback', '/api/webhooks', '/count', '/api/public/counts', '/api/cron'];
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
 
   if (!user && !isPublicRoute) {
@@ -50,6 +51,16 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = '/home';
     return NextResponse.redirect(url);
+  }
+
+  if (user && forcedTenantId && !isPublicRoute) {
+    const userTenantId = (user.app_metadata?.tenant_id as string | undefined) ?? '';
+    if (userTenantId && userTenantId !== forcedTenantId) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/login';
+      url.searchParams.set('error', 'tenant_scope_mismatch');
+      return NextResponse.redirect(url);
+    }
   }
 
   return supabaseResponse;

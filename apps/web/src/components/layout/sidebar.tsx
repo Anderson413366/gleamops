@@ -28,7 +28,7 @@ import {
   AlertTriangle,
   LineChart,
 } from 'lucide-react';
-import { getModuleFromPathname, NAV_ITEMS } from '@gleamops/shared';
+import { getModuleFromPathname, NAV_ITEMS, roleDisplayName } from '@gleamops/shared';
 import { useAuth } from '@/hooks/use-auth';
 import { useFeatureFlag } from '@/hooks/use-feature-flag';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -312,7 +312,7 @@ export function Sidebar() {
                 <p className="text-sm font-medium text-white truncate">{user.email}</p>
                 {role && (
                   <p className="text-xs text-sidebar-text capitalize">
-                    {role.replace(/_/g, ' ')}
+                    {roleDisplayName(role)}
                   </p>
                 )}
               </div>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createProblemDetails } from '@gleamops/shared';
 import { extractAuth, isAuthError } from '@/lib/api/auth-guard';
+import { extractAuditContext, writeAuditMutation } from '@/lib/api/audit';
 import { getServiceClient } from '@/lib/api/service-client';
 
 const INSTANCE = '/api/inventory/warehouse';
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest) {
   const auth = await extractAuth(request, INSTANCE);
   if (isAuthError(auth)) return auth;
 
-  const { tenantId } = auth;
+  const { tenantId, userId } = auth;
   const db = getServiceClient();
   const resource = request.nextUrl.searchParams.get('resource') ?? 'stock-levels';
 
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
   const auth = await extractAuth(request, INSTANCE);
   if (isAuthError(auth)) return auth;
 
-  const { tenantId } = auth;
+  const { tenantId, userId } = auth;
   const payload = await request.json();
   const db = getServiceClient();
   const table = (payload?.table as string | undefined) ?? 'stock_movements';
@@ -87,6 +88,18 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  await writeAuditMutation({
+    db,
+    tenantId,
+    actorUserId: userId,
+    entityType: table,
+    entityId: data?.id ?? null,
+    entityCode: null,
+    action: 'CREATE',
+    before: null,
+    after: (data as Record<string, unknown>) ?? null,
+    context: extractAuditContext(request, `warehouse_${table}_create`),
+  });
+
   return NextResponse.json({ table, data }, { status: 201 });
 }
-

@@ -1,7 +1,7 @@
 /**
  * GleamOps constants — lookup seeds, status maps, nav config.
  */
-import type { ModuleAccent, ModuleKey, NavItem, StatusColor } from '../types/app';
+import type { LegacyUserRole, ModuleAccent, ModuleKey, NavItem, StatusColor, UserRole } from '../types/app';
 
 // ---------------------------------------------------------------------------
 // Navigation (6 consolidated modules)
@@ -298,6 +298,60 @@ export const ROLES = [
 ] as const;
 
 export type RoleCode = typeof ROLES[number];
+
+export const ANDERSON_ROLES = [
+  'ADMIN',
+  'OPERATIONS',
+  'SUPERVISOR',
+  'TECHNICIAN',
+  'WAREHOUSE',
+  'FINANCE',
+] as const;
+
+export const ROLE_ALIAS_TO_LEGACY: Record<string, LegacyUserRole> = {
+  OWNER_ADMIN: 'OWNER_ADMIN',
+  MANAGER: 'MANAGER',
+  SUPERVISOR: 'SUPERVISOR',
+  CLEANER: 'CLEANER',
+  INSPECTOR: 'INSPECTOR',
+  SALES: 'SALES',
+  ADMIN: 'OWNER_ADMIN',
+  OPERATIONS: 'MANAGER',
+  TECHNICIAN: 'CLEANER',
+  WAREHOUSE: 'SUPERVISOR',
+  FINANCE: 'MANAGER',
+};
+
+const ROLE_DISPLAY_LABELS: Record<string, string> = {
+  OWNER_ADMIN: 'Admin',
+  MANAGER: 'Operations',
+  SUPERVISOR: 'Supervisor',
+  CLEANER: 'Technician',
+  INSPECTOR: 'Supervisor',
+  SALES: 'Sales',
+  ADMIN: 'Admin',
+  OPERATIONS: 'Operations',
+  TECHNICIAN: 'Technician',
+  WAREHOUSE: 'Warehouse',
+  FINANCE: 'Finance',
+};
+
+export function normalizeRoleCode(role: string | null | undefined): LegacyUserRole | null {
+  if (!role) return null;
+  const normalized = role.trim().toUpperCase();
+  return ROLE_ALIAS_TO_LEGACY[normalized] ?? null;
+}
+
+export function roleDisplayName(role: string | null | undefined): string {
+  if (!role) return 'Not Set';
+  const normalized = role.trim().toUpperCase();
+  return ROLE_DISPLAY_LABELS[normalized] ?? normalized.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+export function isSupportedRole(role: string | null | undefined): role is UserRole {
+  if (!role) return false;
+  return Boolean(ROLE_ALIAS_TO_LEGACY[role.trim().toUpperCase()]);
+}
 
 // ---------------------------------------------------------------------------
 // Weeks per month (standard constant)

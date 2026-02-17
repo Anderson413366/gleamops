@@ -3,13 +3,23 @@
  */
 
 // User roles (RBAC)
-export type UserRole =
+export type LegacyUserRole =
   | 'OWNER_ADMIN'
   | 'MANAGER'
   | 'SUPERVISOR'
   | 'CLEANER'
   | 'INSPECTOR'
   | 'SALES';
+
+export type AndersonUserRole =
+  | 'ADMIN'
+  | 'OPERATIONS'
+  | 'SUPERVISOR'
+  | 'TECHNICIAN'
+  | 'WAREHOUSE'
+  | 'FINANCE';
+
+export type UserRole = LegacyUserRole | AndersonUserRole;
 
 // Navigation spaces
 export type NavSpace =

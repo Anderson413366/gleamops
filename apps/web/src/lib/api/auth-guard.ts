@@ -51,11 +51,24 @@ export async function extractAuth(
   }
 
   const tenantId = (user.app_metadata?.tenant_id as string) ?? '';
-  const roles = ((user.app_metadata?.roles as string[]) ?? []);
+  const roleFromAppMeta = user.app_metadata?.role as string | undefined;
+  const roleFromUserMeta = user.user_metadata?.role as string | undefined;
+  const roles = ((user.app_metadata?.roles as string[]) ?? [])
+    .concat(roleFromAppMeta ? [roleFromAppMeta] : [])
+    .concat(roleFromUserMeta ? [roleFromUserMeta] : [])
+    .map((r) => r.trim().toUpperCase())
+    .filter(Boolean);
 
   if (!tenantId) {
     return problemResponse(
       createProblemDetails('AUTH_003', 'Tenant scope mismatch', 403, 'User has no tenant assigned', instance)
+    );
+  }
+
+  const forcedTenantId = process.env.SINGLE_TENANT_ID ?? process.env.NEXT_PUBLIC_SINGLE_TENANT_ID ?? '';
+  if (forcedTenantId && tenantId !== forcedTenantId) {
+    return problemResponse(
+      createProblemDetails('AUTH_003', 'Tenant scope mismatch', 403, 'User is outside the allowed Anderson tenant', instance),
     );
   }
 

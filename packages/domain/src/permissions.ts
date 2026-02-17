@@ -3,6 +3,7 @@
  * Decides WHAT a role can do. Site scoping decides WHERE.
  */
 import type { UserRole } from '@gleamops/shared';
+import { normalizeRoleCode } from '@gleamops/shared';
 
 type Permission =
   | 'pipeline:read'
@@ -29,7 +30,7 @@ type Permission =
   | 'timekeeping:write'
   | 'timekeeping:approve';
 
-const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
+const LEGACY_ROLE_PERMISSIONS: Record<string, Permission[]> = {
   OWNER_ADMIN: [
     'pipeline:read', 'pipeline:write',
     'customers:read', 'customers:write',
@@ -90,8 +91,21 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ],
 };
 
-export const rolePermissions = ROLE_PERMISSIONS;
+const ALIAS_ROLE_PERMISSIONS: Record<string, Permission[]> = {
+  ADMIN: LEGACY_ROLE_PERMISSIONS.OWNER_ADMIN,
+  OPERATIONS: LEGACY_ROLE_PERMISSIONS.MANAGER,
+  TECHNICIAN: LEGACY_ROLE_PERMISSIONS.CLEANER,
+  WAREHOUSE: LEGACY_ROLE_PERMISSIONS.SUPERVISOR,
+  FINANCE: LEGACY_ROLE_PERMISSIONS.MANAGER,
+};
+
+export const rolePermissions: Record<string, Permission[]> = {
+  ...LEGACY_ROLE_PERMISSIONS,
+  ...ALIAS_ROLE_PERMISSIONS,
+};
 
 export function canAccess(role: UserRole, permission: Permission): boolean {
-  return ROLE_PERMISSIONS[role]?.includes(permission) ?? false;
+  const normalized = normalizeRoleCode(role);
+  if (!normalized) return false;
+  return LEGACY_ROLE_PERMISSIONS[normalized]?.includes(permission) ?? false;
 }

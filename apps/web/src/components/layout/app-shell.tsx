@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { X } from 'lucide-react';
 import { Sidebar } from './sidebar';
 import { Header } from './header';
+import { OfflineBanner } from './offline-banner';
 import { Button } from '@gleamops/ui';
 import { DEFAULT_MODULE_KEY, getModuleFromPathname, MODULE_ACCENTS } from '@gleamops/shared';
 import { useUiPreferences } from '@/hooks/use-ui-preferences';
@@ -28,6 +29,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       >
         Skip to main content
       </a>
+
+      <OfflineBanner />
 
       {/* When focus mode is enabled, we hide these in two layers:
          1) Pre-hydration CSS via html[data-focus-mode="true"] (see globals.css)

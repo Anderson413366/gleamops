@@ -23,6 +23,7 @@ import {
   Keyboard,
 } from 'lucide-react';
 import { CommandPalette, type CommandItem, DensityToggle } from '@gleamops/ui';
+import { roleDisplayName } from '@gleamops/shared';
 import { useAuth } from '@/hooks/use-auth';
 import { useTheme } from '@/hooks/use-theme';
 import { useDensity } from '@/hooks/use-density';
@@ -917,7 +918,7 @@ export function Header() {
                   <p className="text-sm font-semibold text-foreground truncate">{user?.email}</p>
                   {role && (
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {role.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                      {roleDisplayName(role)}
                     </p>
                   )}
                 </div>

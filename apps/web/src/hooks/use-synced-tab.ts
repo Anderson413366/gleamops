@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 interface UseSyncedTabOptions {
@@ -32,8 +32,14 @@ export function useSyncedTab({ tabKeys, defaultTab, aliases }: UseSyncedTabOptio
     return validTabKeys[0] ?? '';
   }, [aliasMap, defaultTab, validTabKeys]);
 
+  const searchParamsString = searchParams.toString();
   const rawUrlTab = searchParams.get('tab');
-  const tab = resolveTab(rawUrlTab);
+  const resolvedUrlTab = resolveTab(rawUrlTab);
+  const [tab, setTab] = useState<string>(resolvedUrlTab);
+
+  useEffect(() => {
+    setTab(resolvedUrlTab);
+  }, [resolvedUrlTab]);
 
   // Keep URL canonical only when a tab param exists (aliases/invalid tabs normalize
   // to the resolved canonical tab). Avoid writing default tabs back to the URL on
@@ -42,21 +48,22 @@ export function useSyncedTab({ tabKeys, defaultTab, aliases }: UseSyncedTabOptio
     if (!tab) return;
     if (!rawUrlTab) return;
     if (rawUrlTab === tab) return;
-    if (typeof window === 'undefined') return;
-    const next = new URLSearchParams(window.location.search);
+    const next = new URLSearchParams(searchParamsString);
     next.set('tab', tab);
-    router.replace(`${pathname}?${next.toString()}`, { scroll: false });
-  }, [pathname, rawUrlTab, router, tab]);
+    const nextQuery = next.toString();
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
+  }, [pathname, rawUrlTab, router, searchParamsString, tab]);
 
   const setSyncedTab = useCallback((nextTab: string) => {
     const resolved = resolveTab(nextTab);
     if (!resolved) return;
-    if (typeof window === 'undefined') return;
-    const next = new URLSearchParams(window.location.search);
-    if (next.get('tab') === resolved) return;
+    setTab(resolved);
+    const next = new URLSearchParams(searchParamsString);
+    if (next.get('tab') === resolved && rawUrlTab === resolved) return;
     next.set('tab', resolved);
-    router.replace(`${pathname}?${next.toString()}`, { scroll: false });
-  }, [pathname, resolveTab, router]);
+    const nextQuery = next.toString();
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
+  }, [pathname, rawUrlTab, resolveTab, router, searchParamsString]);
 
   return [tab, setSyncedTab] as const;
 }

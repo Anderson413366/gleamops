@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Building2, MapPin, Users, Plus } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import type { Contact } from '@gleamops/shared';
@@ -22,6 +22,8 @@ const TABS = [
 ];
 
 export default function CRMPageClient() {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const action = searchParams.get('action');
   const [tab, setTab] = useSyncedTab({
@@ -70,17 +72,28 @@ export default function CRMPageClient() {
     fetchKpis();
   }, [fetchKpis, refreshKey]);
 
+  const clearActionParam = useCallback((nextTab?: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (!params.has('action')) return;
+    params.delete('action');
+    if (nextTab) params.set('tab', nextTab);
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }, [pathname, router, searchParams]);
+
   const openQuickCreate = useCallback((actionName: string | null | undefined) => {
     if (actionName === 'create-client') {
       setTab('clients');
       setClientFormOpen(true);
+      clearActionParam('clients');
       return;
     }
     if (actionName === 'create-site') {
       setTab('sites');
       setSiteFormOpen(true);
+      clearActionParam('sites');
     }
-  }, [setTab]);
+  }, [clearActionParam, setTab]);
 
   useEffect(() => {
     openQuickCreate(action);

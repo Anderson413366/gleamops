@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Users, Target, FileText, Send, Plus, Zap, BarChart3 } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
@@ -36,6 +36,8 @@ const TABS = [
 ];
 
 export default function PipelinePageClient() {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const action = searchParams.get('action');
   const [tab, setTab] = useSyncedTab({
@@ -135,24 +137,36 @@ export default function PipelinePageClient() {
     fetchStats();
   }, [refreshKey]);
 
+  const clearActionParam = useCallback((nextTab?: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (!params.has('action')) return;
+    params.delete('action');
+    if (nextTab) params.set('tab', nextTab);
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }, [pathname, router, searchParams]);
+
   const openQuickCreate = useCallback((actionName: string | null | undefined) => {
     if (actionName === 'create-prospect') {
       setTab('prospects');
       setEditProspect(null);
       setProspectFormOpen(true);
+      clearActionParam('prospects');
       return;
     }
     if (actionName === 'create-opportunity') {
       setTab('opportunities');
       setEditOpportunity(null);
       setOpportunityFormOpen(true);
+      clearActionParam('opportunities');
       return;
     }
     if (actionName === 'create-bid') {
       setTab('bids');
       setWizardOpen(true);
+      clearActionParam('bids');
     }
-  }, [setTab]);
+  }, [clearActionParam, setTab]);
 
   useEffect(() => {
     openQuickCreate(action);

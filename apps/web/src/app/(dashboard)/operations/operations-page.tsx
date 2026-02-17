@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Calendar, ClipboardList, Briefcase, ClipboardCheck, FileText, MapPin, AlertTriangle, MessageSquare, Eye, EyeOff } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import type { WorkTicket, Inspection, Geofence } from '@gleamops/shared';
@@ -57,6 +57,8 @@ const TABS = [
 ];
 
 export default function OperationsPageClient() {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const initialTicketId = searchParams.get('ticket');
   const action = searchParams.get('action');
@@ -104,21 +106,33 @@ export default function OperationsPageClient() {
     fetchKpis();
   }, [refreshKey]);
 
+  const clearActionParam = useCallback((nextTab?: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (!params.has('action')) return;
+    params.delete('action');
+    if (nextTab) params.set('tab', nextTab);
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }, [pathname, router, searchParams]);
+
   const openQuickCreate = useCallback((actionName: string | null | undefined) => {
     if (actionName === 'create-job') {
       setTab('jobs');
       setOpenJobCreateToken((token) => token + 1);
+      clearActionParam('jobs');
       return;
     }
     if (actionName === 'create-inspection') {
       setTab('inspections');
       setShowCreateInspection(true);
+      clearActionParam('inspections');
       return;
     }
     if (actionName === 'create-ticket') {
       setTab('tickets');
+      clearActionParam('tickets');
     }
-  }, [setTab]);
+  }, [clearActionParam, setTab]);
 
   useEffect(() => {
     openQuickCreate(action);

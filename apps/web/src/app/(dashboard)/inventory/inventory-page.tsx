@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   Package, Box, MapPin, ClipboardList, ShoppingCart,
   Plus, Sparkles,
@@ -32,6 +32,8 @@ const ADD_LABELS: Record<string, string> = {
 };
 
 export default function InventoryPageClient() {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const action = searchParams.get('action');
   const [simpleView, setSimpleView] = useState(false);
@@ -104,28 +106,41 @@ export default function InventoryPageClient() {
 
   const addLabel = ADD_LABELS[tab];
 
+  const clearActionParam = useCallback((nextTab?: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (!params.has('action')) return;
+    params.delete('action');
+    if (nextTab) params.set('tab', nextTab);
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }, [pathname, router, searchParams]);
+
   const openQuickCreate = useCallback((actionName: string | null | undefined) => {
     if (!actionName) return;
     if (actionName === 'create-supply') {
       setTab('supplies');
       setAutoCreateSupply(true);
+      clearActionParam('supplies');
       return;
     }
     if (actionName === 'create-kit') {
       setTab('kits');
       setAutoCreateKit(true);
+      clearActionParam('kits');
       return;
     }
     if (actionName === 'create-count') {
       setTab('counts');
       setFormOpen(true);
+      clearActionParam('counts');
       return;
     }
     if (actionName === 'create-order') {
       setTab('orders');
       setFormOpen(true);
+      clearActionParam('orders');
     }
-  }, [setTab]);
+  }, [clearActionParam, setTab]);
 
   useEffect(() => {
     openQuickCreate(action);

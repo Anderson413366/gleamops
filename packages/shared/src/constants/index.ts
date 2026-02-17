@@ -51,6 +51,8 @@ export function getModuleFromPathname(pathname: string): ModuleKey {
   if (pathname.startsWith('/safety')) return 'safety';
   if (pathname.startsWith('/admin') || pathname.startsWith('/services')) return 'admin';
   if (pathname.startsWith('/financial-intelligence')) return 'reports';
+  if (pathname.startsWith('/financial')) return 'reports';
+  if (pathname.startsWith('/money')) return 'reports';
   if (pathname.startsWith('/reports')) return 'reports';
   if (pathname.startsWith('/settings')) return 'settings';
   return 'home';

@@ -1502,3 +1502,383 @@ export interface Message {
   edited_at: string | null;
   archived_at: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// Enterprise parity additions
+// ---------------------------------------------------------------------------
+export interface OrganizationSetting extends StandardColumns {
+  default_invoice_terms: string;
+  default_tax_rate: number | null;
+  default_invoice_delivery: string;
+  default_quote_valid_days: number;
+  default_pay_period: string;
+  default_language: string;
+  enable_staging_mode: boolean;
+}
+
+export interface UserSession extends StandardColumns {
+  user_id: string;
+  ip_address: string | null;
+  user_agent: string | null;
+  expires_at: string;
+  revoked_at: string | null;
+}
+
+export interface Role extends StandardColumns {
+  role_name: string;
+  role_kind: 'SYSTEM' | 'CUSTOM';
+  description: string | null;
+  is_default: boolean;
+}
+
+export interface Permission extends StandardColumns {
+  permission_code: string;
+  module: string;
+  description: string | null;
+}
+
+export interface RolePermission extends StandardColumns {
+  role_id: string;
+  permission_id: string;
+  access_level: 'NONE' | 'READ' | 'WRITE' | 'ADMIN';
+  is_enabled: boolean;
+}
+
+export interface UserRoleAssignment extends StandardColumns {
+  user_id: string;
+  role_id: string;
+  assigned_at: string;
+  assigned_by_user_id: string | null;
+}
+
+export interface Contract extends StandardColumns {
+  client_id: string;
+  contract_number: string;
+  contract_name: string;
+  start_date: string;
+  end_date: string | null;
+  billing_cycle: string;
+  contract_value_mrr: number | null;
+  contract_value_arr: number | null;
+  price_type: string;
+  auto_renew: boolean;
+  renewal_term_months: number | null;
+  status: string;
+  client_signed_at: string | null;
+  company_signed_at: string | null;
+  scope_of_work: string | null;
+  exclusions: string | null;
+}
+
+export interface Issue extends StandardColumns {
+  client_id: string | null;
+  site_id: string;
+  site_job_id: string | null;
+  inspection_id: string | null;
+  issue_type: string;
+  priority: string;
+  status: string;
+  title: string;
+  description: string;
+  client_visible: boolean;
+  reported_by_user_id: string | null;
+  assigned_to_staff_id: string | null;
+  reported_at: string;
+  due_at: string | null;
+  resolved_at: string | null;
+  resolution_notes: string | null;
+  attachments: Record<string, unknown> | null;
+}
+
+export interface Vendor extends StandardColumns {
+  vendor_name: string;
+  phone: string | null;
+  email: string | null;
+  website_url: string | null;
+  payment_terms: string | null;
+  status: 'ACTIVE' | 'INACTIVE';
+  notes: string | null;
+}
+
+export interface InventoryLocation extends StandardColumns {
+  location_type: 'WAREHOUSE' | 'OFFICE' | 'CLIENT_SITE' | 'VEHICLE' | 'OTHER';
+  site_id: string | null;
+  name: string;
+  address_note: string | null;
+  is_active: boolean;
+}
+
+export interface Item extends StandardColumns {
+  supply_catalog_id: string | null;
+  vendor_id: string | null;
+  sku: string | null;
+  item_name: string;
+  item_category: 'CHEMICAL' | 'CONSUMABLE' | 'PPE' | 'TOOL' | 'EQUIPMENT_PART' | 'OTHER';
+  uom: 'EACH' | 'BOTTLE' | 'GALLON' | 'BOX' | 'CASE' | 'ROLL';
+  unit_cost: number | null;
+  unit_price: number | null;
+  reorder_point: number | null;
+  reorder_qty: number | null;
+  is_hazardous: boolean;
+  sds_url: string | null;
+  is_active: boolean;
+  notes: string | null;
+}
+
+export interface StockLevel extends StandardColumns {
+  inventory_location_id: string;
+  item_id: string;
+  quantity_on_hand: number;
+  quantity_reserved: number;
+}
+
+export interface StockMovement extends StandardColumns {
+  item_id: string;
+  from_inventory_location_id: string | null;
+  to_inventory_location_id: string | null;
+  movement_type: 'RECEIVE' | 'TRANSFER' | 'CONSUME' | 'ADJUST' | 'RETURN';
+  quantity: number;
+  unit_cost: number | null;
+  site_job_id: string | null;
+  performed_by_user_id: string | null;
+  notes: string | null;
+  moved_at: string;
+}
+
+export interface PurchaseOrder extends StandardColumns {
+  vendor_id: string;
+  po_number: string;
+  po_date: string;
+  status: 'DRAFT' | 'SENT' | 'PARTIALLY_RECEIVED' | 'RECEIVED' | 'CANCELLED';
+  ship_to_inventory_location_id: string;
+  subtotal: number;
+  tax: number | null;
+  total: number;
+  notes: string | null;
+}
+
+export interface PurchaseOrderLine extends StandardColumns {
+  purchase_order_id: string;
+  item_id: string;
+  quantity_ordered: number;
+  quantity_received: number;
+  unit_cost: number;
+  line_total: number;
+}
+
+export interface SupplyRequest extends StandardColumns {
+  site_id: string | null;
+  inventory_location_id: string | null;
+  requested_by_staff_id: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'FULFILLED';
+  notes: string | null;
+  requested_at: string;
+}
+
+export interface SupplyRequestLine extends StandardColumns {
+  supply_request_id: string;
+  item_id: string;
+  quantity_requested: number;
+  quantity_fulfilled: number | null;
+  line_notes: string | null;
+}
+
+export interface AssetTransfer extends StandardColumns {
+  equipment_id: string;
+  from_inventory_location_id: string | null;
+  to_inventory_location_id: string | null;
+  from_site_id: string | null;
+  to_site_id: string | null;
+  performed_by_user_id: string | null;
+  notes: string | null;
+  transferred_at: string;
+}
+
+export interface AssetMaintenanceLog extends StandardColumns {
+  equipment_id: string;
+  maintenance_type: 'PREVENTIVE' | 'REPAIR' | 'INSPECTION' | 'OTHER';
+  performed_on: string;
+  cost: number | null;
+  details: string | null;
+  performed_by_staff_id: string | null;
+}
+
+export interface Invoice extends StandardColumns {
+  client_id: string;
+  contract_id: string | null;
+  invoice_number: string;
+  issue_date: string;
+  due_date: string;
+  terms: string;
+  status: string;
+  subtotal: number;
+  tax_amount: number | null;
+  discount_amount: number | null;
+  total: number;
+  balance_due: number;
+  pdf_url: string | null;
+  notes: string | null;
+  sent_at: string | null;
+}
+
+export interface InvoiceLineItem extends StandardColumns {
+  invoice_id: string;
+  line_type: string;
+  description: string;
+  quantity: number;
+  uom: string;
+  unit_price: number;
+  line_total: number;
+  sort_order: number;
+}
+
+export interface InvoiceJob extends StandardColumns {
+  invoice_id: string;
+  site_job_id: string;
+  is_consolidated: boolean;
+}
+
+export interface Payment extends StandardColumns {
+  invoice_id: string;
+  payment_date: string;
+  payment_method: string;
+  amount: number;
+  transaction_id: string | null;
+  status: string;
+  processed_by_user_id: string | null;
+  notes: string | null;
+}
+
+export interface PayPeriod extends StandardColumns {
+  period_start: string;
+  period_end: string;
+  pay_date: string;
+  status: string;
+}
+
+export interface PayrollRun extends StandardColumns {
+  pay_period_id: string;
+  run_type: string;
+  status: string;
+  approved_by_user_id: string | null;
+  approved_at: string | null;
+}
+
+export interface EarningCode extends StandardColumns {
+  code: string;
+  name: string;
+  type: string;
+  is_active: boolean;
+}
+
+export interface PayrollLineItem extends StandardColumns {
+  payroll_run_id: string;
+  staff_id: string;
+  earning_code_id: string;
+  hours: number | null;
+  rate: number | null;
+  amount: number;
+  notes: string | null;
+}
+
+export interface Conversation extends StandardColumns {
+  conversation_type: string;
+  site_job_id: string | null;
+  site_id: string | null;
+  issue_id: string | null;
+  title: string | null;
+}
+
+export interface ConversationParticipant extends StandardColumns {
+  conversation_id: string;
+  user_id: string;
+  participant_role: 'MEMBER' | 'MODERATOR' | 'OWNER';
+  is_muted: boolean;
+  joined_at: string;
+}
+
+export interface NotificationPreference extends StandardColumns {
+  user_id: string;
+  default_channel: 'IN_APP' | 'SMS' | 'EMAIL' | 'PUSH';
+  quiet_hours_enabled: boolean;
+  quiet_hours_start: string | null;
+  quiet_hours_end: string | null;
+}
+
+export interface FileLink extends StandardColumns {
+  file_id: string;
+  entity_type: string;
+  entity_id: string;
+  label: string | null;
+  linked_at: string;
+}
+
+export interface Tag extends StandardColumns {
+  tag_name: string;
+  color_hex: string | null;
+}
+
+export interface TagAssignment extends StandardColumns {
+  tag_id: string;
+  entity_type: string;
+  entity_id: string;
+  assigned_at: string;
+}
+
+export interface CustomField extends StandardColumns {
+  entity_type: string;
+  field_key: string;
+  field_label: string;
+  field_type: 'TEXT' | 'NUMBER' | 'DATE' | 'BOOLEAN' | 'DROPDOWN' | 'MULTI_SELECT';
+  is_required: boolean;
+  is_active: boolean;
+}
+
+export interface CustomFieldOption extends StandardColumns {
+  custom_field_id: string;
+  option_label: string;
+  option_value: string;
+  sort_order: number;
+}
+
+export interface CustomFieldValue extends StandardColumns {
+  custom_field_id: string;
+  entity_id: string;
+  value_text: string | null;
+  value_number: number | null;
+  value_date: string | null;
+  value_bool: boolean | null;
+  value_json: Record<string, unknown> | null;
+}
+
+export interface IntegrationConnection extends StandardColumns {
+  integration_type: string;
+  provider_name: string;
+  status: 'CONNECTED' | 'DISCONNECTED' | 'EXPIRED';
+  api_key_encrypted: string | null;
+  oauth_json: Record<string, unknown> | null;
+  last_sync_at: string | null;
+}
+
+export interface IntegrationSyncLog extends StandardColumns {
+  integration_connection_id: string;
+  sync_direction: 'PUSH' | 'PULL' | 'BI_DIRECTIONAL';
+  status: 'STARTED' | 'SUCCEEDED' | 'FAILED';
+  summary: string | null;
+  details_json: Record<string, unknown> | null;
+  started_at: string;
+}
+
+export interface Webhook extends StandardColumns {
+  target_url: string;
+  event_type: string;
+  secret_token: string | null;
+  is_active: boolean;
+}
+
+export interface ExternalIdMap extends StandardColumns {
+  integration_connection_id: string;
+  entity_type: string;
+  internal_entity_id: string;
+  external_entity_id: string;
+}

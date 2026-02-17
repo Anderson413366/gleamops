@@ -27,3 +27,5 @@ export { SCOPE_DIFFICULTY_MODIFIERS } from './difficulty-modifiers';
 export { PRODUCTIVITY_BASELINES } from './productivity-baselines';
 export { SPECIAL_PROTOCOLS } from './special-protocols';
 export { REGULATORY_TAGS } from './regulatory-tags';
+export { BUILDING_TASKS } from './building-tasks';
+export type { BuildingTask } from './building-tasks';

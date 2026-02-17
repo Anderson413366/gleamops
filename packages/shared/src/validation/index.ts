@@ -720,3 +720,136 @@ export const geofenceSchema = z.object({
   is_active: z.boolean().default(true),
 });
 export type GeofenceFormData = z.infer<typeof geofenceSchema>;
+
+// ---------------------------------------------------------------------------
+// Enterprise parity schemas
+// ---------------------------------------------------------------------------
+export const contractSchema = z.object({
+  client_id: z.string().uuid('Client is required'),
+  contract_number: z.string().min(1, 'Contract number is required').max(30),
+  contract_name: z.string().min(1, 'Contract name is required').max(200),
+  start_date: z.string().min(1, 'Start date is required'),
+  end_date: z.string().nullable().default(null),
+  billing_cycle: z.enum(['PER_VISIT', 'WEEKLY', 'BIWEEKLY', 'MONTHLY', 'QUARTERLY', 'ANNUALLY']),
+  price_type: z.enum(['FIXED', 'TIME_MATERIALS', 'UNIT_RATE', 'MIXED']),
+  contract_value_mrr: z.number().min(0).nullable().default(null),
+  contract_value_arr: z.number().min(0).nullable().default(null),
+  auto_renew: z.boolean().default(false),
+  renewal_term_months: z.number().int().min(1).max(120).nullable().default(null),
+  status: z.enum(['DRAFT', 'PENDING_SIGNATURE', 'ACTIVE', 'PAUSED', 'EXPIRED', 'CANCELLED']).default('ACTIVE'),
+  scope_of_work: z.string().nullable().default(null),
+  exclusions: z.string().nullable().default(null),
+});
+export type ContractFormData = z.infer<typeof contractSchema>;
+
+export const issueSchema = z.object({
+  site_id: z.string().uuid('Site is required'),
+  client_id: z.string().uuid().nullable().default(null),
+  site_job_id: z.string().uuid().nullable().default(null),
+  inspection_id: z.string().uuid().nullable().default(null),
+  issue_type: z.enum([
+    'CLEANING_DEFECT',
+    'CLIENT_SERVICE_REQUEST',
+    'SUPPLY_SHORTAGE',
+    'MAINTENANCE_REPAIR',
+    'SAFETY_ISSUE',
+    'ACCESS_PROBLEM',
+    'OTHER',
+  ]),
+  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).default('MEDIUM'),
+  status: z.enum(['OPEN', 'IN_PROGRESS', 'AWAITING_CLIENT', 'RESOLVED', 'CLOSED']).default('OPEN'),
+  title: z.string().min(1, 'Title is required').max(200),
+  description: z.string().min(1, 'Description is required'),
+  client_visible: z.boolean().default(true),
+  assigned_to_staff_id: z.string().uuid().nullable().default(null),
+  due_at: z.string().nullable().default(null),
+  resolution_notes: z.string().nullable().default(null),
+});
+export type IssueFormData = z.infer<typeof issueSchema>;
+
+export const vendorSchema = z.object({
+  vendor_name: z.string().min(1, 'Vendor name is required').max(160),
+  phone: z.string().nullable().default(null),
+  email: z.string().email().nullable().default(null),
+  website_url: z.string().url().nullable().default(null),
+  payment_terms: z.string().nullable().default(null),
+  status: z.enum(['ACTIVE', 'INACTIVE']).default('ACTIVE'),
+  notes: z.string().nullable().default(null),
+});
+export type VendorFormData = z.infer<typeof vendorSchema>;
+
+export const itemSchema = z.object({
+  vendor_id: z.string().uuid().nullable().default(null),
+  supply_catalog_id: z.string().uuid().nullable().default(null),
+  sku: z.string().max(60).nullable().default(null),
+  item_name: z.string().min(1, 'Item name is required').max(200),
+  item_category: z.enum(['CHEMICAL', 'CONSUMABLE', 'PPE', 'TOOL', 'EQUIPMENT_PART', 'OTHER']),
+  uom: z.enum(['EACH', 'BOTTLE', 'GALLON', 'BOX', 'CASE', 'ROLL']),
+  unit_cost: z.number().min(0).nullable().default(null),
+  unit_price: z.number().min(0).nullable().default(null),
+  reorder_point: z.number().int().min(0).nullable().default(null),
+  reorder_qty: z.number().int().min(0).nullable().default(null),
+  is_hazardous: z.boolean().default(false),
+  sds_url: z.string().url().nullable().default(null),
+  is_active: z.boolean().default(true),
+  notes: z.string().nullable().default(null),
+});
+export type ItemFormData = z.infer<typeof itemSchema>;
+
+export const purchaseOrderSchema = z.object({
+  vendor_id: z.string().uuid('Vendor is required'),
+  po_number: z.string().min(1, 'PO number is required').max(30),
+  po_date: z.string().min(1, 'PO date is required'),
+  status: z.enum(['DRAFT', 'SENT', 'PARTIALLY_RECEIVED', 'RECEIVED', 'CANCELLED']).default('DRAFT'),
+  ship_to_inventory_location_id: z.string().uuid('Ship-to inventory location is required'),
+  subtotal: z.number().min(0).default(0),
+  tax: z.number().min(0).nullable().default(null),
+  total: z.number().min(0).default(0),
+  notes: z.string().nullable().default(null),
+});
+export type PurchaseOrderFormData = z.infer<typeof purchaseOrderSchema>;
+
+export const invoiceSchema = z.object({
+  client_id: z.string().uuid('Client is required'),
+  contract_id: z.string().uuid().nullable().default(null),
+  invoice_number: z.string().min(1, 'Invoice number is required').max(30),
+  issue_date: z.string().min(1, 'Issue date is required'),
+  due_date: z.string().min(1, 'Due date is required'),
+  terms: z.enum(['DUE_ON_RECEIPT', 'NET_7', 'NET_15', 'NET_30', 'NET_45', 'NET_60', 'CUSTOM']),
+  status: z.enum(['DRAFT', 'SENT', 'VIEWED', 'PARTIALLY_PAID', 'PAID', 'OVERDUE', 'VOID']).default('DRAFT'),
+  subtotal: z.number().min(0).default(0),
+  tax_amount: z.number().min(0).nullable().default(null),
+  discount_amount: z.number().min(0).nullable().default(null),
+  total: z.number().min(0).default(0),
+  balance_due: z.number().min(0).default(0),
+  pdf_url: z.string().url().nullable().default(null),
+  notes: z.string().nullable().default(null),
+});
+export type InvoiceFormData = z.infer<typeof invoiceSchema>;
+
+export const payrollRunSchema = z.object({
+  pay_period_id: z.string().uuid('Pay period is required'),
+  run_type: z.enum(['REGULAR', 'OFF_CYCLE', 'CORRECTION']),
+  status: z.enum(['DRAFT', 'CALCULATED', 'APPROVED', 'EXPORTED']).default('DRAFT'),
+  approved_by_user_id: z.string().uuid().nullable().default(null),
+});
+export type PayrollRunFormData = z.infer<typeof payrollRunSchema>;
+
+export const integrationConnectionSchema = z.object({
+  integration_type: z.enum(['ACCOUNTING', 'PAYROLL', 'PAYMENT_GATEWAY', 'CRM', 'MESSAGING', 'OTHER']),
+  provider_name: z.string().min(1, 'Provider name is required').max(120),
+  status: z.enum(['CONNECTED', 'DISCONNECTED', 'EXPIRED']).default('CONNECTED'),
+  api_key_encrypted: z.string().nullable().default(null),
+  oauth_json: z.record(z.unknown()).nullable().default(null),
+});
+export type IntegrationConnectionFormData = z.infer<typeof integrationConnectionSchema>;
+
+export const customFieldSchema = z.object({
+  entity_type: z.enum(['CUSTOMER', 'LOCATION', 'JOB', 'ISSUE', 'ASSET']),
+  field_key: z.string().min(1, 'Field key is required').max(80),
+  field_label: z.string().min(1, 'Field label is required').max(120),
+  field_type: z.enum(['TEXT', 'NUMBER', 'DATE', 'BOOLEAN', 'DROPDOWN', 'MULTI_SELECT']),
+  is_required: z.boolean().default(false),
+  is_active: z.boolean().default(true),
+});
+export type CustomFieldFormData = z.infer<typeof customFieldSchema>;

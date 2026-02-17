@@ -42,6 +42,7 @@ function formatCurrency(n: number | null) {
 
 export default function JobsTable({ search }: JobsTableProps) {
   const [rows, setRows] = useState<JobWithRelations[]>([]);
+  const [taskMinutesByJob, setTaskMinutesByJob] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
@@ -55,7 +56,30 @@ export default function JobsTable({ search }: JobsTableProps) {
       `)
       .is('archived_at', null)
       .order('created_at', { ascending: false });
-    if (!error && data) setRows(data as unknown as JobWithRelations[]);
+    if (!error && data) {
+      const typedRows = data as unknown as JobWithRelations[];
+      setRows(typedRows);
+      if (typedRows.length > 0) {
+        const jobIds = typedRows.map((row) => row.id);
+        const { data: taskData } = await supabase
+          .from('job_tasks')
+          .select('job_id, estimated_minutes, planned_minutes')
+          .in('job_id', jobIds)
+          .is('archived_at', null);
+        const minutesByJob = ((taskData ?? []) as Array<{
+          job_id: string;
+          estimated_minutes?: number | null;
+          planned_minutes?: number | null;
+        }>).reduce<Record<string, number>>((acc, task) => {
+          const minutes = Number(task.estimated_minutes ?? task.planned_minutes ?? 0);
+          acc[task.job_id] = (acc[task.job_id] ?? 0) + (Number.isFinite(minutes) ? minutes : 0);
+          return acc;
+        }, {});
+        setTaskMinutesByJob(minutesByJob);
+      } else {
+        setTaskMinutesByJob({});
+      }
+    }
     setLoading(false);
   }, []);
 
@@ -95,10 +119,17 @@ export default function JobsTable({ search }: JobsTableProps) {
     <div>
       <div className="flex justify-end mb-4">
         <ExportButton
-          data={filtered as unknown as Record<string, unknown>[]}
+          data={filtered.map((row) => ({
+            ...row,
+            estimated_hours_per_service: Number(
+              ((taskMinutesByJob[row.id] ?? 0) / 60).toFixed(2)
+            ),
+          })) as unknown as Record<string, unknown>[]}
           filename="service-plans"
           columns={[
             { key: 'job_code', label: 'Code' },
+            { key: 'job_name', label: 'Name' },
+            { key: 'estimated_hours_per_service', label: 'Est. Hours/Service' },
             { key: 'frequency', label: 'Frequency' },
             { key: 'billing_amount', label: 'Billing' },
             { key: 'status', label: 'Status' },
@@ -115,6 +146,7 @@ export default function JobsTable({ search }: JobsTableProps) {
             <TableHead>Client</TableHead>
             <TableHead>Type</TableHead>
             <TableHead>Frequency</TableHead>
+            <TableHead>Est. Hours/Service</TableHead>
             <TableHead sortable sorted={sortKey === 'billing_amount' && sortDir} onSort={() => onSort('billing_amount')}>Billing</TableHead>
             <TableHead>Priority</TableHead>
             <TableHead>Status</TableHead>
@@ -129,6 +161,9 @@ export default function JobsTable({ search }: JobsTableProps) {
               <TableCell className="text-muted-foreground">{row.site?.client?.name ?? '—'}</TableCell>
               <TableCell className="text-muted-foreground">{row.job_type ?? '—'}</TableCell>
               <TableCell className="text-muted-foreground">{row.frequency}</TableCell>
+              <TableCell className="text-muted-foreground tabular-nums">
+                {((taskMinutesByJob[row.id] ?? 0) / 60).toFixed(2)}
+              </TableCell>
               <TableCell className="text-right tabular-nums font-medium">{formatCurrency(row.billing_amount)}</TableCell>
               <TableCell>
                 {row.priority_level ? (

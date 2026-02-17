@@ -15,10 +15,13 @@ import {
   AlertTriangle,
   UserPlus,
   X,
+  ListChecks,
+  GripVertical,
+  Clock3,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { Badge, Skeleton } from '@gleamops/ui';
+import { Badge, Skeleton, SlideOver, Button } from '@gleamops/ui';
 import type { SiteJob } from '@gleamops/shared';
 import { JOB_STATUS_COLORS } from '@gleamops/shared';
 import { JobForm } from '@/components/forms/job-form';
@@ -57,6 +60,44 @@ interface StaffOption {
   staff_code: string;
   full_name: string;
   staff_status: string | null;
+}
+
+interface TaskCatalogRow {
+  id: string;
+  task_code: string;
+  name: string;
+  category: string | null;
+  subcategory: string | null;
+  priority_level: string | null;
+  default_minutes: number | null;
+  is_active: boolean | null;
+}
+
+interface JobTaskWithCatalogRow {
+  id: string;
+  task_id: string | null;
+  task_code: string | null;
+  task_name: string | null;
+  sequence_order: number | null;
+  is_required: boolean;
+  wait_after: boolean;
+  estimated_minutes: number | null;
+  planned_minutes: number | null;
+  notes: string | null;
+  status: string | null;
+  task?: TaskCatalogRow | null;
+}
+
+interface AssignedTaskDraft {
+  tempId: string;
+  taskId: string | null;
+  taskCode: string;
+  taskName: string;
+  category: string | null;
+  isRequired: boolean;
+  waitAfter: boolean;
+  estimatedMinutes: number;
+  notes: string | null;
 }
 
 const FREQUENCY_COLORS: Record<string, 'green' | 'blue' | 'yellow' | 'gray' | 'purple'> = {
@@ -144,6 +185,11 @@ function formatRelativeDateTime(dateStr: string): string {
   return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
 }
 
+function formatHoursFromMinutes(minutes: number): string {
+  const hours = minutes / 60;
+  return `${hours.toFixed(hours >= 10 ? 1 : 2)} h`;
+}
+
 export default function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [job, setJob] = useState<JobWithRelations | null>(null);
@@ -152,9 +198,17 @@ export default function JobDetailPage() {
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archiveLoading, setArchiveLoading] = useState(false);
   const [jobFormFocus, setJobFormFocus] = useState<'assignment' | 'schedule' | 'tasks' | undefined>(undefined);
+  const [manageTasksOpen, setManageTasksOpen] = useState(false);
+  const [manageTasksSaving, setManageTasksSaving] = useState(false);
+  const [taskSearch, setTaskSearch] = useState('');
+  const [taskCategoryFilter, setTaskCategoryFilter] = useState('all');
+  const [draggedTaskIndex, setDraggedTaskIndex] = useState<number | null>(null);
 
   // Related data
   const [taskCount, setTaskCount] = useState(0);
+  const [jobTasks, setJobTasks] = useState<JobTaskWithCatalogRow[]>([]);
+  const [taskCatalog, setTaskCatalog] = useState<TaskCatalogRow[]>([]);
+  const [taskDraft, setTaskDraft] = useState<AssignedTaskDraft[]>([]);
   const [financials, setFinancials] = useState<JobFinancialResult | null>(null);
   const [assignments, setAssignments] = useState<JobStaffAssignmentRow[]>([]);
   const [staffOptions, setStaffOptions] = useState<StaffOption[]>([]);
@@ -180,6 +234,64 @@ export default function JobDetailPage() {
     setAssignments((data as unknown as JobStaffAssignmentRow[]) ?? []);
   };
 
+  const fetchTaskCatalog = async () => {
+    const supabase = getSupabaseBrowserClient();
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('id, task_code, name, category, subcategory, priority_level, default_minutes, is_active')
+      .is('archived_at', null)
+      .eq('is_active', true)
+      .order('name');
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setTaskCatalog((data as TaskCatalogRow[]) ?? []);
+  };
+
+  const fetchJobTasks = async (jobId: string) => {
+    const supabase = getSupabaseBrowserClient();
+
+    const nextStateFromRows = (rows: JobTaskWithCatalogRow[]) => {
+      const ordered = [...rows].sort((a, b) => (a.sequence_order ?? 0) - (b.sequence_order ?? 0));
+      setJobTasks(ordered);
+      setTaskCount(ordered.length);
+    };
+
+    const primary = await supabase
+      .from('job_tasks')
+      .select('id, task_id, task_code, task_name, sequence_order, is_required, wait_after, estimated_minutes, planned_minutes, notes, status, task:task_id(id, task_code, name, category, subcategory, priority_level, default_minutes, is_active)')
+      .eq('job_id', jobId)
+      .is('archived_at', null);
+
+    if (!primary.error) {
+      nextStateFromRows((primary.data as unknown as JobTaskWithCatalogRow[]) ?? []);
+      return;
+    }
+
+    // Backward-compatible fallback for environments that have not applied new task columns yet.
+    const fallback = await supabase
+      .from('job_tasks')
+      .select('id, task_id, task_code, task_name, is_required, planned_minutes, notes, status, task:task_id(id, task_code, name, category, subcategory, priority_level, default_minutes, is_active)')
+      .eq('job_id', jobId)
+      .is('archived_at', null);
+
+    if (fallback.error) {
+      toast.error(fallback.error.message);
+      setJobTasks([]);
+      setTaskCount(0);
+      return;
+    }
+
+    const rows = ((fallback.data as unknown as JobTaskWithCatalogRow[]) ?? []).map((row, index) => ({
+      ...row,
+      sequence_order: row.sequence_order ?? index + 1,
+      estimated_minutes: row.estimated_minutes ?? row.planned_minutes,
+      wait_after: row.wait_after ?? false,
+    }));
+    nextStateFromRows(rows);
+  };
+
   const fetchJob = async () => {
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
@@ -195,14 +307,7 @@ export default function JobDetailPage() {
     if (data) {
       const j = data as unknown as JobWithRelations;
       setJob(j);
-
-      // Fetch task count
-      const { count } = await supabase
-        .from('job_tasks')
-        .select('id', { count: 'exact', head: true })
-        .eq('job_id', j.id)
-        .is('archived_at', null);
-      setTaskCount(count ?? 0);
+      await Promise.all([fetchJobTasks(j.id), fetchTaskCatalog()]);
 
       // Fetch assignments + available staff in parallel.
       const [assignmentRes, staffRes] = await Promise.all([
@@ -287,6 +392,100 @@ export default function JobDetailPage() {
     setRemovingAssignmentId(null);
   };
 
+  const openManageTasks = () => {
+    const draft = jobTasks.map((task, index) => ({
+      tempId: task.id || `${task.task_id ?? 'legacy'}-${index}`,
+      taskId: task.task_id ?? null,
+      taskCode: task.task?.task_code ?? task.task_code ?? 'TASK',
+      taskName: task.task?.name ?? task.task_name ?? 'Unnamed Task',
+      category: task.task?.category ?? null,
+      isRequired: task.is_required ?? true,
+      waitAfter: task.wait_after ?? false,
+      estimatedMinutes: Number(task.estimated_minutes ?? task.planned_minutes ?? task.task?.default_minutes ?? 1),
+      notes: task.notes ?? null,
+    }));
+    setTaskDraft(draft);
+    setTaskSearch('');
+    setTaskCategoryFilter('all');
+    setManageTasksOpen(true);
+  };
+
+  const handleAddCatalogTask = (task: TaskCatalogRow) => {
+    setTaskDraft((prev) => {
+      const existing = prev.find((item) => item.taskId === task.id);
+      if (existing) return prev;
+      return [
+        ...prev,
+        {
+          tempId: `${task.id}-${Date.now()}`,
+          taskId: task.id,
+          taskCode: task.task_code,
+          taskName: task.name,
+          category: task.category,
+          isRequired: true,
+          waitAfter: false,
+          estimatedMinutes: Number(task.default_minutes ?? 10),
+          notes: null,
+        },
+      ];
+    });
+  };
+
+  const handleSaveTaskPlan = async () => {
+    if (!job) return;
+    setManageTasksSaving(true);
+    const supabase = getSupabaseBrowserClient();
+
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const userId = authData.user?.id ?? null;
+
+      const { error: archiveError } = await supabase
+        .from('job_tasks')
+        .update({
+          archived_at: new Date().toISOString(),
+          archived_by: userId,
+          archive_reason: 'Replaced via Manage Tasks',
+        })
+        .eq('job_id', job.id)
+        .is('archived_at', null);
+
+      if (archiveError) {
+        toast.error(archiveError.message);
+        return;
+      }
+
+      if (taskDraft.length > 0) {
+        const insertRows = taskDraft.map((task, index) => ({
+          tenant_id: job.tenant_id,
+          job_id: job.id,
+          task_id: task.taskId,
+          task_code: task.taskCode,
+          task_name: task.taskName,
+          sequence_order: index + 1,
+          is_required: task.isRequired,
+          wait_after: task.waitAfter,
+          estimated_minutes: Math.max(0, Number(task.estimatedMinutes || 0)),
+          planned_minutes: Math.max(0, Math.round(Number(task.estimatedMinutes || 0))),
+          status: 'ACTIVE',
+          notes: task.notes,
+        }));
+
+        const { error: insertError } = await supabase.from('job_tasks').insert(insertRows);
+        if (insertError) {
+          toast.error(insertError.message);
+          return;
+        }
+      }
+
+      toast.success('Job task scope updated');
+      setManageTasksOpen(false);
+      await fetchJobTasks(job.id);
+    } finally {
+      setManageTasksSaving(false);
+    }
+  };
+
   useEffect(() => {
     fetchJob();
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -363,6 +562,27 @@ export default function JobDetailPage() {
     { key: 'special_requirements', label: 'Special Requirements', isComplete: isFieldComplete(job.special_requirements), section: 'tasks' },
     { key: 'specifications', label: 'Specifications', isComplete: isFieldComplete(job.specifications), section: 'tasks' },
   ];
+  const taskCategories = Array.from(
+    new Set(taskCatalog.map((task) => task.category?.trim()).filter((value): value is string => Boolean(value)))
+  ).sort((a, b) => a.localeCompare(b));
+  const filteredCatalogTasks = taskCatalog.filter((task) => {
+    if (taskCategoryFilter !== 'all' && (task.category ?? 'Uncategorized') !== taskCategoryFilter) return false;
+    if (!taskSearch.trim()) return true;
+    const q = taskSearch.trim().toLowerCase();
+    return (
+      task.name.toLowerCase().includes(q) ||
+      task.task_code.toLowerCase().includes(q) ||
+      (task.category ?? '').toLowerCase().includes(q) ||
+      (task.subcategory ?? '').toLowerCase().includes(q)
+    );
+  });
+  const totalTaskMinutes = jobTasks.reduce(
+    (sum, row) => sum + Number(row.estimated_minutes ?? row.planned_minutes ?? 0),
+    0
+  );
+  const estimatedHoursPerService = totalTaskMinutes > 0
+    ? Number((totalTaskMinutes / 60).toFixed(2))
+    : (job.estimated_hours_per_service ?? null);
 
   return (
     <div className="space-y-6">
@@ -420,6 +640,14 @@ export default function JobDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={openManageTasks}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          >
+            <ListChecks className="h-3.5 w-3.5" />
+            Manage Tasks
+          </button>
           <button
             type="button"
             onClick={() => setFormOpen(true)}
@@ -516,7 +744,7 @@ export default function JobDetailPage() {
                 Est. Hours / Service
               </dt>
               <dd className="font-medium">
-                {job.estimated_hours_per_service ?? notSet()}
+                {estimatedHoursPerService != null ? estimatedHoursPerService : notSet()}
               </dd>
             </div>
             <div className="flex justify-between">
@@ -676,6 +904,48 @@ export default function JobDetailPage() {
           </dl>
         </div>
 
+        {/* Job Tasks (Scope of Work) */}
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm lg:col-span-2">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-foreground">
+              <span className="inline-flex items-center gap-2">
+                <ListChecks className="h-4 w-4 text-muted-foreground" />
+                Job Tasks ({taskCount})
+              </span>
+            </h3>
+            <div className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+              <Clock3 className="h-3.5 w-3.5" />
+              <span>Est. Hours / Service: {formatHoursFromMinutes(totalTaskMinutes)}</span>
+            </div>
+          </div>
+
+          {jobTasks.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No tasks configured for this service plan yet. Click <span className="font-medium">Manage Tasks</span> to assign scope of work.
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {jobTasks.map((task) => {
+                const taskName = task.task?.name ?? task.task_name ?? 'Unnamed Task';
+                const taskCode = task.task?.task_code ?? task.task_code ?? 'TASK';
+                const minutes = Number(task.estimated_minutes ?? task.planned_minutes ?? 0);
+                return (
+                  <li key={task.id} className="rounded-xl border border-border bg-background p-4">
+                    <p className="text-[15px] font-semibold text-foreground">{taskName}</p>
+                    <p className="mt-1 text-[13px] text-muted-foreground">
+                      {taskCode} · {minutes > 0 ? `${minutes} min` : 'Not Set'}
+                    </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      {task.is_required && <Badge color="blue">Required</Badge>}
+                      {task.wait_after && <Badge color="gray">WAIT</Badge>}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
         {/* Staff Assignments */}
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
@@ -799,6 +1069,174 @@ export default function JobDetailPage() {
           : null}
         loading={archiveLoading}
       />
+
+      <SlideOver
+        open={manageTasksOpen}
+        onClose={() => setManageTasksOpen(false)}
+        title="Manage Tasks"
+        subtitle={job.job_name ?? job.job_code}
+        wide
+      >
+        <div className="space-y-4">
+          <div className="rounded-xl border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
+            Drag tasks from top to bottom to set sequence order. Configure required, wait, and estimated minutes for each scope item.
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="rounded-xl border border-border bg-card p-4">
+              <h3 className="mb-3 text-sm font-semibold text-foreground">Available Task Catalog</h3>
+              <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_180px]">
+                <input
+                  value={taskSearch}
+                  onChange={(event) => setTaskSearch(event.target.value)}
+                  placeholder="Search task name or code"
+                  className="h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none ring-0 focus:border-module-accent"
+                />
+                <select
+                  value={taskCategoryFilter}
+                  onChange={(event) => setTaskCategoryFilter(event.target.value)}
+                  className="h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none ring-0 focus:border-module-accent"
+                >
+                  <option value="all">All Categories</option>
+                  {taskCategories.map((category) => (
+                    <option key={category} value={category}>{category}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="max-h-[520px] space-y-2 overflow-y-auto pr-1">
+                {filteredCatalogTasks.map((task) => {
+                  const isAssigned = taskDraft.some((assigned) => assigned.taskId === task.id);
+                  return (
+                    <div key={task.id} className="rounded-lg border border-border bg-background p-3">
+                      <p className="text-sm font-medium text-foreground">{task.name}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {task.task_code}
+                        {task.category ? ` · ${task.category}` : ''}
+                      </p>
+                      <div className="mt-2 flex justify-end">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => handleAddCatalogTask(task)}
+                          disabled={isAssigned}
+                        >
+                          {isAssigned ? 'Assigned' : 'Add'}
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+                {filteredCatalogTasks.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No tasks match your filters.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-border bg-card p-4">
+              <h3 className="mb-3 text-sm font-semibold text-foreground">Assigned Scope of Work</h3>
+              <div className="max-h-[520px] space-y-2 overflow-y-auto pr-1">
+                {taskDraft.map((task, index) => (
+                  <div
+                    key={task.tempId}
+                    draggable
+                    onDragStart={() => setDraggedTaskIndex(index)}
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={() => {
+                      if (draggedTaskIndex == null || draggedTaskIndex === index) return;
+                      setTaskDraft((prev) => {
+                        const next = [...prev];
+                        const [moved] = next.splice(draggedTaskIndex, 1);
+                        next.splice(index, 0, moved);
+                        return next;
+                      });
+                      setDraggedTaskIndex(null);
+                    }}
+                    className="rounded-lg border border-border bg-background p-3"
+                  >
+                    <div className="mb-2 flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-foreground">{task.taskName}</p>
+                        <p className="text-xs text-muted-foreground">{task.taskCode}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setTaskDraft((prev) => prev.filter((row) => row.tempId !== task.tempId))}
+                        className="rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-muted"
+                      >
+                        Remove
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-[auto_auto_1fr_auto] sm:items-center">
+                      <label className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                        <input
+                          type="checkbox"
+                          checked={task.isRequired}
+                          onChange={(event) =>
+                            setTaskDraft((prev) =>
+                              prev.map((row) =>
+                                row.tempId === task.tempId ? { ...row, isRequired: event.target.checked } : row
+                              )
+                            )
+                          }
+                        />
+                        Required
+                      </label>
+                      <label className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                        <input
+                          type="checkbox"
+                          checked={task.waitAfter}
+                          onChange={(event) =>
+                            setTaskDraft((prev) =>
+                              prev.map((row) =>
+                                row.tempId === task.tempId ? { ...row, waitAfter: event.target.checked } : row
+                              )
+                            )
+                          }
+                        />
+                        WAIT
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={task.estimatedMinutes}
+                        onChange={(event) =>
+                          setTaskDraft((prev) =>
+                            prev.map((row) =>
+                              row.tempId === task.tempId
+                                ? { ...row, estimatedMinutes: Number(event.target.value || 0) }
+                                : row
+                            )
+                          )
+                        }
+                        className="h-9 rounded-lg border border-border bg-background px-3 text-xs"
+                        placeholder="Minutes"
+                      />
+                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                        <GripVertical className="h-3.5 w-3.5" />
+                        #{index + 1}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                {taskDraft.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No tasks assigned yet.</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 border-t border-border pt-4">
+            <Button type="button" variant="secondary" onClick={() => setManageTasksOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" loading={manageTasksSaving} onClick={handleSaveTaskPlan}>
+              Save Task Plan
+            </Button>
+          </div>
+        </div>
+      </SlideOver>
     </div>
   );
 }

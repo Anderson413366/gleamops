@@ -62,6 +62,7 @@ function humanFrequency(value: string | null | undefined) {
 export default function JobsTable({ search, openCreateToken }: JobsTableProps) {
   const router = useRouter();
   const [rows, setRows] = useState<JobWithRelations[]>([]);
+  const [taskMinutesByJob, setTaskMinutesByJob] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editItem, setEditItem] = useState<SiteJob | null>(null);
@@ -79,7 +80,31 @@ export default function JobsTable({ search, openCreateToken }: JobsTableProps) {
       `)
       .is('archived_at', null)
       .order('created_at', { ascending: false });
-    if (!error && data) setRows(data as unknown as JobWithRelations[]);
+    if (!error && data) {
+      const typedRows = data as unknown as JobWithRelations[];
+      setRows(typedRows);
+
+      if (typedRows.length > 0) {
+        const jobIds = typedRows.map((row) => row.id);
+        const { data: taskData } = await supabase
+          .from('job_tasks')
+          .select('job_id, estimated_minutes, planned_minutes')
+          .in('job_id', jobIds)
+          .is('archived_at', null);
+        const minutesByJob = ((taskData ?? []) as Array<{
+          job_id: string;
+          estimated_minutes?: number | null;
+          planned_minutes?: number | null;
+        }>).reduce<Record<string, number>>((acc, task) => {
+          const minutes = Number(task.estimated_minutes ?? task.planned_minutes ?? 0);
+          acc[task.job_id] = (acc[task.job_id] ?? 0) + (Number.isFinite(minutes) ? minutes : 0);
+          return acc;
+        }, {});
+        setTaskMinutesByJob(minutesByJob);
+      } else {
+        setTaskMinutesByJob({});
+      }
+    }
     setLoading(false);
   }, []);
 
@@ -155,6 +180,9 @@ export default function JobsTable({ search, openCreateToken }: JobsTableProps) {
               site_name: row.site?.name ?? 'Not Set',
               client_name: row.site?.client?.name ?? 'Not Set',
               frequency_display: humanFrequency(row.frequency),
+              est_hours_per_service: Number(
+                ((taskMinutesByJob[row.id] ?? 0) / 60).toFixed(2)
+              ),
             })) as unknown as Record<string, unknown>[]}
             filename="jobs"
             columns={[
@@ -163,6 +191,7 @@ export default function JobsTable({ search, openCreateToken }: JobsTableProps) {
               { key: 'site_name', label: 'Site' },
               { key: 'client_name', label: 'Client' },
               { key: 'frequency_display', label: 'Frequency' },
+              { key: 'est_hours_per_service', label: 'Est. Hours/Service' },
               { key: 'billing_amount', label: 'Billing' },
               { key: 'priority_level', label: 'Priority' },
             ]}
@@ -224,6 +253,7 @@ export default function JobsTable({ search, openCreateToken }: JobsTableProps) {
                   <TableHead>Site</TableHead>
                   <TableHead>Client</TableHead>
                   <TableHead>Frequency</TableHead>
+                  <TableHead>Est. Hours/Service</TableHead>
                   <TableHead sortable sorted={sortKey === 'billing_amount' && sortDir} onSort={() => onSort('billing_amount')}>Billing</TableHead>
                   <TableHead>Priority</TableHead>
                 </tr>
@@ -281,6 +311,9 @@ export default function JobsTable({ search, openCreateToken }: JobsTableProps) {
                       )}
                     </TableCell>
                     <TableCell className="text-muted-foreground">{humanFrequency(row.frequency)}</TableCell>
+                    <TableCell className="text-muted-foreground tabular-nums">
+                      {((taskMinutesByJob[row.id] ?? 0) / 60).toFixed(2)}
+                    </TableCell>
                     <TableCell className="text-right tabular-nums font-medium">{formatCurrency(row.billing_amount)}</TableCell>
                     <TableCell>
                       {row.priority_level ? (

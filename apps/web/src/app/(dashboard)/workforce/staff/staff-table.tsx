@@ -262,61 +262,63 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
         )
       ) : (
         <>
-          <Table>
-            <TableHeader>
-              <tr>
-                <TableHead sortable sorted={sortKey === 'staff_code' && sortDir} onSort={() => onSort('staff_code')}>Code</TableHead>
-                <TableHead sortable sorted={sortKey === 'full_name' && sortDir} onSort={() => onSort('full_name')}>Name</TableHead>
-                <TableHead sortable sorted={sortKey === 'role' && sortDir} onSort={() => onSort('role')}>Role</TableHead>
-                <TableHead>Employment</TableHead>
-                <TableHead>Active Jobs</TableHead>
-                <TableHead sortable sorted={sortKey === 'hire_date' && sortDir} onSort={() => onSort('hire_date')}>Hire Date</TableHead>
-                <TableHead>Profile %</TableHead>
-              </tr>
-            </TableHeader>
-            <TableBody>
-              {pag.page.map((row) => {
-                const rowStatus = row.staff_status ?? 'ACTIVE';
-                const isTerminated = rowStatus === 'TERMINATED';
-                return (
-                <TableRow
-                  key={row.id}
-                  onClick={() => handleRowClick(row)}
-                  className={cn(
-                    'cursor-pointer',
-                    statusRowAccentClass(rowStatus),
-                    isTerminated && 'opacity-65'
-                  )}
-                >
-                  <TableCell>
-                    <div className="inline-flex max-w-[132px] rounded-md bg-muted px-2 py-1 font-mono text-xs text-foreground">
-                      <span className="truncate" title={row.staff_code}>{row.staff_code}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className={cn('font-medium', isTerminated && 'line-through decoration-muted-foreground/70')}>
-                    <div className="flex items-center gap-2">
-                      <StatusDot status={rowStatus} />
-                      <span className="inline-block max-w-[220px] truncate" title={row.full_name}>{row.full_name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge color={ROLE_COLORS[row.role] ?? 'gray'}>
-                      {row.role.replace(/_/g, ' ')}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    <span className="inline-block max-w-[160px] truncate" title={row.employment_type ?? 'Not Set'}>
-                      {row.employment_type ?? 'Not Set'}
-                    </span>
-                  </TableCell>
-                  <TableCell className="tabular-nums text-muted-foreground">{activeJobsByStaff[row.id] ?? 0}</TableCell>
-                  <TableCell className="text-muted-foreground">{formatDate(row.hire_date)}</TableCell>
-                  <TableCell className="tabular-nums text-muted-foreground">{profilePercent(row)}%</TableCell>
-                </TableRow>
-              );
-              })}
-            </TableBody>
-          </Table>
+          <div className="w-full overflow-x-auto">
+            <Table className="w-full min-w-full">
+              <TableHeader>
+                <tr>
+                  <TableHead sortable sorted={sortKey === 'staff_code' && sortDir} onSort={() => onSort('staff_code')}>Code</TableHead>
+                  <TableHead sortable sorted={sortKey === 'full_name' && sortDir} onSort={() => onSort('full_name')}>Name</TableHead>
+                  <TableHead sortable sorted={sortKey === 'role' && sortDir} onSort={() => onSort('role')}>Role</TableHead>
+                  <TableHead>Employment</TableHead>
+                  <TableHead>Active Jobs</TableHead>
+                  <TableHead sortable sorted={sortKey === 'hire_date' && sortDir} onSort={() => onSort('hire_date')}>Hire Date</TableHead>
+                  <TableHead>Profile %</TableHead>
+                </tr>
+              </TableHeader>
+              <TableBody>
+                {pag.page.map((row) => {
+                  const rowStatus = row.staff_status ?? 'ACTIVE';
+                  const isTerminated = rowStatus === 'TERMINATED';
+                  return (
+                  <TableRow
+                    key={row.id}
+                    onClick={() => handleRowClick(row)}
+                    className={cn(
+                      'cursor-pointer',
+                      statusRowAccentClass(rowStatus),
+                      isTerminated && 'opacity-65'
+                    )}
+                  >
+                    <TableCell>
+                      <div className="inline-flex max-w-[132px] rounded-md bg-muted px-2 py-1 font-mono text-xs text-foreground">
+                        <span className="truncate" title={row.staff_code}>{row.staff_code}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className={cn('font-medium', isTerminated && 'line-through decoration-muted-foreground/70')}>
+                      <div className="flex items-center gap-2">
+                        <StatusDot status={rowStatus} />
+                        <span className="inline-block max-w-[220px] truncate" title={row.full_name}>{row.full_name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge color={ROLE_COLORS[row.role] ?? 'gray'}>
+                        {row.role.replace(/_/g, ' ')}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      <span className="inline-block max-w-[160px] truncate" title={row.employment_type ?? 'Not Set'}>
+                        {row.employment_type ?? 'Not Set'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="tabular-nums text-muted-foreground">{activeJobsByStaff[row.id] ?? 0}</TableCell>
+                    <TableCell className="text-muted-foreground">{formatDate(row.hire_date)}</TableCell>
+                    <TableCell className="tabular-nums text-muted-foreground">{profilePercent(row)}%</TableCell>
+                  </TableRow>
+                );
+                })}
+              </TableBody>
+            </Table>
+          </div>
           {filtered.length === 0 && (
             <div className="mt-4">
               <EmptyState

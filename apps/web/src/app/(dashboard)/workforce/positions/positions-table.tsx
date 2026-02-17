@@ -123,56 +123,58 @@ export default function PositionsTable({ search }: Props) {
           ]}
         />
       </div>
-      <Table>
-        <TableHeader>
-          <tr>
-            <TableHead sortable sorted={sortKey === 'position_code' && sortDir} onSort={() => onSort('position_code')}>Code</TableHead>
-            <TableHead sortable sorted={sortKey === 'title' && sortDir} onSort={() => onSort('title')}>Title</TableHead>
-            <TableHead sortable sorted={sortKey === 'department' && sortDir} onSort={() => onSort('department')}>Department</TableHead>
-            <TableHead>Pay Grade</TableHead>
-            <TableHead>Staff Count</TableHead>
-            <TableHead>Description</TableHead>
-          </tr>
-        </TableHeader>
-        <TableBody>
-          {pag.page.map((row) => (
-            <TableRow key={row.id} className="cursor-pointer" onClick={() => setSelected(row)}>
-              <TableCell className="font-mono text-xs">
-                <div className="inline-flex max-w-[132px] rounded-md bg-muted px-2 py-1">
-                  <span className="truncate" title={row.position_code}>{row.position_code}</span>
-                </div>
-              </TableCell>
-              <TableCell className="font-medium">
-                <div className="max-w-[250px]">
-                  <div className="truncate" title={row.title}>{row.title}</div>
-                  {row.notes && (
-                    <div className="truncate text-xs text-muted-foreground" title={row.notes}>{row.notes}</div>
-                  )}
-                </div>
-              </TableCell>
-              <TableCell>
-                <span className="inline-block max-w-[180px] truncate text-muted-foreground" title={departmentDisplay(row) ?? 'Not Set'}>
-                  {departmentDisplay(row) ?? 'Not Set'}
-                </span>
-              </TableCell>
-              <TableCell>{row.pay_grade ?? renderNotSet()}</TableCell>
-              <TableCell className="tabular-nums text-muted-foreground">{staffCountByPositionId[row.id] ?? 0}</TableCell>
-              <TableCell className="text-muted-foreground">
-                <span className="inline-block max-w-[280px] truncate" title={briefDescription(row) ?? 'Not Set'}>
-                  {briefDescription(row) ?? 'Not Set'}
-                </span>
-              </TableCell>
-            </TableRow>
-          ))}
-          {filtered.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
-                No matching positions.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+      <div className="w-full overflow-x-auto">
+        <Table className="w-full min-w-full">
+          <TableHeader>
+            <tr>
+              <TableHead sortable sorted={sortKey === 'position_code' && sortDir} onSort={() => onSort('position_code')}>Code</TableHead>
+              <TableHead sortable sorted={sortKey === 'title' && sortDir} onSort={() => onSort('title')}>Title</TableHead>
+              <TableHead sortable sorted={sortKey === 'department' && sortDir} onSort={() => onSort('department')}>Department</TableHead>
+              <TableHead>Pay Grade</TableHead>
+              <TableHead>Staff Count</TableHead>
+              <TableHead>Description</TableHead>
+            </tr>
+          </TableHeader>
+          <TableBody>
+            {pag.page.map((row) => (
+              <TableRow key={row.id} className="cursor-pointer" onClick={() => setSelected(row)}>
+                <TableCell className="font-mono text-xs">
+                  <div className="inline-flex max-w-[132px] rounded-md bg-muted px-2 py-1">
+                    <span className="truncate" title={row.position_code}>{row.position_code}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="font-medium">
+                  <div className="max-w-[250px]">
+                    <div className="truncate" title={row.title}>{row.title}</div>
+                    {row.notes && (
+                      <div className="truncate text-xs text-muted-foreground" title={row.notes}>{row.notes}</div>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span className="inline-block max-w-[180px] truncate text-muted-foreground" title={departmentDisplay(row) ?? 'Not Set'}>
+                    {departmentDisplay(row) ?? 'Not Set'}
+                  </span>
+                </TableCell>
+                <TableCell>{row.pay_grade ?? renderNotSet()}</TableCell>
+                <TableCell className="tabular-nums text-muted-foreground">{staffCountByPositionId[row.id] ?? 0}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  <span className="inline-block max-w-[280px] truncate" title={briefDescription(row) ?? 'Not Set'}>
+                    {briefDescription(row) ?? 'Not Set'}
+                  </span>
+                </TableCell>
+              </TableRow>
+            ))}
+            {filtered.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
+                  No matching positions.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
       {filtered.length > 0 && (
         <Pagination
           currentPage={pag.currentPage} totalPages={pag.totalPages}

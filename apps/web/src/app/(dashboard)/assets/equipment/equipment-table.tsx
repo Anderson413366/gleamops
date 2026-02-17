@@ -217,90 +217,92 @@ export default function EquipmentTable({ search, onSelect, formOpen, onFormClose
       {view === 'card' ? (
         <EquipmentCardGrid rows={pag.page} onSelect={(item) => handleRowClick(item)} />
       ) : (
-      <Table>
-        <TableHeader>
-          <tr>
-            <TableHead sortable sorted={sortKey === 'equipment_code' && sortDir} onSort={() => onSort('equipment_code')}>Code</TableHead>
-            <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Name</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Serial #</TableHead>
-            <TableHead>Assigned To</TableHead>
-            <TableHead>Site</TableHead>
-            <TableHead>Condition</TableHead>
-          </tr>
-        </TableHeader>
-        <TableBody>
-          {pag.page.map((row) => (
-            <TableRow
-              key={row.id}
-              onClick={() => handleRowClick(row)}
-              className={cn(
-                'cursor-pointer',
-                statusRowAccentClassByColor((EQUIPMENT_CONDITION_COLORS[row.condition ?? ''] as StatusColor) ?? 'gray')
-              )}
-            >
-              <TableCell className="font-mono text-xs">
-                <div className="inline-flex max-w-[132px] rounded-md bg-muted px-2 py-1">
-                  <span className="truncate" title={row.equipment_code}>{row.equipment_code}</span>
-                </div>
-              </TableCell>
-              <TableCell className="font-medium">
-                <div className="flex items-center gap-2">
-                  <StatusDot color={(EQUIPMENT_CONDITION_COLORS[row.condition ?? ''] as StatusColor) ?? 'gray'} />
-                  <span className="inline-block max-w-[220px] truncate" title={row.name}>{row.name}</span>
-                </div>
-              </TableCell>
-              <TableCell className="text-muted-foreground">
-                <span className="inline-block max-w-[140px] truncate" title={row.equipment_type ?? 'Not Set'}>
-                  {row.equipment_type ?? 'Not Set'}
-                </span>
-              </TableCell>
-              <TableCell className="text-muted-foreground">
-                <span className="inline-block max-w-[140px] truncate" title={row.serial_number ?? 'Not Set'}>
-                  {row.serial_number ?? 'Not Set'}
-                </span>
-              </TableCell>
-              <TableCell>
-                {row.staff?.staff_code ? (
-                  <EntityLink
-                    entityType="staff"
-                    code={row.staff.staff_code}
-                    name={row.staff.full_name ?? row.staff.staff_code}
-                    showCode={false}
-                    stopPropagation
-                    className="inline-block max-w-[170px] truncate text-muted-foreground align-middle"
-                  />
-                ) : (
-                  <span className="inline-block max-w-[170px] truncate text-muted-foreground" title={row.staff?.full_name ?? 'Not Set'}>
-                    {row.staff?.full_name ?? 'Not Set'}
-                  </span>
+      <div className="w-full overflow-x-auto">
+        <Table className="w-full min-w-full">
+          <TableHeader>
+            <tr>
+              <TableHead sortable sorted={sortKey === 'equipment_code' && sortDir} onSort={() => onSort('equipment_code')}>Code</TableHead>
+              <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Name</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Serial #</TableHead>
+              <TableHead>Assigned To</TableHead>
+              <TableHead>Site</TableHead>
+              <TableHead>Condition</TableHead>
+            </tr>
+          </TableHeader>
+          <TableBody>
+            {pag.page.map((row) => (
+              <TableRow
+                key={row.id}
+                onClick={() => handleRowClick(row)}
+                className={cn(
+                  'cursor-pointer',
+                  statusRowAccentClassByColor((EQUIPMENT_CONDITION_COLORS[row.condition ?? ''] as StatusColor) ?? 'gray')
                 )}
-              </TableCell>
-              <TableCell>
-                {row.site?.site_code ? (
-                  <EntityLink
-                    entityType="site"
-                    code={row.site.site_code}
-                    name={row.site.name ?? row.site.site_code}
-                    showCode={false}
-                    stopPropagation
-                    className="inline-block max-w-[170px] truncate text-muted-foreground align-middle"
-                  />
-                ) : (
-                  <span className="inline-block max-w-[170px] truncate text-muted-foreground" title={row.site?.name ?? 'Not Set'}>
-                    {row.site?.name ?? 'Not Set'}
+              >
+                <TableCell className="font-mono text-xs">
+                  <div className="inline-flex max-w-[132px] rounded-md bg-muted px-2 py-1">
+                    <span className="truncate" title={row.equipment_code}>{row.equipment_code}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="font-medium">
+                  <div className="flex items-center gap-2">
+                    <StatusDot color={(EQUIPMENT_CONDITION_COLORS[row.condition ?? ''] as StatusColor) ?? 'gray'} />
+                    <span className="inline-block max-w-[220px] truncate" title={row.name}>{row.name}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  <span className="inline-block max-w-[140px] truncate" title={row.equipment_type ?? 'Not Set'}>
+                    {row.equipment_type ?? 'Not Set'}
                   </span>
-                )}
-              </TableCell>
-              <TableCell>
-                <Badge color={(EQUIPMENT_CONDITION_COLORS[row.condition ?? ''] as StatusColor) ?? 'gray'}>
-                  {(row.condition ?? 'N/A').replace(/_/g, ' ')}
-                </Badge>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  <span className="inline-block max-w-[140px] truncate" title={row.serial_number ?? 'Not Set'}>
+                    {row.serial_number ?? 'Not Set'}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  {row.staff?.staff_code ? (
+                    <EntityLink
+                      entityType="staff"
+                      code={row.staff.staff_code}
+                      name={row.staff.full_name ?? row.staff.staff_code}
+                      showCode={false}
+                      stopPropagation
+                      className="inline-block max-w-[170px] truncate text-muted-foreground align-middle"
+                    />
+                  ) : (
+                    <span className="inline-block max-w-[170px] truncate text-muted-foreground" title={row.staff?.full_name ?? 'Not Set'}>
+                      {row.staff?.full_name ?? 'Not Set'}
+                    </span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {row.site?.site_code ? (
+                    <EntityLink
+                      entityType="site"
+                      code={row.site.site_code}
+                      name={row.site.name ?? row.site.site_code}
+                      showCode={false}
+                      stopPropagation
+                      className="inline-block max-w-[170px] truncate text-muted-foreground align-middle"
+                    />
+                  ) : (
+                    <span className="inline-block max-w-[170px] truncate text-muted-foreground" title={row.site?.name ?? 'Not Set'}>
+                      {row.site?.name ?? 'Not Set'}
+                    </span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <Badge color={(EQUIPMENT_CONDITION_COLORS[row.condition ?? ''] as StatusColor) ?? 'gray'}>
+                    {(row.condition ?? 'N/A').replace(/_/g, ' ')}
+                  </Badge>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
       )}
       {filtered.length === 0 && (
         <div className="mt-4">

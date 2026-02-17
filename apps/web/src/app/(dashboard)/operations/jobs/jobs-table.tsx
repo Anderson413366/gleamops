@@ -215,83 +215,85 @@ export default function JobsTable({ search, openCreateToken }: JobsTableProps) {
         )
       ) : (
         <>
-          <Table>
-            <TableHeader>
-              <tr>
-                <TableHead sortable sorted={sortKey === 'job_code' && sortDir} onSort={() => onSort('job_code')}>Code</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Site</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Frequency</TableHead>
-                <TableHead sortable sorted={sortKey === 'billing_amount' && sortDir} onSort={() => onSort('billing_amount')}>Billing</TableHead>
-                <TableHead>Priority</TableHead>
-              </tr>
-            </TableHeader>
-            <TableBody>
-              {pag.page.map((row) => (
-                <TableRow
-                  key={row.id}
-                  className={cn('cursor-pointer', priorityRowAccentClass(row.priority_level))}
-                  onClick={() => handleRowClick(row)}
-                >
-                  <TableCell className="font-mono text-xs">
-                    <div className="inline-flex max-w-[132px] rounded-md bg-muted px-2 py-1">
-                      <span className="truncate" title={row.job_code}>{row.job_code}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      <StatusDot status={row.status} />
-                      <span className="inline-block max-w-[220px] truncate" title={row.job_name ?? 'Not Set'}>
-                        {row.job_name ?? 'Not Set'}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {row.site?.site_code ? (
-                      <EntityLink
-                        entityType="site"
-                        code={row.site.site_code}
-                        name={row.site.name ?? row.site.site_code}
-                        showCode={false}
-                        stopPropagation
-                        className="inline-block max-w-[180px] truncate align-middle"
-                      />
-                    ) : (
-                      <span className="inline-block max-w-[180px] truncate" title={row.site?.name ?? 'Not Set'}>
-                        {row.site?.name ?? 'Not Set'}
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {row.site?.client?.client_code ? (
-                      <EntityLink
-                        entityType="client"
-                        code={row.site.client.client_code}
-                        name={row.site.client.name ?? row.site.client.client_code}
-                        showCode={false}
-                        stopPropagation
-                        className="inline-block max-w-[180px] truncate align-middle"
-                      />
-                    ) : (
-                      <span className="inline-block max-w-[180px] truncate" title={row.site?.client?.name ?? 'Not Set'}>
-                        {row.site?.client?.name ?? 'Not Set'}
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{humanFrequency(row.frequency)}</TableCell>
-                  <TableCell className="text-right tabular-nums font-medium">{formatCurrency(row.billing_amount)}</TableCell>
-                  <TableCell>
-                    {row.priority_level ? (
-                      <Badge color={PRIORITY_COLORS[row.priority_level] ?? 'gray'}>{row.priority_level}</Badge>
-                    ) : (
-                      <span className="italic text-muted-foreground">Not Set</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <div className="w-full overflow-x-auto">
+            <Table className="w-full min-w-full">
+              <TableHeader>
+                <tr>
+                  <TableHead sortable sorted={sortKey === 'job_code' && sortDir} onSort={() => onSort('job_code')}>Code</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Site</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Frequency</TableHead>
+                  <TableHead sortable sorted={sortKey === 'billing_amount' && sortDir} onSort={() => onSort('billing_amount')}>Billing</TableHead>
+                  <TableHead>Priority</TableHead>
+                </tr>
+              </TableHeader>
+              <TableBody>
+                {pag.page.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    className={cn('cursor-pointer', priorityRowAccentClass(row.priority_level))}
+                    onClick={() => handleRowClick(row)}
+                  >
+                    <TableCell className="font-mono text-xs">
+                      <div className="inline-flex max-w-[132px] rounded-md bg-muted px-2 py-1">
+                        <span className="truncate" title={row.job_code}>{row.job_code}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <StatusDot status={row.status} />
+                        <span className="inline-block max-w-[220px] truncate" title={row.job_name ?? 'Not Set'}>
+                          {row.job_name ?? 'Not Set'}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {row.site?.site_code ? (
+                        <EntityLink
+                          entityType="site"
+                          code={row.site.site_code}
+                          name={row.site.name ?? row.site.site_code}
+                          showCode={false}
+                          stopPropagation
+                          className="inline-block max-w-[180px] truncate align-middle"
+                        />
+                      ) : (
+                        <span className="inline-block max-w-[180px] truncate" title={row.site?.name ?? 'Not Set'}>
+                          {row.site?.name ?? 'Not Set'}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {row.site?.client?.client_code ? (
+                        <EntityLink
+                          entityType="client"
+                          code={row.site.client.client_code}
+                          name={row.site.client.name ?? row.site.client.client_code}
+                          showCode={false}
+                          stopPropagation
+                          className="inline-block max-w-[180px] truncate align-middle"
+                        />
+                      ) : (
+                        <span className="inline-block max-w-[180px] truncate" title={row.site?.client?.name ?? 'Not Set'}>
+                          {row.site?.client?.name ?? 'Not Set'}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{humanFrequency(row.frequency)}</TableCell>
+                    <TableCell className="text-right tabular-nums font-medium">{formatCurrency(row.billing_amount)}</TableCell>
+                    <TableCell>
+                      {row.priority_level ? (
+                        <Badge color={PRIORITY_COLORS[row.priority_level] ?? 'gray'}>{row.priority_level}</Badge>
+                      ) : (
+                        <span className="italic text-muted-foreground">Not Set</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
           {filtered.length === 0 && (
             <div className="mt-4">
               <EmptyState

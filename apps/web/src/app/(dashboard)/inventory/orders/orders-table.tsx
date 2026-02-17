@@ -149,47 +149,49 @@ export default function OrdersTable({ search, formOpen, onFormClose, onRefresh }
           </button>
         ))}
       </div>
-      <Table>
-        <TableHeader>
-          <tr>
-            <TableHead sortable sorted={sortKey === 'order_code' && sortDir} onSort={() => onSort('order_code')}>
-              Code
-            </TableHead>
-            <TableHead sortable sorted={sortKey === 'supplier' && sortDir} onSort={() => onSort('supplier')}>
-              Supplier
-            </TableHead>
-            <TableHead sortable sorted={sortKey === 'order_date' && sortDir} onSort={() => onSort('order_date')}>
-              Order Date
-            </TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Total</TableHead>
-            <TableHead>Notes</TableHead>
-          </tr>
-        </TableHeader>
-        <TableBody>
-          {pag.page.map((row) => (
-            <TableRow
-              key={row.id}
-              onClick={() => handleRowClick(row)}
-              className={cn('cursor-pointer', statusRowAccentClass(row.status))}
-            >
-              <TableCell className="font-mono text-xs">
-                <div className="flex items-center gap-2">
-                  <StatusDot status={row.status} />
-                  <span>{row.order_code}</span>
-                </div>
-              </TableCell>
-              <TableCell className="font-medium">{row.supplier ?? '—'}</TableCell>
-              <TableCell>{dateFmt.format(toSafeDate(row.order_date))}</TableCell>
-              <TableCell className="text-muted-foreground">{row.status}</TableCell>
-              <TableCell className="font-mono text-xs">
-                {row.total_amount != null ? currFmt.format(row.total_amount) : '$0'}
-              </TableCell>
-              <TableCell className="text-muted-foreground">{row.notes ?? 'Not Set'}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <div className="w-full overflow-x-auto">
+        <Table className="w-full min-w-full">
+          <TableHeader>
+            <tr>
+              <TableHead sortable sorted={sortKey === 'order_code' && sortDir} onSort={() => onSort('order_code')}>
+                Code
+              </TableHead>
+              <TableHead sortable sorted={sortKey === 'supplier' && sortDir} onSort={() => onSort('supplier')}>
+                Supplier
+              </TableHead>
+              <TableHead sortable sorted={sortKey === 'order_date' && sortDir} onSort={() => onSort('order_date')}>
+                Order Date
+              </TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Total</TableHead>
+              <TableHead>Notes</TableHead>
+            </tr>
+          </TableHeader>
+          <TableBody>
+            {pag.page.map((row) => (
+              <TableRow
+                key={row.id}
+                onClick={() => handleRowClick(row)}
+                className={cn('cursor-pointer', statusRowAccentClass(row.status))}
+              >
+                <TableCell className="font-mono text-xs">
+                  <div className="flex items-center gap-2">
+                    <StatusDot status={row.status} />
+                    <span>{row.order_code}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="font-medium">{row.supplier ?? '—'}</TableCell>
+                <TableCell>{dateFmt.format(toSafeDate(row.order_date))}</TableCell>
+                <TableCell className="text-muted-foreground">{row.status}</TableCell>
+                <TableCell className="font-mono text-xs">
+                  {row.total_amount != null ? currFmt.format(row.total_amount) : '$0'}
+                </TableCell>
+                <TableCell className="text-muted-foreground">{row.notes ?? 'Not Set'}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
       {filtered.length === 0 && (
         <div className="mt-4">
           <EmptyState

@@ -229,59 +229,61 @@ export default function SubcontractorsTable({ search }: Props) {
         )
       ) : (
         <>
-          <Table>
-            <TableHeader>
-              <tr>
-                <TableHead sortable sorted={sortKey === 'subcontractor_code' && sortDir} onSort={() => onSort('subcontractor_code')}>Code</TableHead>
-                <TableHead sortable sorted={sortKey === 'company_name' && sortDir} onSort={() => onSort('company_name')}>Company</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Active Jobs</TableHead>
-                <TableHead sortable sorted={sortKey === 'hourly_rate' && sortDir} onSort={() => onSort('hourly_rate')}>Rate</TableHead>
-                <TableHead>W-9 Status</TableHead>
-                <TableHead>Compliance</TableHead>
-              </tr>
-            </TableHeader>
-            <TableBody>
-              {pag.page.map((row) => (
-                <TableRow
-                  key={row.id}
-                  onClick={() => openDetail(row)}
-                  className={cn('cursor-pointer', statusRowAccentClass(row.status))}
-                >
-                  <TableCell className="font-mono text-xs">
-                    <div className="inline-flex max-w-[132px] rounded-md bg-muted px-2 py-1">
-                      <span className="truncate" title={row.subcontractor_code}>{row.subcontractor_code}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      <StatusDot status={row.status} />
-                      <span className="inline-block max-w-[220px] truncate" title={row.company_name}>{row.company_name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <span className="inline-block max-w-[180px] truncate text-muted-foreground" title={row.contact_name ?? 'Not Set'}>
-                      {row.contact_name ?? 'Not Set'}
-                    </span>
-                  </TableCell>
-                  <TableCell className="tabular-nums text-muted-foreground">{activeJobsBySubcontractor[row.id] ?? 0}</TableCell>
-                  <TableCell className="text-right tabular-nums font-medium">{formatRate(row.hourly_rate ?? null)}</TableCell>
-                  <TableCell>
-                    {row.w9_on_file ? (
-                      <span className="text-sm font-medium text-green-700 dark:text-green-300">✓ On File</span>
-                    ) : (
-                      <span className="text-sm font-medium text-red-700 dark:text-red-300">✗ Missing</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge color={complianceColor(row)}>
-                      {complianceLabel(row)}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <div className="w-full overflow-x-auto">
+            <Table className="w-full min-w-full">
+              <TableHeader>
+                <tr>
+                  <TableHead sortable sorted={sortKey === 'subcontractor_code' && sortDir} onSort={() => onSort('subcontractor_code')}>Code</TableHead>
+                  <TableHead sortable sorted={sortKey === 'company_name' && sortDir} onSort={() => onSort('company_name')}>Company</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Active Jobs</TableHead>
+                  <TableHead sortable sorted={sortKey === 'hourly_rate' && sortDir} onSort={() => onSort('hourly_rate')}>Rate</TableHead>
+                  <TableHead>W-9 Status</TableHead>
+                  <TableHead>Compliance</TableHead>
+                </tr>
+              </TableHeader>
+              <TableBody>
+                {pag.page.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    onClick={() => openDetail(row)}
+                    className={cn('cursor-pointer', statusRowAccentClass(row.status))}
+                  >
+                    <TableCell className="font-mono text-xs">
+                      <div className="inline-flex max-w-[132px] rounded-md bg-muted px-2 py-1">
+                        <span className="truncate" title={row.subcontractor_code}>{row.subcontractor_code}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <StatusDot status={row.status} />
+                        <span className="inline-block max-w-[220px] truncate" title={row.company_name}>{row.company_name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="inline-block max-w-[180px] truncate text-muted-foreground" title={row.contact_name ?? 'Not Set'}>
+                        {row.contact_name ?? 'Not Set'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="tabular-nums text-muted-foreground">{activeJobsBySubcontractor[row.id] ?? 0}</TableCell>
+                    <TableCell className="text-right tabular-nums font-medium">{formatRate(row.hourly_rate ?? null)}</TableCell>
+                    <TableCell>
+                      {row.w9_on_file ? (
+                        <span className="text-sm font-medium text-green-700 dark:text-green-300">✓ On File</span>
+                      ) : (
+                        <span className="text-sm font-medium text-red-700 dark:text-red-300">✗ Missing</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge color={complianceColor(row)}>
+                        {complianceLabel(row)}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
           {filtered.length === 0 && (
             <div className="mt-4">
               <EmptyState

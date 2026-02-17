@@ -334,59 +334,61 @@ export default function ClientsTable({ search }: ClientsTableProps) {
         )
       ) : (
         <>
-          <Table>
-            <TableHeader>
-              <tr>
-                <TableHead sortable sorted={sortKey === 'client_code' && sortDir} onSort={() => onSort('client_code')}>Code</TableHead>
-                <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Name</TableHead>
-                <TableHead sortable sorted={sortKey === 'industry' && sortDir} onSort={() => onSort('industry')}>Industry</TableHead>
-                <TableHead>City/State</TableHead>
-                <TableHead>Active Jobs</TableHead>
-                <TableHead>Monthly Revenue</TableHead>
-                <TableHead>Profile %</TableHead>
-              </tr>
-            </TableHeader>
-            <TableBody>
-              {pag.page.map((row) => (
-                <TableRow
-                  key={row.id}
-                  onClick={() => handleRowClick(row)}
-                  className={cn('cursor-pointer', statusRowAccentClass(row.status))}
-                >
-                  <TableCell>
-                    <div className="inline-flex max-w-[132px] items-center gap-2 rounded-md bg-muted px-2 py-1 font-mono text-xs text-foreground">
-                      <span className="truncate" title={row.client_code}>{row.client_code}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      <StatusDot status={row.status} />
-                      <span className="max-w-[240px] truncate" title={row.name}>{row.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    <span className="inline-block max-w-[220px] truncate" title={row.industry ?? 'Not Set'}>
-                      {row.industry ?? 'Not Set'}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    <span className="inline-block max-w-[200px] truncate" title={cardMetaByClientId[row.id]?.location ?? 'Not Set'}>
-                      {cardMetaByClientId[row.id]?.location ?? 'Not Set'}
-                    </span>
-                  </TableCell>
-                  <TableCell className="tabular-nums text-muted-foreground">
-                    {cardMetaByClientId[row.id]?.activeJobs ?? 0}
-                  </TableCell>
-                  <TableCell className="tabular-nums font-medium">
-                    {formatCurrency(cardMetaByClientId[row.id]?.monthlyRevenue ?? 0)}
-                  </TableCell>
-                  <TableCell className="tabular-nums text-muted-foreground">
-                    {formatPercent(cardMetaByClientId[row.id]?.profilePercent ?? clientProfilePercent(row))}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <div className="w-full overflow-x-auto">
+            <Table className="w-full min-w-full">
+              <TableHeader>
+                <tr>
+                  <TableHead sortable sorted={sortKey === 'client_code' && sortDir} onSort={() => onSort('client_code')}>Code</TableHead>
+                  <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Name</TableHead>
+                  <TableHead sortable sorted={sortKey === 'industry' && sortDir} onSort={() => onSort('industry')}>Industry</TableHead>
+                  <TableHead>City/State</TableHead>
+                  <TableHead>Active Jobs</TableHead>
+                  <TableHead>Monthly Revenue</TableHead>
+                  <TableHead>Profile %</TableHead>
+                </tr>
+              </TableHeader>
+              <TableBody>
+                {pag.page.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    onClick={() => handleRowClick(row)}
+                    className={cn('cursor-pointer', statusRowAccentClass(row.status))}
+                  >
+                    <TableCell>
+                      <div className="inline-flex max-w-[132px] items-center gap-2 rounded-md bg-muted px-2 py-1 font-mono text-xs text-foreground">
+                        <span className="truncate" title={row.client_code}>{row.client_code}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <StatusDot status={row.status} />
+                        <span className="max-w-[240px] truncate" title={row.name}>{row.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      <span className="inline-block max-w-[220px] truncate" title={row.industry ?? 'Not Set'}>
+                        {row.industry ?? 'Not Set'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      <span className="inline-block max-w-[200px] truncate" title={cardMetaByClientId[row.id]?.location ?? 'Not Set'}>
+                        {cardMetaByClientId[row.id]?.location ?? 'Not Set'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="tabular-nums text-muted-foreground">
+                      {cardMetaByClientId[row.id]?.activeJobs ?? 0}
+                    </TableCell>
+                    <TableCell className="tabular-nums font-medium">
+                      {formatCurrency(cardMetaByClientId[row.id]?.monthlyRevenue ?? 0)}
+                    </TableCell>
+                    <TableCell className="tabular-nums text-muted-foreground">
+                      {formatPercent(cardMetaByClientId[row.id]?.profilePercent ?? clientProfilePercent(row))}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
 
           {filtered.length === 0 && (
             <div className="mt-4">

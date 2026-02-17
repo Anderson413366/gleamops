@@ -253,77 +253,79 @@ export default function SitesTable({ search }: SitesTableProps) {
         )
       ) : (
         <>
-          <Table>
-            <TableHeader>
-              <tr>
-                <TableHead sortable sorted={sortKey === 'site_code' && sortDir} onSort={() => onSort('site_code')}>Code</TableHead>
-                <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Name</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>City/State</TableHead>
-                <TableHead>Active Jobs</TableHead>
-                <TableHead>Monthly Revenue</TableHead>
-                <TableHead>Priority</TableHead>
-              </tr>
-            </TableHeader>
-            <TableBody>
-              {pag.page.map((row) => (
-                <TableRow
-                  key={row.id}
-                  onClick={() => handleRowClick(row)}
-                  className={cn('cursor-pointer', statusRowAccentClass(row.status))}
-                >
-                  <TableCell className="font-mono text-xs">
-                    <div className="inline-flex max-w-[132px] rounded-md bg-muted px-2 py-1">
-                      <span className="truncate" title={row.site_code}>{row.site_code}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      <StatusDot status={row.status} />
-                      <span className="inline-block max-w-[240px] truncate" title={row.name}>{row.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {row.client?.client_code ? (
-                      <EntityLink
-                        entityType="client"
-                        code={row.client.client_code}
-                        name={row.client.name ?? row.client.client_code}
-                        showCode={false}
-                        stopPropagation
-                        className="inline-block max-w-[200px] truncate align-middle"
-                      />
-                    ) : (
-                      <span className="inline-block max-w-[200px] truncate" title={row.client?.name ?? 'Not Set'}>
-                        {row.client?.name ?? 'Not Set'}
+          <div className="w-full overflow-x-auto">
+            <Table className="w-full min-w-full">
+              <TableHeader>
+                <tr>
+                  <TableHead sortable sorted={sortKey === 'site_code' && sortDir} onSort={() => onSort('site_code')}>Code</TableHead>
+                  <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Name</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead>City/State</TableHead>
+                  <TableHead>Active Jobs</TableHead>
+                  <TableHead>Monthly Revenue</TableHead>
+                  <TableHead>Priority</TableHead>
+                </tr>
+              </TableHeader>
+              <TableBody>
+                {pag.page.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    onClick={() => handleRowClick(row)}
+                    className={cn('cursor-pointer', statusRowAccentClass(row.status))}
+                  >
+                    <TableCell className="font-mono text-xs">
+                      <div className="inline-flex max-w-[132px] rounded-md bg-muted px-2 py-1">
+                        <span className="truncate" title={row.site_code}>{row.site_code}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <StatusDot status={row.status} />
+                        <span className="inline-block max-w-[240px] truncate" title={row.name}>{row.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {row.client?.client_code ? (
+                        <EntityLink
+                          entityType="client"
+                          code={row.client.client_code}
+                          name={row.client.name ?? row.client.client_code}
+                          showCode={false}
+                          stopPropagation
+                          className="inline-block max-w-[200px] truncate align-middle"
+                        />
+                      ) : (
+                        <span className="inline-block max-w-[200px] truncate" title={row.client?.name ?? 'Not Set'}>
+                          {row.client?.name ?? 'Not Set'}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      <span
+                        className="inline-block max-w-[210px] truncate"
+                        title={row.address ? [row.address.city, row.address.state].filter(Boolean).join(', ') : 'Not Set'}
+                      >
+                        {row.address
+                          ? [row.address.city, row.address.state].filter(Boolean).join(', ')
+                          : 'Not Set'}
                       </span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    <span
-                      className="inline-block max-w-[210px] truncate"
-                      title={row.address ? [row.address.city, row.address.state].filter(Boolean).join(', ') : 'Not Set'}
-                    >
-                      {row.address
-                        ? [row.address.city, row.address.state].filter(Boolean).join(', ')
-                        : 'Not Set'}
-                    </span>
-                  </TableCell>
-                  <TableCell className="tabular-nums text-muted-foreground">
-                    {activeJobsBySite[row.id] ?? 0}
-                  </TableCell>
-                  <TableCell className="tabular-nums font-medium">
-                    {formatCurrency(monthlyRevenueBySite[row.id] ?? 0)}
-                  </TableCell>
-                  <TableCell>
-                    {priorityValue(row) ? (
-                      <Badge color={PRIORITY_COLORS[priorityValue(row) ?? ''] ?? 'gray'}>{priorityValue(row)}</Badge>
-                    ) : <span className="text-muted-foreground">Not Set</span>}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                    </TableCell>
+                    <TableCell className="tabular-nums text-muted-foreground">
+                      {activeJobsBySite[row.id] ?? 0}
+                    </TableCell>
+                    <TableCell className="tabular-nums font-medium">
+                      {formatCurrency(monthlyRevenueBySite[row.id] ?? 0)}
+                    </TableCell>
+                    <TableCell>
+                      {priorityValue(row) ? (
+                        <Badge color={PRIORITY_COLORS[priorityValue(row) ?? ''] ?? 'gray'}>{priorityValue(row)}</Badge>
+                      ) : <span className="text-muted-foreground">Not Set</span>}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
           {filtered.length === 0 && (
             <div className="mt-4">
               <EmptyState

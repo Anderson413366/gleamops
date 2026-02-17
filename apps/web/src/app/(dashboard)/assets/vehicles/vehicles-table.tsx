@@ -180,51 +180,53 @@ export default function VehiclesTable({ search, formOpen, onFormClose, onRefresh
         )
       ) : (
         <>
-          <Table>
-            <TableHeader>
-              <tr>
-                <TableHead sortable sorted={sortKey === 'vehicle_code' && sortDir} onSort={() => onSort('vehicle_code')}>Code</TableHead>
-                <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Name</TableHead>
-                <TableHead>Make / Model</TableHead>
-                <TableHead sortable sorted={sortKey === 'year' && sortDir} onSort={() => onSort('year')}>Year</TableHead>
-                <TableHead>License Plate</TableHead>
-                <TableHead>Assigned To</TableHead>
-              </tr>
-            </TableHeader>
-            <TableBody>
-              {pag.page.map((row) => (
-                <TableRow
-                  key={row.id}
-                  onClick={() => handleRowClick(row)}
-                  className={cn(statusRowAccentClass(row.status))}
-                >
-                  <TableCell className="font-mono text-xs">
-                    <div className="flex items-center gap-2">
-                      <StatusDot status={row.status} />
-                      <span>{row.vehicle_code}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-medium">{row.name ?? '—'}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {[row.make, row.model].filter(Boolean).join(' ') || '—'}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{row.year ?? '—'}</TableCell>
-                  <TableCell className="text-muted-foreground">{row.license_plate ?? '—'}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {row.assigned?.staff_code ? (
-                      <EntityLink
-                        entityType="staff"
-                        code={row.assigned.staff_code}
-                        name={row.assigned.full_name ?? row.assigned.staff_code}
-                        showCode={false}
-                        stopPropagation
-                      />
-                    ) : (row.assigned?.full_name ?? '—')}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <div className="w-full overflow-x-auto">
+            <Table className="w-full min-w-full">
+              <TableHeader>
+                <tr>
+                  <TableHead sortable sorted={sortKey === 'vehicle_code' && sortDir} onSort={() => onSort('vehicle_code')}>Code</TableHead>
+                  <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Name</TableHead>
+                  <TableHead>Make / Model</TableHead>
+                  <TableHead sortable sorted={sortKey === 'year' && sortDir} onSort={() => onSort('year')}>Year</TableHead>
+                  <TableHead>License Plate</TableHead>
+                  <TableHead>Assigned To</TableHead>
+                </tr>
+              </TableHeader>
+              <TableBody>
+                {pag.page.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    onClick={() => handleRowClick(row)}
+                    className={cn(statusRowAccentClass(row.status))}
+                  >
+                    <TableCell className="font-mono text-xs">
+                      <div className="flex items-center gap-2">
+                        <StatusDot status={row.status} />
+                        <span>{row.vehicle_code}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-medium">{row.name ?? '—'}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {[row.make, row.model].filter(Boolean).join(' ') || '—'}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{row.year ?? '—'}</TableCell>
+                    <TableCell className="text-muted-foreground">{row.license_plate ?? '—'}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {row.assigned?.staff_code ? (
+                        <EntityLink
+                          entityType="staff"
+                          code={row.assigned.staff_code}
+                          name={row.assigned.full_name ?? row.assigned.staff_code}
+                          showCode={false}
+                          stopPropagation
+                        />
+                      ) : (row.assigned?.full_name ?? '—')}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
           {filtered.length === 0 && (
             <div className="mt-4">
               <EmptyState

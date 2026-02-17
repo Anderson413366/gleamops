@@ -379,99 +379,101 @@ export default function SiteAssignmentsTable({ search }: Props) {
   if (loading) return <TableSkeleton rows={8} cols={7} />;
 
   const renderRows = (targetRows: SiteSupplyRow[]) => (
-    <Table className="w-full min-w-full">
-      <TableHeader>
-        <tr>
-          <TableHead>Img</TableHead>
-          <TableHead className="w-full">Supply</TableHead>
-          <TableHead>Category</TableHead>
-          <TableHead>Type</TableHead>
-          <TableHead>Vendor</TableHead>
-          <TableHead>Last Cnt</TableHead>
-          <TableHead>Assigned Date</TableHead>
-          <TableHead>SDS</TableHead>
-          <TableHead>Action</TableHead>
-        </tr>
-      </TableHeader>
-      <TableBody>
-        {targetRows.map((row) => {
-          const enriched = catalogByName[row.name.trim().toLowerCase()];
-          const category = row.category ?? enriched?.category ?? 'Not Set';
-          const unit = enriched?.unit ?? 'Not Set';
-          const vendor = enriched?.preferred_vendor ?? 'Not Set';
-          const sdsUrl = row.sds_url ?? enriched?.sds_url ?? null;
-          const imageUrl = enriched?.image_url ?? null;
-          const supplyId = enriched?.id ?? null;
-          const qtyKey = supplyId ? `${row.site_id}:${supplyId}` : '';
-          const lastCountQty = qtyKey ? lastQtyBySiteSupply[qtyKey] : undefined;
-          return (
-            <TableRow key={row.id}>
-              <TableCell>
-                <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-md border border-border bg-muted/30">
-                  {imageUrl ? (
-                    <div className="h-full w-full bg-cover bg-center" style={{ backgroundImage: `url(${imageUrl})` }} />
+    <div className="w-full overflow-x-auto">
+      <Table className="w-full min-w-full">
+        <TableHeader>
+          <tr>
+            <TableHead>Img</TableHead>
+            <TableHead className="w-full">Supply</TableHead>
+            <TableHead>Category</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Vendor</TableHead>
+            <TableHead>Last Cnt</TableHead>
+            <TableHead>Assigned Date</TableHead>
+            <TableHead>SDS</TableHead>
+            <TableHead>Action</TableHead>
+          </tr>
+        </TableHeader>
+        <TableBody>
+          {targetRows.map((row) => {
+            const enriched = catalogByName[row.name.trim().toLowerCase()];
+            const category = row.category ?? enriched?.category ?? 'Not Set';
+            const unit = enriched?.unit ?? 'Not Set';
+            const vendor = enriched?.preferred_vendor ?? 'Not Set';
+            const sdsUrl = row.sds_url ?? enriched?.sds_url ?? null;
+            const imageUrl = enriched?.image_url ?? null;
+            const supplyId = enriched?.id ?? null;
+            const qtyKey = supplyId ? `${row.site_id}:${supplyId}` : '';
+            const lastCountQty = qtyKey ? lastQtyBySiteSupply[qtyKey] : undefined;
+            return (
+              <TableRow key={row.id}>
+                <TableCell>
+                  <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-md border border-border bg-muted/30">
+                    {imageUrl ? (
+                      <div className="h-full w-full bg-cover bg-center" style={{ backgroundImage: `url(${imageUrl})` }} />
+                    ) : (
+                      <Package2 className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell className="w-full font-medium">
+                  {enriched?.code ? (
+                    <Link
+                      href={`/inventory/supplies/${encodeURIComponent(enriched.code)}`}
+                      className="text-blue-600 hover:underline dark:text-blue-400"
+                    >
+                      {row.name}
+                    </Link>
                   ) : (
-                    <Package2 className="h-4 w-4 text-muted-foreground" />
+                    <Link
+                      href={`/inventory?tab=supplies&search=${encodeURIComponent(row.name)}`}
+                      className="text-blue-600 hover:underline dark:text-blue-400"
+                    >
+                      {row.name}
+                    </Link>
                   )}
-                </div>
-              </TableCell>
-              <TableCell className="w-full font-medium">
-                {enriched?.code ? (
-                  <Link
-                    href={`/inventory/supplies/${encodeURIComponent(enriched.code)}`}
-                    className="text-blue-600 hover:underline dark:text-blue-400"
-                  >
-                    {row.name}
-                  </Link>
-                ) : (
-                  <Link
-                    href={`/inventory?tab=supplies&search=${encodeURIComponent(row.name)}`}
-                    className="text-blue-600 hover:underline dark:text-blue-400"
-                  >
-                    {row.name}
-                  </Link>
-                )}
-              </TableCell>
-              <TableCell className="text-muted-foreground">{category}</TableCell>
-              <TableCell className="text-muted-foreground">{unit}</TableCell>
-              <TableCell className="text-muted-foreground">{vendor}</TableCell>
-              <TableCell className="tabular-nums text-muted-foreground">
-                {lastCountQty != null ? lastCountQty.toLocaleString() : 'Not Counted'}
-              </TableCell>
-              <TableCell className="text-muted-foreground">{formatDateLabel(row.created_at)}</TableCell>
-              <TableCell>
-                {sdsUrl ? (
-                  <a
-                    href={sdsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline dark:text-blue-400"
-                  >
-                    View SDS
-                  </a>
-                ) : (
-                  <span className="text-muted-foreground">Not Set</span>
-                )}
-              </TableCell>
-              <TableCell>
-                <button
-                  type="button"
-                  disabled={removingId === row.id}
-                  onClick={() => setRemoveTarget(row)}
-                  className={cn(
-                    'inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground',
-                    removingId === row.id && 'opacity-50'
+                </TableCell>
+                <TableCell className="text-muted-foreground">{category}</TableCell>
+                <TableCell className="text-muted-foreground">{unit}</TableCell>
+                <TableCell className="text-muted-foreground">{vendor}</TableCell>
+                <TableCell className="tabular-nums text-muted-foreground">
+                  {lastCountQty != null ? lastCountQty.toLocaleString() : 'Not Counted'}
+                </TableCell>
+                <TableCell className="text-muted-foreground">{formatDateLabel(row.created_at)}</TableCell>
+                <TableCell>
+                  {sdsUrl ? (
+                    <a
+                      href={sdsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline dark:text-blue-400"
+                    >
+                      View SDS
+                    </a>
+                  ) : (
+                    <span className="text-muted-foreground">Not Set</span>
                   )}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Remove
-                </button>
-              </TableCell>
-            </TableRow>
-          );
-        })}
-      </TableBody>
-    </Table>
+                </TableCell>
+                <TableCell>
+                  <button
+                    type="button"
+                    disabled={removingId === row.id}
+                    onClick={() => setRemoveTarget(row)}
+                    className={cn(
+                      'inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground',
+                      removingId === row.id && 'opacity-50'
+                    )}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Remove
+                  </button>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </div>
   );
 
   return (

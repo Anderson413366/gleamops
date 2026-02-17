@@ -273,44 +273,46 @@ export default function CountsTable({ search, formOpen, onFormClose, onRefresh }
         ))}
       </div>
 
-      <Table>
-        <TableHeader>
-          <tr>
-            <TableHead sortable sorted={sortKey === 'count_code' && sortDir} onSort={() => onSort('count_code')}>Code</TableHead>
-            <TableHead>Site</TableHead>
-            <TableHead sortable sorted={sortKey === 'count_date' && sortDir} onSort={() => onSort('count_date')}>Date</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Counted By</TableHead>
-            <TableHead>Items Counted</TableHead>
-            <TableHead>Total Value</TableHead>
-          </tr>
-        </TableHeader>
-        <TableBody>
-          {pag.page.map((row) => {
-            const aggregate = aggregatesByCountId[row.id] ?? { itemsCount: 0, totalValue: 0 };
-            return (
-              <TableRow
-                key={row.id}
-                onClick={() => router.push(`/inventory/counts/${encodeURIComponent(row.count_code)}`)}
-                className={cn('cursor-pointer', statusRowAccentClass(row.status))}
-              >
-                <TableCell className="font-mono text-xs">
-                  <div className="flex items-center gap-2">
-                    <StatusDot status={row.status} />
-                    <span>{row.count_code}</span>
-                  </div>
-                </TableCell>
-                <TableCell>{row.site?.name ?? 'Not Set'}</TableCell>
-                <TableCell>{dateFmt.format(toSafeDate(row.count_date))}</TableCell>
-                <TableCell className="text-muted-foreground">{row.status}</TableCell>
-                <TableCell>{row.counter?.full_name ?? row.counted_by_name ?? 'Not Set'}</TableCell>
-                <TableCell className="tabular-nums">{aggregate.itemsCount}</TableCell>
-                <TableCell className="tabular-nums">{formatCurrency(aggregate.totalValue)}</TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+      <div className="w-full overflow-x-auto">
+        <Table className="w-full min-w-full">
+          <TableHeader>
+            <tr>
+              <TableHead sortable sorted={sortKey === 'count_code' && sortDir} onSort={() => onSort('count_code')}>Code</TableHead>
+              <TableHead>Site</TableHead>
+              <TableHead sortable sorted={sortKey === 'count_date' && sortDir} onSort={() => onSort('count_date')}>Date</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Counted By</TableHead>
+              <TableHead>Items Counted</TableHead>
+              <TableHead>Total Value</TableHead>
+            </tr>
+          </TableHeader>
+          <TableBody>
+            {pag.page.map((row) => {
+              const aggregate = aggregatesByCountId[row.id] ?? { itemsCount: 0, totalValue: 0 };
+              return (
+                <TableRow
+                  key={row.id}
+                  onClick={() => router.push(`/inventory/counts/${encodeURIComponent(row.count_code)}`)}
+                  className={cn('cursor-pointer', statusRowAccentClass(row.status))}
+                >
+                  <TableCell className="font-mono text-xs">
+                    <div className="flex items-center gap-2">
+                      <StatusDot status={row.status} />
+                      <span>{row.count_code}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>{row.site?.name ?? 'Not Set'}</TableCell>
+                  <TableCell>{dateFmt.format(toSafeDate(row.count_date))}</TableCell>
+                  <TableCell className="text-muted-foreground">{row.status}</TableCell>
+                  <TableCell>{row.counter?.full_name ?? row.counted_by_name ?? 'Not Set'}</TableCell>
+                  <TableCell className="tabular-nums">{aggregate.itemsCount}</TableCell>
+                  <TableCell className="tabular-nums">{formatCurrency(aggregate.totalValue)}</TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
 
       {filtered.length === 0 && (
         <div className="mt-4">

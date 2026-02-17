@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   const auth = await extractAuth(request, INSTANCE);
   if (isAuthError(auth)) return auth;
 
-  const { tenantId, userId } = auth;
+  const { tenantId } = auth;
   const db = getServiceClient();
   const resource = request.nextUrl.searchParams.get('resource') ?? 'stock-levels';
 

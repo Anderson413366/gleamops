@@ -10,6 +10,7 @@ import { siteSchema, type SiteFormData } from '@gleamops/shared';
 import { SlideOver, Input, Select, Textarea, Button, FormWizard, useWizardSteps, FormSection } from '@gleamops/ui';
 import type { WizardStep } from '@gleamops/ui';
 import type { Site } from '@gleamops/shared';
+import { LookupSelect } from './lookup-select';
 
 const STATUS_OPTIONS = [
   { value: 'ACTIVE', label: 'Active' },
@@ -254,7 +255,13 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
             <Input label="Site Code" value={values.site_code} readOnly disabled />
             <Input label="Name" value={values.name} onChange={(e) => setValue('name', e.target.value)} onBlur={() => onBlur('name')} error={errors.name} required />
             <Select label="Client" value={values.client_id} onChange={(e) => setValue('client_id', e.target.value)} options={clients} required />
-            <Select label="Status" value={values.status} onChange={(e) => setValue('status', e.target.value)} options={STATUS_OPTIONS} />
+            <LookupSelect
+              label="Status"
+              category={['Site Status', 'SITE_STATUS']}
+              value={values.status}
+              onChange={(value) => setValue('status', value)}
+              fallbackOptions={STATUS_OPTIONS}
+            />
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">Site Photo</label>
               <label
@@ -331,8 +338,20 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
               <Input label="Dumpster Location" value={values.dumpster_location ?? ''} onChange={(e) => setValue('dumpster_location', e.target.value || null)} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              <Select label="Risk Level" value={values.risk_level ?? ''} onChange={(e) => setValue('risk_level', e.target.value || null)} options={RISK_OPTIONS} />
-              <Select label="Priority Level" value={values.priority_level ?? ''} onChange={(e) => setValue('priority_level', e.target.value || null)} options={PRIORITY_OPTIONS} />
+              <LookupSelect
+                label="Risk Level"
+                category={['Risk Level', 'RISK_LEVEL']}
+                value={values.risk_level ?? ''}
+                onChange={(value) => setValue('risk_level', value || null)}
+                fallbackOptions={RISK_OPTIONS}
+              />
+              <LookupSelect
+                label="Priority Level"
+                category={['Priority Level', 'PRIORITY_LEVEL']}
+                value={values.priority_level ?? ''}
+                onChange={(value) => setValue('priority_level', value || null)}
+                fallbackOptions={PRIORITY_OPTIONS}
+              />
             </div>
             </FormSection>
           </div>
@@ -378,7 +397,13 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
               options={[{ value: '', label: 'Select a client...' }, ...clients]}
               required
             />
-            <Select label="Status" value={values.status} onChange={(e) => setValue('status', e.target.value)} options={STATUS_OPTIONS} />
+            <LookupSelect
+              label="Status"
+              category={['Site Status', 'SITE_STATUS']}
+              value={values.status}
+              onChange={(value) => setValue('status', value)}
+              fallbackOptions={STATUS_OPTIONS}
+            />
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">Site Photo</label>
               <label
@@ -459,8 +484,20 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
               <Input label="Dumpster Location" value={values.dumpster_location ?? ''} onChange={(e) => setValue('dumpster_location', e.target.value || null)} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              <Select label="Risk Level" value={values.risk_level ?? ''} onChange={(e) => setValue('risk_level', e.target.value || null)} options={RISK_OPTIONS} />
-              <Select label="Priority Level" value={values.priority_level ?? ''} onChange={(e) => setValue('priority_level', e.target.value || null)} options={PRIORITY_OPTIONS} />
+              <LookupSelect
+                label="Risk Level"
+                category={['Risk Level', 'RISK_LEVEL']}
+                value={values.risk_level ?? ''}
+                onChange={(value) => setValue('risk_level', value || null)}
+                fallbackOptions={RISK_OPTIONS}
+              />
+              <LookupSelect
+                label="Priority Level"
+                category={['Priority Level', 'PRIORITY_LEVEL']}
+                value={values.priority_level ?? ''}
+                onChange={(value) => setValue('priority_level', value || null)}
+                fallbackOptions={PRIORITY_OPTIONS}
+              />
             </div>
             <Textarea label="Notes" value={values.notes ?? ''} onChange={(e) => setValue('notes', e.target.value || null)} rows={4} placeholder="Any additional notes about this site..." />
           </FormSection>

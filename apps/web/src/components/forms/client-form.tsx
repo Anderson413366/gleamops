@@ -4,10 +4,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { Building2, CreditCard, FileText, StickyNote } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
+import { useClientTypes, useIndustries } from '@/hooks/use-lookups';
 import { clientSchema, type ClientFormData } from '@gleamops/shared';
 import { SlideOver, Input, Select, Textarea, Button, FormWizard, useWizardSteps, FormSection } from '@gleamops/ui';
 import type { WizardStep } from '@gleamops/ui';
 import type { Client } from '@gleamops/shared';
+import { LookupSelect } from './lookup-select';
 
 const STATUS_OPTIONS = [
   { value: 'PROSPECT', label: 'Prospect' },
@@ -85,7 +87,6 @@ const INDUSTRY_FALLBACK = [
   'Other',
 ];
 
-type LookupOption = { code: string; label: string };
 const OTHER_VALUE = '__OTHER__';
 
 const WIZARD_STEPS: WizardStep[] = [
@@ -177,42 +178,18 @@ export function ClientForm({ open, onClose, initialData, onSuccess, focusSection
     reset(initialValues);
   }, [open, reset, initialValues]);
 
-  // Lookups: Client Type + Industry (from Admin > Lookups)
-  const [clientTypeLookups, setClientTypeLookups] = useState<LookupOption[]>([]);
-  const [industryLookups, setIndustryLookups] = useState<LookupOption[]>([]);
-
-  useEffect(() => {
-    if (!open) return;
-    // Categories use the same style as existing lookups (e.g. opportunity_stage).
-    const clientTypeCats = ['client_type', 'CLIENT_TYPE'];
-    const industryCats = ['industry', 'INDUSTRY'];
-
-    supabase
-      .from('lookups')
-      .select('code, label')
-      .in('category', clientTypeCats)
-      .eq('is_active', true)
-      .order('sort_order')
-      .then(({ data }) => setClientTypeLookups((data as unknown as LookupOption[]) ?? []));
-
-    supabase
-      .from('lookups')
-      .select('code, label')
-      .in('category', industryCats)
-      .eq('is_active', true)
-      .order('sort_order')
-      .then(({ data }) => setIndustryLookups((data as unknown as LookupOption[]) ?? []));
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  const { options: clientTypeLookupOptions } = useClientTypes();
+  const { options: industryLookupOptions } = useIndustries();
 
   const clientTypeLabels = useMemo(() => {
-    const labels = clientTypeLookups.length > 0 ? clientTypeLookups.map((l) => l.label) : CLIENT_TYPE_FALLBACK;
+    const labels = clientTypeLookupOptions.length > 0 ? clientTypeLookupOptions.map((l) => l.label) : CLIENT_TYPE_FALLBACK;
     return Array.from(new Set(labels.filter(Boolean)));
-  }, [clientTypeLookups]);
+  }, [clientTypeLookupOptions]);
 
   const industryLabels = useMemo(() => {
-    const labels = industryLookups.length > 0 ? industryLookups.map((l) => l.label) : INDUSTRY_FALLBACK;
+    const labels = industryLookupOptions.length > 0 ? industryLookupOptions.map((l) => l.label) : INDUSTRY_FALLBACK;
     return Array.from(new Set(labels.filter(Boolean)));
-  }, [industryLookups]);
+  }, [industryLookupOptions]);
 
   // Select value management: persist actual text in `values.*` but support an "Other" mode.
   const [clientTypeSelect, setClientTypeSelect] = useState<string>('');
@@ -329,7 +306,13 @@ export function ClientForm({ open, onClose, initialData, onSuccess, focusSection
             <FormSection title="Basic Info" icon={<Building2 className="h-4 w-4" />}>
               <Input label="Client Code" value={values.client_code} readOnly disabled />
               <Input label="Name" value={values.name} onChange={(e) => setValue('name', e.target.value)} onBlur={() => onBlur('name')} error={errors.name} required />
-              <Select label="Status" value={values.status} onChange={(e) => setValue('status', e.target.value)} options={STATUS_OPTIONS} />
+              <LookupSelect
+                label="Status"
+                category={['Client Status', 'CLIENT_STATUS']}
+                value={values.status}
+                onChange={(value) => setValue('status', value)}
+                fallbackOptions={STATUS_OPTIONS}
+              />
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <div>
                   <Select
@@ -416,8 +399,20 @@ export function ClientForm({ open, onClose, initialData, onSuccess, focusSection
                 <Input label="ZIP" value={values.billing_address?.zip ?? ''} onChange={(e) => setValue('billing_address', { ...values.billing_address, zip: e.target.value })} />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                <Select label="Payment Terms" value={values.payment_terms ?? ''} onChange={(e) => setValue('payment_terms', e.target.value || null)} options={PAYMENT_TERMS_OPTIONS} />
-                <Select label="Invoice Frequency" value={values.invoice_frequency ?? ''} onChange={(e) => setValue('invoice_frequency', e.target.value || null)} options={INVOICE_FREQ_OPTIONS} />
+                <LookupSelect
+                  label="Payment Terms"
+                  category={['Payment Terms', 'PAYMENT_TERMS']}
+                  value={values.payment_terms ?? ''}
+                  onChange={(value) => setValue('payment_terms', value || null)}
+                  fallbackOptions={PAYMENT_TERMS_OPTIONS}
+                />
+                <LookupSelect
+                  label="Invoice Frequency"
+                  category={['Invoice Frequency', 'INVOICE_FREQUENCY']}
+                  value={values.invoice_frequency ?? ''}
+                  onChange={(value) => setValue('invoice_frequency', value || null)}
+                  fallbackOptions={INVOICE_FREQ_OPTIONS}
+                />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <Input label="Credit Limit" type="number" value={values.credit_limit ?? ''} onChange={(e) => setValue('credit_limit', e.target.value ? Number(e.target.value) : null)} />
@@ -471,7 +466,13 @@ export function ClientForm({ open, onClose, initialData, onSuccess, focusSection
           <FormSection title="Basic Info" icon={<Building2 className="h-4 w-4" />} description="Core identity and classification for this client.">
             <Input label="Client Code" value={values.client_code} readOnly disabled hint="Auto-generated" />
             <Input label="Name" value={values.name} onChange={(e) => setValue('name', e.target.value)} onBlur={() => onBlur('name')} error={errors.name} required />
-            <Select label="Status" value={values.status} onChange={(e) => setValue('status', e.target.value)} options={STATUS_OPTIONS} />
+            <LookupSelect
+              label="Status"
+              category={['Client Status', 'CLIENT_STATUS']}
+              value={values.status}
+              onChange={(value) => setValue('status', value)}
+              fallbackOptions={STATUS_OPTIONS}
+            />
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <div>
                 <Select
@@ -551,8 +552,20 @@ export function ClientForm({ open, onClose, initialData, onSuccess, focusSection
               <Input label="ZIP" value={values.billing_address?.zip ?? ''} onChange={(e) => setValue('billing_address', { ...values.billing_address, zip: e.target.value })} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              <Select label="Payment Terms" value={values.payment_terms ?? ''} onChange={(e) => setValue('payment_terms', e.target.value || null)} options={PAYMENT_TERMS_OPTIONS} />
-              <Select label="Invoice Frequency" value={values.invoice_frequency ?? ''} onChange={(e) => setValue('invoice_frequency', e.target.value || null)} options={INVOICE_FREQ_OPTIONS} />
+              <LookupSelect
+                label="Payment Terms"
+                category={['Payment Terms', 'PAYMENT_TERMS']}
+                value={values.payment_terms ?? ''}
+                onChange={(value) => setValue('payment_terms', value || null)}
+                fallbackOptions={PAYMENT_TERMS_OPTIONS}
+              />
+              <LookupSelect
+                label="Invoice Frequency"
+                category={['Invoice Frequency', 'INVOICE_FREQUENCY']}
+                value={values.invoice_frequency ?? ''}
+                onChange={(value) => setValue('invoice_frequency', value || null)}
+                fallbackOptions={INVOICE_FREQ_OPTIONS}
+              />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <Input label="Credit Limit" type="number" value={values.credit_limit ?? ''} onChange={(e) => setValue('credit_limit', e.target.value ? Number(e.target.value) : null)} />

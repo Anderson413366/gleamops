@@ -8,13 +8,16 @@ type EntityType =
   | 'job'
   | 'staff'
   | 'equipment'
+  | 'vehicle'
   | 'subcontractor'
   | 'supply'
+  | 'position'
   | 'prospect'
   | 'opportunity';
 
 interface EntityLinkProps {
-  entityType: EntityType;
+  entityType?: EntityType;
+  type?: EntityType;
   code?: string | null;
   name?: string | null;
   showCode?: boolean;
@@ -28,20 +31,24 @@ const ROUTE_PREFIX: Record<EntityType, string> = {
   job: '/operations/jobs',
   staff: '/workforce/staff',
   equipment: '/assets/equipment',
+  vehicle: '/assets/vehicles',
   subcontractor: '/vendors/subcontractors',
   supply: '/inventory/supplies',
+  position: '/workforce/positions',
   prospect: '/pipeline/prospects',
   opportunity: '/pipeline/opportunities',
 };
 
 export function EntityLink({
   entityType,
+  type,
   code,
   name,
   showCode = true,
   className,
   stopPropagation = false,
 }: EntityLinkProps) {
+  const resolvedType = entityType ?? type;
   const normalizedCode = code?.trim() ?? '';
   const normalizedName = name?.trim() ?? '';
   const display = showCode && normalizedName && normalizedCode
@@ -52,7 +59,11 @@ export function EntityLink({
     return <span className="italic text-muted-foreground">{display}</span>;
   }
 
-  const href = `${ROUTE_PREFIX[entityType]}/${encodeURIComponent(normalizedCode)}`;
+  if (!resolvedType) {
+    return <span className="italic text-muted-foreground">{display}</span>;
+  }
+
+  const href = `${ROUTE_PREFIX[resolvedType]}/${encodeURIComponent(normalizedCode)}`;
   const baseClass = 'text-blue-600 hover:text-blue-800 hover:underline cursor-pointer';
 
   return (

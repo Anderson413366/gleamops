@@ -6,11 +6,15 @@ import { cn } from '../utils';
 interface ViewToggleProps {
   view: 'list' | 'card';
   onChange: (view: 'list' | 'card') => void;
+  hideOnMobile?: boolean;
 }
 
-export function ViewToggle({ view, onChange }: ViewToggleProps) {
+export function ViewToggle({ view, onChange, hideOnMobile = true }: ViewToggleProps) {
   return (
-    <div className="inline-flex items-center rounded-lg border border-border bg-muted p-0.5">
+    <div className={cn(
+      'inline-flex items-center rounded-lg border border-border bg-muted p-0.5',
+      hideOnMobile && 'hidden md:inline-flex'
+    )}>
       <button
         type="button"
         onClick={() => onChange('list')}

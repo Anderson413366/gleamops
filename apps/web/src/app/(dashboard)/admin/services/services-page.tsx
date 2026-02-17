@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import { ClipboardList, Layers, Plus } from 'lucide-react';
 import { ChipTabs, SearchInput, Button } from '@gleamops/ui';
+import { useSyncedTab } from '@/hooks/use-synced-tab';
 
 import TasksTable from './tasks/tasks-table';
 import ServiceConfig from './services/service-config';
@@ -13,7 +14,10 @@ const TABS = [
 ];
 
 export default function ServicesPageClient() {
-  const [tab, setTab] = useState(TABS[0].key);
+  const [tab, setTab] = useSyncedTab({
+    tabKeys: TABS.map((entry) => entry.key),
+    defaultTab: 'tasks',
+  });
   const [search, setSearch] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
   const [autoCreate, setAutoCreate] = useState(false);

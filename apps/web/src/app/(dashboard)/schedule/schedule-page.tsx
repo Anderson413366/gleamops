@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { Calendar, ClipboardList, Briefcase, ClipboardCheck, FileText } from 'lucide-react';
 import { ChipTabs, SearchInput } from '@gleamops/ui';
 import type { WorkTicket, Inspection } from '@gleamops/shared';
+import { useSyncedTab } from '@/hooks/use-synced-tab';
 
 import TicketsTable from './tickets/tickets-table';
 import { TicketDetail } from './tickets/ticket-detail';
@@ -41,7 +42,11 @@ const TABS = [
 ];
 
 export default function SchedulePageClient() {
-  const [tab, setTab] = useState(TABS[0].key);
+  const [tab, setTab] = useSyncedTab({
+    tabKeys: TABS.map((entry) => entry.key),
+    defaultTab: 'calendar',
+    aliases: { service_plans: 'jobs', 'service-plans': 'jobs' },
+  });
   const [search, setSearch] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedTicket, setSelectedTicket] = useState<TicketWithRelations | null>(null);

@@ -5,6 +5,7 @@ import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { BarChart3, TrendingUp, DollarSign, Shield, Users, Package, RefreshCw, CalendarDays } from 'lucide-react';
 import { ChipTabs, Button, Badge, cn } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { useSyncedTab } from '@/hooks/use-synced-tab';
 
 import OpsDashboard from './ops/ops-dashboard';
 import SalesDashboard from './sales/sales-dashboard';
@@ -39,9 +40,11 @@ export default function ReportsPageClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const initialTab = searchParams.get('tab');
-  const normalizedInitialTab = initialTab ? (TAB_ALIASES[initialTab] ?? initialTab) : null;
-  const [tab, setTab] = useState(TABS.some(t => t.key === normalizedInitialTab) ? normalizedInitialTab! : TABS[0].key);
+  const [tab, setTab] = useSyncedTab({
+    tabKeys: TABS.map((entry) => entry.key),
+    defaultTab: 'ops',
+    aliases: TAB_ALIASES,
+  });
   const initialRange = searchParams.get('range');
   const [rangeDays, setRangeDays] = useState<number>(() => {
     const match = RANGE_OPTIONS.find((o) => o.key === initialRange);
@@ -58,21 +61,19 @@ export default function ReportsPageClient() {
   });
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
 
-  const syncUrl = useCallback((next: { tab?: string; rangeDays?: number }) => {
+  const syncRangeUrl = useCallback((nextRangeDays: number) => {
     const sp = new URLSearchParams(searchParams.toString());
-    const nextTab = next.tab ?? tab;
-    const nextRangeDays = next.rangeDays ?? rangeDays;
-    sp.set('tab', nextTab);
     sp.set('range', String(nextRangeDays));
-    router.replace(`${pathname}?${sp.toString()}`);
-  }, [pathname, rangeDays, router, searchParams, tab]);
+    const query = sp.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }, [pathname, router, searchParams]);
 
   useEffect(() => {
-    // On first load, if params are missing, write them once for shareable URLs.
-    if (!searchParams.get('tab') || !searchParams.get('range')) {
-      syncUrl({});
-    }
-  }, [searchParams, syncUrl]);
+    const param = searchParams.get('range');
+    const match = RANGE_OPTIONS.find((option) => option.key === param);
+    if (!match) return;
+    if (match.days !== rangeDays) setRangeDays(match.days);
+  }, [rangeDays, searchParams]);
 
   const fetchSnapshot = useCallback(async () => {
     const supabase = getSupabaseBrowserClient();
@@ -153,7 +154,7 @@ export default function ReportsPageClient() {
                 type="button"
                 onClick={() => {
                   setRangeDays(opt.days);
-                  syncUrl({ rangeDays: opt.days });
+                  syncRangeUrl(opt.days);
                 }}
                 className={cn(
                   'inline-flex items-center rounded-full px-3 py-1 text-xs font-medium transition-colors',
@@ -213,10 +214,7 @@ export default function ReportsPageClient() {
       <ChipTabs
         tabs={TABS}
         active={tab}
-        onChange={(next) => {
-          setTab(next);
-          syncUrl({ tab: next });
-        }}
+        onChange={setTab}
       />
 
       {tab === 'ops' && <OpsDashboard rangeDays={rangeDays} refreshKey={refreshKey} />}

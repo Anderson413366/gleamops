@@ -214,7 +214,12 @@ export default function EquipmentDetailPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           {equipment.photo_url ? (
-            <img src={equipment.photo_url} alt={`${equipment.name || equipment.equipment_code} photo`} className="h-16 w-16 rounded-full border border-border object-cover" />
+            <div
+              role="img"
+              aria-label={`${equipment.name || equipment.equipment_code} photo`}
+              className="h-16 w-16 rounded-full border border-border bg-cover bg-center"
+              style={{ backgroundImage: `url(${equipment.photo_url})` }}
+            />
           ) : (
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-xl font-bold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
               <Wrench className="h-8 w-8" />
@@ -283,7 +288,12 @@ export default function EquipmentDetailPage() {
         </div>
         <div className="mt-4 flex min-h-40 items-center justify-center rounded-lg border border-dashed border-border bg-muted/20">
           {equipment.photo_url ? (
-            <img src={equipment.photo_url} alt={`${equipment.name || equipment.equipment_code} detail`} className="max-h-40 w-auto rounded-md object-contain" />
+            <div
+              role="img"
+              aria-label={`${equipment.name || equipment.equipment_code} detail`}
+              className="h-40 w-full rounded-md bg-contain bg-center bg-no-repeat"
+              style={{ backgroundImage: `url(${equipment.photo_url})` }}
+            />
           ) : (
             <div className="text-center">
               <Wrench className="mx-auto h-8 w-8 text-muted-foreground" />

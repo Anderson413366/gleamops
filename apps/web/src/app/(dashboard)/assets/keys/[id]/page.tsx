@@ -19,6 +19,7 @@ import { KeyForm } from '@/components/forms/key-form';
 import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
 import { toast } from 'sonner';
+import { EntityLink } from '@/components/links/entity-link';
 
 interface KeyWithRelations extends KeyInventory {
   site?: { name: string; site_code: string } | null;
@@ -259,22 +260,48 @@ export default function KeyDetailPage() {
           <dl className="space-y-3 text-sm">
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Site</dt>
-              <dd className="font-medium">{key.site?.name ?? '\u2014'}</dd>
+              <dd className="font-medium">
+                {key.site?.site_code
+                  ? (
+                    <EntityLink
+                      entityType="site"
+                      code={key.site.site_code}
+                      name={key.site.name ?? key.site.site_code}
+                      showCode={false}
+                    />
+                  )
+                  : '\u2014'}
+              </dd>
             </div>
             {key.site?.site_code && (
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Site Code</dt>
-                <dd className="font-medium font-mono text-xs">{key.site.site_code}</dd>
+                <dd className="font-medium font-mono text-xs">
+                  <EntityLink entityType="site" code={key.site.site_code} name={key.site.site_code} showCode={false} />
+                </dd>
               </div>
             )}
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Assigned To</dt>
-              <dd className="font-medium">{key.assigned?.full_name ?? '\u2014'}</dd>
+              <dd className="font-medium">
+                {key.assigned?.staff_code
+                  ? (
+                    <EntityLink
+                      entityType="staff"
+                      code={key.assigned.staff_code}
+                      name={key.assigned.full_name ?? key.assigned.staff_code}
+                      showCode={false}
+                    />
+                  )
+                  : (key.assigned?.full_name ?? '\u2014')}
+              </dd>
             </div>
             {key.assigned?.staff_code && (
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Staff Code</dt>
-                <dd className="font-medium font-mono text-xs">{key.assigned.staff_code}</dd>
+                <dd className="font-medium font-mono text-xs">
+                  <EntityLink entityType="staff" code={key.assigned.staff_code} name={key.assigned.staff_code} showCode={false} />
+                </dd>
               </div>
             )}
           </dl>

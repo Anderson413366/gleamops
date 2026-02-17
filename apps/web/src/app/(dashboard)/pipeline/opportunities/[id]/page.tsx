@@ -263,13 +263,27 @@ export default function OpportunityDetailPage() {
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Prospect</dt>
               <dd className="font-medium">
-                {opportunity.prospect ? `${opportunity.prospect.company_name} (${opportunity.prospect.prospect_code})` : '\u2014'}
+                {opportunity.prospect ? (
+                  <Link
+                    href={`/pipeline/prospects/${encodeURIComponent(opportunity.prospect.prospect_code)}`}
+                    className="text-blue-600 hover:text-blue-800 hover:underline"
+                  >
+                    {opportunity.prospect.company_name} ({opportunity.prospect.prospect_code})
+                  </Link>
+                ) : '\u2014'}
               </dd>
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Client</dt>
               <dd className="font-medium">
-                {opportunity.client ? `${opportunity.client.name} (${opportunity.client.client_code})` : '\u2014'}
+                {opportunity.client ? (
+                  <Link
+                    href={`/crm/clients/${encodeURIComponent(opportunity.client.client_code)}`}
+                    className="text-blue-600 hover:text-blue-800 hover:underline"
+                  >
+                    {opportunity.client.name} ({opportunity.client.client_code})
+                  </Link>
+                ) : '\u2014'}
               </dd>
             </div>
             <div className="flex justify-between gap-4">
@@ -316,7 +330,14 @@ export default function OpportunityDetailPage() {
               <li key={bid.id} className="py-3">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="font-medium text-sm text-foreground">{bid.bid_code}</p>
+                    <p className="font-medium text-sm">
+                      <Link
+                        href={`/pipeline/bids/${encodeURIComponent(bid.bid_code)}`}
+                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        {bid.bid_code}
+                      </Link>
+                    </p>
                     <p className="text-xs text-muted-foreground">
                       Created {formatDate(bid.created_at)}
                       {bid.total_sqft ? ` \u2022 ${new Intl.NumberFormat('en-US').format(bid.total_sqft)} sqft` : ''}
@@ -376,4 +397,3 @@ export default function OpportunityDetailPage() {
     </div>
   );
 }
-

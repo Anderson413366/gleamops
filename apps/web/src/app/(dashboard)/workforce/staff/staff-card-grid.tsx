@@ -1,56 +1,40 @@
 'use client';
-
-/* eslint-disable @next/next/no-img-element */
-
-import { User } from 'lucide-react';
-import { Badge } from '@gleamops/ui';
 import type { Staff } from '@gleamops/shared';
-
-const ROLE_COLORS: Record<string, 'purple' | 'blue' | 'green' | 'orange' | 'yellow' | 'gray'> = {
-  OWNER_ADMIN: 'purple',
-  MANAGER: 'blue',
-  SUPERVISOR: 'green',
-  INSPECTOR: 'orange',
-  SALES: 'yellow',
-  CLEANER: 'gray',
-};
+import { EntityCard, getEntityInitials } from '@/components/directory/entity-card';
 
 interface StaffCardGridProps {
   rows: Staff[];
   onSelect: (item: Staff) => void;
+  activeJobsByStaff?: Record<string, number>;
 }
 
-export function StaffCardGrid({ rows, onSelect }: StaffCardGridProps) {
+function statusVisual(status: string | null | undefined): { tone: 'green' | 'gray' | 'yellow' | 'red' | 'blue'; label: string } {
+  const normalized = (status ?? '').toUpperCase();
+  if (normalized === 'ACTIVE') return { tone: 'green', label: 'Active' };
+  if (normalized === 'ON_LEAVE') return { tone: 'yellow', label: 'On Leave' };
+  if (normalized === 'TERMINATED') return { tone: 'red', label: 'Terminated' };
+  if (normalized === 'INACTIVE') return { tone: 'gray', label: 'Inactive' };
+  return { tone: 'gray', label: normalized || 'Unknown' };
+}
+
+export function StaffCardGrid({ rows, onSelect, activeJobsByStaff }: StaffCardGridProps) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
       {rows.map((item) => (
-        <div
+        <EntityCard
           key={item.id}
           onClick={() => onSelect(item)}
-          className="rounded-xl border border-border bg-card shadow-sm cursor-pointer transition-all duration-150 hover:border-blue-200 hover:shadow-md dark:hover:border-blue-800 flex flex-col items-center p-6 text-center"
-        >
-          {item.photo_url ? (
-            <img
-              src={item.photo_url}
-              alt={item.full_name}
-              className="h-20 w-20 rounded-full object-cover"
-            />
-          ) : (
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-blue-100 text-2xl font-bold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-              <User className="h-8 w-8" />
-            </div>
-          )}
-          <p className="mt-3 text-sm font-semibold text-foreground leading-tight">{item.full_name}</p>
-          <p className="mt-1 text-xs text-muted-foreground">{item.staff_code}</p>
-          <div className="mt-3 flex flex-wrap justify-center gap-1.5">
-            <Badge color={ROLE_COLORS[item.role] ?? 'gray'}>
-              {item.role.replace(/_/g, ' ')}
-            </Badge>
-          </div>
-          {item.email && (
-            <p className="mt-2 text-xs text-muted-foreground truncate max-w-full">{item.email}</p>
-          )}
-        </div>
+          initials={getEntityInitials(item.full_name)}
+          initialsSeed={item.staff_code}
+          name={item.full_name}
+          subtitle={item.role.replace(/_/g, ' ')}
+          secondaryLine={item.employment_type ?? 'Not Set'}
+          statusLabel={statusVisual(item.staff_status).label}
+          statusTone={statusVisual(item.staff_status).tone}
+          metricsLine={`${activeJobsByStaff?.[item.id] ?? 0} active job${(activeJobsByStaff?.[item.id] ?? 0) === 1 ? '' : 's'}`}
+          code={item.staff_code}
+          imageUrl={item.photo_url}
+        />
       ))}
     </div>
   );

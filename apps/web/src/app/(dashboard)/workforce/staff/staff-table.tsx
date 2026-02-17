@@ -258,7 +258,7 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
             )}
           </EmptyState>
         ) : (
-          <StaffCardGrid rows={pag.page} onSelect={handleRowClick} />
+          <StaffCardGrid rows={pag.page} onSelect={handleRowClick} activeJobsByStaff={activeJobsByStaff} />
         )
       ) : (
         <>

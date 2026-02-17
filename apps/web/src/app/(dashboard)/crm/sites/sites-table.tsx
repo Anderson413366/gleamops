@@ -13,7 +13,7 @@ import type { Site } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 import { useViewPreference } from '@/hooks/use-view-preference';
-import { SitesCardGrid } from './sites-card-grid';
+import { SitesCardGrid, type SiteCardMeta } from './sites-card-grid';
 import { SiteForm } from '@/components/forms/site-form';
 import { EntityLink } from '@/components/links/entity-link';
 
@@ -137,6 +137,18 @@ export default function SitesTable({ search }: SitesTableProps) {
     return result;
   }, [rows, clientFilterCode, search, statusFilter]);
 
+  const cardMetaBySiteId = useMemo(() => {
+    const nextMeta: Record<string, SiteCardMeta> = {};
+    for (const row of rows) {
+      nextMeta[row.id] = {
+        activeJobs: activeJobsBySite[row.id] ?? 0,
+        monthlyRevenue: monthlyRevenueBySite[row.id] ?? 0,
+        clientName: row.client?.name ?? null,
+      };
+    }
+    return nextMeta;
+  }, [activeJobsBySite, monthlyRevenueBySite, rows]);
+
   const { sorted, sortKey, sortDir, onSort } = useTableSort(
     filtered as unknown as Record<string, unknown>[], 'name', 'asc'
   );
@@ -249,7 +261,7 @@ export default function SitesTable({ search }: SitesTableProps) {
             )}
           </EmptyState>
         ) : (
-          <SitesCardGrid rows={pag.page} onSelect={handleRowClick} />
+          <SitesCardGrid rows={pag.page} onSelect={handleRowClick} metaBySiteId={cardMetaBySiteId} />
         )
       ) : (
         <>

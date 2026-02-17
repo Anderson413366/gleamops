@@ -82,6 +82,15 @@ interface JobTaskRow {
   status: string | null;
 }
 
+interface JobStaffAssignmentRow {
+  id: string;
+  job_id: string;
+  staff?: {
+    full_name: string;
+    staff_code: string;
+  } | null;
+}
+
 interface SiteSupplyRow {
   id: string;
   name: string;
@@ -250,6 +259,7 @@ export default function SiteDetailPage() {
   const [relatedJobs, setRelatedJobs] = useState<RelatedSiteJobRow[]>([]);
   const [relatedEquipment, setRelatedEquipment] = useState<RelatedEquipmentRow[]>([]);
   const [jobTasksByJob, setJobTasksByJob] = useState<Record<string, JobTaskRow[]>>({});
+  const [jobStaffByJob, setJobStaffByJob] = useState<Record<string, JobStaffAssignmentRow[]>>({});
   const [expandedJobs, setExpandedJobs] = useState<string[]>([]);
   const [siteSupplies, setSiteSupplies] = useState<SiteSupplyRow[]>([]);
   const [supplyCategoryFilter, setSupplyCategoryFilter] = useState('all');
@@ -373,21 +383,36 @@ export default function SiteDetailPage() {
 
       if (jobs.length > 0) {
         const jobIds = jobs.map((job) => job.id);
-        const { data: taskRows } = await supabase
-          .from('job_tasks')
-          .select('id, job_id, task_name, task_code, planned_minutes, status')
-          .in('job_id', jobIds)
-          .is('archived_at', null)
-          .order('task_name');
+        const [taskRowsRes, assignmentRowsRes] = await Promise.all([
+          supabase
+            .from('job_tasks')
+            .select('id, job_id, task_name, task_code, planned_minutes, status')
+            .in('job_id', jobIds)
+            .is('archived_at', null)
+            .order('task_name'),
+          supabase
+            .from('job_staff_assignments')
+            .select('id, job_id, staff:staff_id(full_name, staff_code)')
+            .in('job_id', jobIds)
+            .is('archived_at', null),
+        ]);
 
         const groupedTasks: Record<string, JobTaskRow[]> = {};
-        for (const task of (taskRows ?? []) as unknown as JobTaskRow[]) {
+        for (const task of (taskRowsRes.data ?? []) as unknown as JobTaskRow[]) {
           if (!groupedTasks[task.job_id]) groupedTasks[task.job_id] = [];
           groupedTasks[task.job_id].push(task);
         }
         setJobTasksByJob(groupedTasks);
+
+        const groupedStaff: Record<string, JobStaffAssignmentRow[]> = {};
+        for (const assignment of (assignmentRowsRes.data ?? []) as unknown as JobStaffAssignmentRow[]) {
+          if (!groupedStaff[assignment.job_id]) groupedStaff[assignment.job_id] = [];
+          groupedStaff[assignment.job_id].push(assignment);
+        }
+        setJobStaffByJob(groupedStaff);
       } else {
         setJobTasksByJob({});
+        setJobStaffByJob({});
       }
     } else {
       setRelatedJobs([]);
@@ -398,6 +423,7 @@ export default function SiteDetailPage() {
       setSupplyLookupByName({});
       setLatestCountQtyBySupplyId({});
       setJobTasksByJob({});
+      setJobStaffByJob({});
     }
     setLoading(false);
   };
@@ -1005,6 +1031,7 @@ export default function SiteDetailPage() {
           <div className="mt-4 space-y-3">
             {relatedJobs.map((job) => {
               const tasks = jobTasksByJob[job.id] ?? [];
+              const jobStaff = jobStaffByJob[job.id] ?? [];
               const isExpanded = expandedJobs.includes(job.id);
               return (
                 <div key={job.id} className="rounded-lg border border-border bg-muted/10 p-4">
@@ -1021,7 +1048,29 @@ export default function SiteDetailPage() {
                         {formatCurrency(job.billing_amount)}/mo
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Assigned to: {job.job_assigned_to || 'Not Set'} · Schedule: {job.schedule_days || 'Days not set'} · {formatTime(job.start_time)} - {formatTime(job.end_time)}
+                        {jobStaff.length > 0 ? (
+                          <span>
+                            Assigned staff:{' '}
+                            {jobStaff.map((assignment, index) => (
+                              <span key={assignment.id}>
+                                {index > 0 ? ', ' : null}
+                                {assignment.staff?.staff_code ? (
+                                  <EntityLink
+                                    entityType="staff"
+                                    code={assignment.staff.staff_code}
+                                    name={assignment.staff.full_name}
+                                    showCode={false}
+                                  />
+                                ) : (
+                                  assignment.staff?.full_name ?? 'Unknown'
+                                )}
+                              </span>
+                            ))}
+                          </span>
+                        ) : (
+                          <span>Assigned to: {job.job_assigned_to || 'Not Set'}</span>
+                        )}
+                        {' · '}Schedule: {job.schedule_days || 'Days not set'} · {formatTime(job.start_time)} - {formatTime(job.end_time)}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">

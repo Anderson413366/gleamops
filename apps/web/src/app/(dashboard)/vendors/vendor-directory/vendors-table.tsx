@@ -261,45 +261,19 @@ export default function VendorsTable({ search, formOpen, onFormClose, onRefresh 
 
   if (loading) return <TableSkeleton rows={8} cols={6} />;
 
-  if (filtered.length === 0) {
-    return (
-      <>
-        <div className="space-y-4">
-          <EmptyState
-            icon={<Store className="h-12 w-12" />}
-            title="No supply vendors yet"
-            description={search ? 'Try a different search term.' : 'Add your first supply vendor profile to start centralizing purchasing details.'}
-          />
-          {!search && (
-            <div className="flex justify-center">
-              <Button
-                onClick={() => {
-                  setEditProfile(null);
-                  setVendorFormOpen(true);
-                }}
-              >
-                <CirclePlus className="h-4 w-4" />
-                New Supply Vendor
-              </Button>
-            </div>
-          )}
-        </div>
-        <SupplyVendorForm
-          open={vendorFormOpen}
-          onClose={() => setVendorFormOpen(false)}
-          initialData={editProfile}
-          onSuccess={() => {
-            setVendorFormOpen(false);
-            fetchData();
-            onRefresh?.();
-          }}
-        />
-      </>
-    );
-  }
-
   return (
     <div>
+      <div className="mb-4 flex justify-end">
+        <Button
+          onClick={() => {
+            setEditProfile(null);
+            setVendorFormOpen(true);
+          }}
+        >
+          <CirclePlus className="h-4 w-4" />
+          New Supply Vendor
+        </Button>
+      </div>
       <Table>
         <TableHeader>
           <tr>
@@ -379,16 +353,28 @@ export default function VendorsTable({ search, formOpen, onFormClose, onRefresh 
         </TableBody>
       </Table>
 
-      <Pagination
-        currentPage={pag.currentPage}
-        totalPages={pag.totalPages}
-        totalItems={pag.totalItems}
-        pageSize={pag.pageSize}
-        hasNext={pag.hasNext}
-        hasPrev={pag.hasPrev}
-        onNext={pag.nextPage}
-        onPrev={pag.prevPage}
-      />
+      {filtered.length === 0 && (
+        <div className="mt-4">
+          <EmptyState
+            icon={<Store className="h-12 w-12" />}
+            title="No supply vendors yet"
+            description={search ? 'Try a different search term.' : 'Add your first supply vendor profile to start centralizing purchasing details.'}
+          />
+        </div>
+      )}
+
+      {filtered.length > 0 && (
+        <Pagination
+          currentPage={pag.currentPage}
+          totalPages={pag.totalPages}
+          totalItems={pag.totalItems}
+          pageSize={pag.pageSize}
+          hasNext={pag.hasNext}
+          hasPrev={pag.hasPrev}
+          onNext={pag.nextPage}
+          onPrev={pag.prevPage}
+        />
+      )}
 
       <SupplyVendorForm
         open={vendorFormOpen}

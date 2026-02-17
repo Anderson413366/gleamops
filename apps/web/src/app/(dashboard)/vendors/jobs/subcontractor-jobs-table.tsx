@@ -70,30 +70,6 @@ export default function SubcontractorJobsTable({ search }: Props) {
 
   if (loading) return <TableSkeleton rows={6} cols={7} />;
 
-  if (filtered.length === 0) {
-    return (
-      <div className="space-y-4">
-        <div className="flex justify-end">
-          <Button onClick={() => { setEditItem(null); setFormOpen(true); }}>
-            <Plus className="h-4 w-4" />
-            Assign Job
-          </Button>
-        </div>
-        <EmptyState
-          icon={<Briefcase className="h-12 w-12" />}
-          title="No subcontractor jobs"
-          description="Assign jobs to subcontractors to see them here."
-        />
-        <SubcontractorJobForm
-          open={formOpen}
-          onClose={() => { setFormOpen(false); setEditItem(null); }}
-          initialData={editItem}
-          onSuccess={fetchData}
-        />
-      </div>
-    );
-  }
-
   return (
     <div>
       <div className="flex justify-end mb-4">
@@ -155,6 +131,15 @@ export default function SubcontractorJobsTable({ search }: Props) {
           ))}
         </TableBody>
       </Table>
+      {filtered.length === 0 && (
+        <div className="mt-4">
+          <EmptyState
+            icon={<Briefcase className="h-12 w-12" />}
+            title="No subcontractor jobs"
+            description={search ? 'Try a different search term.' : 'Assign jobs to subcontractors to see them here.'}
+          />
+        </div>
+      )}
       <Pagination
         currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
         pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}

@@ -2,12 +2,12 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Handshake, Sparkles } from 'lucide-react';
+import { Handshake, Sparkles, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Pagination, TableSkeleton, ExportButton, StatusDot, statusRowAccentClass, cn, ViewToggle,
+  EmptyState, Pagination, TableSkeleton, ExportButton, StatusDot, statusRowAccentClass, cn, ViewToggle, Button,
 } from '@gleamops/ui';
 import type { SalesProspect } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
@@ -113,20 +113,25 @@ export default function ProspectsTable({ search }: ProspectsTableProps) {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-end gap-3">
-        <ViewToggle view={view} onChange={setView} />
-        <ExportButton
-          data={filtered as unknown as Record<string, unknown>[]}
-          filename="prospects"
-          columns={[
-            { key: 'prospect_code', label: 'Code' },
-            { key: 'company_name', label: 'Company' },
-            { key: 'prospect_status_code', label: 'Status' },
-            { key: 'source', label: 'Source' },
-            { key: 'created_at', label: 'Created' },
-          ]}
-          onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
-        />
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <Button size="sm" onClick={handleAdd}>
+          <Plus className="h-4 w-4" /> New Prospect
+        </Button>
+        <div className="flex items-center gap-3">
+          <ViewToggle view={view} onChange={setView} />
+          <ExportButton
+            data={filtered as unknown as Record<string, unknown>[]}
+            filename="prospects"
+            columns={[
+              { key: 'prospect_code', label: 'Code' },
+              { key: 'company_name', label: 'Company' },
+              { key: 'prospect_status_code', label: 'Status' },
+              { key: 'source', label: 'Source' },
+              { key: 'created_at', label: 'Created' },
+            ]}
+            onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
+          />
+        </div>
       </div>
       <div className="mb-4 flex flex-wrap gap-2">
         {statusOptions.map((status) => (

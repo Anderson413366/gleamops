@@ -2,7 +2,16 @@
 
 import Link from 'next/link';
 
-type EntityType = 'client' | 'site' | 'job' | 'staff' | 'equipment' | 'subcontractor' | 'supply';
+type EntityType =
+  | 'client'
+  | 'site'
+  | 'job'
+  | 'staff'
+  | 'equipment'
+  | 'subcontractor'
+  | 'supply'
+  | 'prospect'
+  | 'opportunity';
 
 interface EntityLinkProps {
   entityType: EntityType;
@@ -21,6 +30,8 @@ const ROUTE_PREFIX: Record<EntityType, string> = {
   equipment: '/assets/equipment',
   subcontractor: '/vendors/subcontractors',
   supply: '/inventory/supplies',
+  prospect: '/pipeline/prospects',
+  opportunity: '/pipeline/opportunities',
 };
 
 export function EntityLink({
@@ -58,4 +69,3 @@ export function EntityLink({
     </Link>
   );
 }
-

@@ -17,6 +17,7 @@ import { OpportunityForm } from '@/components/forms/opportunity-form';
 import { PipelineFlowHint } from '@/components/empty-states/pipeline-flow-hint';
 import { useViewPreference } from '@/hooks/use-view-preference';
 import { OpportunitiesCardGrid } from './opportunities-card-grid';
+import { EntityLink } from '@/components/links/entity-link';
 
 interface OpportunityWithProspect extends SalesOpportunity {
   prospect?: { company_name: string; prospect_code: string } | null;
@@ -200,7 +201,18 @@ export default function OpportunitiesTable({ search }: OpportunitiesTableProps) 
                 </TableCell>
                 <TableCell className="font-medium">{row.name}</TableCell>
                 <TableCell className="text-muted-foreground">
-                  {row.prospect ? `${row.prospect.company_name}` : '\u2014'}
+                  {row.prospect?.prospect_code ? (
+                    <EntityLink
+                      entityType="prospect"
+                      code={row.prospect.prospect_code}
+                      name={row.prospect.company_name}
+                      showCode={false}
+                      stopPropagation
+                      className="inline-block max-w-[220px] truncate align-middle"
+                    />
+                  ) : (
+                    '\u2014'
+                  )}
                 </TableCell>
                 <TableCell>
                   <Badge color={OPPORTUNITY_STAGE_COLORS[row.stage_code] ?? 'gray'}>

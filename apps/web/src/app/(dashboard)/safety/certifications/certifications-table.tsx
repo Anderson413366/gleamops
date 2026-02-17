@@ -32,7 +32,7 @@ const STATUS_OPTIONS = [
   { value: 'REVOKED', label: 'Revoked' },
   { value: 'PENDING', label: 'Pending' },
 ];
-const FILTER_STATUS_OPTIONS = ['all', 'ACTIVE', 'EXPIRED', 'REVOKED', 'PENDING'] as const;
+const FILTER_STATUS_OPTIONS = ['ACTIVE', 'EXPIRED', 'REVOKED', 'PENDING', 'all'] as const;
 
 interface CertificationsTableProps {
   search: string;
@@ -47,7 +47,7 @@ interface CertRow extends StaffCertification {
 export default function CertificationsTable({ search, autoCreate, onAutoCreateHandled }: CertificationsTableProps) {
   const [rows, setRows] = useState<CertRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('ACTIVE');
 
   // SlideOver form state
   const [formOpen, setFormOpen] = useState(false);

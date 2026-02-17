@@ -39,14 +39,14 @@ interface Props {
   onRefresh?: () => void;
 }
 
-const STATUS_OPTIONS = ['all', 'GOOD', 'FAIR', 'POOR', 'OUT_OF_SERVICE'] as const;
+const STATUS_OPTIONS = ['GOOD', 'FAIR', 'POOR', 'OUT_OF_SERVICE', 'all'] as const;
 
 export default function EquipmentTable({ search, onSelect, formOpen, onFormClose, onRefresh }: Props) {
   const router = useRouter();
   const [rows, setRows] = useState<EquipmentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('GOOD');
   const { view, setView } = useViewPreference('equipment');
 
   const fetchData = useCallback(async () => {

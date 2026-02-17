@@ -32,7 +32,6 @@ interface ProposalsTableProps {
 }
 
 const STATUS_OPTIONS = [
-  'all',
   'DRAFT',
   'GENERATED',
   'SENT',
@@ -41,12 +40,13 @@ const STATUS_OPTIONS = [
   'WON',
   'LOST',
   'EXPIRED',
+  'all',
 ] as const;
 
 export default function ProposalsTable({ search, onSelect, onGoToBids }: ProposalsTableProps) {
   const [rows, setRows] = useState<ProposalWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('DRAFT');
 
   const fetchData = useCallback(async () => {
     setLoading(true);

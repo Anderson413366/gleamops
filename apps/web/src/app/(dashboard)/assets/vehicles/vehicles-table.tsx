@@ -28,13 +28,13 @@ interface VehiclesTableProps {
   onRefresh?: () => void;
 }
 
-const STATUS_OPTIONS = ['all', 'ACTIVE', 'IN_SHOP', 'RETIRED'] as const;
+const STATUS_OPTIONS = ['ACTIVE', 'IN_SHOP', 'RETIRED', 'all'] as const;
 
 export default function VehiclesTable({ search, formOpen, onFormClose, onRefresh }: VehiclesTableProps) {
   const [rows, setRows] = useState<VehicleWithAssigned[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('ACTIVE');
   const { view, setView } = useViewPreference('vehicles');
   const router = useRouter();
 

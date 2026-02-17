@@ -27,13 +27,13 @@ interface KeysTableProps {
   onRefresh?: () => void;
 }
 
-const STATUS_OPTIONS = ['all', 'AVAILABLE', 'ASSIGNED', 'LOST', 'RETURNED'] as const;
+const STATUS_OPTIONS = ['AVAILABLE', 'ASSIGNED', 'LOST', 'RETURNED', 'all'] as const;
 
 export default function KeysTable({ search, formOpen, onFormClose, onRefresh }: KeysTableProps) {
   const [rows, setRows] = useState<KeyWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('AVAILABLE');
   const router = useRouter();
 
   const supabase = getSupabaseBrowserClient();

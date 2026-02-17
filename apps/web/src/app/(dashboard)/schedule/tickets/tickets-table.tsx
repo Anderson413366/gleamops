@@ -24,13 +24,13 @@ interface TicketsTableProps {
   search: string;
 }
 
-const STATUS_OPTIONS = ['all', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'VERIFIED', 'CANCELED'] as const;
+const STATUS_OPTIONS = ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'VERIFIED', 'CANCELED', 'all'] as const;
 
 export default function TicketsTable({ search }: TicketsTableProps) {
   const router = useRouter();
   const [rows, setRows] = useState<TicketWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('SCHEDULED');
 
   const handleRowClick = useCallback((row: TicketWithRelations) => {
     // TODO: Create dedicated detail page route at /operations/tickets/[ticket_code].

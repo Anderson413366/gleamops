@@ -28,7 +28,6 @@ interface OpportunitiesTableProps {
 }
 
 const STATUS_OPTIONS = [
-  'all',
   'QUALIFIED',
   'WALKTHROUGH_SCHEDULED',
   'WALKTHROUGH_COMPLETE',
@@ -37,6 +36,7 @@ const STATUS_OPTIONS = [
   'NEGOTIATION',
   'WON',
   'LOST',
+  'all',
 ] as const;
 
 function formatCurrency(n: number | null) {
@@ -54,7 +54,7 @@ export default function OpportunitiesTable({ search }: OpportunitiesTableProps) 
   const [rows, setRows] = useState<OpportunityWithProspect[]>([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('QUALIFIED');
   const { view, setView } = useViewPreference('opportunities');
 
   const fetchData = useCallback(async () => {

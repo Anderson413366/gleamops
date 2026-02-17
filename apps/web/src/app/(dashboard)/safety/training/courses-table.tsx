@@ -30,14 +30,14 @@ interface CoursesTableProps {
   onRefresh?: () => void;
 }
 
-const STATUS_OPTIONS = ['all', 'REQUIRED', 'OPTIONAL'] as const;
+const STATUS_OPTIONS = ['REQUIRED', 'OPTIONAL', 'all'] as const;
 
 export default function CoursesTable({ search, formOpen, onFormClose, onRefresh }: CoursesTableProps) {
   const [rows, setRows] = useState<TrainingCourse[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [editItem, setEditItem] = useState<TrainingCourse | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('REQUIRED');
 
   const fetchData = useCallback(async () => {
     setLoading(true);

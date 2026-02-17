@@ -26,12 +26,12 @@ interface InspectionsTableProps {
   onCreateNew?: () => void;
 }
 
-const STATUS_OPTIONS = ['all', 'DRAFT', 'IN_PROGRESS', 'COMPLETED', 'SUBMITTED'] as const;
+const STATUS_OPTIONS = ['DRAFT', 'IN_PROGRESS', 'COMPLETED', 'SUBMITTED', 'all'] as const;
 
 export default function InspectionsTable({ search, onSelect, onCreateNew }: InspectionsTableProps) {
   const [rows, setRows] = useState<InspectionWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('DRAFT');
 
   const fetchData = useCallback(async () => {
     setLoading(true);

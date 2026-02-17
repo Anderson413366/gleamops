@@ -73,6 +73,7 @@ const COLUMN_ALIASES: Record<string, string[]> = {
 };
 
 type LiveSchema = Map<string, Set<string>>;
+type AuditMode = 'information_schema' | 'supabase_linked_dump' | 'migration_fallback';
 
 function loadCatalog(path: string): RequirementCatalog {
   const raw = readFileSync(path, 'utf-8');
@@ -136,10 +137,85 @@ function resolveFieldCandidates(field: string): string[] {
   return Array.from(candidates);
 }
 
-function loadLiveSchema(): { schema: LiveSchema; mode: 'information_schema' | 'migration_fallback' } {
+function applySqlToSchema(schema: LiveSchema, content: string): void {
+  const createTableRe = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:(?:public|"public")\.)?("?[a-zA-Z0-9_]+"?)\s*\(([\s\S]*?)\);/gi;
+  let createMatch: RegExpExecArray | null;
+  while ((createMatch = createTableRe.exec(content)) !== null) {
+    const table = createMatch[1].replace(/"/g, '');
+    const body = createMatch[2];
+    if (!schema.has(table)) schema.set(table, new Set());
+
+    const columnRe = /^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s+/gm;
+    let colMatch: RegExpExecArray | null;
+    while ((colMatch = columnRe.exec(body)) !== null) {
+      const col = colMatch[1];
+      const upper = col.toUpperCase();
+      if (['CONSTRAINT', 'PRIMARY', 'UNIQUE', 'FOREIGN', 'CHECK'].includes(upper)) continue;
+      schema.get(table)!.add(col);
+    }
+  }
+
+  const alterRe = /ALTER\s+TABLE\s+(?:ONLY\s+)?(?:IF\s+EXISTS\s+)?(?:(?:public|"public")\.)?("?[a-zA-Z0-9_]+"?)\s+ADD\s+COLUMN\s+IF\s+NOT\s+EXISTS\s+("?[a-zA-Z0-9_]+"?)/gi;
+  let alterMatch: RegExpExecArray | null;
+  while ((alterMatch = alterRe.exec(content)) !== null) {
+    const table = alterMatch[1].replace(/"/g, '');
+    const col = alterMatch[2].replace(/"/g, '');
+    if (!schema.has(table)) schema.set(table, new Set());
+    schema.get(table)!.add(col);
+  }
+
+  const viewRe = /CREATE\s+OR\s+REPLACE\s+VIEW\s+(?:(?:public|"public")\.)?("?[a-zA-Z0-9_]+"?)\s+AS\s+SELECT\s+([\s\S]*?);/gi;
+  let viewMatch: RegExpExecArray | null;
+  while ((viewMatch = viewRe.exec(content)) !== null) {
+    const view = viewMatch[1].replace(/"/g, '');
+    const selectBlock = viewMatch[2].split(/\bFROM\b/i)[0] ?? viewMatch[2];
+    if (!schema.has(view)) schema.set(view, new Set());
+
+    for (const rawItem of selectBlock.split(',')) {
+      const item = rawItem.trim().replace(/\s+/g, ' ');
+      if (!item) continue;
+
+      const asMatch = item.match(/\s+AS\s+([a-zA-Z_][a-zA-Z0-9_]*)$/i);
+      if (asMatch) {
+        schema.get(view)!.add(asMatch[1]);
+        continue;
+      }
+
+      const bareMatch = item.match(/([a-zA-Z_][a-zA-Z0-9_]*)$/);
+      if (bareMatch) {
+        schema.get(view)!.add(bareMatch[1]);
+      }
+    }
+  }
+}
+
+function loadSchemaFromLinkedDump(): LiveSchema {
+  const schema: LiveSchema = new Map();
+  const dumpPath = resolve(ROOT, 'reports', 'schema-parity', '.linked-public-schema.sql');
+
+  execSync(`supabase db dump --linked --schema public --file "${dumpPath}" --yes`, {
+    cwd: ROOT,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    encoding: 'utf-8',
+  });
+
+  const content = readFileSync(dumpPath, 'utf-8');
+  applySqlToSchema(schema, content);
+  return schema;
+}
+
+function loadLiveSchema(): { schema: LiveSchema; mode: AuditMode } {
   const dbUrl = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL;
-  if (!dbUrl) {
+  const linkedRequested =
+    process.env.SUPABASE_LINKED === '1'
+    || (dbUrl != null && /^(linked|supabase-linked)$/i.test(dbUrl.trim()));
+
+  if (!dbUrl && !linkedRequested) {
     return { schema: loadSchemaFromMigrations(), mode: 'migration_fallback' };
+  }
+
+  if (linkedRequested) {
+    return { schema: loadSchemaFromLinkedDump(), mode: 'supabase_linked_dump' };
   }
 
   const sql = `
@@ -186,56 +262,7 @@ function loadSchemaFromMigrations(): LiveSchema {
 
   for (const file of files) {
     const content = readFileSync(resolve(migrationsDir, file), 'utf-8');
-
-    const createTableRe = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:public\.)?([a-zA-Z0-9_"]+)\s*\(([\s\S]*?)\);/gi;
-    let createMatch: RegExpExecArray | null;
-    while ((createMatch = createTableRe.exec(content)) !== null) {
-      const table = createMatch[1].replace(/"/g, '');
-      const body = createMatch[2];
-      if (!schema.has(table)) schema.set(table, new Set());
-
-      const columnRe = /^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s+/gm;
-      let colMatch: RegExpExecArray | null;
-      while ((colMatch = columnRe.exec(body)) !== null) {
-        const col = colMatch[1];
-        const upper = col.toUpperCase();
-        if (['CONSTRAINT', 'PRIMARY', 'UNIQUE', 'FOREIGN', 'CHECK'].includes(upper)) continue;
-        schema.get(table)!.add(col);
-      }
-    }
-
-    const alterRe = /ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?(?:public\.)?([a-zA-Z0-9_"]+)\s+ADD\s+COLUMN\s+IF\s+NOT\s+EXISTS\s+([a-zA-Z0-9_"]+)/gi;
-    let alterMatch: RegExpExecArray | null;
-    while ((alterMatch = alterRe.exec(content)) !== null) {
-      const table = alterMatch[1].replace(/"/g, '');
-      const col = alterMatch[2].replace(/"/g, '');
-      if (!schema.has(table)) schema.set(table, new Set());
-      schema.get(table)!.add(col);
-    }
-
-    const viewRe = /CREATE\s+OR\s+REPLACE\s+VIEW\s+([a-zA-Z0-9_"]+)\s+AS\s+SELECT\s+([\s\S]*?);/gi;
-    let viewMatch: RegExpExecArray | null;
-    while ((viewMatch = viewRe.exec(content)) !== null) {
-      const view = viewMatch[1].replace(/"/g, '');
-      const selectBlock = viewMatch[2].split(/\bFROM\b/i)[0] ?? viewMatch[2];
-      if (!schema.has(view)) schema.set(view, new Set());
-
-      for (const rawItem of selectBlock.split(',')) {
-        const item = rawItem.trim().replace(/\s+/g, ' ');
-        if (!item) continue;
-
-        const asMatch = item.match(/\s+AS\s+([a-zA-Z_][a-zA-Z0-9_]*)$/i);
-        if (asMatch) {
-          schema.get(view)!.add(asMatch[1]);
-          continue;
-        }
-
-        const bareMatch = item.match(/([a-zA-Z_][a-zA-Z0-9_]*)$/);
-        if (bareMatch) {
-          schema.get(view)!.add(bareMatch[1]);
-        }
-      }
-    }
+    applySqlToSchema(schema, content);
   }
 
   return schema;

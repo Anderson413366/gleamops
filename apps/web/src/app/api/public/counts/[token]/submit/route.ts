@@ -69,12 +69,25 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!payload) return json({ error: 'Invalid request body' }, 400);
 
   const supabase = getServiceClient();
-  const { data: countRow, error: countError } = await supabase
+  const { data: tokenCountRow, error: tokenCountError } = await supabase
     .from('inventory_counts')
     .select('id, site_id, count_date, status, tenant_id')
     .eq('public_token', token)
     .is('archived_at', null)
     .maybeSingle();
+  let countRow = tokenCountRow as { id: string; site_id: string | null; count_date: string; status: string; tenant_id: string } | null;
+  let countError = tokenCountError as { message: string } | null;
+
+  if (countError?.message?.toLowerCase().includes('public_token')) {
+    const { data: fallbackRow, error: fallbackError } = await supabase
+      .from('inventory_counts')
+      .select('id, site_id, count_date, status, tenant_id')
+      .eq('count_code', token)
+      .is('archived_at', null)
+      .maybeSingle();
+    countRow = fallbackRow as { id: string; site_id: string | null; count_date: string; status: string; tenant_id: string } | null;
+    countError = fallbackError as { message: string } | null;
+  }
 
   if (countError) return json({ error: countError.message }, 500);
   if (!countRow) return json({ error: 'Count form not found.' }, 404);
@@ -128,15 +141,43 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   const nowIso = new Date().toISOString();
-  const { error: countUpdateError } = await supabase
+  let finalStatus: 'SUBMITTED' | 'COMPLETED' = 'SUBMITTED';
+  let { error: countUpdateError } = await supabase
     .from('inventory_counts')
     .update({
       counted_by_name: payload.countedByName?.trim() || null,
       notes: payload.notes ?? null,
-      status: 'SUBMITTED',
+      status: finalStatus,
       submitted_at: nowIso,
     })
     .eq('id', countRow.id);
+
+  if (
+    countUpdateError?.message?.toLowerCase().includes('counted_by_name')
+    || countUpdateError?.message?.toLowerCase().includes('submitted_at')
+  ) {
+    ({ error: countUpdateError } = await supabase
+      .from('inventory_counts')
+      .update({
+        notes: payload.notes ?? null,
+        status: finalStatus,
+      })
+      .eq('id', countRow.id));
+  }
+
+  if (
+    countUpdateError?.message?.toLowerCase().includes('chk_inventory_counts_status')
+    || countUpdateError?.message?.toLowerCase().includes('violates check constraint')
+  ) {
+    finalStatus = 'COMPLETED';
+    ({ error: countUpdateError } = await supabase
+      .from('inventory_counts')
+      .update({
+        notes: payload.notes ?? null,
+        status: finalStatus,
+      })
+      .eq('id', countRow.id));
+  }
 
   if (countUpdateError) return json({ error: countUpdateError.message }, 500);
 
@@ -152,7 +193,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const nextDue = nextDueDate(countRow.count_date, frequency);
     const statusAlert = buildAlert(nextDue);
 
-    await supabase
+    const { error: siteUpdateError } = await supabase
       .from('sites')
       .update({
         last_count_date: countRow.count_date,
@@ -161,11 +202,20 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       })
       .eq('id', countRow.site_id)
       .is('archived_at', null);
+
+    // Backward compatibility before schedule columns exist.
+    if (siteUpdateError
+      && !siteUpdateError.message.toLowerCase().includes('last_count_date')
+      && !siteUpdateError.message.toLowerCase().includes('next_count_due')
+      && !siteUpdateError.message.toLowerCase().includes('count_status_alert')
+    ) {
+      return json({ error: siteUpdateError.message }, 500);
+    }
   }
 
   return json({
     ok: true,
     submittedAt: nowIso,
-    status: 'SUBMITTED',
+    status: finalStatus,
   });
 }

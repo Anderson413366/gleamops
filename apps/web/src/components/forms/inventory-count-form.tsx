@@ -121,11 +121,12 @@ export function InventoryCountForm({ open, onClose, initialData, initialSiteId, 
       setCreatingCount(true);
       try {
         const token = crypto.randomUUID().replace(/-/g, '');
+        let shareToken = token;
         const selectedSite = siteRows.find((site) => site.id === data.site_id);
         const tenantId = selectedSite?.tenant_id ?? (await supabase.auth.getUser()).data.user?.app_metadata?.tenant_id ?? null;
         if (!tenantId) throw new Error('Unable to determine tenant for this site.');
 
-        const createRes = await supabase
+        let createRes = await supabase
           .from('inventory_counts')
           .insert({
             tenant_id: tenantId,
@@ -140,6 +141,26 @@ export function InventoryCountForm({ open, onClose, initialData, initialSiteId, 
           })
           .select('id, count_code')
           .single();
+
+        if (createRes.error && (
+          createRes.error.message.toLowerCase().includes('public_token')
+          || createRes.error.message.toLowerCase().includes('counted_by_name')
+        )) {
+          shareToken = data.count_code;
+          createRes = await supabase
+            .from('inventory_counts')
+            .insert({
+              tenant_id: tenantId,
+              count_code: data.count_code,
+              site_id: data.site_id,
+              counted_by: data.counted_by,
+              count_date: data.count_date,
+              status: 'DRAFT',
+              notes: data.notes,
+            })
+            .select('id, count_code')
+            .single();
+        }
 
         if (createRes.error) throw createRes.error;
 
@@ -213,7 +234,7 @@ export function InventoryCountForm({ open, onClose, initialData, initialSiteId, 
           if (insertDetailError) throw insertDetailError;
         }
 
-        setCreatedResult({ countCode, token });
+        setCreatedResult({ countCode, token: shareToken });
         toast.success('Count started! You can now fill it out.');
         onSuccess?.();
       } catch (error) {

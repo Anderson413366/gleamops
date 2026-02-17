@@ -53,6 +53,18 @@ export async function GET(request: NextRequest) {
     .order('next_count_due');
 
   if (dueError) {
+    // Backward compatibility before schedule columns exist.
+    if (
+      dueError.message.toLowerCase().includes('next_count_due')
+      || dueError.message.toLowerCase().includes('count_status_alert')
+      || dueError.message.toLowerCase().includes('last_count_date')
+    ) {
+      return NextResponse.json({
+        ok: true,
+        skipped: true,
+        reason: 'Inventory schedule columns not available in this environment yet.',
+      });
+    }
     return NextResponse.json({ error: dueError.message }, { status: 500 });
   }
 
@@ -86,12 +98,14 @@ export async function GET(request: NextRequest) {
   for (const site of sites) {
     const { alert, diffDays } = classify(site.next_count_due, today);
 
-    await supabase
+    const { error: siteAlertError } = await supabase
       .from('sites')
       .update({ count_status_alert: alert })
       .eq('id', site.id)
       .is('archived_at', null);
-    siteAlertsUpdated += 1;
+    if (!siteAlertError) {
+      siteAlertsUpdated += 1;
+    }
 
     const is7DayReminder = site.next_count_due === dueIn7Key;
     const isDueToday = site.next_count_due === todayKey;

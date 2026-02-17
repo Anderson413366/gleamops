@@ -19,7 +19,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   if (!token) return json({ error: 'Missing token' }, 400);
 
   const supabase = getServiceClient();
-  const { data: countRow, error: countError } = await supabase
+  const { data: tokenCountRow, error: tokenCountError } = await supabase
     .from('inventory_counts')
     .select(`
       id,
@@ -38,6 +38,34 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     .eq('public_token', token)
     .is('archived_at', null)
     .maybeSingle();
+  let countRow = tokenCountRow as (Record<string, unknown> | null);
+  let countError = tokenCountError as ({ message: string } | null);
+
+  // Backward compatibility for environments where the migration is not applied yet.
+  if (countError?.message?.toLowerCase().includes('public_token')
+    || countError?.message?.toLowerCase().includes('counted_by_name')
+    || countError?.message?.toLowerCase().includes('submitted_at')) {
+    const { data: fallbackCountRow, error: fallbackError } = await supabase
+      .from('inventory_counts')
+      .select(`
+        id,
+        tenant_id,
+        count_code,
+        count_date,
+        status,
+        notes,
+        counted_by,
+        site_id,
+        counter:counted_by(full_name),
+        site:site_id(name, site_code, address)
+      `)
+      .eq('count_code', token)
+      .is('archived_at', null)
+      .maybeSingle();
+
+    countRow = fallbackCountRow as Record<string, unknown> | null;
+    countError = fallbackError as { message: string } | null;
+  }
 
   if (countError) return json({ error: countError.message }, 500);
   if (!countRow) return json({ error: 'Count form not found.' }, 404);
@@ -45,7 +73,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   const { data: detailRows, error: detailError } = await supabase
     .from('inventory_count_details')
     .select('id, supply_id, expected_qty, actual_qty, notes, created_at')
-    .eq('count_id', countRow.id)
+    .eq('count_id', String(countRow.id))
     .is('archived_at', null)
     .order('created_at');
 
@@ -95,7 +123,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     const { data: prevCountRow } = await supabase
       .from('inventory_counts')
       .select('id, count_date')
-      .eq('site_id', countRow.site_id)
+      .eq('site_id', String(countRow.site_id))
       .is('archived_at', null)
       .neq('id', countRow.id)
       .in('status', ['SUBMITTED', 'COMPLETED'])
@@ -117,7 +145,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     }
   }
 
-  const countedByName = countRow.counted_by_name
+  const countedByName = (countRow.counted_by_name as string | null | undefined)
     || ((countRow.counter as { full_name?: string | null } | null)?.full_name ?? null);
 
   const items = details.map((row) => {
@@ -137,14 +165,14 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
   return json({
     count: {
-      id: countRow.id,
-      code: countRow.count_code,
-      date: countRow.count_date,
-      status: countRow.status,
-      notes: countRow.notes,
+      id: String(countRow.id),
+      code: String(countRow.count_code),
+      date: String(countRow.count_date),
+      status: String(countRow.status),
+      notes: (countRow.notes as string | null | undefined) ?? null,
       countedByName,
-      submittedAt: countRow.submitted_at,
-      site: countRow.site,
+      submittedAt: (countRow.submitted_at as string | null | undefined) ?? null,
+      site: (countRow.site as unknown),
     },
     items,
   });

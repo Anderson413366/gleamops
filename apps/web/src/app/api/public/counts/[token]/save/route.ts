@@ -39,12 +39,25 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!payload) return json({ error: 'Invalid request body' }, 400);
 
   const supabase = getServiceClient();
-  const { data: countRow, error: countError } = await supabase
+  const { data: tokenCountRow, error: tokenCountError } = await supabase
     .from('inventory_counts')
     .select('id, status')
     .eq('public_token', token)
     .is('archived_at', null)
     .maybeSingle();
+  let countRow = tokenCountRow as { id: string; status: string } | null;
+  let countError = tokenCountError as { message: string } | null;
+
+  if (countError?.message?.toLowerCase().includes('public_token')) {
+    const { data: fallbackRow, error: fallbackError } = await supabase
+      .from('inventory_counts')
+      .select('id, status')
+      .eq('count_code', token)
+      .is('archived_at', null)
+      .maybeSingle();
+    countRow = fallbackRow as { id: string; status: string } | null;
+    countError = fallbackError as { message: string } | null;
+  }
 
   if (countError) return json({ error: countError.message }, 500);
   if (!countRow) return json({ error: 'Count form not found.' }, 404);
@@ -80,7 +93,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (failed?.error) return json({ error: failed.error.message }, 500);
   }
 
-  const { error: countUpdateError } = await supabase
+  let { error: countUpdateError } = await supabase
     .from('inventory_counts')
     .update({
       counted_by_name: payload.countedByName?.trim() || null,
@@ -88,6 +101,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       status: 'DRAFT',
     })
     .eq('id', countRow.id);
+
+  if (countUpdateError?.message?.toLowerCase().includes('counted_by_name')) {
+    ({ error: countUpdateError } = await supabase
+      .from('inventory_counts')
+      .update({
+        notes: payload.notes ?? null,
+        status: 'DRAFT',
+      })
+      .eq('id', countRow.id));
+  }
 
   if (countUpdateError) return json({ error: countUpdateError.message }, 500);
 

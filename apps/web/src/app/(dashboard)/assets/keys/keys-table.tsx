@@ -14,6 +14,7 @@ import type { KeyInventory } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 import { KeyForm } from '@/components/forms/key-form';
+import { EntityLink } from '@/components/links/entity-link';
 
 interface KeyWithRelations extends KeyInventory {
   site?: { name: string; site_code: string } | null;
@@ -190,10 +191,26 @@ export default function KeysTable({ search, formOpen, onFormClose, onRefresh }: 
                 <Badge color="blue">{row.key_type}</Badge>
               </TableCell>
               <TableCell className="text-muted-foreground">
-                {row.site?.name ?? '—'}
+                {row.site?.site_code ? (
+                  <EntityLink
+                    entityType="site"
+                    code={row.site.site_code}
+                    name={row.site.name ?? row.site.site_code}
+                    showCode={false}
+                    stopPropagation
+                  />
+                ) : (row.site?.name ?? '—')}
               </TableCell>
               <TableCell className="text-muted-foreground">
-                {row.assigned?.full_name ?? '—'}
+                {row.assigned?.staff_code ? (
+                  <EntityLink
+                    entityType="staff"
+                    code={row.assigned.staff_code}
+                    name={row.assigned.full_name ?? row.assigned.staff_code}
+                    showCode={false}
+                    stopPropagation
+                  />
+                ) : (row.assigned?.full_name ?? '—')}
               </TableCell>
               <TableCell className="text-muted-foreground">{row.total_count ?? 0}</TableCell>
             </TableRow>

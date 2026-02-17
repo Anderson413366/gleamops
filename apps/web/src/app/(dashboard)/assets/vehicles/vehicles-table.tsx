@@ -16,6 +16,7 @@ import { usePagination } from '@/hooks/use-pagination';
 import { useViewPreference } from '@/hooks/use-view-preference';
 import { VehiclesCardGrid } from './vehicles-card-grid';
 import { VehicleForm } from '@/components/forms/vehicle-form';
+import { EntityLink } from '@/components/links/entity-link';
 
 interface VehicleWithAssigned extends Vehicle {
   assigned?: { full_name: string; staff_code: string } | null;
@@ -210,7 +211,15 @@ export default function VehiclesTable({ search, formOpen, onFormClose, onRefresh
                   <TableCell className="text-muted-foreground">{row.year ?? '—'}</TableCell>
                   <TableCell className="text-muted-foreground">{row.license_plate ?? '—'}</TableCell>
                   <TableCell className="text-muted-foreground">
-                    {row.assigned?.full_name ?? '—'}
+                    {row.assigned?.staff_code ? (
+                      <EntityLink
+                        entityType="staff"
+                        code={row.assigned.staff_code}
+                        name={row.assigned.full_name ?? row.assigned.staff_code}
+                        showCode={false}
+                        stopPropagation
+                      />
+                    ) : (row.assigned?.full_name ?? '—')}
                   </TableCell>
                 </TableRow>
               ))}

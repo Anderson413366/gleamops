@@ -301,12 +301,21 @@ export default function SiteAssignmentsTable({ search }: Props) {
           return (
             <TableRow key={row.id}>
               <TableCell className="font-medium">
-                <Link
-                  href={`/inventory?tab=supplies&search=${encodeURIComponent(row.name)}`}
-                  className="text-blue-600 hover:underline dark:text-blue-400"
-                >
-                  {row.name}
-                </Link>
+                {enriched?.code ? (
+                  <Link
+                    href={`/inventory/supplies/${encodeURIComponent(enriched.code)}`}
+                    className="text-blue-600 hover:underline dark:text-blue-400"
+                  >
+                    {row.name}
+                  </Link>
+                ) : (
+                  <Link
+                    href={`/inventory?tab=supplies&search=${encodeURIComponent(row.name)}`}
+                    className="text-blue-600 hover:underline dark:text-blue-400"
+                  >
+                    {row.name}
+                  </Link>
+                )}
               </TableCell>
               <TableCell className="text-muted-foreground">{category}</TableCell>
               <TableCell className="text-muted-foreground">{unit}</TableCell>

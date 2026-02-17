@@ -14,10 +14,11 @@ import type { WorkTicket } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 import { formatDate } from '@/lib/utils/date';
+import { EntityLink } from '@/components/links/entity-link';
 
 interface TicketWithRelations extends WorkTicket {
   job?: { job_code: string } | null;
-  site?: { site_code: string; name: string; client?: { name: string } | null } | null;
+  site?: { site_code: string; name: string; client?: { name: string; client_code?: string | null } | null } | null;
 }
 
 interface TicketsTableProps {
@@ -45,7 +46,7 @@ export default function TicketsTable({ search }: TicketsTableProps) {
       .select(`
         *,
         job:job_id(job_code),
-        site:site_id(site_code, name, client:client_id(name))
+        site:site_id(site_code, name, client:client_id(name, client_code))
       `)
       .is('archived_at', null)
       .order('scheduled_date', { ascending: true });
@@ -153,9 +154,21 @@ export default function TicketsTable({ search }: TicketsTableProps) {
           {pag.page.map((row) => (
             <TableRow key={row.id} onClick={() => handleRowClick(row)} className="cursor-pointer">
               <TableCell className="font-mono text-xs">{row.ticket_code}</TableCell>
-              <TableCell className="font-mono text-xs text-muted-foreground">{row.job?.job_code ?? '—'}</TableCell>
-              <TableCell className="font-medium">{row.site?.name ?? '—'}</TableCell>
-              <TableCell className="text-muted-foreground">{row.site?.client?.name ?? '—'}</TableCell>
+              <TableCell className="font-mono text-xs text-muted-foreground">
+                {row.job?.job_code ? (
+                  <EntityLink entityType="job" code={row.job.job_code} name={row.job.job_code} showCode={false} stopPropagation />
+                ) : '—'}
+              </TableCell>
+              <TableCell className="font-medium">
+                {row.site?.site_code ? (
+                  <EntityLink entityType="site" code={row.site.site_code} name={row.site.name ?? row.site.site_code} showCode={false} stopPropagation />
+                ) : (row.site?.name ?? '—')}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {row.site?.client?.client_code ? (
+                  <EntityLink entityType="client" code={row.site.client.client_code} name={row.site.client.name ?? row.site.client.client_code} showCode={false} stopPropagation />
+                ) : (row.site?.client?.name ?? '—')}
+              </TableCell>
               <TableCell>{formatDate(row.scheduled_date)}</TableCell>
               <TableCell>
                 <Badge color={TICKET_STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>

@@ -12,6 +12,7 @@ import { usePagination } from '@/hooks/use-pagination';
 import type { SubcontractorJobAssignment } from '@gleamops/shared';
 import { SubcontractorJobDetail } from './subcontractor-job-detail';
 import { SubcontractorJobForm } from './subcontractor-job-form';
+import { EntityLink } from '@/components/links/entity-link';
 
 const BILLING_LABELS: Record<string, string> = {
   HOURLY: 'Hourly',
@@ -121,10 +122,32 @@ export default function SubcontractorJobsTable({ search }: Props) {
               className="cursor-pointer"
               onClick={() => setSelected(row)}
             >
-              <TableCell className="font-medium">{row.subcontractor_name}</TableCell>
-              <TableCell className="font-mono text-xs">{row.job_code}</TableCell>
-              <TableCell className="text-muted-foreground">{row.site_name}</TableCell>
-              <TableCell className="text-muted-foreground">{row.client_name}</TableCell>
+              <TableCell className="font-medium">
+                {row.subcontractor_code ? (
+                  <EntityLink
+                    entityType="subcontractor"
+                    code={row.subcontractor_code}
+                    name={row.subcontractor_name}
+                    showCode={false}
+                    stopPropagation
+                  />
+                ) : row.subcontractor_name}
+              </TableCell>
+              <TableCell className="font-mono text-xs">
+                {row.job_code ? (
+                  <EntityLink entityType="job" code={row.job_code} name={row.job_name ?? row.job_code} showCode={false} stopPropagation />
+                ) : '—'}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {row.site_code ? (
+                  <EntityLink entityType="site" code={row.site_code} name={row.site_name} showCode={false} stopPropagation />
+                ) : row.site_name}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {row.client_code ? (
+                  <EntityLink entityType="client" code={row.client_code} name={row.client_name} showCode={false} stopPropagation />
+                ) : row.client_name}
+              </TableCell>
               <TableCell className="text-right tabular-nums font-medium">{formatCurrency(row.billing_rate)}</TableCell>
               <TableCell className="text-xs text-muted-foreground">{BILLING_LABELS[row.billing_type ?? ''] ?? row.billing_type ?? '—'}</TableCell>
               <TableCell className="text-xs text-muted-foreground">{row.start_date ?? '—'}</TableCell>

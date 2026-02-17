@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Calendar, ClipboardList, Briefcase, ClipboardCheck, FileText, MapPin, AlertTriangle, MessageSquare, Eye, EyeOff, Library, FileCog } from 'lucide-react';
+import { Calendar, ClipboardList, Briefcase, ClipboardCheck, FileText, MapPin, AlertTriangle, MessageSquare, Eye, EyeOff, Library, FileCog, Route } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import type { WorkTicket, Inspection, Geofence } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -24,6 +24,7 @@ import { ThreadDetail } from './messages/thread-detail';
 import { MessageForm } from '@/components/forms/message-form';
 import TaskCatalogTable from './task-catalog/task-catalog-table';
 import CustomFormsBuilder from './custom-forms/custom-forms-builder';
+import RoutesFleetPanel from './routes/routes-fleet-panel';
 
 interface GeofenceWithSite extends Geofence {
   site?: { name: string; site_code: string } | null;
@@ -53,6 +54,7 @@ const TABS = [
   { key: 'jobs', label: 'Service Plans', icon: <Briefcase className="h-4 w-4" /> },
   { key: 'task-catalog', label: 'Task Catalog', icon: <Library className="h-4 w-4" /> },
   { key: 'forms', label: 'Forms Builder', icon: <FileCog className="h-4 w-4" /> },
+  { key: 'routes', label: 'Routes & Fleet', icon: <Route className="h-4 w-4" /> },
   { key: 'inspections', label: 'Inspections', icon: <ClipboardCheck className="h-4 w-4" /> },
   { key: 'templates', label: 'Templates', icon: <FileText className="h-4 w-4" /> },
   { key: 'geofences', label: 'Geofences', icon: <MapPin className="h-4 w-4" /> },
@@ -215,6 +217,8 @@ export default function OperationsPageClient() {
               ? 'Search service plans...'
               : tab === 'task-catalog'
                 ? 'Search task catalog...'
+                : tab === 'routes'
+                  ? 'Search routes and owners...'
                 : `Search ${tab}...`
           }
         />
@@ -249,6 +253,12 @@ export default function OperationsPageClient() {
       {tab === 'forms' && (
         <CustomFormsBuilder
           key={`forms-${refreshKey}`}
+          search={search}
+        />
+      )}
+      {tab === 'routes' && (
+        <RoutesFleetPanel
+          key={`routes-${refreshKey}`}
           search={search}
         />
       )}

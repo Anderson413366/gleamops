@@ -90,11 +90,24 @@ interface SiteSupplyRow {
   notes: string | null;
 }
 
+interface SupplyLookupRow {
+  id: string;
+  code: string;
+  name: string;
+  unit: string;
+}
+
 interface CountSummary {
+  id: string;
   count_code: string;
   count_date: string;
   status: string;
   counted_by: string | null;
+}
+
+interface CountDetailSummary {
+  supply_id: string;
+  actual_qty: number | null;
 }
 
 interface RelatedEquipmentRow {
@@ -242,6 +255,8 @@ export default function SiteDetailPage() {
   const [supplyCategoryFilter, setSupplyCategoryFilter] = useState('all');
   const [latestCount, setLatestCount] = useState<CountSummary | null>(null);
   const [latestCountedByName, setLatestCountedByName] = useState<string | null>(null);
+  const [supplyLookupByName, setSupplyLookupByName] = useState<Record<string, SupplyLookupRow>>({});
+  const [latestCountQtyBySupplyId, setLatestCountQtyBySupplyId] = useState<Record<string, number>>({});
 
   const fetchSite = async () => {
     setLoading(true);
@@ -264,7 +279,7 @@ export default function SiteDetailPage() {
       setSite(s);
 
       // Fetch related data in parallel
-      const [jobsRes, equipRes, keysRes, siteSuppliesRes, latestCountRes] = await Promise.all([
+      const [jobsRes, equipRes, keysRes, siteSuppliesRes, latestCountRes, supplyCatalogRes] = await Promise.all([
         supabase
           .from('site_jobs')
           .select('id, job_code, job_name, status, frequency, schedule_days, start_time, end_time, job_assigned_to, billing_amount, priority_level')
@@ -290,11 +305,15 @@ export default function SiteDetailPage() {
           .order('name'),
         supabase
           .from('inventory_counts')
-          .select('count_code, count_date, status, counted_by')
+          .select('id, count_code, count_date, status, counted_by')
           .eq('site_id', s.id)
           .is('archived_at', null)
           .order('count_date', { ascending: false })
           .limit(1),
+        supabase
+          .from('supply_catalog')
+          .select('id, code, name, unit')
+          .is('archived_at', null),
       ]);
 
       const jobs = (jobsRes.data ?? []) as unknown as RelatedSiteJobRow[];
@@ -316,6 +335,11 @@ export default function SiteDetailPage() {
       setEquipmentCount(equipment.length);
       setKeys((keysRes.data as unknown as KeyInventory[]) ?? []);
       setSiteSupplies((siteSuppliesRes.data as unknown as SiteSupplyRow[]) ?? []);
+      const lookupByName: Record<string, SupplyLookupRow> = {};
+      for (const supply of ((supplyCatalogRes.data ?? []) as unknown as SupplyLookupRow[])) {
+        lookupByName[supply.name.trim().toLowerCase()] = supply;
+      }
+      setSupplyLookupByName(lookupByName);
 
       const latest = (latestCountRes.data?.[0] ?? null) as CountSummary | null;
       setLatestCount(latest);
@@ -329,6 +353,22 @@ export default function SiteDetailPage() {
         setLatestCountedByName((counter as { full_name?: string } | null)?.full_name ?? null);
       } else {
         setLatestCountedByName(null);
+      }
+
+      if (latest?.id) {
+        const { data: countDetailRows } = await supabase
+          .from('inventory_count_details')
+          .select('supply_id, actual_qty')
+          .eq('count_id', latest.id)
+          .is('archived_at', null);
+
+        const qtyBySupplyId: Record<string, number> = {};
+        for (const detail of ((countDetailRows ?? []) as unknown as CountDetailSummary[])) {
+          qtyBySupplyId[detail.supply_id] = Number(detail.actual_qty ?? 0);
+        }
+        setLatestCountQtyBySupplyId(qtyBySupplyId);
+      } else {
+        setLatestCountQtyBySupplyId({});
       }
 
       if (jobs.length > 0) {
@@ -355,6 +395,8 @@ export default function SiteDetailPage() {
       setSiteSupplies([]);
       setLatestCount(null);
       setLatestCountedByName(null);
+      setSupplyLookupByName({});
+      setLatestCountQtyBySupplyId({});
       setJobTasksByJob({});
     }
     setLoading(false);
@@ -1079,13 +1121,27 @@ export default function SiteDetailPage() {
                     <tbody>
                       {supplies.map((supply) => (
                         <tr key={supply.id} className="border-b border-border/50">
+                          {(() => {
+                            const matchedSupply = supplyLookupByName[supply.name.trim().toLowerCase()];
+                            const qty = matchedSupply ? latestCountQtyBySupplyId[matchedSupply.id] : undefined;
+                            return (
+                              <>
                           <td className="py-2 pr-3 font-medium">
-                            <Link
-                              href={`/inventory?tab=supply-catalog&search=${encodeURIComponent(supply.name)}`}
-                              className="text-blue-600 hover:underline dark:text-blue-400"
-                            >
-                              {supply.name}
-                            </Link>
+                            {matchedSupply ? (
+                              <Link
+                                href={`/inventory/supplies/${encodeURIComponent(matchedSupply.code)}`}
+                                className="text-blue-600 hover:underline dark:text-blue-400"
+                              >
+                                {supply.name}
+                              </Link>
+                            ) : (
+                              <Link
+                                href={`/inventory?tab=supplies&search=${encodeURIComponent(supply.name)}`}
+                                className="text-blue-600 hover:underline dark:text-blue-400"
+                              >
+                                {supply.name}
+                              </Link>
+                            )}
                           </td>
                           <td className="py-2 pr-3">
                             {supply.sds_url ? (
@@ -1097,8 +1153,13 @@ export default function SiteDetailPage() {
                             )}
                           </td>
                           <td className="py-2 text-muted-foreground">
-                            {latestCount ? latestCount.count_date : 'Not Counted'}
+                            {latestCount
+                              ? (qty != null ? `${qty} ${matchedSupply?.unit ?? 'units'} (${formatDate(latestCount.count_date)})` : `Not Counted (${formatDate(latestCount.count_date)})`)
+                              : 'Not Counted'}
                           </td>
+                              </>
+                            );
+                          })()}
                         </tr>
                       ))}
                     </tbody>

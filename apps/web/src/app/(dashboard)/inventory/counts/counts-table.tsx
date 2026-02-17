@@ -55,6 +55,8 @@ export default function CountsTable({ search, formOpen, onFormClose, onRefresh }
   const [createOpen, setCreateOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('IN_PROGRESS');
   const [siteFilter, setSiteFilter] = useState<string>('all');
+  const [dateFromFilter, setDateFromFilter] = useState('');
+  const [dateToFilter, setDateToFilter] = useState('');
   const [statusInitialized, setStatusInitialized] = useState(false);
 
   const fetchData = useCallback(async () => {
@@ -161,6 +163,20 @@ export default function CountsTable({ search, formOpen, onFormClose, onRefresh }
     return rows.filter((row) => {
       if (statusFilter !== 'all' && (row.status ?? 'DRAFT') !== statusFilter) return false;
       if (siteFilter !== 'all' && row.site_id !== siteFilter) return false;
+      if (dateFromFilter) {
+        const fromDate = new Date(`${dateFromFilter}T00:00:00`);
+        if (!Number.isNaN(fromDate.getTime())) {
+          const rowDate = new Date(row.count_date);
+          if (rowDate < fromDate) return false;
+        }
+      }
+      if (dateToFilter) {
+        const toDate = new Date(`${dateToFilter}T23:59:59`);
+        if (!Number.isNaN(toDate.getTime())) {
+          const rowDate = new Date(row.count_date);
+          if (rowDate > toDate) return false;
+        }
+      }
       if (!search) return true;
       return (
         row.count_code.toLowerCase().includes(q) ||
@@ -169,7 +185,7 @@ export default function CountsTable({ search, formOpen, onFormClose, onRefresh }
         (row.counter?.full_name ?? '').toLowerCase().includes(q)
       );
     });
-  }, [rows, search, siteFilter, statusFilter]);
+  }, [dateFromFilter, dateToFilter, rows, search, siteFilter, statusFilter]);
 
   const { sorted, sortKey, sortDir, onSort } = useTableSort(
     filtered as unknown as Record<string, unknown>[], 'count_date', 'desc'
@@ -195,7 +211,7 @@ export default function CountsTable({ search, formOpen, onFormClose, onRefresh }
         <Button size="sm" onClick={() => setCreateOpen(true)}>
           New Count
         </Button>
-        <div className="w-full max-w-xs">
+        <div className="grid w-full max-w-3xl grid-cols-1 gap-3 sm:grid-cols-3">
           <Select
             label="Site"
             value={siteFilter}
@@ -205,6 +221,24 @@ export default function CountsTable({ search, formOpen, onFormClose, onRefresh }
               ...sites.map((site) => ({ value: site.id, label: `${site.name} (${site.site_code})` })),
             ]}
           />
+          <div>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">From</label>
+            <input
+              type="date"
+              value={dateFromFilter}
+              onChange={(event) => setDateFromFilter(event.target.value)}
+              className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">To</label>
+            <input
+              type="date"
+              value={dateToFilter}
+              onChange={(event) => setDateToFilter(event.target.value)}
+              className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm"
+            />
+          </div>
         </div>
       </div>
 

@@ -59,6 +59,30 @@ test.describe('Detail page navigation', () => {
     }
   });
 
+  test('CRM > Contacts: first row click opens detail page', async ({ page }) => {
+    await page.goto('/crm?tab=contacts');
+    await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 10_000 });
+
+    const contactsTab = page.locator('button, [role="tab"]').filter({ hasText: /Contacts/i });
+    if (await contactsTab.count()) {
+      await contactsTab.first().click();
+    }
+
+    const table = page.locator('table').first();
+    if (!(await table.isVisible({ timeout: 10_000 }).catch(() => false))) {
+      await expect(page.locator('main')).toBeVisible();
+      return;
+    }
+
+    const firstRow = page.locator('tbody tr').first();
+    if (await firstRow.isVisible()) {
+      await firstRow.click();
+      await page.waitForURL(/\/crm\/contacts\//, { timeout: 10_000 }).catch(() => {});
+      await expect(page).toHaveURL(/\/crm\/contacts\//);
+      await expect(page.getByText('Linked Records')).toBeVisible({ timeout: 10_000 });
+    }
+  });
+
   test('Workforce > Staff: first row click opens detail', async ({ page }) => {
     await page.goto('/workforce');
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 10_000 });

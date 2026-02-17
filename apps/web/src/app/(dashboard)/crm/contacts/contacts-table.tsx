@@ -41,8 +41,7 @@ export default function ContactsTable({ search }: ContactsTableProps) {
   const { view, setView } = useViewPreference('contacts');
 
   const handleRowClick = useCallback((row: ContactWithParent) => {
-    // TODO: Create detail page for contacts at /crm/contacts/[contact_code].
-    router.push(`/crm?tab=contacts&contact=${encodeURIComponent(row.contact_code)}`);
+    router.push(`/crm/contacts/${encodeURIComponent(row.contact_code)}`);
   }, [router]);
 
   const fetchData = useCallback(async () => {

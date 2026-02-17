@@ -21,7 +21,7 @@ Branch: main
 ### P0 (must complete)
 - [x] Document generator: implement “Append to PDF” behavior in proposal layout editor.
 - [x] Delivery & Proof-of-Delivery: add POD capture workflow (signature/photo/GPS stamp) tied to supply orders.
-- [ ] Procurement approvals: multi-step approval workflow for purchase orders and supply requests.
+- [x] Procurement approvals: multi-step approval workflow for purchase orders and supply requests.
 - [ ] Fleet execution: add DVIR + fuel log + odometer workflow linked to vehicles/routes.
 - [ ] HR Lite core: PTO requests, performance reviews, goals, badges, and employee docs vault.
 - [ ] Offline parity for newly added modules: queue/retry/conflict handling + audit events.

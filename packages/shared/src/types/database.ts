@@ -1674,12 +1674,16 @@ export interface PurchaseOrder extends StandardColumns {
   vendor_id: string;
   po_number: string;
   po_date: string;
-  status: 'DRAFT' | 'SENT' | 'PARTIALLY_RECEIVED' | 'RECEIVED' | 'CANCELLED';
+  status: 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'SENT' | 'PARTIALLY_RECEIVED' | 'RECEIVED' | 'REJECTED' | 'CANCELLED';
   ship_to_inventory_location_id: string;
   subtotal: number;
   tax: number | null;
   total: number;
   notes: string | null;
+  submitted_for_approval_at: string | null;
+  approved_at: string | null;
+  approved_by_user_id: string | null;
+  approval_notes: string | null;
 }
 
 export interface PurchaseOrderLine extends StandardColumns {
@@ -1698,6 +1702,10 @@ export interface SupplyRequest extends StandardColumns {
   status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'FULFILLED';
   notes: string | null;
   requested_at: string;
+  submitted_for_approval_at: string | null;
+  approved_at: string | null;
+  approved_by_user_id: string | null;
+  approval_notes: string | null;
 }
 
 export interface SupplyRequestLine extends StandardColumns {
@@ -1706,6 +1714,28 @@ export interface SupplyRequestLine extends StandardColumns {
   quantity_requested: number;
   quantity_fulfilled: number | null;
   line_notes: string | null;
+}
+
+export interface ProcurementApprovalWorkflow extends StandardColumns {
+  entity_type: 'PURCHASE_ORDER' | 'SUPPLY_REQUEST';
+  entity_id: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+  current_step: number;
+  total_steps: number;
+  created_by_user_id: string | null;
+  submitted_at: string;
+  decided_at: string | null;
+  decision_notes: string | null;
+}
+
+export interface ProcurementApprovalStep extends StandardColumns {
+  workflow_id: string;
+  step_order: number;
+  approver_role: 'ADMIN' | 'OPERATIONS' | 'SUPERVISOR' | 'TECHNICIAN' | 'WAREHOUSE' | 'FINANCE';
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SKIPPED';
+  acted_by_user_id: string | null;
+  acted_at: string | null;
+  notes: string | null;
 }
 
 export interface AssetTransfer extends StandardColumns {

@@ -708,6 +708,14 @@ export const supplyOrderPodSchema = z.object({
 });
 export type SupplyOrderPodData = z.infer<typeof supplyOrderPodSchema>;
 
+export const procurementApprovalActionSchema = z.object({
+  entityType: z.enum(['purchase_order', 'supply_request']),
+  entityId: z.string().uuid('Entity ID is required'),
+  action: z.enum(['submit', 'approve', 'reject']),
+  notes: z.string().max(2000).nullable().default(null),
+});
+export type ProcurementApprovalActionData = z.infer<typeof procurementApprovalActionSchema>;
+
 export const messageThreadSchema = z.object({
   subject: z.string().min(1, 'Subject is required').max(200),
   thread_type: z.enum(['DIRECT', 'GROUP', 'TICKET_CONTEXT']),

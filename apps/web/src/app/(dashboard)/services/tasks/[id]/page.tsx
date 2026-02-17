@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
   ClipboardList,
   Pencil,
-  Archive,
+  PauseCircle,
+  PlayCircle,
   AlertTriangle,
   Gauge,
   Layers,
@@ -15,10 +16,11 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { ArchiveDialog, Badge, Skeleton } from '@gleamops/ui';
+import { Badge, Skeleton } from '@gleamops/ui';
 import type { Task } from '@gleamops/shared';
 import { TaskForm } from '@/components/forms/task-form';
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
+import { StatusToggleDialog } from '@/components/detail/status-toggle-dialog';
 
 const CATEGORY_COLORS: Record<string, 'green' | 'blue' | 'yellow' | 'purple' | 'orange' | 'gray'> = {
   RESTROOM: 'blue',
@@ -62,12 +64,11 @@ function formatRelativeDateTime(dateStr: string): string {
 
 export default function TaskDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
-  const [archiveOpen, setArchiveOpen] = useState(false);
-  const [archiveLoading, setArchiveLoading] = useState(false);
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [statusLoading, setStatusLoading] = useState(false);
   const [taskFormFocus, setTaskFormFocus] = useState<'basics' | 'classification' | 'production' | 'descriptions' | 'status' | undefined>(undefined);
   const [serviceCount, setServiceCount] = useState(0);
 
@@ -96,18 +97,16 @@ export default function TaskDetailPage() {
     setLoading(false);
   };
 
-  const handleArchive = async (reason: string) => {
+  const handleStatusToggle = async () => {
     if (!task) return;
-    setArchiveLoading(true);
+    setStatusLoading(true);
     const supabase = getSupabaseBrowserClient();
+    const nextIsActive = !task.is_active;
     try {
-      const { data: authData } = await supabase.auth.getUser();
       const { error } = await supabase
         .from('tasks')
         .update({
-          archived_at: new Date().toISOString(),
-          archived_by: authData.user?.id ?? null,
-          archive_reason: reason,
+          is_active: nextIsActive,
         })
         .eq('id', task.id)
         .eq('version_etag', task.version_etag);
@@ -117,11 +116,11 @@ export default function TaskDetailPage() {
         return;
       }
 
-      toast.success('Task archived');
-      router.push('/services');
+      toast.success(nextIsActive ? 'Task reactivated' : 'Task deactivated');
+      await fetchTask();
     } finally {
-      setArchiveLoading(false);
-      setArchiveOpen(false);
+      setStatusLoading(false);
+      setStatusModalOpen(false);
     }
   };
 
@@ -217,11 +216,15 @@ export default function TaskDetailPage() {
             Edit
           </button>
           <button
-            onClick={() => setArchiveOpen(true)}
-            className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950"
+            onClick={() => setStatusModalOpen(true)}
+            className={`inline-flex items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors ${
+              task.is_active
+                ? 'border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-900/40'
+                : 'border-green-200 text-green-700 hover:bg-green-50 dark:border-green-900 dark:text-green-300 dark:hover:bg-green-950/30'
+            }`}
           >
-            <Archive className="h-3.5 w-3.5" />
-            Archive
+            {task.is_active ? <PauseCircle className="h-3.5 w-3.5" /> : <PlayCircle className="h-3.5 w-3.5" />}
+            {task.is_active ? 'Deactivate' : 'Reactivate'}
           </button>
         </div>
       </div>
@@ -406,12 +409,17 @@ export default function TaskDetailPage() {
         focusSection={taskFormFocus}
       />
 
-      <ArchiveDialog
-        open={archiveOpen}
-        onClose={() => setArchiveOpen(false)}
-        onConfirm={handleArchive}
-        entityName="Task"
-        loading={archiveLoading}
+      <StatusToggleDialog
+        open={statusModalOpen}
+        onClose={() => setStatusModalOpen(false)}
+        onConfirm={handleStatusToggle}
+        loading={statusLoading}
+        entityLabel="Task"
+        entityName={task.name}
+        mode={task.is_active ? 'deactivate' : 'reactivate'}
+        warning={task.is_active && serviceCount > 0
+          ? `This task is currently linked to ${serviceCount} active service plan${serviceCount === 1 ? '' : 's'} that may be affected.`
+          : null}
       />
     </div>
   );

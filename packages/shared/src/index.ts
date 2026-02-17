@@ -18,3 +18,6 @@ export * from './i18n';
 
 // Validation schemas
 export * from './validation/index';
+
+// Scope & Pricing Library
+export * from './scope-library';

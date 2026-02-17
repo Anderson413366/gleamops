@@ -287,6 +287,7 @@ export interface BidVersionSnapshot {
     floor_type_code: string | null;
     building_type_code: string | null;
     difficulty_code: 'EASY' | 'STANDARD' | 'DIFFICULT';
+    modifier_codes?: string[];
     square_footage: number;
     quantity: number;
     fixtures?: Record<string, number>;

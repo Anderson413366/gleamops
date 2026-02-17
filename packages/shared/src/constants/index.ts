@@ -253,7 +253,7 @@ export type LookupCategory = typeof LOOKUP_CATEGORIES[number];
 // ---------------------------------------------------------------------------
 // Frequency options
 // ---------------------------------------------------------------------------
-export const FREQUENCIES = ['DAILY', '2X_WEEK', '3X_WEEK', 'WEEKLY', '5X_WEEK', 'BIWEEKLY', 'MONTHLY', 'AS_NEEDED'] as const;
+export const FREQUENCIES = ['DAILY', '2X_WEEK', '3X_WEEK', 'WEEKLY', '5X_WEEK', 'BIWEEKLY', 'MONTHLY', 'QUARTERLY', 'SEMIANNUAL', 'ANNUAL', 'AS_NEEDED'] as const;
 export type Frequency = typeof FREQUENCIES[number];
 
 /**
@@ -270,6 +270,9 @@ export const FREQUENCY_VISITS_PER_WEEK: Record<string, number> = {
   WEEKLY: 1,
   BIWEEKLY: 0.5,
   MONTHLY: 0.23, // ~1x per 4.33 weeks
+  QUARTERLY: 0.077, // ~1x per 13 weeks
+  SEMIANNUAL: 0.038, // ~1x per 26 weeks
+  ANNUAL: 0.019, // ~1x per 52 weeks
   AS_NEEDED: 0,
 };
 

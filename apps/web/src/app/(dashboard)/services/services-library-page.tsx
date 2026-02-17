@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { ClipboardList, Layers, Link2, Plus } from 'lucide-react';
+import { ClipboardList, Layers, Link2, BookOpen, Plus } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
@@ -9,11 +9,13 @@ import { useSyncedTab } from '@/hooks/use-synced-tab';
 import TasksTable from './tasks/tasks-table';
 import ServiceConfig from './services/service-config';
 import ServiceTaskMapping from './mapping/service-task-mapping';
+import ScopeLibraryBrowser from './scope-library/scope-library-browser';
 
 const TABS = [
   { key: 'tasks', label: 'Tasks', icon: <ClipboardList className="h-4 w-4" /> },
   { key: 'services', label: 'Services', icon: <Layers className="h-4 w-4" /> },
   { key: 'mapping', label: 'Mapping', icon: <Link2 className="h-4 w-4" /> },
+  { key: 'scope-library', label: 'Scope Library', icon: <BookOpen className="h-4 w-4" /> },
 ];
 
 export default function ServicesLibraryPageClient() {
@@ -37,6 +39,7 @@ export default function ServicesLibraryPageClient() {
   };
 
   const addLabel = tab === 'tasks' ? 'New Task' : tab === 'services' ? 'New Service' : '';
+  const showAddButton = tab === 'tasks' || tab === 'services';
 
   useEffect(() => {
     async function fetchKpis() {
@@ -76,7 +79,7 @@ export default function ServicesLibraryPageClient() {
           <h1 className="text-2xl font-bold text-foreground">Services Library</h1>
           <p className="text-sm text-muted-foreground mt-1">Tasks, services, and task-to-service mapping</p>
         </div>
-        {tab !== 'mapping' && (
+        {showAddButton && (
           <Button onClick={handleAdd}>
             <Plus className="h-4 w-4" />
             {addLabel}
@@ -117,6 +120,9 @@ export default function ServicesLibraryPageClient() {
           key={`mapping-${refreshKey}`}
           search={search}
         />
+      )}
+      {tab === 'scope-library' && (
+        <ScopeLibraryBrowser search={search} />
       )}
     </div>
   );

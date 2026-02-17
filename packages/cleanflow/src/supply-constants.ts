@@ -17,17 +17,17 @@ export const SUPPLY_MARGIN_TARGETS: Record<
   SupplyProductFamily,
   Record<CustomerTier, number>
 > = {
-  PAPER_COMMODITIES: { STRATEGIC: 21.5, CORE: 21.5, BASE: 22.5 },
-  HAND_SOAP_SANITIZER: { STRATEGIC: 26.5, CORE: 26.5, BASE: 26.5 },
-  GENERAL_CHEMICALS: { STRATEGIC: 28.5, CORE: 28.5, BASE: 30.5 },
-  SPECIALTY_FLOOR: { STRATEGIC: 31, CORE: 30.5, BASE: 32.5 },
+  PAPER_COMMODITIES: { STRATEGIC: 16.5, CORE: 20, BASE: 23.5 },
+  HAND_SOAP_SANITIZER: { STRATEGIC: 21.5, CORE: 24.5, BASE: 28 },
+  GENERAL_CHEMICALS: { STRATEGIC: 24, CORE: 28.5, BASE: 30.5 },
+  SPECIALTY_FLOOR: { STRATEGIC: 26, CORE: 30.5, BASE: 32.5 },
 };
 
 // ---------------------------------------------------------------------------
 // Guardrails
 // ---------------------------------------------------------------------------
-/** No SKU below 20% margin without exec approval */
-export const MARGIN_FLOOR_PCT = 20;
+/** No SKU below 15% margin without exec approval */
+export const MARGIN_FLOOR_PCT = 15;
 /** Flag if sale price > 115% of market */
 export const MARKET_CHECK_THRESHOLD = 1.15;
 /** Warn if blended margin < 25% */

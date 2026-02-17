@@ -10,7 +10,7 @@
 import type { BidVersionSnapshot, WorkloadResult } from './types';
 import { findProductionRate } from './production-rates';
 import { calculateSpecialization } from './specialization';
-import { DIFFICULTY_MULTIPLIERS, WEEKS_PER_MONTH, FREQUENCY_VISITS_PER_WEEK } from '@gleamops/shared';
+import { DIFFICULTY_MULTIPLIERS, WEEKS_PER_MONTH, FREQUENCY_VISITS_PER_WEEK, SCOPE_DIFFICULTY_MODIFIERS } from '@gleamops/shared';
 
 /** Min/max minutes per visit per area */
 const MIN_AREA_MINUTES = 15;
@@ -57,6 +57,16 @@ export function calculateWorkload(snapshot: BidVersionSnapshot): WorkloadResult 
         // Apply difficulty multiplier
         const difficulty = DIFFICULTY_MULTIPLIERS[area.difficulty_code] ?? 1.0;
         minutesPerVisit *= difficulty;
+
+        // Apply stacking scope difficulty modifiers (HT, ELEC, ACC, etc.)
+        if (area.modifier_codes && area.modifier_codes.length > 0) {
+          for (const code of area.modifier_codes) {
+            const mod = SCOPE_DIFFICULTY_MODIFIERS.find((m) => m.code === code);
+            if (mod) {
+              minutesPerVisit *= mod.factor;
+            }
+          }
+        }
 
         // Apply AI adjustment if enabled
         if (task.use_ai) {

@@ -10,9 +10,9 @@ test.describe('Job form wizard', () => {
       await jobsTab.first().click();
     }
 
-    await page.getByRole('button', { name: /New Job/i }).first().click();
+    await page.getByRole('button', { name: /New (Job|Service Plan)/i }).first().click();
 
-    await expect(page.getByRole('heading', { name: /^New Job$/i, level: 2 })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('heading', { name: /^New (Job|Service Plan)$/i, level: 2 })).toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole('button', { name: /Step 1: Assignment/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Step 2: Schedule & Billing/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Step 3: Tasks & Details/i })).toBeVisible();

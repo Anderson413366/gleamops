@@ -2,12 +2,12 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Users } from 'lucide-react';
+import { Plus, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, ViewToggle, StatusDot, statusRowAccentClass, cn,
+  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, ViewToggle, StatusDot, statusRowAccentClass, cn, Button,
 } from '@gleamops/ui';
 import type { Staff } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
@@ -189,28 +189,33 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
 
   return (
     <div>
-      <div className="flex items-center justify-end gap-3 mb-4">
-        <ViewToggle view={view} onChange={setView} />
-        <ExportButton
-          data={filtered.map((row) => ({
-            ...row,
-            role_display: row.role?.replace(/_/g, ' ') ?? 'Not Set',
-            active_jobs: activeJobsByStaff[row.id] ?? 0,
-            hire_date_display: row.hire_date ?? 'Not Set',
-            profile_percent: profilePercent(row),
-          })) as unknown as Record<string, unknown>[]}
-          filename="staff"
-          columns={[
-            { key: 'staff_code', label: 'Code' },
-            { key: 'full_name', label: 'Name' },
-            { key: 'role_display', label: 'Role' },
-            { key: 'employment_type', label: 'Employment' },
-            { key: 'active_jobs', label: 'Active Jobs' },
-            { key: 'hire_date_display', label: 'Hire Date' },
-            { key: 'profile_percent', label: 'Profile %' },
-          ]}
-          onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
-        />
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <Button size="sm" onClick={handleAdd}>
+          <Plus className="h-4 w-4" /> New Staff
+        </Button>
+        <div className="flex items-center gap-3">
+          <ViewToggle view={view} onChange={setView} />
+          <ExportButton
+            data={filtered.map((row) => ({
+              ...row,
+              role_display: row.role?.replace(/_/g, ' ') ?? 'Not Set',
+              active_jobs: activeJobsByStaff[row.id] ?? 0,
+              hire_date_display: row.hire_date ?? 'Not Set',
+              profile_percent: profilePercent(row),
+            })) as unknown as Record<string, unknown>[]}
+            filename="staff"
+            columns={[
+              { key: 'staff_code', label: 'Code' },
+              { key: 'full_name', label: 'Name' },
+              { key: 'role_display', label: 'Role' },
+              { key: 'employment_type', label: 'Employment' },
+              { key: 'active_jobs', label: 'Active Jobs' },
+              { key: 'hire_date_display', label: 'Hire Date' },
+              { key: 'profile_percent', label: 'Profile %' },
+            ]}
+            onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
+          />
+        </div>
       </div>
       <div className="flex items-center gap-2 mb-4 flex-wrap">
         {STATUS_OPTIONS.map((status) => (

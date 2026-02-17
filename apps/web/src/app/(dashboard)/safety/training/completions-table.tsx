@@ -25,6 +25,7 @@ import {
 import type { TrainingCompletion } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { EntityLink } from '@/components/links/entity-link';
 
 interface CompletionsTableProps {
   search: string;
@@ -33,7 +34,7 @@ interface CompletionsTableProps {
 }
 
 interface CompletionRow extends TrainingCompletion {
-  staff?: { full_name: string } | null;
+  staff?: { full_name: string; staff_code?: string | null } | null;
   course?: { name: string; course_code: string } | null;
 }
 
@@ -68,7 +69,7 @@ export default function CompletionsTable({ search, autoCreate, onAutoCreateHandl
     const [compRes, staffRes, courseRes] = await Promise.all([
       supabase
         .from('training_completions')
-        .select('*, staff:staff_id(full_name), course:course_id(name, course_code)')
+        .select('*, staff:staff_id(full_name, staff_code), course:course_id(name, course_code)')
         .is('archived_at', null)
         .order('completed_date', { ascending: false }),
       supabase
@@ -369,52 +370,66 @@ export default function CompletionsTable({ search, autoCreate, onAutoCreateHandl
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
       </div>
-      <Table>
-        <TableHeader>
-          <tr>
-            <TableHead>Staff</TableHead>
-            <TableHead>Course</TableHead>
-            <TableHead sortable sorted={sortKey === 'completed_date' && sortDir} onSort={() => onSort('completed_date')}>Completed</TableHead>
-            <TableHead sortable sorted={sortKey === 'expiry_date' && sortDir} onSort={() => onSort('expiry_date')}>Expires</TableHead>
-            <TableHead>Score</TableHead>
-            <TableHead>Result</TableHead>
-            <TableHead>Instructor</TableHead>
-          </tr>
-        </TableHeader>
-        <TableBody>
-          {pag.page.map((row) => {
-            const isExpired = row.expiry_date && new Date(row.expiry_date) < new Date();
-            return (
-              <TableRow key={row.id} onClick={() => handleEdit(row)}>
-                <TableCell className="font-medium">{row.staff?.full_name ?? '—'}</TableCell>
-                <TableCell>
-                  <span className="font-mono text-xs text-muted-foreground">{row.course?.course_code}</span>
-                  <span className="ml-2">{row.course?.name ?? '—'}</span>
-                </TableCell>
-                <TableCell className="text-muted-foreground">{row.completed_date}</TableCell>
-                <TableCell>
-                  {row.expiry_date ? (
-                    <Badge color={isExpired ? 'red' : 'green'}>
-                      {row.expiry_date}
-                    </Badge>
-                  ) : (
-                    <span className="text-muted-foreground text-xs">N/A</span>
-                  )}
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {row.score != null ? `${row.score}%` : '—'}
-                </TableCell>
-                <TableCell>
-                  {row.passed === true && <Badge color="green">Passed</Badge>}
-                  {row.passed === false && <Badge color="yellow">Needs attention</Badge>}
-                  {row.passed == null && <span className="text-muted-foreground text-xs">—</span>}
-                </TableCell>
-                <TableCell className="text-muted-foreground">{row.instructor ?? '—'}</TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+      <div className="w-full overflow-x-auto">
+        <Table className="w-full min-w-full">
+          <TableHeader>
+            <tr>
+              <TableHead>Staff</TableHead>
+              <TableHead>Course</TableHead>
+              <TableHead sortable sorted={sortKey === 'completed_date' && sortDir} onSort={() => onSort('completed_date')}>Completed</TableHead>
+              <TableHead sortable sorted={sortKey === 'expiry_date' && sortDir} onSort={() => onSort('expiry_date')}>Expires</TableHead>
+              <TableHead>Score</TableHead>
+              <TableHead>Result</TableHead>
+              <TableHead>Instructor</TableHead>
+            </tr>
+          </TableHeader>
+          <TableBody>
+            {pag.page.map((row) => {
+              const isExpired = row.expiry_date && new Date(row.expiry_date) < new Date();
+              return (
+                <TableRow key={row.id} onClick={() => handleEdit(row)}>
+                  <TableCell className="font-medium">
+                    {row.staff?.staff_code ? (
+                      <EntityLink
+                        entityType="staff"
+                        code={row.staff.staff_code}
+                        name={row.staff.full_name ?? row.staff.staff_code}
+                        showCode={false}
+                        stopPropagation
+                      />
+                    ) : (
+                      row.staff?.full_name ?? '—'
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <span className="font-mono text-xs text-muted-foreground">{row.course?.course_code}</span>
+                    <span className="ml-2">{row.course?.name ?? '—'}</span>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{row.completed_date}</TableCell>
+                  <TableCell>
+                    {row.expiry_date ? (
+                      <Badge color={isExpired ? 'red' : 'green'}>
+                        {row.expiry_date}
+                      </Badge>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">N/A</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {row.score != null ? `${row.score}%` : '—'}
+                  </TableCell>
+                  <TableCell>
+                    {row.passed === true && <Badge color="green">Passed</Badge>}
+                    {row.passed === false && <Badge color="yellow">Needs attention</Badge>}
+                    {row.passed == null && <span className="text-muted-foreground text-xs">—</span>}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{row.instructor ?? '—'}</TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
       <Pagination
         currentPage={pag.currentPage}
         totalPages={pag.totalPages}

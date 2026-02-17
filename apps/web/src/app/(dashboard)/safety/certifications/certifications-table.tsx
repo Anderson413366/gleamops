@@ -25,6 +25,7 @@ import {
 import type { StaffCertification } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { EntityLink } from '@/components/links/entity-link';
 
 const STATUS_OPTIONS = [
   { value: 'ACTIVE', label: 'Active' },
@@ -41,7 +42,7 @@ interface CertificationsTableProps {
 }
 
 interface CertRow extends StaffCertification {
-  staff?: { full_name: string } | null;
+  staff?: { full_name: string; staff_code?: string | null } | null;
 }
 
 export default function CertificationsTable({ search, autoCreate, onAutoCreateHandled }: CertificationsTableProps) {
@@ -76,7 +77,7 @@ export default function CertificationsTable({ search, autoCreate, onAutoCreateHa
     const [certRes, staffRes] = await Promise.all([
       supabase
         .from('staff_certifications')
-        .select('*, staff:staff_id(full_name)')
+        .select('*, staff:staff_id(full_name, staff_code)')
         .is('archived_at', null)
         .order('certification_name'),
       supabase
@@ -358,28 +359,42 @@ export default function CertificationsTable({ search, autoCreate, onAutoCreateHa
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
       </div>
-      <Table>
-        <TableHeader>
-          <tr>
-            <TableHead sortable sorted={sortKey === 'certification_name' && sortDir} onSort={() => onSort('certification_name')}>Certification</TableHead>
-            <TableHead>Staff</TableHead>
-            <TableHead sortable sorted={sortKey === 'issuing_authority' && sortDir} onSort={() => onSort('issuing_authority')}>Authority</TableHead>
-            <TableHead sortable sorted={sortKey === 'issued_date' && sortDir} onSort={() => onSort('issued_date')}>Issued</TableHead>
-            <TableHead sortable sorted={sortKey === 'expiry_date' && sortDir} onSort={() => onSort('expiry_date')}>Expires</TableHead>
-          </tr>
-        </TableHeader>
-        <TableBody>
-          {pag.page.map((row) => (
-            <TableRow key={row.id} onClick={() => handleEdit(row)}>
-              <TableCell className="font-medium">{row.certification_name}</TableCell>
-              <TableCell className="text-muted-foreground">{row.staff?.full_name ?? '—'}</TableCell>
-              <TableCell className="text-muted-foreground">{row.issuing_authority ?? '—'}</TableCell>
-              <TableCell className="text-muted-foreground">{row.issued_date ?? '—'}</TableCell>
-              <TableCell className="text-muted-foreground">{row.expiry_date ?? '—'}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <div className="w-full overflow-x-auto">
+        <Table className="w-full min-w-full">
+          <TableHeader>
+            <tr>
+              <TableHead sortable sorted={sortKey === 'certification_name' && sortDir} onSort={() => onSort('certification_name')}>Certification</TableHead>
+              <TableHead>Staff</TableHead>
+              <TableHead sortable sorted={sortKey === 'issuing_authority' && sortDir} onSort={() => onSort('issuing_authority')}>Authority</TableHead>
+              <TableHead sortable sorted={sortKey === 'issued_date' && sortDir} onSort={() => onSort('issued_date')}>Issued</TableHead>
+              <TableHead sortable sorted={sortKey === 'expiry_date' && sortDir} onSort={() => onSort('expiry_date')}>Expires</TableHead>
+            </tr>
+          </TableHeader>
+          <TableBody>
+            {pag.page.map((row) => (
+              <TableRow key={row.id} onClick={() => handleEdit(row)}>
+                <TableCell className="font-medium">{row.certification_name}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {row.staff?.staff_code ? (
+                    <EntityLink
+                      entityType="staff"
+                      code={row.staff.staff_code}
+                      name={row.staff.full_name ?? row.staff.staff_code}
+                      showCode={false}
+                      stopPropagation
+                    />
+                  ) : (
+                    row.staff?.full_name ?? '—'
+                  )}
+                </TableCell>
+                <TableCell className="text-muted-foreground">{row.issuing_authority ?? '—'}</TableCell>
+                <TableCell className="text-muted-foreground">{row.issued_date ?? '—'}</TableCell>
+                <TableCell className="text-muted-foreground">{row.expiry_date ?? '—'}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
       {filtered.length === 0 && (
         <div className="mt-4">
           <EmptyState

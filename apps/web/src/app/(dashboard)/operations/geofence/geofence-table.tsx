@@ -11,6 +11,7 @@ import {
 import type { Geofence } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { EntityLink } from '@/components/links/entity-link';
 
 interface GeofenceWithSite extends Geofence {
   site?: { name: string; site_code: string } | null;
@@ -89,26 +90,40 @@ export default function GeofenceTable({ search, onAdd, onSelect }: GeofenceTable
         />
       ) : (
         <>
-          <Table>
-            <TableHeader>
-              <tr>
-                <TableHead sortable sorted={sortKey === 'site' && sortDir} onSort={() => onSort('site')}>Site</TableHead>
-                <TableHead sortable sorted={sortKey === 'center_lat' && sortDir} onSort={() => onSort('center_lat')}>Latitude</TableHead>
-                <TableHead sortable sorted={sortKey === 'center_lng' && sortDir} onSort={() => onSort('center_lng')}>Longitude</TableHead>
-                <TableHead sortable sorted={sortKey === 'radius_meters' && sortDir} onSort={() => onSort('radius_meters')}>Radius (m)</TableHead>
-              </tr>
-            </TableHeader>
-            <TableBody>
-              {pag.page.map((row) => (
-                <TableRow key={row.id} onClick={() => onSelect?.(row)}>
-                  <TableCell className="font-medium">{row.site?.name ?? '—'}</TableCell>
-                  <TableCell className="font-mono text-xs">{row.center_lat.toFixed(6)}</TableCell>
-                  <TableCell className="font-mono text-xs">{row.center_lng.toFixed(6)}</TableCell>
-                  <TableCell>{row.radius_meters}m</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <div className="w-full overflow-x-auto">
+            <Table className="w-full min-w-full">
+              <TableHeader>
+                <tr>
+                  <TableHead sortable sorted={sortKey === 'site' && sortDir} onSort={() => onSort('site')}>Site</TableHead>
+                  <TableHead sortable sorted={sortKey === 'center_lat' && sortDir} onSort={() => onSort('center_lat')}>Latitude</TableHead>
+                  <TableHead sortable sorted={sortKey === 'center_lng' && sortDir} onSort={() => onSort('center_lng')}>Longitude</TableHead>
+                  <TableHead sortable sorted={sortKey === 'radius_meters' && sortDir} onSort={() => onSort('radius_meters')}>Radius (m)</TableHead>
+                </tr>
+              </TableHeader>
+              <TableBody>
+                {pag.page.map((row) => (
+                  <TableRow key={row.id} onClick={() => onSelect?.(row)}>
+                    <TableCell className="font-medium">
+                      {row.site?.site_code ? (
+                        <EntityLink
+                          entityType="site"
+                          code={row.site.site_code}
+                          name={row.site.name ?? row.site.site_code}
+                          showCode={false}
+                          stopPropagation
+                        />
+                      ) : (
+                        row.site?.name ?? '—'
+                      )}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">{row.center_lat.toFixed(6)}</TableCell>
+                    <TableCell className="font-mono text-xs">{row.center_lng.toFixed(6)}</TableCell>
+                    <TableCell>{row.radius_meters}m</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
           <Pagination
             currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
             pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}

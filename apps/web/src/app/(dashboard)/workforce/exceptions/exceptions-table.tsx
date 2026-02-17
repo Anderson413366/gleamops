@@ -12,6 +12,7 @@ import { EXCEPTION_SEVERITY_COLORS } from '@gleamops/shared';
 import type { TimeException } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { EntityLink } from '@/components/links/entity-link';
 
 interface ExceptionWithStaff extends TimeException {
   staff?: { staff_code: string; full_name: string } | null;
@@ -114,48 +115,62 @@ export default function ExceptionsTable({ search }: ExceptionsTableProps) {
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
       </div>
-      <Table>
-        <TableHeader>
-          <tr>
-            <TableHead sortable sorted={sortKey === 'created_at' && sortDir} onSort={() => onSort('created_at')}>Date</TableHead>
-            <TableHead>Staff</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Severity</TableHead>
-            <TableHead>Description</TableHead>
-            <TableHead>Actions</TableHead>
-          </tr>
-        </TableHeader>
-        <TableBody>
-          {pag.page.map((row) => (
-            <TableRow key={row.id} className="cursor-pointer" onClick={() => setSelected(row)}>
-              <TableCell>{new Date(row.created_at).toLocaleDateString()}</TableCell>
-              <TableCell className="font-medium">{row.staff?.full_name ?? '—'}</TableCell>
-              <TableCell>
-                <span className="text-xs">{EXCEPTION_TYPE_LABELS[row.exception_type] ?? row.exception_type}</span>
-              </TableCell>
-              <TableCell>
-                <Badge color={EXCEPTION_SEVERITY_COLORS[row.severity] ?? 'gray'}>{row.severity}</Badge>
-              </TableCell>
-              <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{row.description ?? '—'}</TableCell>
-              <TableCell>
-                {!row.resolved_at && (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleResolve(row.id);
-                    }}
-                  >
-                    Resolve
-                  </Button>
-                )}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <div className="w-full overflow-x-auto">
+        <Table className="w-full min-w-full">
+          <TableHeader>
+            <tr>
+              <TableHead sortable sorted={sortKey === 'created_at' && sortDir} onSort={() => onSort('created_at')}>Date</TableHead>
+              <TableHead>Staff</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Severity</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead>Actions</TableHead>
+            </tr>
+          </TableHeader>
+          <TableBody>
+            {pag.page.map((row) => (
+              <TableRow key={row.id} className="cursor-pointer" onClick={() => setSelected(row)}>
+                <TableCell>{new Date(row.created_at).toLocaleDateString()}</TableCell>
+                <TableCell className="font-medium">
+                  {row.staff?.staff_code ? (
+                    <EntityLink
+                      entityType="staff"
+                      code={row.staff.staff_code}
+                      name={row.staff.full_name ?? row.staff.staff_code}
+                      showCode={false}
+                      stopPropagation
+                    />
+                  ) : (
+                    row.staff?.full_name ?? '—'
+                  )}
+                </TableCell>
+                <TableCell>
+                  <span className="text-xs">{EXCEPTION_TYPE_LABELS[row.exception_type] ?? row.exception_type}</span>
+                </TableCell>
+                <TableCell>
+                  <Badge color={EXCEPTION_SEVERITY_COLORS[row.severity] ?? 'gray'}>{row.severity}</Badge>
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{row.description ?? '—'}</TableCell>
+                <TableCell>
+                  {!row.resolved_at && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleResolve(row.id);
+                      }}
+                    >
+                      Resolve
+                    </Button>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
       <Pagination
         currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
         pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}

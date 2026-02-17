@@ -12,6 +12,7 @@ import { TIMESHEET_STATUS_COLORS } from '@gleamops/shared';
 import type { Timesheet } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { EntityLink } from '@/components/links/entity-link';
 
 interface TimesheetWithStaff extends Timesheet {
   staff?: { staff_code: string; full_name: string } | null;
@@ -128,72 +129,86 @@ export default function TimesheetsTable({ search }: TimesheetsTableProps) {
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
       </div>
-      <Table>
-        <TableHeader>
-          <tr>
-            <TableHead sortable sorted={sortKey === 'week_start' && sortDir} onSort={() => onSort('week_start')}>Week</TableHead>
-            <TableHead sortable sorted={sortKey === 'staff_id' && sortDir} onSort={() => onSort('staff_id')}>Staff</TableHead>
-            <TableHead>Total Hrs</TableHead>
-            <TableHead>Regular</TableHead>
-            <TableHead>Overtime</TableHead>
-            <TableHead>Breaks</TableHead>
-            <TableHead>Exceptions</TableHead>
-            <TableHead>Actions</TableHead>
-          </tr>
-        </TableHeader>
-        <TableBody>
-          {pag.page.map((row) => (
-            <TableRow key={row.id} className="cursor-pointer" onClick={() => setSelected(row)}>
-              <TableCell>
-                <span className="text-sm">
-                  {new Date(row.week_start).toLocaleDateString()} — {new Date(row.week_end).toLocaleDateString()}
-                </span>
-              </TableCell>
-              <TableCell className="font-medium">{row.staff?.full_name ?? '—'}</TableCell>
-              <TableCell className="font-semibold">{Number(row.total_hours).toFixed(1)}</TableCell>
-              <TableCell>{Number(row.regular_hours).toFixed(1)}</TableCell>
-              <TableCell className={Number(row.overtime_hours) > 0 ? 'text-warning font-medium' : ''}>
-                {Number(row.overtime_hours).toFixed(1)}
-              </TableCell>
-              <TableCell className="text-muted-foreground">{Number(row.break_hours).toFixed(1)}</TableCell>
-              <TableCell>
-                {row.exception_count > 0 ? (
-                  <Badge color="red">{row.exception_count}</Badge>
-                ) : (
-                  <span className="text-muted-foreground">0</span>
-                )}
-              </TableCell>
-              <TableCell>
-                {row.status === 'SUBMITTED' && (
-                  <div className="flex items-center gap-1">
-                    <Button
-                      size="sm"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleApprove(row.id);
-                      }}
-                    >
-                      Approve
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleReject(row.id);
-                      }}
-                    >
-                      Reject
-                    </Button>
-                  </div>
-                )}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <div className="w-full overflow-x-auto">
+        <Table className="w-full min-w-full">
+          <TableHeader>
+            <tr>
+              <TableHead sortable sorted={sortKey === 'week_start' && sortDir} onSort={() => onSort('week_start')}>Week</TableHead>
+              <TableHead sortable sorted={sortKey === 'staff_id' && sortDir} onSort={() => onSort('staff_id')}>Staff</TableHead>
+              <TableHead>Total Hrs</TableHead>
+              <TableHead>Regular</TableHead>
+              <TableHead>Overtime</TableHead>
+              <TableHead>Breaks</TableHead>
+              <TableHead>Exceptions</TableHead>
+              <TableHead>Actions</TableHead>
+            </tr>
+          </TableHeader>
+          <TableBody>
+            {pag.page.map((row) => (
+              <TableRow key={row.id} className="cursor-pointer" onClick={() => setSelected(row)}>
+                <TableCell>
+                  <span className="text-sm">
+                    {new Date(row.week_start).toLocaleDateString()} — {new Date(row.week_end).toLocaleDateString()}
+                  </span>
+                </TableCell>
+                <TableCell className="font-medium">
+                  {row.staff?.staff_code ? (
+                    <EntityLink
+                      entityType="staff"
+                      code={row.staff.staff_code}
+                      name={row.staff.full_name ?? row.staff.staff_code}
+                      showCode={false}
+                      stopPropagation
+                    />
+                  ) : (
+                    row.staff?.full_name ?? '—'
+                  )}
+                </TableCell>
+                <TableCell className="font-semibold">{Number(row.total_hours).toFixed(1)}</TableCell>
+                <TableCell>{Number(row.regular_hours).toFixed(1)}</TableCell>
+                <TableCell className={Number(row.overtime_hours) > 0 ? 'text-warning font-medium' : ''}>
+                  {Number(row.overtime_hours).toFixed(1)}
+                </TableCell>
+                <TableCell className="text-muted-foreground">{Number(row.break_hours).toFixed(1)}</TableCell>
+                <TableCell>
+                  {row.exception_count > 0 ? (
+                    <Badge color="red">{row.exception_count}</Badge>
+                  ) : (
+                    <span className="text-muted-foreground">0</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {row.status === 'SUBMITTED' && (
+                    <div className="flex items-center gap-1">
+                      <Button
+                        size="sm"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleApprove(row.id);
+                        }}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleReject(row.id);
+                        }}
+                      >
+                        Reject
+                      </Button>
+                    </div>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
       <Pagination
         currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
         pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}

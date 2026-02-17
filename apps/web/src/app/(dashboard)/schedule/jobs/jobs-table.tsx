@@ -11,6 +11,7 @@ import {
 import type { SiteJob } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { EntityLink } from '@/components/links/entity-link';
 
 const JOB_STATUS_COLORS: Record<string, 'green' | 'yellow' | 'gray' | 'red'> = {
   ACTIVE: 'green',
@@ -28,7 +29,7 @@ const PRIORITY_COLORS: Record<string, 'red' | 'blue' | 'yellow' | 'gray'> = {
 };
 
 interface JobWithRelations extends SiteJob {
-  site?: { site_code: string; name: string; client?: { name: string } | null } | null;
+  site?: { site_code: string; name: string; client?: { name: string; client_code?: string | null } | null } | null;
 }
 
 interface JobsTableProps {
@@ -52,7 +53,7 @@ export default function JobsTable({ search }: JobsTableProps) {
       .from('site_jobs')
       .select(`
         *,
-        site:site_id(site_code, name, client:client_id(name))
+        site:site_id(site_code, name, client:client_id(name, client_code))
       `)
       .is('archived_at', null)
       .order('created_at', { ascending: false });
@@ -138,46 +139,72 @@ export default function JobsTable({ search }: JobsTableProps) {
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
       </div>
-      <Table>
-        <TableHeader>
-          <tr>
-            <TableHead sortable sorted={sortKey === 'job_code' && sortDir} onSort={() => onSort('job_code')}>Code</TableHead>
-            <TableHead>Job Name</TableHead>
-            <TableHead>Site</TableHead>
-            <TableHead>Client</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Frequency</TableHead>
-            <TableHead>Est. Hours/Service</TableHead>
-            <TableHead sortable sorted={sortKey === 'billing_amount' && sortDir} onSort={() => onSort('billing_amount')}>Billing</TableHead>
-            <TableHead>Priority</TableHead>
-            <TableHead>Status</TableHead>
-          </tr>
-        </TableHeader>
-        <TableBody>
-          {pag.page.map((row) => (
-            <TableRow key={row.id}>
-              <TableCell className="font-mono text-xs">{row.job_code}</TableCell>
-              <TableCell className="font-medium">{row.job_name ?? '—'}</TableCell>
-              <TableCell>{row.site?.name ?? '—'}</TableCell>
-              <TableCell className="text-muted-foreground">{row.site?.client?.name ?? '—'}</TableCell>
-              <TableCell className="text-muted-foreground">{row.job_type ?? '—'}</TableCell>
-              <TableCell className="text-muted-foreground">{row.frequency}</TableCell>
-              <TableCell className="text-muted-foreground tabular-nums">
-                {((taskMinutesByJob[row.id] ?? 0) / 60).toFixed(2)}
-              </TableCell>
-              <TableCell className="text-right tabular-nums font-medium">{formatCurrency(row.billing_amount)}</TableCell>
-              <TableCell>
-                {row.priority_level ? (
-                  <Badge color={PRIORITY_COLORS[row.priority_level] ?? 'gray'}>{row.priority_level}</Badge>
-                ) : '—'}
-              </TableCell>
-              <TableCell>
-                <Badge color={JOB_STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <div className="w-full overflow-x-auto">
+        <Table className="w-full min-w-full">
+          <TableHeader>
+            <tr>
+              <TableHead sortable sorted={sortKey === 'job_code' && sortDir} onSort={() => onSort('job_code')}>Code</TableHead>
+              <TableHead>Job Name</TableHead>
+              <TableHead>Site</TableHead>
+              <TableHead>Client</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Frequency</TableHead>
+              <TableHead>Est. Hours/Service</TableHead>
+              <TableHead sortable sorted={sortKey === 'billing_amount' && sortDir} onSort={() => onSort('billing_amount')}>Billing</TableHead>
+              <TableHead>Priority</TableHead>
+              <TableHead>Status</TableHead>
+            </tr>
+          </TableHeader>
+          <TableBody>
+            {pag.page.map((row) => (
+              <TableRow key={row.id}>
+                <TableCell className="font-mono text-xs">
+                  <EntityLink entityType="job" code={row.job_code} name={row.job_code} showCode={false} />
+                </TableCell>
+                <TableCell className="font-medium">{row.job_name ?? '—'}</TableCell>
+                <TableCell>
+                  {row.site?.site_code ? (
+                    <EntityLink
+                      entityType="site"
+                      code={row.site.site_code}
+                      name={row.site.name ?? row.site.site_code}
+                      showCode={false}
+                    />
+                  ) : (
+                    row.site?.name ?? '—'
+                  )}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {row.site?.client?.client_code ? (
+                    <EntityLink
+                      entityType="client"
+                      code={row.site.client.client_code}
+                      name={row.site.client.name ?? row.site.client.client_code}
+                      showCode={false}
+                    />
+                  ) : (
+                    row.site?.client?.name ?? '—'
+                  )}
+                </TableCell>
+                <TableCell className="text-muted-foreground">{row.job_type ?? '—'}</TableCell>
+                <TableCell className="text-muted-foreground">{row.frequency}</TableCell>
+                <TableCell className="text-muted-foreground tabular-nums">
+                  {((taskMinutesByJob[row.id] ?? 0) / 60).toFixed(2)}
+                </TableCell>
+                <TableCell className="text-right tabular-nums font-medium">{formatCurrency(row.billing_amount)}</TableCell>
+                <TableCell>
+                  {row.priority_level ? (
+                    <Badge color={PRIORITY_COLORS[row.priority_level] ?? 'gray'}>{row.priority_level}</Badge>
+                  ) : '—'}
+                </TableCell>
+                <TableCell>
+                  <Badge color={JOB_STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
       <Pagination
         currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
         pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}

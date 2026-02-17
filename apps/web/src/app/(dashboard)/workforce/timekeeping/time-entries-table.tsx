@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import Link from 'next/link';
 import { Clock, LogIn, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -12,11 +13,12 @@ import { TIME_ENTRY_STATUS_COLORS } from '@gleamops/shared';
 import type { TimeEntry } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { EntityLink } from '@/components/links/entity-link';
 
 interface EntryWithRelations extends TimeEntry {
   staff?: { staff_code: string; full_name: string } | null;
   ticket?: { ticket_code: string } | null;
-  site?: { name: string } | null;
+  site?: { name: string; site_code?: string | null } | null;
 }
 
 interface TimeEntriesTableProps {
@@ -38,7 +40,7 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
         *,
         staff:staff_id(staff_code, full_name),
         ticket:ticket_id(ticket_code),
-        site:site_id(name)
+        site:site_id(name, site_code)
       `)
       .is('archived_at', null)
       .order('start_at', { ascending: false })
@@ -186,50 +188,87 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
         />
       </div>
 
-      {filtered.length === 0 ? (
-        <EmptyState
-          icon={<Clock className="h-12 w-12" />}
-          title="No time entries"
-          description={search ? 'Try a different search term.' : 'Clock in to start tracking time.'}
-        />
-      ) : (
-        <>
-          <Table>
-            <TableHeader>
-              <tr>
-                <TableHead sortable sorted={sortKey === 'start_at' && sortDir} onSort={() => onSort('start_at')}>Date</TableHead>
-                <TableHead>Staff</TableHead>
-                <TableHead>Ticket</TableHead>
-                <TableHead>Site</TableHead>
-                <TableHead>Start</TableHead>
-                <TableHead>End</TableHead>
-                <TableHead>Duration</TableHead>
-              </tr>
-            </TableHeader>
-            <TableBody>
-              {pag.page.map((row) => (
-                <TableRow key={row.id} className="cursor-pointer" onClick={() => setSelected(row)}>
-                  <TableCell>{new Date(row.start_at).toLocaleDateString()}</TableCell>
-                  <TableCell className="font-medium">{row.staff?.full_name ?? '—'}</TableCell>
-                  <TableCell className="font-mono text-xs">{row.ticket?.ticket_code ?? '—'}</TableCell>
-                  <TableCell className="text-muted-foreground">{row.site?.name ?? '—'}</TableCell>
-                  <TableCell className="text-xs">{new Date(row.start_at).toLocaleTimeString()}</TableCell>
-                  <TableCell className="text-xs">{row.end_at ? new Date(row.end_at).toLocaleTimeString() : '—'}</TableCell>
-                  <TableCell>
-                    {row.duration_minutes != null
-                      ? `${Math.floor(row.duration_minutes / 60)}h ${row.duration_minutes % 60}m`
-                      : '—'}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <Pagination
-            currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
-            pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
-            onNext={pag.nextPage} onPrev={pag.prevPage}
+      <div className="w-full overflow-x-auto">
+        <Table className="w-full min-w-full">
+          <TableHeader>
+            <tr>
+              <TableHead sortable sorted={sortKey === 'start_at' && sortDir} onSort={() => onSort('start_at')}>Date</TableHead>
+              <TableHead>Staff</TableHead>
+              <TableHead>Ticket</TableHead>
+              <TableHead>Site</TableHead>
+              <TableHead>Start</TableHead>
+              <TableHead>End</TableHead>
+              <TableHead>Duration</TableHead>
+            </tr>
+          </TableHeader>
+          <TableBody>
+            {pag.page.map((row) => (
+              <TableRow key={row.id} className="cursor-pointer" onClick={() => setSelected(row)}>
+                <TableCell>{new Date(row.start_at).toLocaleDateString()}</TableCell>
+                <TableCell className="font-medium">
+                  {row.staff?.staff_code ? (
+                    <EntityLink
+                      entityType="staff"
+                      code={row.staff.staff_code}
+                      name={row.staff.full_name ?? row.staff.staff_code}
+                      showCode={false}
+                      stopPropagation
+                    />
+                  ) : (
+                    row.staff?.full_name ?? '—'
+                  )}
+                </TableCell>
+                <TableCell className="font-mono text-xs">
+                  {row.ticket?.ticket_code ? (
+                    <Link
+                      href={`/operations/tickets/${encodeURIComponent(row.ticket.ticket_code)}`}
+                      className="text-blue-600 hover:text-blue-800 hover:underline"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      {row.ticket.ticket_code}
+                    </Link>
+                  ) : '—'}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {row.site?.site_code ? (
+                    <EntityLink
+                      entityType="site"
+                      code={row.site.site_code}
+                      name={row.site.name ?? row.site.site_code}
+                      showCode={false}
+                      stopPropagation
+                    />
+                  ) : (
+                    row.site?.name ?? '—'
+                  )}
+                </TableCell>
+                <TableCell className="text-xs">{new Date(row.start_at).toLocaleTimeString()}</TableCell>
+                <TableCell className="text-xs">{row.end_at ? new Date(row.end_at).toLocaleTimeString() : '—'}</TableCell>
+                <TableCell>
+                  {row.duration_minutes != null
+                    ? `${Math.floor(row.duration_minutes / 60)}h ${row.duration_minutes % 60}m`
+                    : '—'}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      {filtered.length === 0 && (
+        <div className="mt-4">
+          <EmptyState
+            icon={<Clock className="h-12 w-12" />}
+            title="No time entries"
+            description={search ? 'Try a different search term.' : 'Clock in to start tracking time.'}
           />
-        </>
+        </div>
+      )}
+      {filtered.length > 0 && (
+        <Pagination
+          currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
+          pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
+          onNext={pag.nextPage} onPrev={pag.prevPage}
+        />
       )}
 
       <SlideOver
@@ -247,7 +286,18 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
               </div>
               <div className="flex items-center justify-between gap-4">
                 <span className="text-muted-foreground">Site</span>
-                <span className="font-medium text-right">{selected.site?.name ?? '—'}</span>
+                <span className="font-medium text-right">
+                  {selected.site?.site_code ? (
+                    <EntityLink
+                      entityType="site"
+                      code={selected.site.site_code}
+                      name={selected.site.name ?? selected.site.site_code}
+                      showCode={false}
+                    />
+                  ) : (
+                    selected.site?.name ?? '—'
+                  )}
+                </span>
               </div>
               <div className="flex items-center justify-between gap-4">
                 <span className="text-muted-foreground">Start</span>

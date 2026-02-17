@@ -12,10 +12,11 @@ import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 import { toSafeDate } from '@/lib/utils/date';
 import { EquipmentAssignmentForm } from '@/components/forms/equipment-assignment-form';
+import { EntityLink } from '@/components/links/entity-link';
 
 interface AssignmentRow extends EquipmentAssignment {
   equipment?: { name: string; equipment_code: string } | null;
-  staff?: { full_name: string } | null;
+  staff?: { full_name: string; staff_code?: string | null } | null;
   site?: { name: string; site_code: string } | null;
 }
 
@@ -37,7 +38,7 @@ export default function EqAssignmentsTable({ search, formOpen, onFormClose, onRe
     const supabase = getSupabaseBrowserClient();
     const { data, error } = await supabase
       .from('equipment_assignments')
-      .select('*, equipment:equipment_id(name, equipment_code), staff:staff_id(full_name), site:site_id(name, site_code)')
+      .select('*, equipment:equipment_id(name, equipment_code), staff:staff_id(full_name, staff_code), site:site_id(name, site_code)')
       .is('archived_at', null)
       .order('assigned_date', { ascending: false });
     if (!error && data) setRows(data as unknown as AssignmentRow[]);
@@ -110,35 +111,66 @@ export default function EqAssignmentsTable({ search, formOpen, onFormClose, onRe
 
   return (
     <div>
-      <Table>
-        <TableHeader>
-          <tr>
-            <TableHead>Equipment</TableHead>
-            <TableHead>Staff</TableHead>
-            <TableHead>Site</TableHead>
-            <TableHead sortable sorted={sortKey === 'assigned_date' && sortDir} onSort={() => onSort('assigned_date')}>
-              Assigned
-            </TableHead>
-          </tr>
-        </TableHeader>
-        <TableBody>
-          {pag.page.map((row) => (
-            <TableRow key={row.id} onClick={() => handleRowClick(row)} className="cursor-pointer">
-              <TableCell>
-                <div>
-                  <span className="font-medium">{row.equipment?.name ?? '—'}</span>
-                  {row.equipment?.equipment_code && (
-                    <span className="text-xs text-muted-foreground ml-2">{row.equipment.equipment_code}</span>
+      <div className="w-full overflow-x-auto">
+        <Table className="w-full min-w-full">
+          <TableHeader>
+            <tr>
+              <TableHead>Equipment</TableHead>
+              <TableHead>Staff</TableHead>
+              <TableHead>Site</TableHead>
+              <TableHead sortable sorted={sortKey === 'assigned_date' && sortDir} onSort={() => onSort('assigned_date')}>
+                Assigned
+              </TableHead>
+            </tr>
+          </TableHeader>
+          <TableBody>
+            {pag.page.map((row) => (
+              <TableRow key={row.id} onClick={() => handleRowClick(row)} className="cursor-pointer">
+                <TableCell>
+                  {row.equipment?.equipment_code ? (
+                    <EntityLink
+                      entityType="equipment"
+                      code={row.equipment.equipment_code}
+                      name={row.equipment.name ?? row.equipment.equipment_code}
+                      showCode={false}
+                      stopPropagation
+                    />
+                  ) : (
+                    <span className="font-medium">{row.equipment?.name ?? '—'}</span>
                   )}
-                </div>
-              </TableCell>
-              <TableCell>{row.staff?.full_name ?? '—'}</TableCell>
-              <TableCell>{row.site?.name ?? '—'}</TableCell>
-              <TableCell>{dateFmt.format(toSafeDate(row.assigned_date))}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+                </TableCell>
+                <TableCell>
+                  {row.staff?.staff_code ? (
+                    <EntityLink
+                      entityType="staff"
+                      code={row.staff.staff_code}
+                      name={row.staff.full_name ?? row.staff.staff_code}
+                      showCode={false}
+                      stopPropagation
+                    />
+                  ) : (
+                    row.staff?.full_name ?? '—'
+                  )}
+                </TableCell>
+                <TableCell>
+                  {row.site?.site_code ? (
+                    <EntityLink
+                      entityType="site"
+                      code={row.site.site_code}
+                      name={row.site.name ?? row.site.site_code}
+                      showCode={false}
+                      stopPropagation
+                    />
+                  ) : (
+                    row.site?.name ?? '—'
+                  )}
+                </TableCell>
+                <TableCell>{dateFmt.format(toSafeDate(row.assigned_date))}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
       <Pagination
         currentPage={pag.currentPage}
         totalPages={pag.totalPages}

@@ -55,6 +55,7 @@ export default function CountsTable({ search, formOpen, onFormClose, onRefresh }
   const [createOpen, setCreateOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('IN_PROGRESS');
   const [siteFilter, setSiteFilter] = useState<string>('all');
+  const [statusInitialized, setStatusInitialized] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -145,6 +146,15 @@ export default function CountsTable({ search, formOpen, onFormClose, onRefresh }
     }
     return counts;
   }, [rows]);
+
+  useEffect(() => {
+    if (statusInitialized || rows.length === 0) return;
+    const preferred = STATUS_OPTIONS.find((status) => status !== 'all' && (statusCounts[status] ?? 0) > 0);
+    if (preferred) {
+      setStatusFilter(preferred);
+    }
+    setStatusInitialized(true);
+  }, [rows.length, statusCounts, statusInitialized]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();

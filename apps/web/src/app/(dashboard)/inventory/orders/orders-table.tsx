@@ -29,6 +29,7 @@ export default function OrdersTable({ search, formOpen, onFormClose, onRefresh }
   const [createOpen, setCreateOpen] = useState(false);
   const [editItem, setEditItem] = useState<SupplyOrder | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('ORDERED');
+  const [statusInitialized, setStatusInitialized] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -89,6 +90,15 @@ export default function OrdersTable({ search, formOpen, onFormClose, onRefresh }
     }
     return counts;
   }, [rows]);
+
+  useEffect(() => {
+    if (statusInitialized || rows.length === 0) return;
+    const preferred = STATUS_OPTIONS.find((status) => status !== 'all' && (statusCounts[status] ?? 0) > 0);
+    if (preferred) {
+      setStatusFilter(preferred);
+    }
+    setStatusInitialized(true);
+  }, [rows.length, statusCounts, statusInitialized]);
 
   const { sorted, sortKey, sortDir, onSort } = useTableSort(
     filtered as unknown as Record<string, unknown>[], 'order_date', 'asc'

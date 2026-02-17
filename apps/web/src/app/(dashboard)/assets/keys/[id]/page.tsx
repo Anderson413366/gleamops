@@ -7,12 +7,12 @@ import {
   ArrowLeft,
   KeyRound,
   Pencil,
-  Archive,
+  PauseCircle,
   AlertTriangle,
   ShieldAlert,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { ArchiveDialog, Badge, Skeleton } from '@gleamops/ui';
+import { Badge, Skeleton } from '@gleamops/ui';
 import type { KeyInventory } from '@gleamops/shared';
 import { KEY_STATUS_COLORS } from '@gleamops/shared';
 import { KeyForm } from '@/components/forms/key-form';
@@ -20,6 +20,7 @@ import { ActivityHistorySection } from '@/components/activity/activity-history-s
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
 import { toast } from 'sonner';
 import { EntityLink } from '@/components/links/entity-link';
+import { StatusToggleDialog } from '@/components/detail/status-toggle-dialog';
 
 interface KeyWithRelations extends KeyInventory {
   site?: { name: string; site_code: string } | null;
@@ -64,7 +65,7 @@ export default function KeyDetailPage() {
     fetchKey();
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleArchive = async (reason: string) => {
+  const handleArchive = async () => {
     if (!key) return;
     setArchiveLoading(true);
     const supabase = getSupabaseBrowserClient();
@@ -75,7 +76,7 @@ export default function KeyDetailPage() {
         .update({
           archived_at: new Date().toISOString(),
           archived_by: authData.user?.id ?? null,
-          archive_reason: reason,
+          archive_reason: 'Deactivated from key detail',
         })
         .eq('id', key.id)
         .eq('version_etag', key.version_etag);
@@ -173,10 +174,10 @@ export default function KeyDetailPage() {
           <button
             type="button"
             onClick={() => setArchiveOpen(true)}
-            className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950"
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3.5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-900/40"
           >
-            <Archive className="h-3.5 w-3.5" />
-            Archive
+            <PauseCircle className="h-3.5 w-3.5" />
+            Deactivate
           </button>
         </div>
       </div>
@@ -344,11 +345,14 @@ export default function KeyDetailPage() {
         focusSection={keyFormFocus}
       />
 
-      <ArchiveDialog
+      <StatusToggleDialog
         open={archiveOpen}
         onClose={() => setArchiveOpen(false)}
-        onConfirm={handleArchive}
-        entityName="Key"
+        onConfirm={() => { void handleArchive(); }}
+        entityLabel="Key"
+        entityName={key.label || key.key_code}
+        mode="deactivate"
+        warning={key.status === 'ASSIGNED' ? 'This key is currently assigned and deactivating it may impact access operations.' : null}
         loading={archiveLoading}
       />
     </div>

@@ -5,10 +5,10 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   AlertTriangle,
-  Archive,
   ArrowLeft,
   Building2,
   Mail,
+  PauseCircle,
   Pencil,
   Phone,
   Target,
@@ -16,11 +16,12 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { ArchiveDialog, Badge, Skeleton } from '@gleamops/ui';
+import { Badge, Skeleton } from '@gleamops/ui';
 import type { SalesProspect } from '@gleamops/shared';
 import { ProspectForm } from '@/components/forms/prospect-form';
 import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
+import { StatusToggleDialog } from '@/components/detail/status-toggle-dialog';
 
 interface ProspectWithMeta extends SalesProspect {
   industry_type?: string | null;
@@ -206,7 +207,7 @@ export default function ProspectDetailPage() {
     fetchProspect();
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleArchive = async (reason: string) => {
+  const handleArchive = async () => {
     if (!prospect) return;
     setArchiveLoading(true);
     const supabase = getSupabaseBrowserClient();
@@ -217,7 +218,7 @@ export default function ProspectDetailPage() {
         .update({
           archived_at: new Date().toISOString(),
           archived_by: authData.user?.id ?? null,
-          archive_reason: reason,
+          archive_reason: 'Deactivated from prospect detail',
         })
         .eq('id', prospect.id)
         .eq('version_etag', prospect.version_etag);
@@ -331,10 +332,10 @@ export default function ProspectDetailPage() {
           <button
             type="button"
             onClick={() => setArchiveOpen(true)}
-            className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950"
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3.5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-900/40"
           >
-            <Archive className="h-3.5 w-3.5" />
-            Archive
+            <PauseCircle className="h-3.5 w-3.5" />
+            Deactivate
           </button>
         </div>
       </div>
@@ -510,14 +511,16 @@ export default function ProspectDetailPage() {
         }}
       />
 
-      <ArchiveDialog
+      <StatusToggleDialog
         open={archiveOpen}
         onClose={() => setArchiveOpen(false)}
-        onConfirm={handleArchive}
-        entityName="Prospect"
+        onConfirm={() => { void handleArchive(); }}
+        entityLabel="Prospect"
+        entityName={prospect.company_name}
+        mode="deactivate"
+        warning={opportunities.length > 0 ? `This prospect has ${opportunities.length} linked opportunit${opportunities.length === 1 ? 'y' : 'ies'} that may be affected.` : null}
         loading={archiveLoading}
       />
     </div>
   );
 }
-

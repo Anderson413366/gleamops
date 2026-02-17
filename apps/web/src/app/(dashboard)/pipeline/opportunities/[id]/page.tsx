@@ -5,21 +5,22 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   AlertTriangle,
-  Archive,
   ArrowLeft,
   DollarSign,
+  PauseCircle,
   Pencil,
   Target,
   TrendingUp,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { ArchiveDialog, Badge, Skeleton } from '@gleamops/ui';
+import { Badge, Skeleton } from '@gleamops/ui';
 import { OPPORTUNITY_STAGE_COLORS, BID_STATUS_COLORS } from '@gleamops/shared';
 import type { SalesOpportunity } from '@gleamops/shared';
 import { OpportunityForm } from '@/components/forms/opportunity-form';
 import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
+import { StatusToggleDialog } from '@/components/detail/status-toggle-dialog';
 
 interface OpportunityWithRelations extends SalesOpportunity {
   prospect?: { company_name: string; prospect_code: string } | null;
@@ -109,7 +110,7 @@ export default function OpportunityDetailPage() {
     fetchOpportunity();
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleArchive = async (reason: string) => {
+  const handleArchive = async () => {
     if (!opportunity) return;
     setArchiveLoading(true);
     const supabase = getSupabaseBrowserClient();
@@ -120,7 +121,7 @@ export default function OpportunityDetailPage() {
         .update({
           archived_at: new Date().toISOString(),
           archived_by: authData.user?.id ?? null,
-          archive_reason: reason,
+          archive_reason: 'Deactivated from opportunity detail',
         })
         .eq('id', opportunity.id)
         .eq('version_etag', opportunity.version_etag);
@@ -215,10 +216,10 @@ export default function OpportunityDetailPage() {
           <button
             type="button"
             onClick={() => setArchiveOpen(true)}
-            className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950"
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3.5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-900/40"
           >
-            <Archive className="h-3.5 w-3.5" />
-            Archive
+            <PauseCircle className="h-3.5 w-3.5" />
+            Deactivate
           </button>
         </div>
       </div>
@@ -387,11 +388,14 @@ export default function OpportunityDetailPage() {
         }}
       />
 
-      <ArchiveDialog
+      <StatusToggleDialog
         open={archiveOpen}
         onClose={() => setArchiveOpen(false)}
-        onConfirm={handleArchive}
-        entityName="Opportunity"
+        onConfirm={() => { void handleArchive(); }}
+        entityLabel="Opportunity"
+        entityName={opportunity.name}
+        mode="deactivate"
+        warning={bids.length > 0 ? `This opportunity has ${bids.length} related bid${bids.length === 1 ? '' : 's'} that may be affected.` : null}
         loading={archiveLoading}
       />
     </div>

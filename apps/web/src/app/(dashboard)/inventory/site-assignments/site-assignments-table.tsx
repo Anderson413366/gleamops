@@ -379,15 +379,16 @@ export default function SiteAssignmentsTable({ search }: Props) {
   if (loading) return <TableSkeleton rows={8} cols={7} />;
 
   const renderRows = (targetRows: SiteSupplyRow[]) => (
-    <Table>
+    <Table className="w-full min-w-full">
       <TableHeader>
         <tr>
           <TableHead>Img</TableHead>
-          <TableHead>Supply</TableHead>
+          <TableHead className="w-full">Supply</TableHead>
           <TableHead>Category</TableHead>
           <TableHead>Type</TableHead>
           <TableHead>Vendor</TableHead>
           <TableHead>Last Cnt</TableHead>
+          <TableHead>Assigned Date</TableHead>
           <TableHead>SDS</TableHead>
           <TableHead>Action</TableHead>
         </tr>
@@ -414,7 +415,7 @@ export default function SiteAssignmentsTable({ search }: Props) {
                   )}
                 </div>
               </TableCell>
-              <TableCell className="font-medium">
+              <TableCell className="w-full font-medium">
                 {enriched?.code ? (
                   <Link
                     href={`/inventory/supplies/${encodeURIComponent(enriched.code)}`}
@@ -437,6 +438,7 @@ export default function SiteAssignmentsTable({ search }: Props) {
               <TableCell className="tabular-nums text-muted-foreground">
                 {lastCountQty != null ? lastCountQty.toLocaleString() : 'Not Counted'}
               </TableCell>
+              <TableCell className="text-muted-foreground">{formatDateLabel(row.created_at)}</TableCell>
               <TableCell>
                 {sdsUrl ? (
                   <a

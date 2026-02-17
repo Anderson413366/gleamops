@@ -8,47 +8,23 @@ import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import type {
   SalesProspect,
   SalesOpportunity,
-  SalesBid,
-  SalesProposal,
 } from '@gleamops/shared';
 
 import ProspectsTable from './prospects/prospects-table';
 import OpportunitiesTable from './opportunities/opportunities-table';
 import BidsTable from './bids/bids-table';
-import { BidDetail } from './bids/bid-detail';
 import { BidWizard } from './bids/bid-wizard';
 import { ExpressBid } from './bids/express-bid';
 import ProposalsTable from './proposals/proposals-table';
-import { ProposalDetail } from './proposals/proposal-detail';
-import { SendProposalForm } from './proposals/send-proposal-form';
 
 import PipelineAnalytics from './analytics/pipeline-analytics';
 import { ProspectForm } from '@/components/forms/prospect-form';
 import { OpportunityForm } from '@/components/forms/opportunity-form';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
 
-// Extended types with joined relations
-interface BidWithClient extends SalesBid {
-  client?: { name: string; client_code: string } | null;
-  service?: { name: string } | null;
-}
-
 interface OpportunityWithRelations extends SalesOpportunity {
   prospect?: { company_name: string; prospect_code: string } | null;
   client?: { name: string; client_code: string } | null;
-}
-
-interface ProposalWithRelations extends SalesProposal {
-  bid_version?: {
-    bid?: {
-      bid_code: string;
-      client?: { name: string } | null;
-      client_id?: string;
-      service?: { name: string } | null;
-      total_sqft?: number | null;
-      bid_monthly_price?: number | null;
-    } | null;
-  } | null;
 }
 
 const TABS = [
@@ -68,11 +44,6 @@ export default function PipelinePageClient() {
   });
   const [search, setSearch] = useState('');
 
-  // Detail drawer state
-  const [selectedBid, setSelectedBid] = useState<BidWithClient | null>(null);
-  const [selectedProposal, setSelectedProposal] = useState<ProposalWithRelations | null>(null);
-  const [sendProposal, setSendProposal] = useState<ProposalWithRelations | null>(null);
-
   // Form state
   const [prospectFormOpen, setProspectFormOpen] = useState(false);
   const [editProspect, setEditProspect] = useState<SalesProspect | null>(null);
@@ -85,17 +56,6 @@ export default function PipelinePageClient() {
   // Refresh keys
   const [refreshKey, setRefreshKey] = useState(0);
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
-
-  // Conversion state
-  const [converting, setConverting] = useState(false);
-  const [conversionResult, setConversionResult] = useState<{
-    success: boolean;
-    job_code?: string;
-    tickets_created?: number;
-    error?: string;
-    errorCode?: string;
-    idempotent?: boolean;
-  } | null>(null);
 
   // Pipeline overview stats
   const [pipelineStats, setPipelineStats] = useState({
@@ -229,120 +189,6 @@ export default function PipelinePageClient() {
           ? 'New Bid'
           : '';
 
-  const handleGenerateProposal = useCallback(async (bidId: string, bidVersionId: string) => {
-    const { getSupabaseBrowserClient } = await import('@/lib/supabase/client');
-    const supabase = getSupabaseBrowserClient();
-
-    // Get next proposal code
-    const { data: seq } = await supabase.rpc('next_code', { p_prefix: 'PRP' });
-    const proposalCode = seq ?? `PRP-${Date.now()}`;
-
-    // Get tenant_id from the bid
-    const { data: bid } = await supabase
-      .from('sales_bids')
-      .select('tenant_id, bid_monthly_price')
-      .eq('id', bidId)
-      .single();
-    if (!bid) return;
-
-    // Create proposal
-    const { data: proposal, error } = await supabase
-      .from('sales_proposals')
-      .insert({
-        tenant_id: bid.tenant_id,
-        proposal_code: proposalCode,
-        bid_version_id: bidVersionId,
-        status: 'GENERATED',
-      })
-      .select()
-      .single();
-
-    if (error || !proposal) return;
-
-    // Create default pricing options (Good / Better / Best)
-    const basePrice = bid.bid_monthly_price ?? 0;
-    if (basePrice > 0) {
-      await supabase.from('sales_proposal_pricing_options').insert([
-        { tenant_id: bid.tenant_id, proposal_id: proposal.id, label: 'Good', monthly_price: Math.round(basePrice * 0.85), is_recommended: false, sort_order: 0 },
-        { tenant_id: bid.tenant_id, proposal_id: proposal.id, label: 'Better', monthly_price: basePrice, is_recommended: true, sort_order: 1 },
-        { tenant_id: bid.tenant_id, proposal_id: proposal.id, label: 'Best', monthly_price: Math.round(basePrice * 1.2), is_recommended: false, sort_order: 2 },
-      ]);
-    }
-
-    // Close bid detail, switch to proposals tab, refresh
-    setSelectedBid(null);
-    setTab('proposals');
-    refresh();
-  }, [refresh, setTab]);
-
-  const handleMarkWon = useCallback(async (proposal: ProposalWithRelations) => {
-    const { getSupabaseBrowserClient } = await import('@/lib/supabase/client');
-    const supabase = getSupabaseBrowserClient();
-    await supabase
-      .from('sales_proposals')
-      .update({ status: 'WON' })
-      .eq('id', proposal.id);
-
-    // Stop any active follow-up sequences
-    await supabase
-      .from('sales_followup_sequences')
-      .update({ status: 'STOPPED', stop_reason: 'WON' })
-      .eq('proposal_id', proposal.id)
-      .eq('status', 'ACTIVE');
-
-    setSelectedProposal(null);
-    refresh();
-  }, [refresh]);
-
-  const handleConvert = useCallback(async (proposal: ProposalWithRelations, siteId: string, pricingOptionId?: string) => {
-    setConverting(true);
-    setConversionResult(null);
-    const { getSupabaseBrowserClient } = await import('@/lib/supabase/client');
-    const supabase = getSupabaseBrowserClient();
-
-    const { data, error } = await supabase.rpc('convert_bid_to_job', {
-      p_proposal_id: proposal.id,
-      p_site_id: siteId,
-      p_pricing_option_id: pricingOptionId || null,
-      p_start_date: new Date().toISOString().split('T')[0],
-    });
-
-    setConverting(false);
-
-    if (error) {
-      const msg = error.message || 'Conversion failed';
-      const codeMatch = msg.match(/^(CONVERT_\w+):\s*(.+)$/);
-      setConversionResult({
-        success: false,
-        error: codeMatch ? codeMatch[2] : msg,
-        errorCode: codeMatch ? codeMatch[1] : undefined,
-      });
-      return;
-    }
-
-    const result = data as {
-      conversion_id: string;
-      site_job_id: string;
-      job_code: string;
-      tickets_created: number;
-      idempotent: boolean;
-    };
-
-    setConversionResult({
-      success: true,
-      job_code: result.job_code,
-      tickets_created: result.tickets_created,
-      idempotent: result.idempotent,
-    });
-
-    // Close after short delay to show success
-    setTimeout(() => {
-      setSelectedProposal(null);
-      setConversionResult(null);
-      refresh();
-    }, 2000);
-  }, [refresh]);
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -401,7 +247,6 @@ export default function PipelinePageClient() {
         <BidsTable
           key={`bids-${refreshKey}`}
           search={search}
-          onSelect={setSelectedBid}
           onCreateNew={() => setWizardOpen(true)}
         />
       )}
@@ -409,47 +254,12 @@ export default function PipelinePageClient() {
         <ProposalsTable
           key={`proposals-${refreshKey}`}
           search={search}
-          onSelect={setSelectedProposal}
           onGoToBids={() => setTab('bids')}
         />
       )}
       {tab === 'analytics' && (
         <PipelineAnalytics key={`analytics-${refreshKey}`} />
       )}
-
-      {/* Detail Drawers */}
-      <BidDetail
-        bid={selectedBid}
-        open={!!selectedBid}
-        onClose={() => setSelectedBid(null)}
-        onGenerateProposal={handleGenerateProposal}
-        onEdit={(bidId) => {
-          setSelectedBid(null);
-          setEditBidId(bidId);
-          setWizardOpen(true);
-        }}
-      />
-
-      <ProposalDetail
-        proposal={selectedProposal}
-        open={!!selectedProposal}
-        onClose={() => { setSelectedProposal(null); setConversionResult(null); }}
-        onSend={(p) => {
-          setSelectedProposal(null);
-          setSendProposal(p);
-        }}
-        onMarkWon={handleMarkWon}
-        onConvert={handleConvert}
-        converting={converting}
-        conversionResult={conversionResult}
-      />
-
-      <SendProposalForm
-        proposal={sendProposal}
-        open={!!sendProposal}
-        onClose={() => setSendProposal(null)}
-        onSuccess={refresh}
-      />
 
       <BidWizard
         open={wizardOpen}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { FileCheck, Sparkles, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -27,7 +28,6 @@ interface ProposalWithRelations extends SalesProposal {
 
 interface ProposalsTableProps {
   search: string;
-  onSelect?: (proposal: ProposalWithRelations) => void;
   onGoToBids?: () => void;
 }
 
@@ -43,7 +43,8 @@ const STATUS_OPTIONS = [
   'all',
 ] as const;
 
-export default function ProposalsTable({ search, onSelect, onGoToBids }: ProposalsTableProps) {
+export default function ProposalsTable({ search, onGoToBids }: ProposalsTableProps) {
+  const router = useRouter();
   const [rows, setRows] = useState<ProposalWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('DRAFT');
@@ -115,6 +116,9 @@ export default function ProposalsTable({ search, onSelect, onGoToBids }: Proposa
       ? 'Generate polished proposals from approved bids and send for signature.'
       : `There are currently no proposals with ${selectedStatusLabel} status.`;
   const showGuidedEmptyState = !search && statusFilter === 'all';
+  const handleRowClick = useCallback((row: ProposalWithRelations) => {
+    router.push(`/pipeline/proposals/${encodeURIComponent(row.proposal_code)}`);
+  }, [router]);
 
   if (loading) return <TableSkeleton rows={6} cols={5} />;
 
@@ -171,7 +175,7 @@ export default function ProposalsTable({ search, onSelect, onGoToBids }: Proposa
           {pag.page.map((row) => (
             <TableRow
               key={row.id}
-              onClick={() => onSelect?.(row)}
+              onClick={() => handleRowClick(row)}
               className={cn('cursor-pointer', statusRowAccentClass(row.status))}
             >
               <TableCell className="font-mono text-xs">

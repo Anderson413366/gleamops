@@ -164,6 +164,52 @@ test.describe('Detail page navigation', () => {
       await expect(page.getByLabel('Name')).not.toHaveValue('');
     }
   });
+
+  test('Pipeline > Bids: first row click opens bid detail page', async ({ page }) => {
+    await page.goto('/pipeline?tab=bids');
+    await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 10_000 });
+
+    const bidsTab = page.locator('button, [role="tab"]').filter({ hasText: /Bids/i });
+    if (await bidsTab.count()) {
+      await bidsTab.first().click();
+    }
+
+    const table = page.locator('table').first();
+    if (!(await table.isVisible({ timeout: 10_000 }).catch(() => false))) {
+      await expect(page.locator('main')).toBeVisible();
+      return;
+    }
+
+    const firstRow = page.locator('tbody tr').first();
+    if (!(await firstRow.isVisible())) return;
+
+    await firstRow.click();
+    await page.waitForURL(/\/pipeline\/bids\//, { timeout: 10_000 }).catch(() => {});
+    await expect(page).toHaveURL(/\/pipeline\/bids\//);
+  });
+
+  test('Pipeline > Proposals: first row click opens proposal detail page', async ({ page }) => {
+    await page.goto('/pipeline?tab=proposals');
+    await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 10_000 });
+
+    const proposalsTab = page.locator('button, [role="tab"]').filter({ hasText: /Proposals/i });
+    if (await proposalsTab.count()) {
+      await proposalsTab.first().click();
+    }
+
+    const table = page.locator('table').first();
+    if (!(await table.isVisible({ timeout: 10_000 }).catch(() => false))) {
+      await expect(page.locator('main')).toBeVisible();
+      return;
+    }
+
+    const firstRow = page.locator('tbody tr').first();
+    if (!(await firstRow.isVisible())) return;
+
+    await firstRow.click();
+    await page.waitForURL(/\/pipeline\/proposals\//, { timeout: 10_000 }).catch(() => {});
+    await expect(page).toHaveURL(/\/pipeline\/proposals\//);
+  });
 });
 
 // ---------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { FileText, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -20,7 +21,6 @@ interface BidWithClient extends SalesBid {
 
 interface BidsTableProps {
   search: string;
-  onSelect?: (bid: BidWithClient) => void;
   onCreateNew?: () => void;
 }
 
@@ -29,7 +29,8 @@ function formatCurrency(n: number | null) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
 }
 
-export default function BidsTable({ search, onSelect, onCreateNew }: BidsTableProps) {
+export default function BidsTable({ search, onCreateNew }: BidsTableProps) {
+  const router = useRouter();
   const [rows, setRows] = useState<BidWithClient[]>([]);
   const [loading, setLoading] = useState(true);
   // UX requirement: default to Active when available; move "all" to the end.
@@ -104,6 +105,9 @@ export default function BidsTable({ search, onSelect, onCreateNew }: BidsTablePr
       ? 'Price your first opportunity to move it toward contract.'
       : `There are currently no bids with ${selectedStatusLabel} status.`;
   const showGuidedEmptyState = !search && effectiveStatusFilter === 'all';
+  const handleRowClick = useCallback((row: BidWithClient) => {
+    router.push(`/pipeline/bids/${encodeURIComponent(row.bid_code)}`);
+  }, [router]);
 
   if (loading) return <TableSkeleton rows={6} cols={5} />;
 
@@ -158,7 +162,7 @@ export default function BidsTable({ search, onSelect, onCreateNew }: BidsTablePr
           {pag.page.map((row) => (
             <TableRow
               key={row.id}
-              onClick={() => onSelect?.(row)}
+              onClick={() => handleRowClick(row)}
               className={cn('cursor-pointer', statusRowAccentClass(row.status))}
             >
               <TableCell className="font-mono text-xs">

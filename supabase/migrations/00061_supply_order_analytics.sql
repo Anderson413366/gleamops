@@ -101,17 +101,17 @@ SELECT
   ss.site_id,
   s.site_code,
   s.name AS site_name,
-  ss.supply_id,
   COALESCE(sc.name, ss.name) AS supply_name,
   COALESCE(ss.category, sc.category) AS category,
-  ss.par_level,
   ss.sds_url,
   ss.notes,
   s.client_id,
   c.client_code,
   c.name AS client_name,
   ss.created_at,
-  ss.updated_at
+  ss.updated_at,
+  ss.supply_id,
+  ss.par_level
 FROM public.site_supplies ss
 JOIN public.sites s ON s.id = ss.site_id
 JOIN public.clients c ON c.id = s.client_id

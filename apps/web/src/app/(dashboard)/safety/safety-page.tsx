@@ -12,12 +12,14 @@ import CompletionsTable from './training/completions-table';
 import SafetyDocumentsTable from './documents/safety-documents-table';
 import ComplianceCalendar from './calendar/compliance-calendar';
 import AuditCenter from './audit-center/audit-center';
+import IncidentsTable from './incidents/incidents-table';
 
 const TABS = [
   { key: 'certifications', label: 'Certifications', icon: <Award className="h-4 w-4" /> },
   { key: 'courses', label: 'Training Courses', icon: <BookOpen className="h-4 w-4" /> },
   { key: 'completions', label: 'Completions', icon: <CalendarCheck className="h-4 w-4" /> },
   { key: 'documents', label: 'Safety Docs', icon: <FileText className="h-4 w-4" /> },
+  { key: 'incidents', label: 'Incidents', icon: <ShieldAlert className="h-4 w-4" /> },
   { key: 'calendar', label: 'Compliance Calendar', icon: <CalendarCheck className="h-4 w-4" /> },
   { key: 'audit-center', label: 'Audit Center', icon: <ShieldAlert className="h-4 w-4" /> },
 ];
@@ -111,7 +113,7 @@ export default function SafetyPageClient() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Safety & Compliance</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Certifications, Training, Safety Documents, Compliance Calendar, Audit Center
+            Certifications, Training, Safety Documents, Incidents, Compliance Calendar, Audit Center
           </p>
         </div>
         {canAdd && (
@@ -167,6 +169,7 @@ export default function SafetyPageClient() {
           onAutoCreateHandled={() => setAutoCreate(false)}
         />
       )}
+      {tab === 'incidents' && <IncidentsTable key={`inc-${refreshKey}`} search={search} />}
       {tab === 'calendar' && <ComplianceCalendar key={`cal-${refreshKey}`} />}
       {tab === 'audit-center' && <AuditCenter key={`audit-${refreshKey}`} search={search} />}
     </div>

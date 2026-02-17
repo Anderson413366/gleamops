@@ -28,11 +28,7 @@ export function ChipTabs({ tabs, active, onChange }: ChipTabsProps) {
           type="button"
           role="tab"
           aria-selected={active === tab.key}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onChange(tab.key);
-          }}
+          onClick={() => onChange(tab.key)}
           className={cn(
             'inline-flex min-h-9 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-all duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
             active === tab.key

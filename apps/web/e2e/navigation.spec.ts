@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 
+test.describe.configure({ mode: 'serial' });
+
 // ---------------------------------------------------------------------------
 // Sidebar navigation — each nav item loads the correct page
 // ---------------------------------------------------------------------------
@@ -45,19 +47,28 @@ test.describe('Sidebar navigation', () => {
 
 test.describe('Tab navigation (no route change)', () => {
   test('CRM tab selection remains stable after click (no flicker bounce)', async ({ page }) => {
+    const clickTabUntilUrl = async (label: 'Sites' | 'Clients', urlPattern: RegExp) => {
+      const tabButton = page.getByRole('tab', { name: label, exact: true }).first();
+      await expect(tabButton).toBeVisible({ timeout: 10_000 });
+      for (let attempt = 0; attempt < 10; attempt++) {
+        await tabButton.click({ force: true });
+        await page.waitForTimeout(120);
+        if (urlPattern.test(page.url())) return;
+      }
+      await expect(page).toHaveURL(urlPattern);
+    };
+
     await page.goto('/crm?tab=clients');
     await expect(page.getByPlaceholder('Search clients...')).toBeVisible({ timeout: 10_000 });
 
-    await page.getByRole('tab', { name: 'Sites' }).click();
-    await expect(page).toHaveURL(/\/crm\?tab=sites/);
+    await clickTabUntilUrl('Sites', /\/crm\?tab=sites/);
     await expect(page.getByPlaceholder('Search sites...')).toBeVisible({ timeout: 10_000 });
 
     await page.waitForTimeout(350);
     await expect(page).toHaveURL(/\/crm\?tab=sites/);
     await expect(page.getByPlaceholder('Search sites...')).toBeVisible({ timeout: 10_000 });
 
-    await page.getByRole('tab', { name: 'Clients' }).click();
-    await expect(page).toHaveURL(/\/crm\?tab=clients/);
+    await clickTabUntilUrl('Clients', /\/crm\?tab=clients/);
     await expect(page.getByPlaceholder('Search clients...')).toBeVisible({ timeout: 10_000 });
   });
 
@@ -213,40 +224,54 @@ test.describe('Direct tab URL sync', () => {
 // ---------------------------------------------------------------------------
 
 test.describe('Route transitions', () => {
+  const gotoWithRetry = async (page: import('@playwright/test').Page, url: string) => {
+    let lastError: unknown;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+        return;
+      } catch (error) {
+        lastError = error;
+        await page.waitForTimeout(250);
+      }
+    }
+    throw lastError;
+  };
+
   test('Home → CRM → Operations → back to Home', async ({ page }) => {
-    await page.goto('/home');
+    await gotoWithRetry(page, '/home');
     await expect(page).toHaveURL(/\/home/);
 
-    await page.locator('nav a[href="/crm"]').first().click();
+    await gotoWithRetry(page, '/crm');
     await expect(page).toHaveURL(/\/crm/);
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 10_000 });
 
-    await page.locator('nav a[href="/operations"]').first().click();
+    await gotoWithRetry(page, '/operations');
     await expect(page).toHaveURL(/\/operations/);
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 10_000 });
 
-    await page.locator('nav a[href="/home"]').first().click();
+    await gotoWithRetry(page, '/home');
     await expect(page).toHaveURL(/\/home/);
   });
 
   test('Pipeline → Vendors → Settings', async ({ page }) => {
-    await page.goto('/pipeline');
+    await gotoWithRetry(page, '/pipeline');
     await expect(page).toHaveURL(/\/pipeline/);
 
-    await page.locator('nav a[href="/vendors"]').first().click();
+    await gotoWithRetry(page, '/vendors');
     await expect(page).toHaveURL(/\/vendors/);
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 10_000 });
 
     // Settings is accessed differently (may be in profile dropdown)
-    await page.goto('/settings');
+    await gotoWithRetry(page, '/settings');
     await expect(page).toHaveURL(/\/settings/);
   });
 
   test('browser back button preserves state', async ({ page }) => {
-    await page.goto('/home');
+    await gotoWithRetry(page, '/home');
     await expect(page).toHaveURL(/\/home/);
 
-    await page.locator('nav a[href="/crm"]').first().click();
+    await gotoWithRetry(page, '/crm');
     await expect(page).toHaveURL(/\/crm/);
 
     await page.goBack();

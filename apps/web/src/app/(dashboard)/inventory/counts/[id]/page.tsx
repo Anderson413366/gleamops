@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, ClipboardList, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, ClipboardList, AlertTriangle, Package2 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Badge, Skeleton } from '@gleamops/ui';
 
@@ -35,6 +35,7 @@ interface SupplyLookup {
   category: string | null;
   unit: string;
   unit_cost: number | null;
+  image_url: string | null;
 }
 
 function formatDate(value: string) {
@@ -89,7 +90,7 @@ export default function InventoryCountDetailPage() {
       if (supplyIds.length > 0) {
         const { data: supplyRows } = await supabase
           .from('supply_catalog')
-          .select('id, code, name, category, unit, unit_cost')
+          .select('id, code, name, category, unit, unit_cost, image_url')
           .in('id', supplyIds);
 
         const lookup: Record<string, SupplyLookup> = {};
@@ -197,6 +198,7 @@ export default function InventoryCountDetailPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                <th className="py-2 pr-3 font-medium">Img</th>
                 <th className="py-2 pr-3 font-medium">Supply</th>
                 <th className="py-2 pr-3 font-medium">Category</th>
                 <th className="py-2 pr-3 font-medium">Unit</th>
@@ -212,6 +214,15 @@ export default function InventoryCountDetailPage() {
                 const estValue = qty * Number(supply?.unit_cost ?? 0);
                 return (
                   <tr key={row.id} className="border-b border-border/50">
+                    <td className="py-2 pr-3">
+                      <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-md border border-border bg-muted/30">
+                        {supply?.image_url ? (
+                          <div className="h-full w-full bg-cover bg-center" style={{ backgroundImage: `url(${supply.image_url})` }} />
+                        ) : (
+                          <Package2 className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </div>
+                    </td>
                     <td className="py-2 pr-3 font-medium">
                       {supply?.code ? (
                         <Link
@@ -234,7 +245,7 @@ export default function InventoryCountDetailPage() {
               })}
               {details.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-6 text-center text-sm text-muted-foreground">
+                  <td colSpan={7} className="py-6 text-center text-sm text-muted-foreground">
                     No line items found for this count.
                   </td>
                 </tr>

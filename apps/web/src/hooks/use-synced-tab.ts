@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 interface UseSyncedTabOptions {
@@ -26,61 +26,33 @@ export function useSyncedTab({ tabKeys, defaultTab, aliases }: UseSyncedTabOptio
     return validTabKeys[0] ?? '';
   }, [aliases, defaultTab, validTabKeys]);
 
-  // Initialize directly from URL to avoid first-render tab flicker.
-  const [tab, setTab] = useState<string>(() => resolveTab(searchParams.get('tab')));
-  const pendingTabRef = useRef<string | null>(null);
+  const getLiveSearchParams = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      return new URLSearchParams(window.location.search);
+    }
+    return new URLSearchParams(searchParams.toString());
+  }, [searchParams]);
 
-  // Keep state valid when tab set changes (for example, simple view hides tabs).
+  const rawUrlTab = searchParams.get('tab');
+  const tab = resolveTab(rawUrlTab);
+
+  // Keep URL canonical (aliases/invalid tabs normalize to resolved tab).
   useEffect(() => {
-    if (!validTabKeys.includes(tab)) {
-      const resolved = resolveTab(searchParams.get('tab'));
-      setTab(resolved);
-      const current = searchParams.get('tab');
-      if (resolved && current !== resolved) {
-        const next = new URLSearchParams(searchParams.toString());
-        next.set('tab', resolved);
-        router.replace(`${pathname}?${next.toString()}`, { scroll: false });
-      }
-    }
-  }, [pathname, resolveTab, router, searchParams, tab, validTabKeys]);
+    if (!tab) return;
+    if (rawUrlTab === tab) return;
+    const next = getLiveSearchParams();
+    next.set('tab', tab);
+    router.replace(`${pathname}?${next.toString()}`, { scroll: false });
+  }, [getLiveSearchParams, pathname, rawUrlTab, router, tab]);
 
-  // Keep state in sync when URL tab changes externally.
-  useEffect(() => {
-    const urlTab = searchParams.get('tab');
-    const resolved = resolveTab(urlTab);
-    if (pendingTabRef.current) {
-      if (resolved === pendingTabRef.current) {
-        pendingTabRef.current = null;
-      } else {
-        return;
-      }
-    }
-    if (resolved && resolved !== tab) {
-      setTab(resolved);
-    }
-    // Canonicalize legacy aliases in-place so URL/state stay consistent.
-    if (urlTab && resolved && urlTab !== resolved) {
-      const next = new URLSearchParams(searchParams.toString());
-      next.set('tab', resolved);
-      router.replace(`${pathname}?${next.toString()}`, { scroll: false });
-    }
-  }, [pathname, resolveTab, router, searchParams, tab]);
-
-  // Stable setter: updates local state and URL together from one action path.
   const setSyncedTab = useCallback((nextTab: string) => {
     const resolved = resolveTab(nextTab);
     if (!resolved) return;
-    pendingTabRef.current = resolved;
-    setTab(resolved);
-    const current = searchParams.get('tab');
-    if (current === resolved) {
-      pendingTabRef.current = null;
-      return;
-    }
-    const next = new URLSearchParams(searchParams.toString());
+    const next = getLiveSearchParams();
+    if (next.get('tab') === resolved) return;
     next.set('tab', resolved);
     router.replace(`${pathname}?${next.toString()}`, { scroll: false });
-  }, [pathname, resolveTab, router, searchParams]);
+  }, [getLiveSearchParams, pathname, resolveTab, router]);
 
   return [tab, setSyncedTab] as const;
 }

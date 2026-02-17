@@ -9,7 +9,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { SiteSupply } from '@gleamops/shared';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, TableSkeleton, Button, SlideOver, Select, Input, cn,
+  EmptyState, TableSkeleton, Button, SlideOver, Select, Input, cn, ConfirmDialog,
 } from '@gleamops/ui';
 
 interface SiteSupplyRow extends SiteSupply {
@@ -36,6 +36,7 @@ interface SupplyOption {
 
 interface InventoryCountSummary {
   id: string;
+  count_code: string;
   site_id: string | null;
   count_date: string;
   counter?: { full_name: string | null } | null;
@@ -49,6 +50,7 @@ interface InventoryCountDetailSummary {
 
 interface LatestCountMeta {
   countId: string;
+  countCode: string;
   countDate: string;
   countedBy: string | null;
 }
@@ -107,6 +109,7 @@ export default function SiteAssignmentsTable({ search }: Props) {
   const [selectedSupplyIds, setSelectedSupplyIds] = useState<string[]>([]);
   const [assigning, setAssigning] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [removeTarget, setRemoveTarget] = useState<SiteSupplyRow | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -129,7 +132,7 @@ export default function SiteAssignmentsTable({ search }: Props) {
         .order('name'),
       supabase
         .from('inventory_counts')
-        .select('id, site_id, count_date, counter:counted_by(full_name)')
+        .select('id, count_code, site_id, count_date, counter:counted_by(full_name)')
         .is('archived_at', null)
         .order('count_date', { ascending: false }),
     ]);
@@ -150,6 +153,7 @@ export default function SiteAssignmentsTable({ search }: Props) {
       if (latestBySite[count.site_id]) continue;
       latestBySite[count.site_id] = {
         countId: count.id,
+        countCode: count.count_code,
         countDate: count.count_date,
         countedBy: count.counter?.full_name ?? null,
       };
@@ -346,10 +350,9 @@ export default function SiteAssignmentsTable({ search }: Props) {
     await fetchData();
   };
 
-  const handleRemoveAssignment = async (row: SiteSupplyRow) => {
-    const confirmed = window.confirm(`Remove "${row.name}" from ${row.site?.name ?? 'this site'}?`);
-    if (!confirmed) return;
-    setRemovingId(row.id);
+  const handleRemoveAssignment = async () => {
+    if (!removeTarget) return;
+    setRemovingId(removeTarget.id);
     const supabase = getSupabaseBrowserClient();
     const { data: authData } = await supabase.auth.getUser();
     const { error } = await supabase
@@ -359,7 +362,7 @@ export default function SiteAssignmentsTable({ search }: Props) {
         archived_by: authData.user?.id ?? null,
         archive_reason: 'Removed from site assignments directory',
       })
-      .eq('id', row.id)
+      .eq('id', removeTarget.id)
       .is('archived_at', null);
 
     if (error) {
@@ -369,6 +372,7 @@ export default function SiteAssignmentsTable({ search }: Props) {
     }
     toast.success('Assignment removed.');
     setRemovingId(null);
+    setRemoveTarget(null);
     await fetchData();
   };
 
@@ -451,7 +455,7 @@ export default function SiteAssignmentsTable({ search }: Props) {
                 <button
                   type="button"
                   disabled={removingId === row.id}
-                  onClick={() => handleRemoveAssignment(row)}
+                  onClick={() => setRemoveTarget(row)}
                   className={cn(
                     'inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground',
                     removingId === row.id && 'opacity-50'
@@ -515,19 +519,19 @@ export default function SiteAssignmentsTable({ search }: Props) {
         />
       </div>
 
-      {siteFilter !== 'all' && selectedSite ? (
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-sm font-semibold text-foreground">
-            Currently viewing: {selectedSite.name} ({selectedSite.site_code})
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">{filtered.length} supplies assigned.</p>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+	      {siteFilter !== 'all' && selectedSite ? (
+	        <div className="rounded-lg border border-border bg-card p-4">
+	          <p className="text-sm font-semibold text-foreground">
+	            Currently viewing: {selectedSite.name} ({selectedSite.site_code})
+	          </p>
+	          <p className="mt-1 text-xs text-muted-foreground">{filtered.length} supplies assigned.</p>
+	          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <CalendarClock className="h-3.5 w-3.5" />
               Last count: {formatDateLabel(selectedSiteLastCount?.countDate)}
             </span>
             {selectedSiteLastCount?.countedBy && <span>Counted by: {selectedSiteLastCount.countedBy}</span>}
-            <span
+	            <span
               className={cn(
                 'rounded-full px-2 py-0.5 font-medium',
                 dueBadgeLabel(selectedSiteLastCount?.countDate).tone === 'green' && 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
@@ -535,12 +539,26 @@ export default function SiteAssignmentsTable({ search }: Props) {
                 dueBadgeLabel(selectedSiteLastCount?.countDate).tone === 'red' && 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
                 dueBadgeLabel(selectedSiteLastCount?.countDate).tone === 'gray' && 'bg-muted text-muted-foreground'
               )}
-            >
-              {dueBadgeLabel(selectedSiteLastCount?.countDate).label}
-            </span>
-          </div>
-        </div>
-      ) : null}
+	            >
+	              {dueBadgeLabel(selectedSiteLastCount?.countDate).label}
+	            </span>
+              {selectedSiteLastCount?.countCode ? (
+                <Link
+                  href={`/inventory/counts/${encodeURIComponent(selectedSiteLastCount.countCode)}`}
+                  className="text-blue-600 hover:underline dark:text-blue-400"
+                >
+                  View Full Count
+                </Link>
+              ) : null}
+              <Link
+                href={`/inventory?tab=counts&action=create-count&site=${encodeURIComponent(selectedSite.site_code)}`}
+                className="text-blue-600 hover:underline dark:text-blue-400"
+              >
+                Start New Count
+              </Link>
+	          </div>
+	        </div>
+	      ) : null}
 
       {filtered.length === 0 ? (
         <>
@@ -600,7 +618,7 @@ export default function SiteAssignmentsTable({ search }: Props) {
         renderRows(filtered)
       )}
 
-      <SlideOver
+	      <SlideOver
         open={assignOpen}
         onClose={() => setAssignOpen(false)}
         title="Assign Supplies to Site"
@@ -663,7 +681,21 @@ export default function SiteAssignmentsTable({ search }: Props) {
             </Button>
           </div>
         </div>
-      </SlideOver>
-    </div>
-  );
-}
+	      </SlideOver>
+
+      <ConfirmDialog
+        open={!!removeTarget}
+        onClose={() => {
+          if (removingId) return;
+          setRemoveTarget(null);
+        }}
+        onConfirm={handleRemoveAssignment}
+        title={`Remove ${removeTarget?.name ?? 'assignment'}?`}
+        description={`This removes the supply assignment from ${removeTarget?.site?.name ?? 'the selected site'} and can be re-added later.`}
+        confirmLabel="Remove Assignment"
+        loading={!!removingId}
+        variant="danger"
+      />
+	    </div>
+	  );
+	}

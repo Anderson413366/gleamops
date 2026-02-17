@@ -80,8 +80,12 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION write_audit_event TO authenticated;
-GRANT EXECUTE ON FUNCTION write_audit_event TO service_role;
+GRANT EXECUTE ON FUNCTION write_audit_event(
+  UUID, TEXT, UUID, TEXT, TEXT, JSONB, JSONB, UUID, TEXT, TEXT, TEXT, TEXT, TEXT, NUMERIC, NUMERIC
+) TO authenticated;
+GRANT EXECUTE ON FUNCTION write_audit_event(
+  UUID, TEXT, UUID, TEXT, TEXT, JSONB, JSONB, UUID, TEXT, TEXT, TEXT, TEXT, TEXT, NUMERIC, NUMERIC
+) TO service_role;
 
 CREATE OR REPLACE VIEW audit_log AS
 SELECT
@@ -94,11 +98,11 @@ SELECT
   ae.before AS before_json,
   ae.after AS after_json,
   ae.ip_address,
+  ae.created_at,
   ae.request_path,
   ae.reason,
   ae.user_agent,
   ae.device_id,
   ae.geo_lat,
-  ae.geo_long,
-  ae.created_at
+  ae.geo_long
 FROM audit_events ae;

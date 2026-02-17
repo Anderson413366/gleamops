@@ -225,18 +225,21 @@ export interface Contact extends StandardColumns {
 // Module B: Service DNA
 // ---------------------------------------------------------------------------
 export interface Task extends StandardColumns {
+  code?: string;
   task_code: string;
   name: string;
   category: string | null;
   subcategory: string | null;
   area_type: string | null;
   floor_type: string | null;
+  priority?: 'high' | 'medium' | 'low' | null;
   priority_level: string | null; // Lookups "Priority Level"
   default_minutes: number | null;
   production_rate_sqft_per_hour: number | null;
   unit_code: string; // SQFT_1000 | EACH
   production_rate: string | null;
   description: string | null;
+  instructions?: string | null;
   status: string | null;
   spec_description: string | null;
   work_description: string | null;
@@ -1026,6 +1029,10 @@ export interface JobTask extends StandardColumns {
   task_id: string | null;
   task_code: string | null;
   task_name: string | null;
+  sequence_order?: number | null;
+  wait_after?: boolean;
+  estimated_minutes?: number | null;
+  custom_minutes?: number | null;
   planned_minutes: number | null;
   qc_weight: number | null;
   is_required: boolean;

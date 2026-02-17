@@ -88,15 +88,16 @@ export default function JobsTable({ search, openCreateToken }: JobsTableProps) {
         const jobIds = typedRows.map((row) => row.id);
         const { data: taskData } = await supabase
           .from('job_tasks')
-          .select('job_id, estimated_minutes, planned_minutes')
+          .select('job_id, custom_minutes, estimated_minutes, planned_minutes')
           .in('job_id', jobIds)
           .is('archived_at', null);
         const minutesByJob = ((taskData ?? []) as Array<{
           job_id: string;
+          custom_minutes?: number | null;
           estimated_minutes?: number | null;
           planned_minutes?: number | null;
         }>).reduce<Record<string, number>>((acc, task) => {
-          const minutes = Number(task.estimated_minutes ?? task.planned_minutes ?? 0);
+          const minutes = Number(task.custom_minutes ?? task.estimated_minutes ?? task.planned_minutes ?? 0);
           acc[task.job_id] = (acc[task.job_id] ?? 0) + (Number.isFinite(minutes) ? minutes : 0);
           return acc;
         }, {});

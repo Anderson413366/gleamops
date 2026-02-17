@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, usePathname, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -28,6 +28,9 @@ interface JobUsageRow {
     job_code: string;
     job_name: string | null;
     status: string;
+    frequency: string | null;
+    billing_amount: number | null;
+    site?: { name: string; site_code: string } | null;
   } | null;
 }
 
@@ -73,10 +76,12 @@ function formatRelativeDateTime(dateStr: string): string {
 
 export default function TaskDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const from = searchParams.get('from');
-  const backHref = from === 'operations' ? '/operations?tab=task-catalog' : '/services';
-  const backLabel = from === 'operations' ? 'Back to Operations Task Catalog' : 'Back to Services Library';
+  const isOperationsTaskCatalog = from === 'operations' || pathname.startsWith('/operations/task-catalog');
+  const backHref = isOperationsTaskCatalog ? '/operations/task-catalog' : '/services';
+  const backLabel = isOperationsTaskCatalog ? 'Back to Task Catalog' : 'Back to Services Library';
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
@@ -110,7 +115,7 @@ export default function TaskDetailPage() {
 
       const { data: jobsData } = await supabase
         .from('job_tasks')
-        .select('job:job_id(id, job_code, job_name, status)')
+        .select('job:job_id(id, job_code, job_name, status, frequency, billing_amount, site:site_id(name, site_code))')
         .eq('task_id', t.id)
         .is('archived_at', null);
 
@@ -363,10 +368,18 @@ export default function TaskDetailPage() {
           <h3 className="mb-4 text-sm font-semibold text-foreground">
             <span className="inline-flex items-center gap-2">
               <ClipboardList className="h-4 w-4 text-muted-foreground" />
-              Descriptions
+              Description & Instructions
             </span>
           </h3>
           <dl className="space-y-3 text-sm">
+            {task.description && (
+              <div>
+                <dt className="text-muted-foreground">Description</dt>
+                <dd className="font-medium mt-1 whitespace-pre-wrap">
+                  {task.description}
+                </dd>
+              </div>
+            )}
             {task.spec_description && (
               <div>
                 <dt className="text-muted-foreground">Spec Description</dt>
@@ -383,7 +396,15 @@ export default function TaskDetailPage() {
                 </dd>
               </div>
             )}
-            {!task.spec_description && !task.work_description && (
+            {task.instructions && (
+              <div>
+                <dt className="text-muted-foreground">Step-by-Step Instructions</dt>
+                <dd className="font-medium mt-1 whitespace-pre-wrap">
+                  {task.instructions}
+                </dd>
+              </div>
+            )}
+            {!task.description && !task.spec_description && !task.work_description && !task.instructions && (
               <p className="text-muted-foreground">No descriptions recorded.</p>
             )}
           </dl>
@@ -443,6 +464,13 @@ export default function TaskDetailPage() {
                     </Link>
                   ) : (
                     <p className="text-sm font-medium">Unknown Job</p>
+                  )}
+                  {item.job?.site?.site_code && (
+                    <p className="text-xs text-muted-foreground">
+                      {item.job.site.name ?? item.job.site.site_code} ({item.job.site.site_code})
+                      {item.job.frequency ? ` · ${item.job.frequency.replace(/_/g, ' ')}` : ''}
+                      {item.job.billing_amount != null ? ` · $${Math.round(item.job.billing_amount).toLocaleString()}/mo` : ''}
+                    </p>
                   )}
                 </div>
                 {item.job?.status && (

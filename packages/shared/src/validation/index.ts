@@ -112,6 +112,7 @@ export type ContactFormData = z.infer<typeof contactSchema>;
 // ---------------------------------------------------------------------------
 export const taskSchema = z.object({
   task_code: z.string().regex(/^[A-Z0-9-]{3,20}$/, 'Use 3-20 uppercase letters, numbers, or hyphen'),
+  code: z.string().nullable().optional(),
   name: z.string().min(1, 'Name is required'),
   production_rate_sqft_per_hour: z.number().positive().nullable().default(null),
   production_rate: z.string().nullable().default(null),
@@ -119,10 +120,12 @@ export const taskSchema = z.object({
   subcategory: z.string().nullable().default(null),
   area_type: z.string().nullable().default(null),
   floor_type: z.string().nullable().default(null),
+  priority: z.enum(['high', 'medium', 'low']).nullable().optional(),
   priority_level: z.string().nullable().default(null),
   default_minutes: z.number().positive().nullable().default(null),
   unit_code: z.enum(['SQFT_1000', 'EACH']).default('SQFT_1000'),
   description: z.string().nullable().default(null),
+  instructions: z.string().nullable().default(null),
   spec_description: z.string().nullable().default(null),
   work_description: z.string().nullable().default(null),
   tools_materials: z.string().nullable().default(null),

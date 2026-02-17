@@ -23,6 +23,7 @@ const PRIORITY_OPTIONS = [
 
 const DEFAULTS: TaskFormData = {
   task_code: '',
+  code: null,
   name: '',
   production_rate_sqft_per_hour: null,
   production_rate: null,
@@ -30,10 +31,12 @@ const DEFAULTS: TaskFormData = {
   subcategory: null,
   area_type: null,
   floor_type: null,
+  priority: null,
   priority_level: null,
   default_minutes: null,
   unit_code: 'SQFT_1000',
   description: null,
+  instructions: null,
   spec_description: null,
   work_description: null,
   tools_materials: null,
@@ -58,6 +61,7 @@ export function TaskForm({ open, onClose, initialData, onSuccess, focusSection }
     initialValues: initialData
       ? {
           task_code: initialData.task_code,
+          code: initialData.code ?? initialData.task_code,
           name: initialData.name,
           production_rate_sqft_per_hour: initialData.production_rate_sqft_per_hour,
           production_rate: initialData.production_rate,
@@ -65,10 +69,12 @@ export function TaskForm({ open, onClose, initialData, onSuccess, focusSection }
           subcategory: initialData.subcategory,
           area_type: initialData.area_type,
           floor_type: initialData.floor_type,
+          priority: initialData.priority ?? null,
           priority_level: initialData.priority_level,
           default_minutes: initialData.default_minutes,
           unit_code: initialData.unit_code as 'SQFT_1000' | 'EACH',
           description: initialData.description,
+          instructions: initialData.instructions ?? initialData.work_description ?? null,
           spec_description: initialData.spec_description,
           work_description: initialData.work_description,
           tools_materials: initialData.tools_materials,
@@ -233,6 +239,13 @@ export function TaskForm({ open, onClose, initialData, onSuccess, focusSection }
             onChange={(e) => setValue('description', e.target.value || null)}
             placeholder="Task overview and quality expectations."
             rows={2}
+          />
+          <Textarea
+            label="Step-by-Step Instructions"
+            value={values.instructions ?? ''}
+            onChange={(e) => setValue('instructions', e.target.value || null)}
+            placeholder="Detailed cleaning instructions for field staff."
+            rows={3}
           />
           <Textarea
             label="Spec Description"

@@ -18,14 +18,18 @@ import {
   TableSkeleton,
   ExportButton,
   Button,
+  ViewToggle,
   cn,
 } from '@gleamops/ui';
 import type { Task } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { useViewPreference } from '@/hooks/use-view-preference';
 import { TaskForm } from '@/components/forms/task-form';
+import { TaskCatalogCardGrid } from './task-catalog-card-grid';
 
 const STATUS_OPTIONS = ['ACTIVE', 'INACTIVE', 'all'] as const;
+const PRIORITY_OPTIONS = ['all', 'HIGH', 'MEDIUM', 'LOW'] as const;
 
 const PRIORITY_COLORS: Record<string, 'red' | 'yellow' | 'green' | 'gray'> = {
   HIGH: 'red',
@@ -72,6 +76,9 @@ export default function TaskCatalogTable({ search }: TaskCatalogTableProps) {
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('ACTIVE');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [priorityFilter, setPriorityFilter] = useState<string>('all');
+  const { view, setView } = useViewPreference('taskCatalog');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -111,6 +118,12 @@ export default function TaskCatalogTable({ search }: TaskCatalogTableProps) {
         return status === statusFilter;
       });
     }
+    if (categoryFilter !== 'all') {
+      result = result.filter((task) => (task.category ?? 'Uncategorized') === categoryFilter);
+    }
+    if (priorityFilter !== 'all') {
+      result = result.filter((task) => (task.priority_level ?? 'MEDIUM') === priorityFilter);
+    }
     if (!search) return result;
 
     const q = search.toLowerCase();
@@ -121,7 +134,15 @@ export default function TaskCatalogTable({ search }: TaskCatalogTableProps) {
       (task.subcategory ?? '').toLowerCase().includes(q) ||
       (task.production_rate ?? '').toLowerCase().includes(q)
     );
-  }, [rows, search, statusFilter]);
+  }, [rows, search, statusFilter, categoryFilter, priorityFilter]);
+
+  const categoryOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(rows.map((task) => task.category?.trim()).filter((value): value is string => Boolean(value)))
+      ).sort((a, b) => a.localeCompare(b)),
+    [rows]
+  );
 
   const { sorted, sortKey, sortDir, onSort } = useTableSort(
     filtered as unknown as Record<string, unknown>[],
@@ -148,27 +169,30 @@ export default function TaskCatalogTable({ search }: TaskCatalogTableProps) {
           <Plus className="h-4 w-4" />
           New Task
         </Button>
-        <ExportButton
-          data={filtered.map((task) => ({
-            ...task,
-            task_label: `${task.name} (${task.task_code})`,
-            category_display: formatCategory(task.category, task.subcategory),
-            priority_display: task.priority_level ?? 'Not Set',
-            minutes_display: formatMinutes(task.default_minutes),
-            rate_display: formatRate(task),
-            status_display: (task.status ?? (task.is_active ? 'ACTIVE' : 'INACTIVE')).toUpperCase(),
-          })) as unknown as Record<string, unknown>[]}
-          filename="task-catalog"
-          columns={[
-            { key: 'task_label', label: 'Task' },
-            { key: 'category_display', label: 'Category' },
-            { key: 'priority_display', label: 'Priority' },
-            { key: 'minutes_display', label: 'Est. Minutes' },
-            { key: 'rate_display', label: 'Production Rate' },
-            { key: 'status_display', label: 'Status' },
-          ]}
-          onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
-        />
+        <div className="flex items-center gap-3">
+          <ViewToggle view={view} onChange={setView} />
+          <ExportButton
+            data={filtered.map((task) => ({
+              ...task,
+              task_label: `${task.name} (${task.task_code})`,
+              category_display: formatCategory(task.category, task.subcategory),
+              priority_display: task.priority_level ?? 'Not Set',
+              minutes_display: formatMinutes(task.default_minutes),
+              rate_display: formatRate(task),
+              status_display: (task.status ?? (task.is_active ? 'ACTIVE' : 'INACTIVE')).toUpperCase(),
+            })) as unknown as Record<string, unknown>[]}
+            filename="task-catalog"
+            columns={[
+              { key: 'task_label', label: 'Task' },
+              { key: 'category_display', label: 'Category' },
+              { key: 'priority_display', label: 'Priority' },
+              { key: 'minutes_display', label: 'Est. Minutes' },
+              { key: 'rate_display', label: 'Production Rate' },
+              { key: 'status_display', label: 'Status' },
+            ]}
+            onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
+          />
+        </div>
       </div>
 
       <div className="mb-4 flex items-center gap-2 flex-wrap">
@@ -195,64 +219,111 @@ export default function TaskCatalogTable({ search }: TaskCatalogTableProps) {
         ))}
       </div>
 
-      <div className="w-full overflow-x-auto">
-        <Table className="w-full min-w-full">
-          <TableHeader>
-            <tr>
-              <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Task</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead sortable sorted={sortKey === 'priority_level' && sortDir} onSort={() => onSort('priority_level')}>Priority</TableHead>
-              <TableHead sortable sorted={sortKey === 'default_minutes' && sortDir} onSort={() => onSort('default_minutes')}>Est. Minutes</TableHead>
-              <TableHead>Production Rate</TableHead>
-              <TableHead>Status</TableHead>
-            </tr>
-          </TableHeader>
-          <TableBody>
-            {pag.page.map((task) => {
-              const status = (task.status ?? (task.is_active ? 'ACTIVE' : 'INACTIVE')).toUpperCase();
-              return (
-                <TableRow
-                  key={task.id}
-                  className="cursor-pointer"
-                  onClick={() => router.push(`/services/tasks/${encodeURIComponent(task.task_code)}?from=operations`)}
-                >
-                  <TableCell>
-                    <div className="max-w-[300px]">
-                      <p className="truncate text-sm font-semibold text-foreground" title={task.name}>{task.name}</p>
-                      <p className="truncate text-xs text-muted-foreground font-mono" title={task.task_code}>{task.task_code}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    <span className="inline-block max-w-[240px] truncate" title={formatCategory(task.category, task.subcategory)}>
-                      {formatCategory(task.category, task.subcategory)}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    {task.priority_level ? (
-                      <Badge color={PRIORITY_COLORS[task.priority_level] ?? 'gray'}>
-                        {task.priority_level.toLowerCase().replace(/\\b\\w/g, (char) => char.toUpperCase())}
-                      </Badge>
-                    ) : (
-                      <span className="italic text-muted-foreground">Not Set</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="tabular-nums text-sm">{formatMinutes(task.default_minutes)}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    <span className="inline-block max-w-[280px] truncate" title={formatRate(task)}>{formatRate(task)}</span>
-                  </TableCell>
-                  <TableCell>
-                    <Badge color={status === 'ACTIVE' ? 'green' : 'gray'} dot>
-                      {status === 'ACTIVE' ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+      <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <select
+          value={categoryFilter}
+          onChange={(event) => setCategoryFilter(event.target.value)}
+          className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
+        >
+          <option value="all">All Categories</option>
+          {categoryOptions.map((category) => (
+            <option key={category} value={category}>
+              {category}
+            </option>
+          ))}
+        </select>
+        <select
+          value={priorityFilter}
+          onChange={(event) => setPriorityFilter(event.target.value)}
+          className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
+        >
+          {PRIORITY_OPTIONS.map((priority) => (
+            <option key={priority} value={priority}>
+              {priority === 'all'
+                ? 'All Priorities'
+                : priority.charAt(0) + priority.slice(1).toLowerCase()}
+            </option>
+          ))}
+        </select>
       </div>
 
-      {filtered.length === 0 && (
+      {view === 'card' ? (
+        filtered.length === 0 ? (
+          <div className="mt-4">
+            <EmptyState
+              icon={<ClipboardList className="h-12 w-12" />}
+              title={emptyTitle}
+              description={emptyDescription}
+              actionLabel={!search && statusFilter === 'all' ? '+ Add Your First Task' : undefined}
+              onAction={!search && statusFilter === 'all' ? () => setFormOpen(true) : undefined}
+            />
+          </div>
+        ) : (
+          <TaskCatalogCardGrid
+            rows={pag.page}
+            onSelect={(task) => router.push(`/operations/task-catalog/${encodeURIComponent(task.task_code)}`)}
+          />
+        )
+      ) : (
+        <div className="w-full overflow-x-auto">
+          <Table className="w-full min-w-full">
+            <TableHeader>
+              <tr>
+                <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Task</TableHead>
+                <TableHead sortable sorted={sortKey === 'category' && sortDir} onSort={() => onSort('category')}>Category</TableHead>
+                <TableHead sortable sorted={sortKey === 'priority_level' && sortDir} onSort={() => onSort('priority_level')}>Priority</TableHead>
+                <TableHead sortable sorted={sortKey === 'default_minutes' && sortDir} onSort={() => onSort('default_minutes')}>Est. Minutes</TableHead>
+                <TableHead>Production Rate</TableHead>
+                <TableHead sortable sorted={sortKey === 'status' && sortDir} onSort={() => onSort('status')}>Status</TableHead>
+              </tr>
+            </TableHeader>
+            <TableBody>
+              {pag.page.map((task) => {
+                const status = (task.status ?? (task.is_active ? 'ACTIVE' : 'INACTIVE')).toUpperCase();
+                return (
+                  <TableRow
+                    key={task.id}
+                    className="cursor-pointer"
+                    onClick={() => router.push(`/operations/task-catalog/${encodeURIComponent(task.task_code)}`)}
+                  >
+                    <TableCell>
+                      <div className="max-w-[300px]">
+                        <p className="truncate text-sm font-semibold text-foreground" title={task.name}>{task.name}</p>
+                        <p className="truncate text-xs text-muted-foreground font-mono" title={task.task_code}>{task.task_code}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      <span className="inline-block max-w-[240px] truncate" title={formatCategory(task.category, task.subcategory)}>
+                        {formatCategory(task.category, task.subcategory)}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {task.priority_level ? (
+                        <Badge color={PRIORITY_COLORS[task.priority_level] ?? 'gray'}>
+                          {task.priority_level.toLowerCase().replace(/\\b\\w/g, (char) => char.toUpperCase())}
+                        </Badge>
+                      ) : (
+                        <span className="italic text-muted-foreground">Not Set</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="tabular-nums text-sm">{formatMinutes(task.default_minutes)}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      <span className="inline-block max-w-[280px] truncate" title={formatRate(task)}>{formatRate(task)}</span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge color={status === 'ACTIVE' ? 'green' : 'gray'} dot>
+                        {status === 'ACTIVE' ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {filtered.length === 0 && view !== 'card' && (
         <div className="mt-4">
           <EmptyState
             icon={<ClipboardList className="h-12 w-12" />}

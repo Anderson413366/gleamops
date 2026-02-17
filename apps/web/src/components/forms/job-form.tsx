@@ -303,7 +303,9 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
             task_id: t.taskId,
             sequence_order: index + 1,
             is_required: true,
-            estimated_minutes: Math.max(1, Math.round(t.minutesPerVisit * t.quantity)),
+            custom_minutes: Math.max(0.25, Number((t.minutesPerVisit * t.quantity).toFixed(2))),
+            estimated_minutes: Math.max(0.25, Number((t.minutesPerVisit * t.quantity).toFixed(2))),
+            planned_minutes: Math.max(1, Math.round(t.minutesPerVisit * t.quantity)),
             status: 'PENDING',
           }));
 

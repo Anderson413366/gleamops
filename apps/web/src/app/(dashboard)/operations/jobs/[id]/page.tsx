@@ -82,6 +82,7 @@ interface JobTaskWithCatalogRow {
   is_required: boolean;
   wait_after: boolean;
   estimated_minutes: number | null;
+  custom_minutes: number | null;
   planned_minutes: number | null;
   notes: string | null;
   status: string | null;
@@ -190,6 +191,10 @@ function formatHoursFromMinutes(minutes: number): string {
   return `${hours.toFixed(hours >= 10 ? 1 : 2)} h`;
 }
 
+function formatCategoryLabel(value: string): string {
+  return value.toLowerCase().replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 export default function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [job, setJob] = useState<JobWithRelations | null>(null);
@@ -203,6 +208,7 @@ export default function JobDetailPage() {
   const [taskSearch, setTaskSearch] = useState('');
   const [taskCategoryFilter, setTaskCategoryFilter] = useState('all');
   const [draggedTaskIndex, setDraggedTaskIndex] = useState<number | null>(null);
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
 
   // Related data
   const [taskCount, setTaskCount] = useState(0);
@@ -260,7 +266,7 @@ export default function JobDetailPage() {
 
     const primary = await supabase
       .from('job_tasks')
-      .select('id, task_id, task_code, task_name, sequence_order, is_required, wait_after, estimated_minutes, planned_minutes, notes, status, task:task_id(id, task_code, name, category, subcategory, priority_level, default_minutes, is_active)')
+      .select('id, task_id, task_code, task_name, sequence_order, is_required, wait_after, estimated_minutes, custom_minutes, planned_minutes, notes, status, task:task_id(id, task_code, name, category, subcategory, priority_level, default_minutes, is_active)')
       .eq('job_id', jobId)
       .is('archived_at', null);
 
@@ -286,7 +292,8 @@ export default function JobDetailPage() {
     const rows = ((fallback.data as unknown as JobTaskWithCatalogRow[]) ?? []).map((row, index) => ({
       ...row,
       sequence_order: row.sequence_order ?? index + 1,
-      estimated_minutes: row.estimated_minutes ?? row.planned_minutes,
+      estimated_minutes: row.estimated_minutes ?? row.custom_minutes ?? row.planned_minutes,
+      custom_minutes: row.custom_minutes ?? row.estimated_minutes ?? row.planned_minutes,
       wait_after: row.wait_after ?? false,
     }));
     nextStateFromRows(rows);
@@ -406,8 +413,9 @@ export default function JobDetailPage() {
     }));
     setTaskDraft(draft);
     setTaskSearch('');
-    setTaskCategoryFilter('all');
-    setManageTasksOpen(true);
+      setTaskCategoryFilter('all');
+      setExpandedCategories({});
+      setManageTasksOpen(true);
   };
 
   const handleAddCatalogTask = (task: TaskCatalogRow) => {
@@ -466,6 +474,7 @@ export default function JobDetailPage() {
           is_required: task.isRequired,
           wait_after: task.waitAfter,
           estimated_minutes: Math.max(0, Number(task.estimatedMinutes || 0)),
+          custom_minutes: Math.max(0, Number(task.estimatedMinutes || 0)),
           planned_minutes: Math.max(0, Math.round(Number(task.estimatedMinutes || 0))),
           status: 'ACTIVE',
           notes: task.notes,
@@ -576,8 +585,16 @@ export default function JobDetailPage() {
       (task.subcategory ?? '').toLowerCase().includes(q)
     );
   });
+  const groupedCatalogTasks = filteredCatalogTasks.reduce<Record<string, TaskCatalogRow[]>>((acc, task) => {
+    const key = task.category ?? 'Uncategorized';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(task);
+    return acc;
+  }, {});
+  const catalogCategoryOrder = Object.keys(groupedCatalogTasks).sort((a, b) => a.localeCompare(b));
   const totalTaskMinutes = jobTasks.reduce(
-    (sum, row) => sum + Number(row.estimated_minutes ?? row.planned_minutes ?? 0),
+    (sum, row) =>
+      sum + Number(row.custom_minutes ?? row.estimated_minutes ?? row.planned_minutes ?? row.task?.default_minutes ?? 0),
     0
   );
   const estimatedHoursPerService = totalTaskMinutes > 0
@@ -640,14 +657,6 @@ export default function JobDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={openManageTasks}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-          >
-            <ListChecks className="h-3.5 w-3.5" />
-            Manage Tasks
-          </button>
           <button
             type="button"
             onClick={() => setFormOpen(true)}
@@ -913,10 +922,14 @@ export default function JobDetailPage() {
                 Job Tasks ({taskCount})
               </span>
             </h3>
-            <div className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-              <Clock3 className="h-3.5 w-3.5" />
-              <span>Est. Hours / Service: {formatHoursFromMinutes(totalTaskMinutes)}</span>
-            </div>
+            <button
+              type="button"
+              onClick={openManageTasks}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              <ListChecks className="h-3.5 w-3.5" />
+              Manage Tasks
+            </button>
           </div>
 
           {jobTasks.length === 0 ? (
@@ -928,9 +941,9 @@ export default function JobDetailPage() {
               {jobTasks.map((task) => {
                 const taskName = task.task?.name ?? task.task_name ?? 'Unnamed Task';
                 const taskCode = task.task?.task_code ?? task.task_code ?? 'TASK';
-                const minutes = Number(task.estimated_minutes ?? task.planned_minutes ?? 0);
+                const minutes = Number(task.custom_minutes ?? task.estimated_minutes ?? task.planned_minutes ?? task.task?.default_minutes ?? 0);
                 return (
-                  <li key={task.id} className="rounded-xl border border-border bg-background p-4">
+                  <li key={task.id} className="rounded-lg border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
                     <p className="text-[15px] font-semibold text-foreground">{taskName}</p>
                     <p className="mt-1 text-[13px] text-muted-foreground">
                       {taskCode} · {minutes > 0 ? `${minutes} min` : 'Not Set'}
@@ -944,6 +957,12 @@ export default function JobDetailPage() {
               })}
             </ul>
           )}
+          <div className="mt-4 inline-flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+            <Clock3 className="h-4 w-4" />
+            <span>Total Estimated Time: {Number(totalTaskMinutes.toFixed(2))} minutes</span>
+            <span>·</span>
+            <span>Est. Hours / Service: {formatHoursFromMinutes(totalTaskMinutes)}</span>
+          </div>
         </div>
 
         {/* Staff Assignments */}
@@ -1099,31 +1118,58 @@ export default function JobDetailPage() {
                 >
                   <option value="all">All Categories</option>
                   {taskCategories.map((category) => (
-                    <option key={category} value={category}>{category}</option>
+                    <option key={category} value={category}>{formatCategoryLabel(category)}</option>
                   ))}
                 </select>
               </div>
               <div className="max-h-[520px] space-y-2 overflow-y-auto pr-1">
-                {filteredCatalogTasks.map((task) => {
-                  const isAssigned = taskDraft.some((assigned) => assigned.taskId === task.id);
+                {catalogCategoryOrder.map((category) => {
+                  const categoryTasks = groupedCatalogTasks[category];
+                  const isExpanded = expandedCategories[category] ?? true;
                   return (
-                    <div key={task.id} className="rounded-lg border border-border bg-background p-3">
-                      <p className="text-sm font-medium text-foreground">{task.name}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {task.task_code}
-                        {task.category ? ` · ${task.category}` : ''}
-                      </p>
-                      <div className="mt-2 flex justify-end">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => handleAddCatalogTask(task)}
-                          disabled={isAssigned}
-                        >
-                          {isAssigned ? 'Assigned' : 'Add'}
-                        </Button>
-                      </div>
+                    <div key={category} className="rounded-lg border border-border bg-background">
+                      <button
+                        type="button"
+                        className="flex w-full items-center justify-between px-3 py-2 text-left"
+                        onClick={() =>
+                          setExpandedCategories((prev) => ({
+                            ...prev,
+                            [category]: !(prev[category] ?? true),
+                          }))
+                        }
+                      >
+                        <span className="text-sm font-medium text-foreground">
+                          {formatCategoryLabel(category)} ({categoryTasks.length})
+                        </span>
+                        <span className="text-xs text-muted-foreground">{isExpanded ? 'Hide' : 'Show'}</span>
+                      </button>
+                      {isExpanded && (
+                        <div className="space-y-2 border-t border-border px-3 py-2">
+                          {categoryTasks.map((task) => {
+                            const isAssigned = taskDraft.some((assigned) => assigned.taskId === task.id);
+                            return (
+                              <div key={task.id} className="rounded-lg border border-border bg-card p-3">
+                                <p className="text-sm font-medium text-foreground">{task.name}</p>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                  {task.task_code}
+                                  {task.subcategory ? ` · ${formatCategoryLabel(task.subcategory)}` : ''}
+                                </p>
+                                <div className="mt-2 flex justify-end">
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="secondary"
+                                    onClick={() => handleAddCatalogTask(task)}
+                                    disabled={isAssigned}
+                                  >
+                                    {isAssigned ? 'Assigned' : '+ Add'}
+                                  </Button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -1200,6 +1246,7 @@ export default function JobDetailPage() {
                       <input
                         type="number"
                         min={0}
+                        step="0.25"
                         value={task.estimatedMinutes}
                         onChange={(event) =>
                           setTaskDraft((prev) =>

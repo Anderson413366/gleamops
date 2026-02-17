@@ -14,7 +14,7 @@ import { usePagination } from '@/hooks/use-pagination';
 import { toSafeDate } from '@/lib/utils/date';
 import { InventoryCountForm } from '@/components/forms/inventory-count-form';
 
-const STATUS_OPTIONS = ['IN_PROGRESS', 'DRAFT', 'COMPLETED', 'all'] as const;
+const STATUS_OPTIONS = ['IN_PROGRESS', 'DRAFT', 'SUBMITTED', 'COMPLETED', 'CANCELLED', 'all'] as const;
 
 interface CountRow extends InventoryCount {
   site?: { id: string; name: string; site_code: string } | null;
@@ -138,7 +138,13 @@ export default function CountsTable({ search, formOpen, onFormClose, onRefresh }
   const handleFormSuccess = () => {
     fetchData();
     onRefresh?.();
+    setCreateOpen(false);
   };
+
+  const initialSiteId = useMemo(() => {
+    if (!siteQueryCode || sites.length === 0) return null;
+    return sites.find((site) => site.site_code === siteQueryCode)?.id ?? null;
+  }, [siteQueryCode, sites]);
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = { all: rows.length };
@@ -297,7 +303,7 @@ export default function CountsTable({ search, formOpen, onFormClose, onRefresh }
                 <TableCell>{row.site?.name ?? 'Not Set'}</TableCell>
                 <TableCell>{dateFmt.format(toSafeDate(row.count_date))}</TableCell>
                 <TableCell className="text-muted-foreground">{row.status}</TableCell>
-                <TableCell>{row.counter?.full_name ?? 'Not Set'}</TableCell>
+                <TableCell>{row.counter?.full_name ?? row.counted_by_name ?? 'Not Set'}</TableCell>
                 <TableCell className="tabular-nums">{aggregate.itemsCount}</TableCell>
                 <TableCell className="tabular-nums">{formatCurrency(aggregate.totalValue)}</TableCell>
               </TableRow>
@@ -335,6 +341,7 @@ export default function CountsTable({ search, formOpen, onFormClose, onRefresh }
         open={createOpen}
         onClose={handleFormClose}
         onSuccess={handleFormSuccess}
+        initialSiteId={initialSiteId}
       />
     </div>
   );

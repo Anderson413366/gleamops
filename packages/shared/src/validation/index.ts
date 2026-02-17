@@ -339,7 +339,7 @@ export const inventoryCountSchema = z.object({
   site_id: z.string().uuid().nullable().default(null),
   counted_by: z.string().uuid().nullable().default(null),
   count_date: z.string().min(1, 'Count date is required'),
-  status: z.enum(['DRAFT', 'IN_PROGRESS', 'COMPLETED']).default('DRAFT'),
+  status: z.enum(['DRAFT', 'IN_PROGRESS', 'SUBMITTED', 'COMPLETED', 'CANCELLED']).default('DRAFT'),
   notes: z.string().nullable().default(null),
 });
 export type InventoryCountFormData = z.infer<typeof inventoryCountSchema>;

@@ -161,7 +161,13 @@ export default function InventoryCountDetailPage() {
               Site: {count.site?.name ?? 'Not Set'} {count.site?.site_code ? `(${count.site.site_code})` : ''}
             </p>
           </div>
-          <Badge color={count.status === 'COMPLETED' ? 'green' : count.status === 'IN_PROGRESS' ? 'yellow' : 'gray'}>
+          <Badge color={
+            count.status === 'COMPLETED' ? 'green'
+              : count.status === 'SUBMITTED' ? 'blue'
+                : count.status === 'IN_PROGRESS' ? 'yellow'
+                  : count.status === 'CANCELLED' ? 'red'
+                    : 'gray'
+          }>
             {count.status}
           </Badge>
         </div>

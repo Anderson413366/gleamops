@@ -112,9 +112,13 @@ interface CountSummary {
   count_date: string;
   status: string;
   counted_by: string | null;
+  counted_by_name?: string | null;
+  submitted_at?: string | null;
 }
 
 interface CountDetailSummary {
+  id: string;
+  count_id: string;
   supply_id: string;
   actual_qty: number | null;
 }
@@ -266,7 +270,11 @@ export default function SiteDetailPage() {
   const [latestCount, setLatestCount] = useState<CountSummary | null>(null);
   const [latestCountedByName, setLatestCountedByName] = useState<string | null>(null);
   const [supplyLookupByName, setSupplyLookupByName] = useState<Record<string, SupplyLookupRow>>({});
+  const [supplyLookupById, setSupplyLookupById] = useState<Record<string, SupplyLookupRow>>({});
   const [latestCountQtyBySupplyId, setLatestCountQtyBySupplyId] = useState<Record<string, number>>({});
+  const [countHistory, setCountHistory] = useState<CountSummary[]>([]);
+  const [countDetailsByCountId, setCountDetailsByCountId] = useState<Record<string, CountDetailSummary[]>>({});
+  const [expandedCountIds, setExpandedCountIds] = useState<string[]>([]);
 
   const fetchSite = async () => {
     setLoading(true);
@@ -289,7 +297,7 @@ export default function SiteDetailPage() {
       setSite(s);
 
       // Fetch related data in parallel
-      const [jobsRes, equipRes, keysRes, siteSuppliesRes, latestCountRes, supplyCatalogRes] = await Promise.all([
+      const [jobsRes, equipRes, keysRes, siteSuppliesRes, countHistoryRes, supplyCatalogRes] = await Promise.all([
         supabase
           .from('site_jobs')
           .select('id, job_code, job_name, status, frequency, schedule_days, start_time, end_time, job_assigned_to, billing_amount, priority_level')
@@ -315,11 +323,11 @@ export default function SiteDetailPage() {
           .order('name'),
         supabase
           .from('inventory_counts')
-          .select('id, count_code, count_date, status, counted_by')
+          .select('id, count_code, count_date, status, counted_by, counted_by_name, submitted_at')
           .eq('site_id', s.id)
           .is('archived_at', null)
           .order('count_date', { ascending: false })
-          .limit(1),
+          .limit(5),
         supabase
           .from('supply_catalog')
           .select('id, code, name, unit')
@@ -346,12 +354,18 @@ export default function SiteDetailPage() {
       setKeys((keysRes.data as unknown as KeyInventory[]) ?? []);
       setSiteSupplies((siteSuppliesRes.data as unknown as SiteSupplyRow[]) ?? []);
       const lookupByName: Record<string, SupplyLookupRow> = {};
+      const lookupById: Record<string, SupplyLookupRow> = {};
       for (const supply of ((supplyCatalogRes.data ?? []) as unknown as SupplyLookupRow[])) {
         lookupByName[supply.name.trim().toLowerCase()] = supply;
+        lookupById[supply.id] = supply;
       }
       setSupplyLookupByName(lookupByName);
+      setSupplyLookupById(lookupById);
 
-      const latest = (latestCountRes.data?.[0] ?? null) as CountSummary | null;
+      const history = ((countHistoryRes.data ?? []) as CountSummary[]) ?? [];
+      setCountHistory(history);
+      setExpandedCountIds(history.length > 0 ? [history[0].id] : []);
+      const latest = (history[0] ?? null) as CountSummary | null;
       setLatestCount(latest);
       if (latest?.counted_by) {
         const { data: counter } = await supabase
@@ -361,23 +375,33 @@ export default function SiteDetailPage() {
           .is('archived_at', null)
           .maybeSingle();
         setLatestCountedByName((counter as { full_name?: string } | null)?.full_name ?? null);
+      } else if (latest?.counted_by_name) {
+        setLatestCountedByName(latest.counted_by_name);
       } else {
         setLatestCountedByName(null);
       }
 
-      if (latest?.id) {
+      if (history.length > 0) {
+        const countIds = history.map((count) => count.id);
         const { data: countDetailRows } = await supabase
           .from('inventory_count_details')
-          .select('supply_id, actual_qty')
-          .eq('count_id', latest.id)
+          .select('id, count_id, supply_id, actual_qty')
+          .in('count_id', countIds)
           .is('archived_at', null);
 
+        const groupedCountDetails: Record<string, CountDetailSummary[]> = {};
         const qtyBySupplyId: Record<string, number> = {};
         for (const detail of ((countDetailRows ?? []) as unknown as CountDetailSummary[])) {
-          qtyBySupplyId[detail.supply_id] = Number(detail.actual_qty ?? 0);
+          if (!groupedCountDetails[detail.count_id]) groupedCountDetails[detail.count_id] = [];
+          groupedCountDetails[detail.count_id].push(detail);
+          if (latest && detail.count_id === latest.id) {
+            qtyBySupplyId[detail.supply_id] = Number(detail.actual_qty ?? 0);
+          }
         }
+        setCountDetailsByCountId(groupedCountDetails);
         setLatestCountQtyBySupplyId(qtyBySupplyId);
       } else {
+        setCountDetailsByCountId({});
         setLatestCountQtyBySupplyId({});
       }
 
@@ -421,7 +445,11 @@ export default function SiteDetailPage() {
       setLatestCount(null);
       setLatestCountedByName(null);
       setSupplyLookupByName({});
+      setSupplyLookupById({});
       setLatestCountQtyBySupplyId({});
+      setCountHistory([]);
+      setCountDetailsByCountId({});
+      setExpandedCountIds([]);
       setJobTasksByJob({});
       setJobStaffByJob({});
     }
@@ -489,22 +517,28 @@ export default function SiteDetailPage() {
     return map;
   }, [filteredSupplies]);
 
-  const nextCountDueDate = latestCount
-    ? new Date(new Date(latestCount.count_date).getTime() + (30 * 24 * 60 * 60 * 1000))
-    : null;
+  const nextCountDueDate = site?.next_count_due
+    ? new Date(`${site.next_count_due}T00:00:00`)
+    : latestCount
+      ? new Date(new Date(latestCount.count_date).getTime() + (30 * 24 * 60 * 60 * 1000))
+      : null;
   const dueLabel = nextCountDueDate
     ? (() => {
-        const now = new Date();
-        const diffMs = nextCountDueDate.getTime() - now.getTime();
-        const diffDays = Math.ceil(diffMs / (24 * 60 * 60 * 1000));
-        if (diffDays < 0) return { text: `Overdue by ${Math.abs(diffDays)} day(s)`, color: 'red' as const };
-        if (diffDays <= 7) return { text: `Due in ${diffDays} day(s)`, color: 'yellow' as const };
-        return { text: `Due in ${diffDays} day(s)`, color: 'green' as const };
-      })()
+      const now = new Date();
+      const diffMs = nextCountDueDate.getTime() - now.getTime();
+      const diffDays = Math.ceil(diffMs / (24 * 60 * 60 * 1000));
+      if (diffDays < 0) return { text: `Count overdue! Last count: ${formatDate(site?.last_count_date ?? latestCount?.count_date ?? null)} (${Math.abs(diffDays)} day(s) ago)`, color: 'red' as const };
+      if (diffDays <= 7) return { text: `Count due soon: ${formatDate(nextCountDueDate.toISOString())} (in ${diffDays} day(s))`, color: 'yellow' as const };
+      return { text: `Next count due: ${formatDate(nextCountDueDate.toISOString())} (in ${diffDays} day(s))`, color: 'green' as const };
+    })()
     : null;
 
   const toggleJobExpanded = (jobId: string) => {
     setExpandedJobs((prev) => (prev.includes(jobId) ? prev.filter((idValue) => idValue !== jobId) : [...prev, jobId]));
+  };
+
+  const toggleCountExpanded = (countId: string) => {
+    setExpandedCountIds((prev) => (prev.includes(countId) ? prev.filter((idValue) => idValue !== countId) : [...prev, countId]));
   };
 
   if (loading) {
@@ -1224,15 +1258,16 @@ export default function SiteDetailPage() {
             Last Inventory Count: {latestCount ? formatDate(latestCount.count_date) : 'No counts yet'}
           </p>
           <p className="mt-1 text-muted-foreground">
-            Counted by: {latestCountedByName ?? 'Not Set'}
+            Counted by: {latestCountedByName ?? latestCount?.counted_by_name ?? 'Not Set'}
           </p>
           <p className="mt-1 text-muted-foreground">
-            Next Due: {nextCountDueDate ? formatDate(nextCountDueDate.toISOString()) : 'Not Set'}
             {dueLabel ? (
-              <span className="ml-2">
+              <span className="inline-flex items-center gap-2">
                 <Badge color={dueLabel.color}>{dueLabel.text}</Badge>
               </span>
-            ) : null}
+            ) : (
+              'Next Due: Not Set'
+            )}
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <Link
@@ -1247,7 +1282,86 @@ export default function SiteDetailPage() {
             >
               Start New Count
             </Link>
+            <Link
+              href={`/inventory?tab=counts&action=create-count&site=${encodeURIComponent(site.site_code)}`}
+              className="inline-flex items-center rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              Generate Count URL
+            </Link>
           </div>
+        </div>
+
+        <div className="mt-4 rounded-lg border border-border bg-card p-4">
+          <h4 className="text-sm font-semibold text-foreground">Inventory Count History</h4>
+          {countHistory.length === 0 ? (
+            <p className="mt-2 text-sm text-muted-foreground">No counts recorded yet for this site.</p>
+          ) : (
+            <div className="mt-3 space-y-3">
+              {countHistory.map((count, index) => {
+                const expanded = expandedCountIds.includes(count.id);
+                const details = countDetailsByCountId[count.id] ?? [];
+                return (
+                  <div key={count.id} className="rounded-lg border border-border bg-muted/10 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">
+                          {index === 0 ? 'Latest: ' : ''}{count.count_code} — {formatDate(count.count_date)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Counted by: {count.counted_by_name ?? (index === 0 ? latestCountedByName : null) ?? 'Not Set'} · Status: {count.status}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleCountExpanded(count.id)}
+                          className="text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
+                        >
+                          {expanded ? 'Hide Details' : 'View Details'}
+                        </button>
+                        <Link
+                          href={`/inventory/counts/${encodeURIComponent(count.count_code)}`}
+                          className="text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
+                        >
+                          View Full Count Report
+                        </Link>
+                      </div>
+                    </div>
+                    {expanded && (
+                      <div className="mt-3 rounded-md border border-border bg-background p-3">
+                        {details.length === 0 ? (
+                          <p className="text-xs text-muted-foreground">No line items for this count.</p>
+                        ) : (
+                          <ul className="space-y-1.5 text-xs">
+                            {details.map((detail) => {
+                              const supply = supplyLookupById[detail.supply_id];
+                              return (
+                                <li key={detail.id} className="flex items-center justify-between gap-3">
+                                  <span className="text-foreground">
+                                    {supply?.code ? (
+                                      <Link
+                                        href={`/inventory/supplies/${encodeURIComponent(supply.code)}`}
+                                        className="text-blue-600 hover:underline dark:text-blue-400"
+                                      >
+                                        {supply.name}
+                                      </Link>
+                                    ) : (supply?.name ?? 'Unknown Supply')}
+                                  </span>
+                                  <span className="tabular-nums text-muted-foreground">
+                                    {detail.actual_qty != null ? `${detail.actual_qty} ${supply?.unit ?? 'units'}` : 'Not Counted'}
+                                  </span>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 

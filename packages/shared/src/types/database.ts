@@ -191,6 +191,10 @@ export interface Site extends StandardColumns {
   geofence_center_lng: number | null;
   geofence_radius_meters: number | null;
   photo_url: string | null;
+  inventory_frequency: 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'QUARTERLY' | null;
+  last_count_date: string | null;
+  next_count_due: string | null;
+  count_status_alert: string | null;
   notes: string | null;
 }
 
@@ -920,8 +924,11 @@ export interface InventoryCount extends StandardColumns {
   count_code: string;
   site_id: string | null;
   counted_by: string | null; // staff_id
+  counted_by_name: string | null;
+  public_token: string | null;
   count_date: string;
-  status: string; // DRAFT | IN_PROGRESS | COMPLETED
+  status: string; // DRAFT | IN_PROGRESS | SUBMITTED | COMPLETED | CANCELLED
+  submitted_at: string | null;
   notes: string | null;
 }
 
@@ -929,7 +936,7 @@ export interface InventoryCountDetail extends StandardColumns {
   count_id: string;
   supply_id: string;
   expected_qty: number | null;
-  actual_qty: number;
+  actual_qty: number | null;
   variance: number | null;
   notes: string | null;
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
+import Link from 'next/link';
 import {
   Building2,
   Ticket,
@@ -25,6 +26,7 @@ import {
   Focus,
   ScanLine,
   Clock3,
+  ClipboardList,
 } from 'lucide-react';
 import { StatCard, CollapsibleCard, Badge, Skeleton } from '@gleamops/ui';
 import {
@@ -112,6 +114,15 @@ interface ComplianceAlert {
   name: string;
   expiryDate: string;
   daysUntil: number;
+}
+
+interface InventoryCountDueRow {
+  id: string;
+  name: string;
+  site_code: string;
+  next_count_due: string | null;
+  last_count_date: string | null;
+  count_status_alert: string | null;
 }
 
 interface AuditRow {
@@ -224,6 +235,7 @@ export default function HomePage() {
   const [lowStockItems, setLowStockItems] = useState<LowStockRow[]>([]);
   const [dataIssues, setDataIssues] = useState<DataIssueRow[]>([]);
   const [complianceAlerts, setComplianceAlerts] = useState<ComplianceAlert[]>([]);
+  const [inventoryCountDue, setInventoryCountDue] = useState<InventoryCountDueRow[]>([]);
 
   const [metricsLoading, setMetricsLoading] = useState(true);
   const [sectionsLoading, setSectionsLoading] = useState(true);
@@ -348,7 +360,11 @@ export default function HomePage() {
     complianceLookahead.setDate(complianceLookahead.getDate() + 30);
     const complianceLookaheadStr = complianceLookahead.toISOString().split('T')[0];
 
-    const [auditRes, ticketListRes, prospectRes, shiftsRes, lowStockRes, clientIssuesRes, expiringCertsRes, expiringTrainingRes, expiringDocsRes] = await Promise.all([
+    const inventoryLookahead = new Date();
+    inventoryLookahead.setDate(inventoryLookahead.getDate() + 7);
+    const inventoryLookaheadStr = inventoryLookahead.toISOString().split('T')[0];
+
+    const [auditRes, ticketListRes, prospectRes, shiftsRes, lowStockRes, inventoryDueRes, clientIssuesRes, expiringCertsRes, expiringTrainingRes, expiringDocsRes] = await Promise.all([
       // Recent activity
       supabase
         .from('audit_events')
@@ -383,6 +399,15 @@ export default function HomePage() {
         .is('archived_at', null)
         .order('name')
         .limit(10),
+      // Sites with inventory counts due in next 7 days or overdue
+      supabase
+        .from('sites')
+        .select('id, name, site_code, next_count_due, last_count_date, count_status_alert')
+        .is('archived_at', null)
+        .not('next_count_due', 'is', null)
+        .lte('next_count_due', inventoryLookaheadStr)
+        .order('next_count_due')
+        .limit(20),
       // Data quality — clients missing billing address
       supabase
         .from('clients')
@@ -426,6 +451,7 @@ export default function HomePage() {
     if (prospectRes.data) setProspects(prospectRes.data as ProspectRow[]);
     if (shiftsRes.data) setActiveShifts(shiftsRes.data as unknown as ActiveStaffRow[]);
     if (lowStockRes.data) setLowStockItems(lowStockRes.data as unknown as LowStockRow[]);
+    if (inventoryDueRes.data) setInventoryCountDue(inventoryDueRes.data as unknown as InventoryCountDueRow[]);
 
     // Compute data quality issues from fetched data
     const issues: DataIssueRow[] = [];
@@ -880,6 +906,52 @@ export default function HomePage() {
         <>
       <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Inventory & Data Quality</h2>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <CollapsibleCard
+          id="dashboard-inventory-due"
+          title="Inventory Counts Due"
+          icon={<ClipboardList className="h-5 w-5" />}
+        >
+          {sectionsLoading ? (
+            <ListSkeleton rows={4} />
+          ) : inventoryCountDue.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No inventory counts due in the next 7 days.</p>
+          ) : (
+            <ul className="space-y-2.5">
+              {inventoryCountDue.map((site) => {
+                const dueDate = site.next_count_due ? toSafeDate(site.next_count_due) : null;
+                const diffDays = dueDate ? Math.ceil((dueDate.getTime() - Date.now()) / 86400000) : null;
+                return (
+                  <li
+                    key={site.id}
+                    className="flex items-center justify-between gap-3 text-sm"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        href={`/crm/sites/${encodeURIComponent(site.site_code)}`}
+                        className="font-medium text-blue-600 hover:underline dark:text-blue-400"
+                      >
+                        {site.name} ({site.site_code})
+                      </Link>
+                      <p className="text-xs text-muted-foreground">
+                        Last count: {site.last_count_date ? dateFormatter.format(toSafeDate(site.last_count_date)) : 'Not Set'}
+                      </p>
+                    </div>
+                    <Badge color={diffDays != null && diffDays < 0 ? 'red' : diffDays != null && diffDays <= 7 ? 'yellow' : 'green'}>
+                      {diffDays == null
+                        ? 'Due Date Missing'
+                        : diffDays < 0
+                          ? `Overdue ${Math.abs(diffDays)}d`
+                          : diffDays === 0
+                            ? 'Due Today'
+                            : `Due in ${diffDays}d`}
+                    </Badge>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </CollapsibleCard>
+
         {/* Inventory Dashboard */}
         <CollapsibleCard
           id="dashboard-inventory"

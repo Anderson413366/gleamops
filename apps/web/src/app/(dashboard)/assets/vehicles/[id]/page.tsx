@@ -20,6 +20,7 @@ import { VehicleForm } from '@/components/forms/vehicle-form';
 import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
 import { StatusToggleDialog } from '@/components/detail/status-toggle-dialog';
+import { EntityLink } from '@/components/links/entity-link';
 import { toast } from 'sonner';
 
 interface VehicleWithAssigned extends Vehicle {
@@ -285,12 +286,25 @@ export default function VehicleDetailPage() {
           <dl className="space-y-3 text-sm">
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Assigned To</dt>
-              <dd className="font-medium">{vehicle.assigned?.full_name ?? notSet()}</dd>
+              <dd className="font-medium">
+                {vehicle.assigned?.staff_code
+                  ? (
+                    <EntityLink
+                      entityType="staff"
+                      code={vehicle.assigned.staff_code}
+                      name={vehicle.assigned.full_name ?? vehicle.assigned.staff_code}
+                      showCode={false}
+                    />
+                  )
+                  : (vehicle.assigned?.full_name ?? notSet())}
+              </dd>
             </div>
             {vehicle.assigned?.staff_code && (
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Staff Code</dt>
-                <dd className="font-medium font-mono text-xs">{vehicle.assigned.staff_code}</dd>
+                <dd className="font-medium font-mono text-xs">
+                  <EntityLink entityType="staff" code={vehicle.assigned.staff_code} name={vehicle.assigned.staff_code} showCode={false} />
+                </dd>
               </div>
             )}
             <div className="flex justify-between">

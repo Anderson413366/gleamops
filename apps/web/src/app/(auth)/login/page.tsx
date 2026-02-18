@@ -1,14 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Sparkles } from 'lucide-react';
 import { Input, Button } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -31,7 +30,9 @@ export default function LoginPage() {
       return;
     }
 
-    const nextPath = searchParams.get('next');
+    const nextPath = typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('next')
+      : null;
     const destination = nextPath && nextPath.startsWith('/') ? nextPath : '/home';
     router.push(destination);
   }

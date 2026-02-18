@@ -1,8 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "pnpm turbo build --filter=@gleamops/web",
-  "installCommand": "pnpm install",
-  "outputDirectory": "apps/web/.next",
   "crons": [
     {
       "path": "/api/cron/inventory-count-reminders",

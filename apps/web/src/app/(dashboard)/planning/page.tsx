@@ -1,10 +1,10 @@
 import { Suspense } from 'react';
-import OperationsPageClient from '../operations/operations-page';
+import PlanningPageClient from './planning-page-client';
 
 export default function PlanningPage() {
   return (
     <Suspense fallback={null}>
-      <OperationsPageClient defaultTab="planning" />
+      <PlanningPageClient />
     </Suspense>
   );
 }

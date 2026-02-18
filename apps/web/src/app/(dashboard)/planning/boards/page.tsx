@@ -1,5 +1,10 @@
-import { redirect } from 'next/navigation';
+import { Suspense } from 'react';
+import PlanningPageClient from '../planning-page-client';
 
 export default function PlanningBoardsPage() {
-  redirect('/planning?tab=planning&view=boards');
+  return (
+    <Suspense fallback={null}>
+      <PlanningPageClient />
+    </Suspense>
+  );
 }

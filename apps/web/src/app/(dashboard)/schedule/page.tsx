@@ -4,7 +4,7 @@ import OperationsPageClient from '../operations/operations-page';
 export default function SchedulePage() {
   return (
     <Suspense fallback={null}>
-      <OperationsPageClient defaultTab="planning" />
+      <OperationsPageClient defaultTab="calendar" />
     </Suspense>
   );
 }

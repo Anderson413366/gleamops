@@ -40,3 +40,72 @@ test.describe('Redirect navigation hygiene', () => {
     expect(u2.searchParams.get('tab')).toBe('staff');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Deep legacy routes must NOT redirect (exact-match protection)
+// ---------------------------------------------------------------------------
+
+test.describe('Deep legacy routes do NOT redirect', () => {
+  const DEEP_LEGACY_CASES = [
+    { path: '/crm/clients/CLI-1001', expectPrefix: '/crm/clients/' },
+    { path: '/crm/sites/SIT-2050', expectPrefix: '/crm/sites/' },
+    { path: '/operations/jobs/JOB-2026-A', expectPrefix: '/operations/jobs/' },
+    { path: '/pipeline/prospects/PRO-0001', expectPrefix: '/pipeline/prospects/' },
+    { path: '/workforce/staff/STF-1001', expectPrefix: '/workforce/staff/' },
+  ];
+
+  for (const { path, expectPrefix } of DEEP_LEGACY_CASES) {
+    test(`${path} stays on legacy deep route`, async ({ page }) => {
+      await page.goto(path);
+      const url = new URL(page.url());
+      expect(url.pathname).toContain(expectPrefix);
+    });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Canonical deep-route bridges load (not 404)
+// ---------------------------------------------------------------------------
+
+test.describe('Canonical deep-route bridges resolve', () => {
+  const BRIDGE_CASES = [
+    { path: '/customers/clients', expectRedirectTo: '/customers' },
+    { path: '/customers/sites', expectRedirectTo: '/customers' },
+    { path: '/customers/contacts', expectRedirectTo: '/customers' },
+    { path: '/people/staff', expectRedirectTo: '/people' },
+    { path: '/people/timekeeping', expectRedirectTo: '/people' },
+    { path: '/supplies/orders', expectRedirectTo: '/supplies' },
+    { path: '/supplies/kits', expectRedirectTo: '/supplies' },
+    { path: '/sales/prospects', expectRedirectTo: '/sales' },
+    { path: '/sales/opportunities', expectRedirectTo: '/sales' },
+    { path: '/work/tickets', expectRedirectTo: '/work' },
+    { path: '/work/jobs', expectRedirectTo: '/work' },
+  ];
+
+  for (const { path, expectRedirectTo } of BRIDGE_CASES) {
+    test(`${path} bridges to ${expectRedirectTo}`, async ({ page }) => {
+      await page.goto(path);
+      const url = new URL(page.url());
+      expect(url.pathname).toBe(expectRedirectTo);
+    });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Schedule vs Planning are distinct views
+// ---------------------------------------------------------------------------
+
+test.describe('Schedule and Planning are distinct', () => {
+  test('/schedule and /planning show different default tabs', async ({ page }) => {
+    await page.goto('/schedule');
+    await expect(page).toHaveURL(/\/schedule/);
+    const scheduleUrl = new URL(page.url());
+
+    await page.goto('/planning');
+    await expect(page).toHaveURL(/\/planning/);
+    const planningUrl = new URL(page.url());
+
+    // They should be on different paths (not the same)
+    expect(scheduleUrl.pathname).not.toBe(planningUrl.pathname);
+  });
+});

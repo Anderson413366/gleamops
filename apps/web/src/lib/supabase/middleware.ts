@@ -33,7 +33,30 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
+  const vercelEnv = process.env.VERCEL_ENV ?? '';
+  const configuredCanonicalHost = (
+    process.env.NEXT_PUBLIC_CANONICAL_HOST
+    ?? process.env.CANONICAL_HOST
+    ?? ''
+  ).trim().toLowerCase();
+  const canonicalHost = configuredCanonicalHost || (vercelEnv === 'production' ? 'gleamops.vercel.app' : '');
+  const rawHost = (request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? '').split(',')[0]?.trim().toLowerCase() ?? '';
   const forcedTenantId = process.env.SINGLE_TENANT_ID ?? process.env.NEXT_PUBLIC_SINGLE_TENANT_ID ?? '';
+
+  // In production, force a single public entrypoint host for non-API routes.
+  if (
+    canonicalHost
+    && rawHost
+    && rawHost !== canonicalHost
+    && !rawHost.startsWith('localhost')
+    && !rawHost.startsWith('127.0.0.1')
+    && !pathname.startsWith('/api/')
+  ) {
+    const url = request.nextUrl.clone();
+    url.protocol = 'https';
+    url.host = canonicalHost;
+    return NextResponse.redirect(url, 308);
+  }
 
   // Public routes that don't need auth
   const publicRoutes = ['/login', '/offline', '/auth/callback', '/api/webhooks', '/count', '/api/public/counts', '/api/cron'];

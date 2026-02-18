@@ -11,11 +11,15 @@ test('canManageSchedule allows manager set including supervisor', () => {
   assert.equal(canManageSchedule(['SUPERVISOR']), true);
   assert.equal(canManageSchedule(['manager']), true);
   assert.equal(canManageSchedule(['owner_admin']), true);
+  assert.equal(canManageSchedule(['ADMIN']), true);
+  assert.equal(canManageSchedule(['operations']), true);
   assert.equal(canManageSchedule(['employee']), false);
 });
 
 test('canPublishSchedule allows only owner admin and manager', () => {
   assert.equal(canPublishSchedule(['MANAGER']), true);
   assert.equal(canPublishSchedule(['OWNER_ADMIN']), true);
+  assert.equal(canPublishSchedule(['ADMIN']), true);
+  assert.equal(canPublishSchedule(['operations']), true);
   assert.equal(canPublishSchedule(['SUPERVISOR']), false);
 });

@@ -1,5 +1,5 @@
-const SCHEDULE_MANAGER_ROLES = ['OWNER_ADMIN', 'MANAGER', 'SUPERVISOR'] as const;
-const SCHEDULE_PUBLISH_ROLES = ['OWNER_ADMIN', 'MANAGER'] as const;
+const SCHEDULE_MANAGER_ROLES = ['OWNER_ADMIN', 'MANAGER', 'SUPERVISOR', 'ADMIN', 'OPERATIONS'] as const;
+const SCHEDULE_PUBLISH_ROLES = ['OWNER_ADMIN', 'MANAGER', 'ADMIN', 'OPERATIONS'] as const;
 
 function normalizeRoles(roles: string[]): string[] {
   return roles.map((role) => role.trim().toUpperCase()).filter(Boolean);

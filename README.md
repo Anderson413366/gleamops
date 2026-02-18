@@ -207,8 +207,7 @@ Deployed to Vercel with monorepo configuration:
 ```json
 {
   "buildCommand": "pnpm turbo build --filter=@gleamops/web",
-  "installCommand": "pnpm install",
-  "outputDirectory": "apps/web/.next"
+  "installCommand": "pnpm install"
 }
 ```
 

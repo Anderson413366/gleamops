@@ -724,6 +724,7 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
   // ---------------------------------------------------------------------------
   const [liveWorkload, setLiveWorkload] = useState<WorkloadResult | null>(null);
   const [livePricing, setLivePricing] = useState<PricingResult | null>(null);
+  const [whatIfMethods, setWhatIfMethods] = useState<Array<{ method: string; label: string; monthly_price: number; margin_pct: number; hourly_rate: number }>>([]);
   const liveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const hasEnoughForEstimate = form.areas.length > 0
@@ -735,6 +736,7 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
     if (!hasEnoughForEstimate || productionRates.length === 0) {
       setLiveWorkload(null);
       setLivePricing(null);
+      setWhatIfMethods([]);
       return;
     }
 
@@ -746,9 +748,34 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
         const p = calculatePricing(snapshot, w);
         setLiveWorkload(w);
         setLivePricing(p);
+
+        // What-if comparison: run pricing for all 4 methods
+        const METHODS = [
+          { method: 'COST_PLUS' as const, label: 'Cost Plus' },
+          { method: 'TARGET_MARGIN' as const, label: 'Target Margin' },
+          { method: 'MARKET_RATE' as const, label: 'Market Rate' },
+          { method: 'HYBRID' as const, label: 'Hybrid' },
+        ];
+        const comparisons = METHODS.map((m) => {
+          try {
+            const altSnapshot = { ...snapshot, pricing_strategy: { ...snapshot.pricing_strategy, method: m.method } };
+            const altP = calculatePricing(altSnapshot, w);
+            return {
+              method: m.method,
+              label: m.label,
+              monthly_price: altP.recommended_price,
+              margin_pct: altP.effective_margin_pct,
+              hourly_rate: w.monthly_hours > 0 ? altP.recommended_price / w.monthly_hours : 0,
+            };
+          } catch {
+            return null;
+          }
+        }).filter((v): v is NonNullable<typeof v> => v !== null);
+        setWhatIfMethods(comparisons);
       } catch {
         setLiveWorkload(null);
         setLivePricing(null);
+        setWhatIfMethods([]);
       }
     }, 300);
 
@@ -1703,6 +1730,12 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
         workload={currentStepName === 'Review' ? workloadResult : liveWorkload}
         pricing={currentStepName === 'Review' ? pricingResult : livePricing}
         isReviewStep={currentStepName === 'Review'}
+        whatIfMethods={whatIfMethods}
+        currentMethod={form.pricing_method}
+        onPricingMethodChange={(method) => setForm((f) => ({ ...f, pricing_method: method as typeof f.pricing_method }))}
+        contractTerms={form.contract_terms}
+        buildingTypeCode={form.building_type_code}
+        totalSqft={form.areas.reduce((sum, a) => sum + a.square_footage * a.quantity, 0)}
       />
 
       {/* Step: Review */}

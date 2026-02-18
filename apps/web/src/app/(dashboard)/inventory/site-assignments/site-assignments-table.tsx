@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { CalendarClock, MapPin, Package2, Plus, Trash2 } from 'lucide-react';
+import { AlertTriangle, CalendarClock, MapPin, Package2, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { EntityLink } from '@/components/links/entity-link';
@@ -104,6 +104,7 @@ export default function SiteAssignmentsTable({ search }: Props) {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [unitFilter, setUnitFilter] = useState<string>('all');
   const [vendorFilter, setVendorFilter] = useState<string>('all');
+  const [belowParOnly, setBelowParOnly] = useState(false);
 
   const [assignOpen, setAssignOpen] = useState(false);
   const [assignSiteId, setAssignSiteId] = useState<string>('');
@@ -248,6 +249,14 @@ export default function SiteAssignmentsTable({ search }: Props) {
       if (unitFilter !== 'all' && unit !== unitFilter) return false;
       if (vendorFilter !== 'all' && vendor !== vendorFilter) return false;
 
+      if (belowParOnly) {
+        const supplyId = enriched?.id ?? null;
+        const qtyKey = supplyId ? `${row.site_id}:${supplyId}` : '';
+        const lastCountQty = qtyKey ? lastQtyBySiteSupply[qtyKey] : undefined;
+        const par = Number(row.par_level ?? enriched?.min_stock_level ?? 0);
+        if (lastCountQty == null || par <= 0 || lastCountQty >= par) return false;
+      }
+
       if (!search) return true;
       return (
         row.name.toLowerCase().includes(q) ||
@@ -257,7 +266,20 @@ export default function SiteAssignmentsTable({ search }: Props) {
         (vendor ?? '').toLowerCase().includes(q)
       );
     });
-  }, [categoryFilter, catalogByName, rows, search, siteFilter, unitFilter, vendorFilter]);
+  }, [categoryFilter, catalogByName, rows, search, siteFilter, unitFilter, vendorFilter, belowParOnly, lastQtyBySiteSupply]);
+
+  const belowParCount = useMemo(() => {
+    let count = 0;
+    for (const row of rows) {
+      const enriched = catalogByName[row.name.trim().toLowerCase()];
+      const supplyId = enriched?.id ?? null;
+      const qtyKey = supplyId ? `${row.site_id}:${supplyId}` : '';
+      const lastCountQty = qtyKey ? lastQtyBySiteSupply[qtyKey] : undefined;
+      const par = Number(row.par_level ?? enriched?.min_stock_level ?? 0);
+      if (lastCountQty != null && par > 0 && lastCountQty < par) count++;
+    }
+    return count;
+  }, [rows, catalogByName, lastQtyBySiteSupply]);
 
   const groupedBySite = useMemo(() => {
     const groups: Record<string, SiteSupplyRow[]> = {};
@@ -459,7 +481,15 @@ export default function SiteAssignmentsTable({ search }: Props) {
                 <TableCell className="text-muted-foreground">{unit}</TableCell>
                 <TableCell className="text-muted-foreground">{vendor}</TableCell>
                 <TableCell className="tabular-nums text-muted-foreground">
-                  {lastCountQty != null ? lastCountQty.toLocaleString() : 'Not Counted'}
+                  <span className="inline-flex items-center gap-1.5">
+                    {lastCountQty != null ? lastCountQty.toLocaleString() : 'Not Counted'}
+                    {lastCountQty != null && Number(row.par_level ?? enriched?.min_stock_level ?? 0) > 0 && lastCountQty < Number(row.par_level ?? enriched?.min_stock_level ?? 0) && (
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-900/40 dark:text-red-300">
+                        <AlertTriangle className="h-2.5 w-2.5" />
+                        Below Par
+                      </span>
+                    )}
+                  </span>
                 </TableCell>
                 <TableCell>
                   <input
@@ -564,6 +594,25 @@ export default function SiteAssignmentsTable({ search }: Props) {
           ]}
         />
       </div>
+
+      {/* Below Par filter chip */}
+      {belowParCount > 0 && (
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setBelowParOnly((v) => !v)}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors',
+              belowParOnly
+                ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            )}
+          >
+            <AlertTriangle className="h-3 w-3" />
+            Below Par ({belowParCount})
+          </button>
+        </div>
+      )}
 
 	      {siteFilter !== 'all' && selectedSite ? (
 	        <div className="rounded-lg border border-border bg-card p-4">

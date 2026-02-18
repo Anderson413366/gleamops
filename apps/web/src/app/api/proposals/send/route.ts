@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
         recipient_name: recipientName?.trim() || null,
         status: 'QUEUED',
       })
-      .select('id, idempotency_key')
+      .select('id, idempotency_key, public_token')
       .single();
 
     if (sendErr || !sendRecord) {
@@ -117,6 +117,10 @@ export async function POST(request: NextRequest) {
         SYS_002(sendErr?.message ?? 'Failed to queue send', INSTANCE),
       );
     }
+
+    const portalUrl = sendRecord.public_token
+      ? `${process.env.NEXT_PUBLIC_APP_URL ?? ''}/proposal/${sendRecord.public_token}`
+      : null;
 
     // ----- Wire follow-up sequence (if enabled) -----
     if (enableFollowups) {
@@ -173,6 +177,7 @@ export async function POST(request: NextRequest) {
       sendId: sendRecord.id,
       idempotencyKey: sendRecord.idempotency_key,
       status: 'QUEUED',
+      portalUrl,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unexpected server error';

@@ -581,3 +581,17 @@ export const OVERHEAD_CATEGORIES = [
 ] as const;
 
 export type OverheadCategoryCode = typeof OVERHEAD_CATEGORIES[number]['code'];
+
+// ---------------------------------------------------------------------------
+// Industry Benchmark Rates — $/sqft/month by building type
+// ---------------------------------------------------------------------------
+export const INDUSTRY_BENCHMARK_RATES: Record<string, { low: number; mid: number; high: number }> = {
+  OFFICE:       { low: 0.04, mid: 0.07, high: 0.12 },
+  MEDICAL:      { low: 0.08, mid: 0.14, high: 0.22 },
+  INDUSTRIAL:   { low: 0.02, mid: 0.04, high: 0.07 },
+  RETAIL:       { low: 0.03, mid: 0.06, high: 0.10 },
+  EDUCATION:    { low: 0.04, mid: 0.07, high: 0.11 },
+  GOVERNMENT:   { low: 0.05, mid: 0.08, high: 0.13 },
+  HOSPITALITY:  { low: 0.06, mid: 0.10, high: 0.18 },
+  RELIGIOUS:    { low: 0.03, mid: 0.05, high: 0.09 },
+};

@@ -20,6 +20,7 @@ type Permission =
   | 'settings:write'
   | 'service_dna:write'
   | 'bid:calculate'
+  | 'bid:approve'
   | 'proposal:send'
   | 'bid:convert'
   | 'inspections:read'
@@ -39,7 +40,7 @@ const LEGACY_ROLE_PERMISSIONS: Record<string, Permission[]> = {
     'reports:read',
     'settings:read', 'settings:write',
     'service_dna:write',
-    'bid:calculate', 'proposal:send', 'bid:convert',
+    'bid:calculate', 'bid:approve', 'proposal:send', 'bid:convert',
     'inspections:read', 'inspections:write',
     'messaging:read', 'messaging:write',
     'timekeeping:read', 'timekeeping:write', 'timekeeping:approve',
@@ -52,7 +53,7 @@ const LEGACY_ROLE_PERMISSIONS: Record<string, Permission[]> = {
     'reports:read',
     'settings:read',
     'service_dna:write',
-    'bid:calculate', 'proposal:send', 'bid:convert',
+    'bid:calculate', 'bid:approve', 'proposal:send', 'bid:convert',
     'inspections:read', 'inspections:write',
     'messaging:read', 'messaging:write',
     'timekeeping:read', 'timekeeping:write', 'timekeeping:approve',

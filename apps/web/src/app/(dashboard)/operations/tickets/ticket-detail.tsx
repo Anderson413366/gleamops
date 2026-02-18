@@ -5,7 +5,7 @@ import {
   ClipboardList, MapPin, Briefcase, Calendar, Clock,
   UserPlus, X, Users, CheckSquare, Square, Camera, ImageIcon,
   AlertTriangle, Filter, Eye, Timer, Shield, Star,
-  ExternalLink, Key,
+  ExternalLink, Key, Package, Plus,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { formatDate, formatDateLong } from '@/lib/utils/date';
@@ -23,7 +23,9 @@ import type {
   WorkTicket, TicketAssignment, Staff, TicketChecklistItem, TicketPhoto,
   Inspection, InspectionIssue, TimeException,
   SiteSupply, SiteAssetRequirement, TicketAssetCheckout,
+  TicketSupplyUsage,
 } from '@gleamops/shared';
+import { SupplyUsageForm } from '@/components/forms/supply-usage-form';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -73,7 +75,7 @@ interface TicketDetailProps {
   onStatusChange?: () => void;
 }
 
-type TabKey = 'overview' | 'checklist' | 'photos' | 'time' | 'safety' | 'crew' | 'assets' | 'quality';
+type TabKey = 'overview' | 'checklist' | 'photos' | 'time' | 'safety' | 'crew' | 'assets' | 'quality' | 'supplies';
 
 const STATUS_OPTIONS = [
   { value: 'SCHEDULED', label: 'Scheduled' },
@@ -125,6 +127,10 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
 
   // Quality
   const [inspections, setInspections] = useState<InspectionWithInspector[]>([]);
+
+  // Supplies usage
+  const [supplyUsageRows, setSupplyUsageRows] = useState<(TicketSupplyUsage & { supply?: { code: string; name: string } | null })[]>([]);
+  const [showSupplyForm, setShowSupplyForm] = useState(false);
 
   // -----------------------------------------------------------------------
   // Data fetching
@@ -281,6 +287,15 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
     else setAssetRequirements([]);
     if (checkoutsRes.data) setAssetCheckouts(checkoutsRes.data as unknown as TicketAssetCheckout[]);
     else setAssetCheckouts([]);
+
+    // Supply usage
+    const { data: usageData } = await supabase
+      .from('ticket_supply_usage')
+      .select('*, supply:supply_id(code, name)')
+      .eq('ticket_id', ticket.id)
+      .is('archived_at', null)
+      .order('logged_at', { ascending: false });
+    setSupplyUsageRows((usageData ?? []) as typeof supplyUsageRows);
 
     setLoading(false);
   }, [ticket, open]);
@@ -557,6 +572,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
     { key: 'crew', label: 'Crew', icon: <Users className="h-3.5 w-3.5" />, count: assignments.length > 0 ? String(assignments.length) : undefined },
     { key: 'assets', label: 'Assets', icon: <Key className="h-3.5 w-3.5" />, count: assetRequirements.length > 0 ? String(assetRequirements.length) : undefined },
     { key: 'quality', label: 'Quality', icon: <Star className="h-3.5 w-3.5" />, count: inspections.length > 0 ? String(inspections.length) : undefined },
+    { key: 'supplies', label: 'Supplies', icon: <Package className="h-3.5 w-3.5" />, count: supplyUsageRows.length > 0 ? String(supplyUsageRows.length) : undefined },
   ];
 
   return (
@@ -1154,6 +1170,54 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                   )}
                 </div>
               ))
+            )}
+          </div>
+        )}
+
+        {/* ========== TAB: Supplies ========== */}
+        {activeTab === 'supplies' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-foreground">Supply Consumption</p>
+              <Button size="sm" onClick={() => setShowSupplyForm(true)}>
+                <Plus className="h-3.5 w-3.5" />
+                Log Supply
+              </Button>
+            </div>
+
+            {supplyUsageRows.length === 0 ? (
+              <div className="text-center py-8 text-sm text-muted-foreground">
+                No supplies logged for this ticket yet.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {supplyUsageRows.map((row) => (
+                  <div key={row.id} className="flex items-center justify-between p-3 rounded-lg border border-border text-sm">
+                    <div>
+                      <p className="font-medium">{row.supply?.name ?? '—'}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {row.supply?.code} &middot; {formatDate(row.logged_at)}
+                      </p>
+                      {row.notes && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{row.notes}</p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium tabular-nums">{row.quantity_used}</p>
+                      <p className="text-xs text-muted-foreground">{row.unit}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {ticket && (
+              <SupplyUsageForm
+                open={showSupplyForm}
+                onClose={() => setShowSupplyForm(false)}
+                ticketId={ticket.id}
+                onSuccess={() => fetchDetails()}
+              />
             )}
           </div>
         )}

@@ -959,3 +959,15 @@ export const customFieldSchema = z.object({
   is_active: z.boolean().default(true),
 });
 export type CustomFieldFormData = z.infer<typeof customFieldSchema>;
+
+// ---------------------------------------------------------------------------
+// Ticket Supply Usage
+// ---------------------------------------------------------------------------
+export const ticketSupplyUsageSchema = z.object({
+  ticket_id: z.string().uuid('Ticket is required'),
+  supply_id: z.string().uuid('Supply is required'),
+  quantity_used: z.number().positive('Quantity must be positive').default(1),
+  unit: z.string().min(1, 'Unit is required').default('EACH'),
+  notes: z.string().nullable().default(null),
+});
+export type TicketSupplyUsageFormData = z.infer<typeof ticketSupplyUsageSchema>;

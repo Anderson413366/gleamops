@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { FileText, Building2, Clock, DollarSign, FileCheck, Layers, GitBranch, Pencil } from 'lucide-react';
+import { FileText, Building2, Clock, DollarSign, FileCheck, Layers, GitBranch, Pencil, CheckCircle, Send, GitCompare } from 'lucide-react';
+import { VersionDiffPanel } from './version-diff-panel';
+import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   SlideOver,
@@ -24,6 +26,7 @@ import type {
   SalesBidLaborRate,
   SalesBidBurden,
 } from '@gleamops/shared';
+import { useRole } from '@/hooks/use-role';
 
 interface BidWithClient extends SalesBid {
   client?: { name: string; client_code: string } | null;
@@ -60,6 +63,11 @@ export function BidDetail({ bid, open, onClose, onGenerateProposal, onEdit }: Bi
   const [loading, setLoading] = useState(false);
   const [latestVersionId, setLatestVersionId] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [statusUpdating, setStatusUpdating] = useState(false);
+  const [localStatus, setLocalStatus] = useState<string | null>(null);
+  const { can } = useRole();
+
+  const effectiveStatus = localStatus ?? bid?.status ?? 'DRAFT';
 
   // Areas tab data
   const [areas, setAreas] = useState<SalesBidArea[]>([]);
@@ -73,12 +81,17 @@ export function BidDetail({ bid, open, onClose, onGenerateProposal, onEdit }: Bi
   // Versions tab data
   const [versions, setVersions] = useState<SalesBidVersion[]>([]);
   const [versionsLoading, setVersionsLoading] = useState(false);
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const [showDiff, setShowDiff] = useState(false);
 
   const supabase = getSupabaseBrowserClient();
 
-  // Reset tab when opening
+  // Reset tab and local status when opening
   useEffect(() => {
-    if (open) setTab('overview');
+    if (open) {
+      setTab('overview');
+      setLocalStatus(null);
+    }
   }, [open]);
 
   // Load overview data (workload + pricing)
@@ -166,20 +179,64 @@ export function BidDetail({ bid, open, onClose, onGenerateProposal, onEdit }: Bi
   return (
     <SlideOver open={open} onClose={onClose} title={bid.bid_code} subtitle={bid.client?.name} wide>
       <div className="space-y-6">
-        {/* Status */}
+        {/* Status + Actions */}
         <div className="flex items-center justify-between">
-          <Badge color={BID_STATUS_COLORS[bid.status] ?? 'gray'}>{bid.status}</Badge>
+          <Badge color={BID_STATUS_COLORS[effectiveStatus] ?? 'gray'}>{effectiveStatus.replace(/_/g, ' ')}</Badge>
           <div className="flex gap-2">
-            {onEdit && (bid.status === 'DRAFT' || bid.status === 'IN_PROGRESS') && (
+            {onEdit && (effectiveStatus === 'DRAFT' || effectiveStatus === 'IN_PROGRESS') && (
               <Button variant="secondary" size="sm" onClick={() => onEdit(bid.id)}>
                 <Pencil className="h-3 w-3" />
                 Edit Bid
               </Button>
             )}
-            {bid.status === 'DRAFT' && (
-              <Button variant="secondary" size="sm">Mark Ready for Review</Button>
+            {(effectiveStatus === 'DRAFT' || effectiveStatus === 'IN_PROGRESS') && (
+              <Button
+                variant="secondary"
+                size="sm"
+                loading={statusUpdating}
+                onClick={async () => {
+                  setStatusUpdating(true);
+                  const { error } = await supabase
+                    .from('sales_bids')
+                    .update({ status: 'READY_FOR_REVIEW' })
+                    .eq('id', bid.id);
+                  if (error) {
+                    toast.error(error.message);
+                  } else {
+                    setLocalStatus('READY_FOR_REVIEW');
+                    toast.success('Bid marked as Ready for Review');
+                  }
+                  setStatusUpdating(false);
+                }}
+              >
+                <Send className="h-3 w-3" />
+                Mark Ready for Review
+              </Button>
             )}
-            {pricing && latestVersionId && onGenerateProposal && (
+            {effectiveStatus === 'READY_FOR_REVIEW' && can('bid:approve') && (
+              <Button
+                size="sm"
+                loading={statusUpdating}
+                onClick={async () => {
+                  setStatusUpdating(true);
+                  const { error } = await supabase
+                    .from('sales_bids')
+                    .update({ status: 'APPROVED' })
+                    .eq('id', bid.id);
+                  if (error) {
+                    toast.error(error.message);
+                  } else {
+                    setLocalStatus('APPROVED');
+                    toast.success('Bid approved');
+                  }
+                  setStatusUpdating(false);
+                }}
+              >
+                <CheckCircle className="h-3 w-3" />
+                Approve
+              </Button>
+            )}
+            {effectiveStatus === 'APPROVED' && pricing && latestVersionId && onGenerateProposal && (
               <Button size="sm" disabled={generating} onClick={async () => {
                 setGenerating(true);
                 onGenerateProposal(bid.id, latestVersionId);
@@ -487,11 +544,57 @@ export function BidDetail({ bid, open, onClose, onGenerateProposal, onEdit }: Bi
               <p className="text-sm text-muted-foreground py-8 text-center">No versions found.</p>
             ) : (
               <div className="space-y-3">
+                {/* Compare button */}
+                {compareIds.length === 2 && !showDiff && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setShowDiff(true)}
+                  >
+                    <GitCompare className="h-3 w-3" />
+                    Compare Selected
+                  </Button>
+                )}
+                {compareIds.length > 0 && compareIds.length < 2 && (
+                  <p className="text-xs text-muted-foreground">Select one more version to compare.</p>
+                )}
+
+                {/* Diff panel */}
+                {showDiff && compareIds.length === 2 && (() => {
+                  const vA = versions.find((v) => v.id === compareIds[0]);
+                  const vB = versions.find((v) => v.id === compareIds[1]);
+                  if (!vA || !vB) return null;
+                  return (
+                    <VersionDiffPanel
+                      versionIdA={vA.id}
+                      versionIdB={vB.id}
+                      versionNumberA={vA.version_number}
+                      versionNumberB={vB.version_number}
+                      onClose={() => { setShowDiff(false); setCompareIds([]); }}
+                    />
+                  );
+                })()}
+
                 {versions.map((v) => (
                   <Card key={v.id}>
                     <CardContent className="pt-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={compareIds.includes(v.id)}
+                            onChange={() => {
+                              setShowDiff(false);
+                              setCompareIds((prev) =>
+                                prev.includes(v.id)
+                                  ? prev.filter((id) => id !== v.id)
+                                  : prev.length >= 2
+                                    ? [prev[1], v.id]
+                                    : [...prev, v.id]
+                              );
+                            }}
+                            className="h-4 w-4 rounded border-border"
+                          />
                           <GitBranch className="h-4 w-4 text-muted-foreground" />
                           <p className="text-sm font-medium">Version {v.version_number}</p>
                         </div>
@@ -504,7 +607,7 @@ export function BidDetail({ bid, open, onClose, onGenerateProposal, onEdit }: Bi
                           )}
                         </div>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-xs text-muted-foreground mt-1 ml-8">
                         Created: {new Date(v.created_at).toLocaleDateString()}
                       </p>
                     </CardContent>

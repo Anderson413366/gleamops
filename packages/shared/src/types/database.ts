@@ -825,6 +825,7 @@ export interface SupplyCatalog extends StandardColumns {
   model_number: string | null;
   preferred_vendor: string | null;
   vendor_sku: string | null;
+  barcode: string | null;
   sds_url: string | null;
   eco_rating: string | null;
   ppe_required: boolean;
@@ -2031,4 +2032,17 @@ export interface ExternalIdMap extends StandardColumns {
   entity_type: string;
   internal_entity_id: string;
   external_entity_id: string;
+}
+
+// ---------------------------------------------------------------------------
+// Module D: Ticket Supply Usage
+// ---------------------------------------------------------------------------
+export interface TicketSupplyUsage extends StandardColumns {
+  ticket_id: string;
+  supply_id: string;
+  quantity_used: number;
+  unit: string;
+  logged_by: string | null;
+  logged_at: string;
+  notes: string | null;
 }

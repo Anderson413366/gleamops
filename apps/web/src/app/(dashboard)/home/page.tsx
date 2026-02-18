@@ -101,6 +101,9 @@ interface LowStockRow {
   id: string;
   name: string;
   category: string | null;
+  par_level: number | null;
+  last_count_qty: number | null;
+  deficit: number;
   site?: { name: string } | null;
 }
 
@@ -427,13 +430,14 @@ export default function HomePage() {
         .is('end_at', null)
         .order('start_at', { ascending: false })
         .limit(10),
-      // Low stock / supply alerts
+      // Low stock / supply alerts — fetch all with par_level set for client-side filtering
       supabase
         .from('site_supplies')
-        .select('id, name, category, site:site_id(name)')
+        .select('id, name, category, par_level, supply_id, site_id, site:site_id(name)')
         .is('archived_at', null)
+        .gt('par_level', 0)
         .order('name')
-        .limit(10),
+        .limit(200),
       // Sites with inventory counts due in next 7 days or overdue
       supabase
         .from('sites')
@@ -485,8 +489,67 @@ export default function HomePage() {
     if (ticketListRes.data) setUpcomingTickets(ticketListRes.data as TicketRow[]);
     if (prospectRes.data) setProspects(prospectRes.data as ProspectRow[]);
     if (shiftsRes.data) setActiveShifts(shiftsRes.data as unknown as ActiveStaffRow[]);
-    if (lowStockRes.data) setLowStockItems(lowStockRes.data as unknown as LowStockRow[]);
     if (inventoryDueRes.data) setInventoryCountDue(inventoryDueRes.data as unknown as InventoryCountDueRow[]);
+
+    // Process below-par items: fetch latest count data for items with par_level
+    if (lowStockRes.data && lowStockRes.data.length > 0) {
+      const siteSupplyRows = lowStockRes.data as unknown as Array<{ id: string; name: string; category: string | null; par_level: number | null; supply_id: string | null; site_id: string | null; site?: { name: string } | null }>;
+      // Fetch latest inventory counts per site
+      const siteIds = [...new Set(siteSupplyRows.map(r => r.site_id).filter(Boolean))] as string[];
+      const countsQueryRes = siteIds.length > 0
+        ? await supabase
+            .from('inventory_counts')
+            .select('id, site_id, count_date')
+            .is('archived_at', null)
+            .in('site_id', siteIds)
+            .order('count_date', { ascending: false })
+        : { data: [] };
+
+      // Get latest count per site
+      const latestCountBySite: Record<string, string> = {};
+      for (const c of (countsQueryRes.data ?? []) as { id: string; site_id: string }[]) {
+        if (!latestCountBySite[c.site_id]) latestCountBySite[c.site_id] = c.id;
+      }
+      const countIds = Object.values(latestCountBySite);
+
+      // Fetch count details
+      const detailsRes = countIds.length > 0
+        ? await supabase
+            .from('inventory_count_details')
+            .select('count_id, supply_id, actual_qty')
+            .is('archived_at', null)
+            .in('count_id', countIds)
+        : { data: [] };
+
+      const qtyMap: Record<string, number> = {};
+      for (const d of (detailsRes.data ?? []) as { count_id: string; supply_id: string; actual_qty: number | null }[]) {
+        const siteId = Object.entries(latestCountBySite).find(([, cId]) => cId === d.count_id)?.[0];
+        if (siteId) qtyMap[`${siteId}:${d.supply_id}`] = Number(d.actual_qty ?? 0);
+      }
+
+      // Filter to items actually below par
+      const belowPar: LowStockRow[] = [];
+      for (const row of siteSupplyRows) {
+        const par = Number(row.par_level ?? 0);
+        if (par <= 0 || !row.supply_id || !row.site_id) continue;
+        const qty = qtyMap[`${row.site_id}:${row.supply_id}`];
+        if (qty != null && qty < par) {
+          belowPar.push({
+            id: row.id,
+            name: row.name,
+            category: row.category,
+            par_level: par,
+            last_count_qty: qty,
+            deficit: par - qty,
+            site: row.site,
+          });
+        }
+      }
+      belowPar.sort((a, b) => b.deficit - a.deficit);
+      setLowStockItems(belowPar.slice(0, 10));
+    } else {
+      setLowStockItems([]);
+    }
 
     // Compute data quality issues from fetched data
     const issues: DataIssueRow[] = [];
@@ -1016,13 +1079,16 @@ export default function HomePage() {
         {/* Inventory Dashboard */}
         <CollapsibleCard
           id="dashboard-inventory"
-          title="Inventory Alerts"
+          title="Below Par Alerts"
           icon={<Package className="h-5 w-5" />}
         >
           {sectionsLoading ? (
             <ListSkeleton rows={4} />
           ) : lowStockItems.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No inventory alerts. All supplies are stocked.</p>
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-success" />
+              <p className="text-sm text-muted-foreground">All supplies are at or above par levels.</p>
+            </div>
           ) : (
             <ul className="space-y-2.5">
               {lowStockItems.map((item) => (
@@ -1031,17 +1097,15 @@ export default function HomePage() {
                   className="flex items-center justify-between gap-3 text-sm"
                 >
                   <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <Package className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <AlertTriangle className="h-3.5 w-3.5 text-red-500 shrink-0" />
                     <span className="font-medium text-foreground truncate">{item.name}</span>
-                    {item.category && (
-                      <span className="text-xs text-muted-foreground shrink-0">{item.category}</span>
+                    {item.site && (
+                      <span className="text-xs text-muted-foreground shrink-0">{item.site.name}</span>
                     )}
                   </div>
-                  {item.site && (
-                    <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
-                      {item.site.name}
-                    </span>
-                  )}
+                  <Badge color="red">
+                    {item.last_count_qty ?? 0}/{item.par_level ?? 0} (−{item.deficit})
+                  </Badge>
                 </li>
               ))}
             </ul>

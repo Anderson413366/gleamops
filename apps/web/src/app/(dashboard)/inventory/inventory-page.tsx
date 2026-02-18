@@ -54,7 +54,7 @@ export default function InventoryPageClient() {
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
   const [kpis, setKpis] = useState({
     activeSupplies: 0,
-    replenishmentWatch: 0,
+    belowPar: 0,
     openOrders: 0,
     pendingCounts: 0,
   });
@@ -76,9 +76,9 @@ export default function InventoryPageClient() {
   useEffect(() => {
     async function fetchKpis() {
       const supabase = getSupabaseBrowserClient();
-      const [statusRes, replenishmentRes, openOrdersRes, pendingCountsRes] = await Promise.all([
+      const [statusRes, siteSuppliesRes, openOrdersRes, pendingCountsRes] = await Promise.all([
         supabase.from('supply_catalog').select('supply_status').is('archived_at', null),
-        supabase.from('supply_catalog').select('id', { count: 'exact', head: true }).is('archived_at', null).not('min_stock_level', 'is', null),
+        supabase.from('site_supplies').select('id, par_level, supply_id, site_id').is('archived_at', null).gt('par_level', 0),
         supabase.from('supply_orders').select('id', { count: 'exact', head: true }).is('archived_at', null).in('status', ['ORDERED', 'SHIPPED']),
         supabase.from('inventory_counts').select('id', { count: 'exact', head: true }).is('archived_at', null).in('status', ['DRAFT', 'IN_PROGRESS']),
       ]);
@@ -88,9 +88,37 @@ export default function InventoryPageClient() {
         return status == null || status.toUpperCase() === 'ACTIVE';
       }).length;
 
+      // Count below-par items using latest count data
+      let belowParCount = 0;
+      const ssRows = (siteSuppliesRes.data ?? []) as Array<{ id: string; par_level: number; supply_id: string | null; site_id: string | null }>;
+      if (ssRows.length > 0) {
+        const siteIds = [...new Set(ssRows.map(r => r.site_id).filter(Boolean))] as string[];
+        const countsRes = siteIds.length > 0
+          ? await supabase.from('inventory_counts').select('id, site_id').is('archived_at', null).in('site_id', siteIds).order('count_date', { ascending: false })
+          : { data: [] };
+        const latestBySite: Record<string, string> = {};
+        for (const c of (countsRes.data ?? []) as { id: string; site_id: string }[]) {
+          if (!latestBySite[c.site_id]) latestBySite[c.site_id] = c.id;
+        }
+        const countIds = Object.values(latestBySite);
+        const detailsRes = countIds.length > 0
+          ? await supabase.from('inventory_count_details').select('count_id, supply_id, actual_qty').is('archived_at', null).in('count_id', countIds)
+          : { data: [] };
+        const qtyMap: Record<string, number> = {};
+        for (const d of (detailsRes.data ?? []) as { count_id: string; supply_id: string; actual_qty: number | null }[]) {
+          const siteId = Object.entries(latestBySite).find(([, cId]) => cId === d.count_id)?.[0];
+          if (siteId) qtyMap[`${siteId}:${d.supply_id}`] = Number(d.actual_qty ?? 0);
+        }
+        for (const row of ssRows) {
+          if (!row.supply_id || !row.site_id) continue;
+          const qty = qtyMap[`${row.site_id}:${row.supply_id}`];
+          if (qty != null && qty < row.par_level) belowParCount++;
+        }
+      }
+
       setKpis({
         activeSupplies,
-        replenishmentWatch: replenishmentRes.count ?? 0,
+        belowPar: belowParCount,
         openOrders: openOrdersRes.count ?? 0,
         pendingCounts: pendingCountsRes.count ?? 0,
       });
@@ -176,7 +204,7 @@ export default function InventoryPageClient() {
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Supplies</p><p className="text-xl font-semibold">{kpis.activeSupplies}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Replenishment Watch</p><p className="text-xl font-semibold text-warning">{kpis.replenishmentWatch}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Below Par</p><p className={`text-xl font-semibold ${kpis.belowPar > 0 ? 'text-red-600 dark:text-red-400' : ''}`}>{kpis.belowPar}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Open Orders</p><p className="text-xl font-semibold">{kpis.openOrders}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Pending Counts</p><p className="text-xl font-semibold">{kpis.pendingCounts}</p></CardContent></Card>
       </div>

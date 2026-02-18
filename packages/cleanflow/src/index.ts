@@ -15,6 +15,8 @@ export { calculateBid } from './engine';
 export type { BidCalculationResult } from './engine';
 export { calculateWorkload } from './workload';
 export { calculatePricing } from './pricing';
+export { calculateContractProjection } from './contract-projection';
+export type { ContractProjection, ContractProjectionYear } from './contract-projection';
 export { findProductionRate } from './production-rates';
 export { expressLoad } from './express-load';
 export { scopeAwareExpressLoad } from './scope-express-load';

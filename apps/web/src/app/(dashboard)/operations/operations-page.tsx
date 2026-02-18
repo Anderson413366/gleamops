@@ -72,7 +72,7 @@ export default function OperationsPageClient() {
   const action = searchParams.get('action');
   const [tab, setTab] = useSyncedTab({
     tabKeys: TABS.map((entry) => entry.key),
-    defaultTab: initialTicketId ? 'tickets' : 'calendar',
+    defaultTab: initialTicketId ? 'tickets' : 'planning',
   });
   const [search, setSearch] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);

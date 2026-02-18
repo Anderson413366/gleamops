@@ -65,11 +65,14 @@ export function Breadcrumbs() {
   if (!pathname || pathname === '/') return null;
 
   const segments = pathname.split('/').filter(Boolean);
-  const normalized = segments[0] === 'home' ? segments.slice(1) : segments;
+  // Skip 'home' and 'command' as first segment since they map to the root breadcrumb
+  const normalized = (segments[0] === 'home' || segments[0] === 'command')
+    ? segments.slice(1)
+    : segments;
   if (segments.length === 0) return null;
 
   const crumbs = [
-    { label: 'Home', href: '/' },
+    { label: 'Command Center', href: '/command' },
     ...normalized.map((seg, i) => ({
       label: humanize(seg),
       href: '/' + normalized.slice(0, i + 1).join('/'),

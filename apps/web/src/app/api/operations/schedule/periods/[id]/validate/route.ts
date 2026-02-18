@@ -33,6 +33,9 @@ export async function POST(
   const { data: summary, error } = await db.rpc('fn_validate_schedule_period', { p_period_id: id });
   if (error) return problemResponse(SYS_002(error.message, API_PATH));
 
+  const { error: policyError } = await db.rpc('fn_apply_schedule_policy_conflicts', { p_period_id: id });
+  if (policyError) return problemResponse(SYS_002(policyError.message, API_PATH));
+
   const { data: conflicts, error: conflictsError } = await db
     .from('schedule_conflicts')
     .select('id, conflict_type, severity, message, is_blocking, ticket_id, staff_id, created_at')

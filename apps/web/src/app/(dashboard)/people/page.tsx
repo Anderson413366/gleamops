@@ -1,7 +1,10 @@
-import { redirect } from 'next/navigation';
-import { toQueryString, type SearchParams } from '@/lib/url/to-query-string';
+import { Suspense } from 'react';
+import WorkforcePageClient from '../workforce/workforce-page';
 
-export default async function PeopleRedirect({ searchParams }: { searchParams?: Promise<SearchParams> }) {
-  const sp = searchParams ? await searchParams : undefined;
-  redirect(`/workforce${toQueryString(sp)}`);
+export default function PeoplePage() {
+  return (
+    <Suspense fallback={null}>
+      <WorkforcePageClient />
+    </Suspense>
+  );
 }

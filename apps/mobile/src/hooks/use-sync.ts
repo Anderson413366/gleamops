@@ -10,10 +10,11 @@
  */
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
-import { flushQueue, getPendingCount, getLastSyncAt } from '../lib/mutation-queue';
+import { flushQueue, getFailedCount, getLastSyncAt, getPendingCount } from '../lib/mutation-queue';
 
 /** Singleton state — shared across all hook consumers without React context */
 let _pendingCount = 0;
+let _failedCount = 0;
 let _lastSyncAt: string | null = null;
 let _isSyncing = false;
 const _listeners = new Set<() => void>();
@@ -37,6 +38,7 @@ export function useSyncManager() {
     try {
       const synced = await flushQueue();
       _pendingCount = await getPendingCount();
+      _failedCount = await getFailedCount();
       _lastSyncAt = await getLastSyncAt();
 
       if (synced > 0 && mountedRef.current) {
@@ -57,6 +59,7 @@ export function useSyncManager() {
     // Load initial state
     (async () => {
       _pendingCount = await getPendingCount();
+      _failedCount = await getFailedCount();
       _lastSyncAt = await getLastSyncAt();
       notify();
     })();
@@ -93,6 +96,7 @@ export function useSyncState() {
 
   return {
     pendingCount: _pendingCount,
+    failedCount: _failedCount,
     lastSyncAt: _lastSyncAt,
     isSyncing: _isSyncing,
   };
@@ -109,6 +113,7 @@ export async function syncNow(): Promise<number> {
   try {
     const synced = await flushQueue();
     _pendingCount = await getPendingCount();
+    _failedCount = await getFailedCount();
     _lastSyncAt = await getLastSyncAt();
     return synced;
   } finally {

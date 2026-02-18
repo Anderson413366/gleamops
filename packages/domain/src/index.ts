@@ -7,3 +7,5 @@
 
 export { canTransitionStatus } from './status-machine';
 export { rolePermissions, canAccess } from './permissions';
+export { canTransitionSchedulePeriod } from './schedule-state-machine';
+export { canTransitionPlanningSyncState } from './planning-state-machine';

@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { getLegacyRedirectUrl } from '@/lib/routing/legacy-redirect-map';
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -58,6 +59,13 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url, 308);
   }
 
+  if (!pathname.startsWith('/api/')) {
+    const legacyRedirectUrl = getLegacyRedirectUrl(request.nextUrl);
+    if (legacyRedirectUrl && legacyRedirectUrl.pathname !== pathname) {
+      return NextResponse.redirect(legacyRedirectUrl, 308);
+    }
+  }
+
   // Public routes that don't need auth
   const publicRoutes = ['/login', '/offline', '/auth/callback', '/api/webhooks', '/count', '/api/public/counts', '/api/cron'];
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
@@ -74,7 +82,7 @@ export async function updateSession(request: NextRequest) {
   if (user && pathname === '/login') {
     // Already authenticated → redirect to app
     const url = request.nextUrl.clone();
-    url.pathname = '/home';
+    url.pathname = '/command';
     return NextResponse.redirect(url);
   }
 

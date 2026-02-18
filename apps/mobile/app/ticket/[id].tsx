@@ -60,7 +60,7 @@ export default function TicketDetailScreen() {
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [refreshing, setRefreshing] = useState(false);
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
-  const { pendingCount, lastSyncAt, isSyncing } = useSyncState();
+  const { pendingCount, failedCount, lastSyncAt, isSyncing } = useSyncState();
 
   // Load pending IDs on mount and when pendingCount changes (sync completed)
   useEffect(() => {
@@ -300,6 +300,7 @@ export default function TicketDetailScreen() {
         {(pendingCount > 0 || isOffline) && (
           <SyncStatusBar
             pendingCount={pendingCount}
+            failedCount={failedCount}
             lastSyncAt={lastSyncAt}
             isSyncing={isSyncing}
             onSyncPress={onRefresh}

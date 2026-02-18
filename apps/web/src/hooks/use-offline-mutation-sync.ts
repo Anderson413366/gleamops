@@ -22,8 +22,18 @@ export function useOfflineMutationSync() {
     const onOnline = () => {
       void flush();
     };
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void flush();
+      }
+    };
+    const onBeforeUnload = () => {
+      void flush();
+    };
 
     window.addEventListener('online', onOnline);
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('beforeunload', onBeforeUnload);
     const timer = window.setInterval(() => {
       void flush();
     }, 45000);
@@ -33,6 +43,8 @@ export function useOfflineMutationSync() {
 
     return () => {
       window.removeEventListener('online', onOnline);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('beforeunload', onBeforeUnload);
       window.clearInterval(timer);
     };
   }, [flush]);

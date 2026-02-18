@@ -20,7 +20,6 @@ const SEGMENT_LABELS: Record<string, string> = {
   staff: 'Staff',
   people: 'People',
   inventory: 'Inventory',
-  supplies: 'Supplies',
   equipment: 'Equipment',
   assets: 'Assets',
   reports: 'Reports',
@@ -38,6 +37,16 @@ const SEGMENT_LABELS: Record<string, string> = {
   positions: 'Positions',
   safety: 'Safety & Compliance',
   customers: 'Customers',
+  command: 'Command Center',
+  planning: 'Evening Planning',
+  work: 'Work Execution',
+  sales: 'Sales',
+  supplies: 'Supplies & Assets',
+  insights: 'Insights',
+  platform: 'Platform',
+  integrations: 'Integrations',
+  checkwriters: 'Checkwriters',
+  'payroll-export': 'Payroll Export',
 };
 
 function humanize(segment: string): string {

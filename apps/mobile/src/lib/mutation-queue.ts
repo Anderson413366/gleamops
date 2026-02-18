@@ -12,8 +12,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabase';
 
 const QUEUE_KEY = '@gleamops:mutations';
+const FAILED_QUEUE_KEY = '@gleamops:failed_mutations';
 const LAST_SYNC_KEY = '@gleamops:last_sync_at';
 const MAX_RETRIES = 10;
+const WEB_API_BASE_URL = (
+  process.env.EXPO_PUBLIC_WEB_BASE_URL
+  ?? process.env.EXPO_PUBLIC_API_BASE_URL
+  ?? ''
+).trim().replace(/\/+$/, '');
 
 // ---------------------------------------------------------------------------
 // Discriminated union types
@@ -79,10 +85,24 @@ type MutationPayload =
   | InspectionScoreMutation
   | InspectionStatusMutation;
 
+interface SyncBatchItem {
+  queue_item_id: string;
+  idempotency_key: string;
+  operation: string;
+  entity_type: string;
+  entity_id: string;
+  payload: Record<string, unknown>;
+}
+
 export type PendingMutation = MutationPayload & {
   id: string;
   createdAt: string;
   retryCount: number;
+  lastError?: string | null;
+};
+
+export type FailedMutation = PendingMutation & {
+  failedAt: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -103,6 +123,23 @@ async function setQueue(queue: PendingMutation[]): Promise<void> {
   } catch {
     // Non-fatal — but this means the write could be lost.
     // In practice AsyncStorage rarely fails.
+  }
+}
+
+async function getFailedQueue(): Promise<FailedMutation[]> {
+  try {
+    const raw = await AsyncStorage.getItem(FAILED_QUEUE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+async function setFailedQueue(queue: FailedMutation[]): Promise<void> {
+  try {
+    await AsyncStorage.setItem(FAILED_QUEUE_KEY, JSON.stringify(queue));
+  } catch {
+    // Non-fatal
   }
 }
 
@@ -139,6 +176,7 @@ export async function enqueue(mutation: MutationPayload): Promise<void> {
     id: `${mutation.type}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     createdAt: new Date().toISOString(),
     retryCount: 0,
+    lastError: null,
   } as PendingMutation);
 
   await setQueue(filtered);
@@ -149,6 +187,10 @@ export async function enqueue(mutation: MutationPayload): Promise<void> {
  */
 export async function getPendingCount(): Promise<number> {
   return (await getQueue()).length;
+}
+
+export async function getFailedCount(): Promise<number> {
+  return (await getFailedQueue()).length;
 }
 
 /**
@@ -191,6 +233,137 @@ async function setLastSyncAt(): Promise<void> {
     await AsyncStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
   } catch {
     // Non-fatal
+  }
+}
+
+function toSyncBatchItem(mutation: PendingMutation): SyncBatchItem | null {
+  if (mutation.type === 'checklist_toggle') {
+    return {
+      queue_item_id: mutation.id,
+      idempotency_key: mutation.id,
+      operation: mutation.isChecked ? 'checklist_item.complete' : 'checklist_item.uncomplete',
+      entity_type: 'checklist_item',
+      entity_id: mutation.itemId,
+      payload: {
+        checked_at: mutation.checkedAt,
+      },
+    };
+  }
+
+  if (mutation.type === 'time_event') {
+    const operationMap: Record<TimeEventMutation['eventType'], string> = {
+      CHECK_IN: 'time_event.clock_in',
+      CHECK_OUT: 'time_event.clock_out',
+      BREAK_START: 'time_event.break_start',
+      BREAK_END: 'time_event.break_end',
+    };
+    return {
+      queue_item_id: mutation.id,
+      idempotency_key: mutation.id,
+      operation: operationMap[mutation.eventType],
+      entity_type: 'time_event',
+      entity_id: mutation.id,
+      payload: {
+        staff_id: mutation.staffId,
+        ticket_id: mutation.ticketId,
+        site_id: mutation.siteId,
+        recorded_at: mutation.recordedAt,
+        lat: mutation.lat,
+        lng: mutation.lng,
+        accuracy_meters: mutation.accuracyMeters,
+      },
+    };
+  }
+
+  if (mutation.type === 'photo_metadata') {
+    return {
+      queue_item_id: mutation.id,
+      idempotency_key: mutation.id,
+      operation: 'photo.upload',
+      entity_type: 'photo',
+      entity_id: mutation.id,
+      payload: {
+        ticket_id: mutation.ticketId,
+        checklist_item_id: mutation.checklistItemId,
+        storage_path: mutation.localUri,
+        original_filename: mutation.originalFilename,
+        mime_type: mutation.mimeType,
+        size_bytes: mutation.sizeBytes,
+        caption: mutation.caption,
+        uploaded_by: mutation.uploadedBy,
+      },
+    };
+  }
+
+  if (mutation.type === 'inspection_score') {
+    return {
+      queue_item_id: mutation.id,
+      idempotency_key: mutation.id,
+      operation: 'inspection_item.submit',
+      entity_type: 'inspection_item',
+      entity_id: mutation.inspectionItemId,
+      payload: {
+        score: mutation.score,
+        notes: mutation.notes,
+        photo_taken: mutation.photoTaken,
+      },
+    };
+  }
+
+  // inspection_status is not part of the batch contract yet; use direct fallback.
+  return null;
+}
+
+async function flushViaSyncBatch(mutation: PendingMutation): Promise<{ handled: boolean; ok: boolean; error: string | null }> {
+  if (!WEB_API_BASE_URL) return { handled: false, ok: false, error: null };
+
+  const item = toSyncBatchItem(mutation);
+  if (!item) return { handled: false, ok: false, error: null };
+
+  const { data } = await supabase.auth.getSession();
+  const accessToken = data.session?.access_token;
+  if (!accessToken) return { handled: false, ok: false, error: null };
+
+  try {
+    const response = await fetch(`${WEB_API_BASE_URL}/api/sync/batch`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ items: [item] }),
+    });
+
+    const text = await response.text();
+    if (!response.ok) {
+      return {
+        handled: true,
+        ok: false,
+        error: text || `Sync API failed with HTTP ${response.status}`,
+      };
+    }
+
+    const payload = text ? JSON.parse(text) as {
+      results?: Array<{ status?: string; error_message?: string | null }>;
+    } : {};
+    const result = payload.results?.[0];
+    const status = result?.status;
+
+    if (status === 'accepted' || status === 'duplicate') {
+      return { handled: true, ok: true, error: null };
+    }
+
+    return {
+      handled: true,
+      ok: false,
+      error: result?.error_message ?? (status ? `Sync status: ${status}` : 'Sync API returned no result'),
+    };
+  } catch (error) {
+    return {
+      handled: false,
+      ok: false,
+      error: error instanceof Error ? error.message : 'Sync batch request failed',
+    };
   }
 }
 
@@ -314,17 +487,27 @@ export async function flushQueue(): Promise<number> {
 
   let synced = 0;
   const remaining: PendingMutation[] = [];
+  const failed = await getFailedQueue();
 
   for (const mutation of queue) {
-    // Drop mutations that have exceeded retry limit
+    // Move mutations that exceeded retry limit to the failed inbox.
     if (mutation.retryCount >= MAX_RETRIES) {
-      console.error('[sync] dropping mutation after max retries:', mutation.id);
+      failed.push({
+        ...mutation,
+        failedAt: new Date().toISOString(),
+        lastError: mutation.lastError ?? 'Retry limit exceeded',
+      });
       continue;
     }
 
     let ok = false;
+    let errorMessage: string | null = null;
     try {
-      if (mutation.type === 'checklist_toggle') {
+      const batchResult = await flushViaSyncBatch(mutation);
+      if (batchResult.handled) {
+        ok = batchResult.ok;
+        errorMessage = batchResult.error;
+      } else if (mutation.type === 'checklist_toggle') {
         ok = await flushChecklist(mutation as PendingMutation & ChecklistToggle);
       } else if (mutation.type === 'time_event') {
         ok = await flushTimeEvent(mutation as PendingMutation & TimeEventMutation);
@@ -335,22 +518,75 @@ export async function flushQueue(): Promise<number> {
       } else if (mutation.type === 'inspection_status') {
         ok = await flushInspectionStatus(mutation as PendingMutation & InspectionStatusMutation);
       }
-    } catch {
+    } catch (error) {
       ok = false;
+      errorMessage = error instanceof Error ? error.message : 'Sync failed';
     }
 
     if (ok) {
       synced++;
     } else {
-      remaining.push({ ...mutation, retryCount: mutation.retryCount + 1 });
+      remaining.push({
+        ...mutation,
+        retryCount: mutation.retryCount + 1,
+        lastError: errorMessage ?? mutation.lastError ?? 'Sync failed',
+      });
     }
   }
 
   await setQueue(remaining);
+  await setFailedQueue(failed);
 
   if (synced > 0) {
     await setLastSyncAt();
   }
 
   return synced;
+}
+
+export async function getFailedMutations(): Promise<FailedMutation[]> {
+  return getFailedQueue();
+}
+
+export async function retryFailedMutation(mutationId: string): Promise<void> {
+  const [failed, queue] = await Promise.all([getFailedQueue(), getQueue()]);
+  const target = failed.find((row) => row.id === mutationId);
+  if (!target) return;
+
+  const nextFailed = failed.filter((row) => row.id !== mutationId);
+  const retryMutation: PendingMutation = {
+    ...target,
+    retryCount: 0,
+    lastError: null,
+  };
+  delete (retryMutation as { failedAt?: string }).failedAt;
+
+  await setFailedQueue(nextFailed);
+  await setQueue([...queue, retryMutation]);
+}
+
+export async function dismissFailedMutation(mutationId: string): Promise<void> {
+  const failed = await getFailedQueue();
+  const target = failed.find((row) => row.id === mutationId);
+  const nextFailed = failed.filter((row) => row.id !== mutationId);
+  await setFailedQueue(nextFailed);
+
+  const { data } = await supabase.auth.getSession();
+  const tenantId = (data.session?.user.app_metadata?.tenant_id as string | undefined) ?? null;
+  if (!tenantId || !target) return;
+
+  await supabase
+    .from('sync_events')
+    .insert({
+      tenant_id: tenantId,
+      staff_id: null,
+      idempotency_key: `dismissed:${target.id}:${Date.now()}`,
+      operation: 'offline.dismiss',
+      entity_type: target.type,
+      entity_id: target.id,
+      payload: target,
+      result: 'failed_dismissed',
+      error_code: 'DISMISSED_BY_USER',
+      error_message: target.lastError ?? null,
+    });
 }

@@ -20,7 +20,7 @@ function getGreeting(): string {
 export default function MyDayScreen() {
   const router = useRouter();
   const { staffId, staffName, tickets, loading, refreshing, isOffline, refetch } = useMyDay();
-  const { pendingCount, lastSyncAt, isSyncing } = useSyncState();
+  const { pendingCount, failedCount, lastSyncAt, isSyncing } = useSyncState();
   const [myOnly, setMyOnly] = useState(true);
 
   const displayTickets = useMemo(() => {
@@ -93,6 +93,7 @@ export default function MyDayScreen() {
       {/* Sync Status Bar */}
       <SyncStatusBar
         pendingCount={pendingCount}
+        failedCount={failedCount}
         lastSyncAt={lastSyncAt}
         isSyncing={isSyncing}
         onSyncPress={async () => { await syncNow(); refetch(); }}

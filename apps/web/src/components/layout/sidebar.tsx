@@ -15,6 +15,9 @@ import {
   Wrench,
   ShieldCheck,
   Settings,
+  LayoutDashboard,
+  MoonStar,
+  ClipboardList,
   LogOut,
   Menu,
   X,
@@ -28,7 +31,7 @@ import {
   AlertTriangle,
   LineChart,
 } from 'lucide-react';
-import { getModuleFromPathname, NAV_ITEMS, roleDisplayName } from '@gleamops/shared';
+import { getModuleFromPathname, NAVIGATION_V2, roleDisplayName } from '@gleamops/shared';
 import { useAuth } from '@/hooks/use-auth';
 import { useFeatureFlag } from '@/hooks/use-feature-flag';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -45,15 +48,18 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Wrench,
   Settings,
   ShieldCheck,
+  LayoutDashboard,
+  MoonStar,
+  ClipboardList,
 };
 
 const QUICK_ACTION_ITEMS = [
-  { id: 'new-client', label: 'New Client', icon: UserPlus, href: '/crm?action=create-client' },
-  { id: 'new-site', label: 'New Site', icon: MapPin, href: '/crm?action=create-site' },
-  { id: 'new-prospect', label: 'New Prospect', icon: TrendingUp, href: '/pipeline?action=create-prospect' },
-  { id: 'new-job', label: 'New Service Plan', icon: Briefcase, href: '/operations?tab=jobs&action=create-job' },
-  { id: 'new-inspection', label: 'New Inspection', icon: ClipboardCheck, href: '/operations?action=create-inspection' },
-  { id: 'log-ticket', label: 'Log Ticket', icon: AlertTriangle, href: '/operations?action=create-ticket' },
+  { id: 'new-client', label: 'New Client', icon: UserPlus, href: '/customers?action=create-client' },
+  { id: 'new-site', label: 'New Site', icon: MapPin, href: '/customers?action=create-site' },
+  { id: 'new-prospect', label: 'New Prospect', icon: TrendingUp, href: '/sales?action=create-prospect' },
+  { id: 'new-job', label: 'New Service Plan', icon: Briefcase, href: '/work?tab=jobs&action=create-job' },
+  { id: 'new-inspection', label: 'New Inspection', icon: ClipboardCheck, href: '/work?tab=inspections&action=create-inspection' },
+  { id: 'log-ticket', label: 'Log Ticket', icon: AlertTriangle, href: '/work?tab=tickets&action=create-ticket' },
 ];
 
 function getInitials(email: string): string {
@@ -89,7 +95,7 @@ export function Sidebar() {
             .in('status', ['SCHEDULED', 'IN_PROGRESS']),
         ]);
         setBadgeCounts({
-          operations: ticketsRes.count || 0,
+          work: ticketsRes.count || 0,
         });
       } catch {
         // Badge counts are non-critical
@@ -150,7 +156,7 @@ export function Sidebar() {
       >
         {/* Header / Logo */}
         <div className="flex items-center justify-between h-16 px-5 border-b border-white/10">
-          <Link href="/home" className="flex items-center gap-2.5">
+          <Link href="/command" className="flex items-center gap-2.5">
             <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
               <Sparkles className="h-4 w-4 text-primary-foreground" />
             </div>
@@ -187,7 +193,7 @@ export function Sidebar() {
 
         {/* Nav items */}
         <nav className="flex-1 py-3 px-3 space-y-1 overflow-y-auto">
-          {NAV_ITEMS.map((item) => {
+          {NAVIGATION_V2.map((item) => {
             const Icon = ICON_MAP[item.icon] ?? Building2;
             const isActive = activeModule === item.id || pathname.startsWith(item.href);
             const badgeCount = badgeCounts[item.id] ?? 0;

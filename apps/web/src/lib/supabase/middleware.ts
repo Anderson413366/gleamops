@@ -42,7 +42,9 @@ export async function updateSession(request: NextRequest) {
   if (!user && !isPublicRoute) {
     // Not authenticated → redirect to login
     const url = request.nextUrl.clone();
+    const requestedPath = `${request.nextUrl.pathname}${request.nextUrl.search}`;
     url.pathname = '/login';
+    url.searchParams.set('next', requestedPath);
     return NextResponse.redirect(url);
   }
 

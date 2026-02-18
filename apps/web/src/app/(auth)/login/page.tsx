@@ -33,7 +33,7 @@ export default function LoginPage() {
     const nextPath = typeof window !== 'undefined'
       ? new URLSearchParams(window.location.search).get('next')
       : null;
-    const destination = nextPath && nextPath.startsWith('/') ? nextPath : '/home';
+    const destination = nextPath && nextPath.startsWith('/') ? nextPath : '/command';
     router.push(destination);
   }
 

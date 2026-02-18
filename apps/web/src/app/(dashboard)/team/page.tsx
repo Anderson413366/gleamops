@@ -3,5 +3,5 @@ import { toQueryString, type SearchParams } from '@/lib/url/to-query-string';
 
 export default async function TeamRedirect({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const sp = searchParams ? await searchParams : undefined;
-  redirect(`/workforce${toQueryString(sp)}`);
+  redirect(`/people${toQueryString(sp)}`);
 }

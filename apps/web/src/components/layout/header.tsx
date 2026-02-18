@@ -106,12 +106,11 @@ function getAlertLink(item: FeedItem): string | null {
 
   switch (item.entity_type) {
     case 'time_exception':
-      return '/workforce?tab=exceptions';
+      return '/people?tab=exceptions';
     case 'work_ticket':
-      // Legacy links used /schedule; operations now owns ticket details.
-      return `/operations?tab=tickets&ticket=${item.entity_id}`;
+      return `/work?tab=tickets&ticket=${item.entity_id}`;
     case 'time_entry':
-      return '/workforce?tab=timekeeping';
+      return '/people?tab=timekeeping';
     default:
       return null;
   }
@@ -131,17 +130,17 @@ type QuickCreateAction = 'create-client' | 'create-site' | 'create-job' | 'creat
 type GoNavKey = 'h' | 'c' | 'o' | 'w';
 
 const QUICK_CREATE_ROUTES: Record<QuickCreateAction, string> = {
-  'create-client': '/crm?tab=clients&action=create-client',
-  'create-site': '/crm?tab=sites&action=create-site',
-  'create-job': '/operations?tab=jobs&action=create-job',
-  'create-prospect': '/pipeline?tab=prospects&action=create-prospect',
+  'create-client': '/customers?tab=clients&action=create-client',
+  'create-site': '/customers?tab=sites&action=create-site',
+  'create-job': '/work?tab=jobs&action=create-job',
+  'create-prospect': '/sales?tab=prospects&action=create-prospect',
 };
 
 const GO_NAV_ROUTES: Record<GoNavKey, string> = {
-  h: '/home',
-  c: '/crm',
-  o: '/operations',
-  w: '/workforce',
+  h: '/command',
+  c: '/customers',
+  o: '/work',
+  w: '/people',
 };
 
 interface ShortcutRow {
@@ -156,10 +155,10 @@ const SHORTCUT_ROWS: ShortcutRow[] = [
   { keys: 'Cmd/Ctrl + Shift + S', description: 'New Site' },
   { keys: 'Cmd/Ctrl + Shift + J', description: 'New Service Plan' },
   { keys: 'Cmd/Ctrl + Shift + P', description: 'New Prospect' },
-  { keys: 'G then H', description: 'Go to Home' },
-  { keys: 'G then C', description: 'Go to CRM' },
-  { keys: 'G then O', description: 'Go to Operations' },
-  { keys: 'G then W', description: 'Go to Workforce' },
+  { keys: 'G then H', description: 'Go to Command Center' },
+  { keys: 'G then C', description: 'Go to Customers' },
+  { keys: 'G then O', description: 'Go to Work' },
+  { keys: 'G then W', description: 'Go to People' },
   { keys: 'Esc', description: 'Close modal / drawer / palette' },
 ];
 
@@ -511,38 +510,38 @@ export function Header() {
       },
       {
         id: 'goto-home',
-        label: 'Go to Home',
-        sublabel: 'Navigate to Home dashboard',
+        label: 'Go to Command Center',
+        sublabel: 'Navigate to Command Center dashboard',
         category: 'Go To',
         icon: <Building2 className="h-4 w-4" />,
-        keywords: ['go home', 'go to home', 'home'],
+        keywords: ['go home', 'go to home', 'home', 'command', 'command center'],
         onSelect: () => goToSection('h'),
       },
       {
-        id: 'goto-crm',
-        label: 'Go to CRM',
-        sublabel: 'Navigate to CRM module',
+        id: 'goto-customers',
+        label: 'Go to Customers',
+        sublabel: 'Navigate to Customers module',
         category: 'Go To',
         icon: <Building2 className="h-4 w-4" />,
-        keywords: ['go crm', 'go to crm', 'crm', 'clients'],
+        keywords: ['go customers', 'go to customers', 'customers', 'crm', 'clients'],
         onSelect: () => goToSection('c'),
       },
       {
-        id: 'goto-operations',
-        label: 'Go to Operations',
-        sublabel: 'Navigate to Operations module',
+        id: 'goto-work',
+        label: 'Go to Work',
+        sublabel: 'Navigate to Work module',
         category: 'Go To',
         icon: <Clock className="h-4 w-4" />,
-        keywords: ['go operations', 'go to operations', 'operations', 'tickets', 'jobs'],
+        keywords: ['go work', 'go to work', 'work', 'operations', 'tickets', 'jobs'],
         onSelect: () => goToSection('o'),
       },
       {
-        id: 'goto-workforce',
-        label: 'Go to Workforce',
-        sublabel: 'Navigate to Workforce module',
+        id: 'goto-people',
+        label: 'Go to People',
+        sublabel: 'Navigate to People module',
         category: 'Go To',
         icon: <Users className="h-4 w-4" />,
-        keywords: ['go workforce', 'go to workforce', 'workforce', 'staff', 'team'],
+        keywords: ['go people', 'go to people', 'people', 'workforce', 'staff', 'team'],
         onSelect: () => goToSection('w'),
       },
     ];
@@ -608,7 +607,7 @@ export function Header() {
           sublabel: c.client_code,
           category: 'Clients',
           icon: <Building2 className="h-4 w-4" />,
-          href: `/crm?client=${c.client_code}`,
+          href: `/customers?client=${c.client_code}`,
         });
       }
     }
@@ -621,7 +620,7 @@ export function Header() {
           sublabel: s.address?.street || '',
           category: 'Sites',
           icon: <MapPin className="h-4 w-4" />,
-          href: `/crm?site=${s.site_code}`,
+          href: `/customers?site=${s.site_code}`,
         });
       }
     }
@@ -634,7 +633,7 @@ export function Header() {
           sublabel: p.prospect_code,
           category: 'Prospects',
           icon: <TrendingUp className="h-4 w-4" />,
-          href: `/pipeline?prospect=${p.prospect_code}`,
+          href: `/sales?prospect=${p.prospect_code}`,
         });
       }
     }
@@ -647,7 +646,7 @@ export function Header() {
           sublabel: b.status,
           category: 'Bids',
           icon: <FileText className="h-4 w-4" />,
-          href: `/pipeline?bid=${b.bid_code}`,
+          href: `/sales?bid=${b.bid_code}`,
         });
       }
     }
@@ -660,7 +659,7 @@ export function Header() {
           sublabel: s.staff_code,
           category: 'Team',
           icon: <Users className="h-4 w-4" />,
-          href: `/workforce/staff/${s.staff_code}`,
+          href: `/people/staff/${s.staff_code}`,
         });
       }
     }
@@ -996,7 +995,7 @@ export function Header() {
         onSelect={handleSelect}
         onSearch={handleSearch}
         loading={loading}
-        placeholder="Search records, type 'new client', or 'go to operations'..."
+        placeholder="Search records, type 'new client', or 'go to work'..."
       />
     </>
   );

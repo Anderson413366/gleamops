@@ -81,6 +81,23 @@ type FileRow = {
   original_filename: string;
 };
 
+type PtoImpactAssignment = {
+  ticket_id: string;
+  ticket_code: string;
+  scheduled_date: string;
+  start_time: string | null;
+  end_time: string | null;
+  site_name: string | null;
+  period_id: string | null;
+  period_name: string | null;
+  period_status: string | null;
+};
+
+type PtoImpactSummary = {
+  assignments: PtoImpactAssignment[];
+  impactedPeriods: { id: string; name: string; status: string }[];
+};
+
 interface Props {
   search: string;
 }
@@ -180,6 +197,7 @@ export default function HrLitePanel({ search }: Props) {
     notes: '',
   });
   const [documentFile, setDocumentFile] = useState<File | null>(null);
+  const [ptoImpact, setPtoImpact] = useState<PtoImpactSummary>({ assignments: [], impactedPeriods: [] });
 
   const staffById = useMemo(() => new Map(staff.map((row) => [row.id, row])), [staff]);
   const badgeById = useMemo(() => new Map(badges.map((row) => [row.id, row])), [badges]);
@@ -280,6 +298,100 @@ export default function HrLitePanel({ search }: Props) {
   useEffect(() => {
     load();
   }, [load]);
+
+  const loadPtoImpact = useCallback(async () => {
+    if (!ptoForm.staff_id || !ptoForm.start_date || !ptoForm.end_date) {
+      setPtoImpact({ assignments: [], impactedPeriods: [] });
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('ticket_assignments')
+      .select(`
+        id,
+        assignment_status,
+        ticket:ticket_id!inner(
+          id, ticket_code, scheduled_date, start_time, end_time, schedule_period_id,
+          site:site_id(name),
+          period:schedule_period_id(id, period_name, status)
+        )
+      `)
+      .eq('staff_id', ptoForm.staff_id)
+      .is('archived_at', null)
+      .gte('ticket.scheduled_date', ptoForm.start_date)
+      .lte('ticket.scheduled_date', ptoForm.end_date);
+
+    if (error) {
+      setPtoImpact({ assignments: [], impactedPeriods: [] });
+      return;
+    }
+
+    const assignments = ((data ?? []) as unknown as Array<{
+      assignment_status?: string | null;
+      ticket?: {
+        id?: string;
+        ticket_code?: string;
+        scheduled_date?: string;
+        start_time?: string | null;
+        end_time?: string | null;
+        schedule_period_id?: string | null;
+        site?: { name?: string | null } | { name?: string | null }[] | null;
+        period?: { id?: string; period_name?: string | null; status?: string | null } | { id?: string; period_name?: string | null; status?: string | null }[] | null;
+      } | {
+        id?: string;
+        ticket_code?: string;
+        scheduled_date?: string;
+        start_time?: string | null;
+        end_time?: string | null;
+        schedule_period_id?: string | null;
+        site?: { name?: string | null } | { name?: string | null }[] | null;
+        period?: { id?: string; period_name?: string | null; status?: string | null } | { id?: string; period_name?: string | null; status?: string | null }[] | null;
+      }[] | null;
+    }>)
+      .filter((row) => (row.assignment_status ?? 'ASSIGNED') === 'ASSIGNED')
+      .map((row) => {
+        const ticket = Array.isArray(row.ticket) ? row.ticket[0] : row.ticket;
+        const site = ticket?.site;
+        const period = ticket?.period;
+        const normalizedSite = Array.isArray(site) ? site[0] : site;
+        const normalizedPeriod = Array.isArray(period) ? period[0] : period;
+
+        return {
+          ticket_id: ticket?.id ?? '',
+          ticket_code: ticket?.ticket_code ?? '—',
+          scheduled_date: ticket?.scheduled_date ?? '',
+          start_time: ticket?.start_time ?? null,
+          end_time: ticket?.end_time ?? null,
+          site_name: normalizedSite?.name ?? null,
+          period_id: normalizedPeriod?.id ?? ticket?.schedule_period_id ?? null,
+          period_name: normalizedPeriod?.period_name ?? null,
+          period_status: normalizedPeriod?.status ?? null,
+        };
+      })
+      .filter((row) => row.ticket_id)
+      .sort((a, b) => a.scheduled_date.localeCompare(b.scheduled_date));
+
+    const periodMap = new Map<string, { id: string; name: string; status: string }>();
+    for (const assignment of assignments) {
+      if (!assignment.period_id) continue;
+      if (!periodMap.has(assignment.period_id)) {
+        periodMap.set(assignment.period_id, {
+          id: assignment.period_id,
+          name: assignment.period_name ?? assignment.period_id,
+          status: assignment.period_status ?? 'UNKNOWN',
+        });
+      }
+    }
+
+    setPtoImpact({
+      assignments,
+      impactedPeriods: Array.from(periodMap.values()),
+    });
+  }, [ptoForm.end_date, ptoForm.staff_id, ptoForm.start_date, supabase]);
+
+  useEffect(() => {
+    void loadPtoImpact();
+  }, [loadPtoImpact]);
 
   const filteredPto = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -417,8 +529,11 @@ export default function HrLitePanel({ search }: Props) {
       reason: ptoForm.reason || null,
       status: 'PENDING',
     });
-    toast[result.queued ? 'info' : 'success'](result.queued ? 'PTO request queued for sync.' : 'PTO request created');
-  }, [postHrEntity, ptoForm]);
+    const impactSuffix = ptoImpact.assignments.length > 0 ? ` (${ptoImpact.assignments.length} scheduled shift(s) in range)` : '';
+    toast[result.queued ? 'info' : 'success'](
+      result.queued ? `PTO request queued for sync${impactSuffix}.` : `PTO request created${impactSuffix}.`
+    );
+  }, [postHrEntity, ptoForm, ptoImpact.assignments.length]);
 
   const createReview = useCallback(async () => {
     if (!reviewForm.staff_id) throw new Error('Staff is required');
@@ -720,6 +835,29 @@ export default function HrLitePanel({ search }: Props) {
           <Input type="number" min={0} step={0.25} value={ptoForm.hours_requested} onChange={(event) => setPtoForm((prev) => ({ ...prev, hours_requested: event.target.value }))} />
           <label className="text-sm font-medium">Reason</label>
           <Textarea value={ptoForm.reason} onChange={(event) => setPtoForm((prev) => ({ ...prev, reason: event.target.value }))} rows={3} />
+          <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs">
+            <p className="font-semibold text-foreground">Schedule Impact Preview</p>
+            <p className="mt-1 text-muted-foreground">
+              {ptoImpact.assignments.length} assigned shift(s) fall inside this PTO window.
+            </p>
+            {ptoImpact.impactedPeriods.length > 0 ? (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {ptoImpact.impactedPeriods.map((period) => (
+                  <span key={period.id} className="rounded-full bg-background px-2 py-0.5 text-[11px] text-muted-foreground">
+                    {period.name} ({period.status})
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            {ptoImpact.assignments.slice(0, 4).map((assignment) => (
+              <p key={assignment.ticket_id} className="mt-1 text-muted-foreground">
+                {assignment.ticket_code} · {formatDate(assignment.scheduled_date)} {assignment.start_time ? `${assignment.start_time}-${assignment.end_time ?? ''}` : ''} {assignment.site_name ? `· ${assignment.site_name}` : ''}
+              </p>
+            ))}
+            {ptoImpact.assignments.length > 4 ? (
+              <p className="mt-1 text-muted-foreground">+{ptoImpact.assignments.length - 4} more shift(s)</p>
+            ) : null}
+          </div>
           <Button disabled={submitting} onClick={() => withSubmit(createPto)}>Create PTO Request</Button>
         </div>
       </SlideOver>

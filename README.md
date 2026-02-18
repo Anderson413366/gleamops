@@ -65,6 +65,9 @@ pnpm install
 cp .env.example apps/web/.env.local
 # Fill in your Supabase URL and keys
 
+# Start local Supabase
+pnpm db:start
+
 # Start development
 pnpm dev
 ```
@@ -78,9 +81,13 @@ pnpm build:web     # Build web app only
 pnpm typecheck     # TypeScript check (all packages)
 pnpm test          # Run tests
 pnpm lint          # ESLint
+pnpm db:start      # Start local Supabase services
+pnpm db:stop       # Stop local Supabase services
 pnpm db:reset      # Reset local Supabase DB
 pnpm db:migrate    # Run pending migrations
 ```
+
+Local note: `supabase/config.toml` sets `[analytics].enabled = false` to avoid the known Colima docker socket mount failure (`.../.colima/default/docker.sock`) during `supabase start`.
 
 ---
 

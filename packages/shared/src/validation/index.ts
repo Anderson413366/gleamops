@@ -303,6 +303,58 @@ export const hrStaffDocumentSchema = z.object({
 export type HrStaffDocumentFormData = z.infer<typeof hrStaffDocumentSchema>;
 
 // ---------------------------------------------------------------------------
+// Scheduling
+// ---------------------------------------------------------------------------
+export const schedulePeriodSchema = z.object({
+  site_id: z.string().uuid().nullable().default(null),
+  period_name: z.string().max(200).nullable().default(null),
+  period_start: z.string().min(1, 'Period start is required'),
+  period_end: z.string().min(1, 'Period end is required'),
+  status: z.enum(['DRAFT', 'PUBLISHED', 'LOCKED', 'ARCHIVED']).default('DRAFT'),
+}).refine((value) => new Date(value.period_end).getTime() >= new Date(value.period_start).getTime(), {
+  message: 'Period end must be on or after period start',
+  path: ['period_end'],
+});
+export type SchedulePeriodFormData = z.infer<typeof schedulePeriodSchema>;
+
+export const staffAvailabilityRuleSchema = z.object({
+  staff_id: z.string().uuid('Staff is required'),
+  rule_type: z.enum(['WEEKLY_RECURRING', 'ONE_OFF']),
+  availability_type: z.enum(['AVAILABLE', 'UNAVAILABLE', 'PREFERRED']),
+  weekday: z.number().int().min(0).max(6).nullable().default(null),
+  start_time: z.string().nullable().default(null),
+  end_time: z.string().nullable().default(null),
+  one_off_start: z.string().nullable().default(null),
+  one_off_end: z.string().nullable().default(null),
+  valid_from: z.string().nullable().default(null),
+  valid_to: z.string().nullable().default(null),
+  notes: z.string().nullable().default(null),
+}).superRefine((value, ctx) => {
+  if (value.rule_type === 'WEEKLY_RECURRING') {
+    if (value.weekday === null) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Weekday is required for recurring rules', path: ['weekday'] });
+    }
+    if (!value.start_time || !value.end_time) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Start and end times are required for recurring rules', path: ['start_time'] });
+    }
+  }
+  if (value.rule_type === 'ONE_OFF') {
+    if (!value.one_off_start || !value.one_off_end) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'One-off start and end are required', path: ['one_off_start'] });
+    }
+  }
+});
+export type StaffAvailabilityRuleFormData = z.infer<typeof staffAvailabilityRuleSchema>;
+
+export const shiftTradeRequestSchema = z.object({
+  ticket_id: z.string().uuid('Ticket is required'),
+  request_type: z.enum(['SWAP', 'RELEASE']).default('SWAP'),
+  target_staff_id: z.string().uuid().nullable().default(null),
+  initiator_note: z.string().nullable().default(null),
+});
+export type ShiftTradeRequestFormData = z.infer<typeof shiftTradeRequestSchema>;
+
+// ---------------------------------------------------------------------------
 // Inventory & Assets
 // ---------------------------------------------------------------------------
 export const supplySchema = z.object({

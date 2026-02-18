@@ -552,12 +552,86 @@ export interface WorkTicket extends StandardColumns {
   start_time: string | null;
   end_time: string | null;
   status: string; // SCHEDULED | IN_PROGRESS | COMPLETED | VERIFIED | CANCELED
+  required_staff_count: number;
+  position_code: string | null;
+  schedule_period_id: string | null;
+  published_at: string | null;
+  published_by: string | null;
+  locked_at: string | null;
+  locked_by: string | null;
 }
 
 export interface TicketAssignment extends StandardColumns {
   ticket_id: string;
   staff_id: string;
   role: string | null; // LEAD | CLEANER
+  assignment_status: 'ASSIGNED' | 'RELEASED' | 'CANCELED';
+  assignment_type: 'DIRECT' | 'SWAP' | 'RELEASE' | 'OPEN_PICKUP';
+  overtime_flag: boolean;
+  released_at: string | null;
+  released_by: string | null;
+}
+
+export interface SchedulePeriod extends StandardColumns {
+  site_id: string | null;
+  period_name: string | null;
+  period_start: string;
+  period_end: string;
+  status: 'DRAFT' | 'PUBLISHED' | 'LOCKED' | 'ARCHIVED';
+  published_at: string | null;
+  published_by: string | null;
+  locked_at: string | null;
+  locked_by: string | null;
+}
+
+export interface StaffAvailabilityRule extends StandardColumns {
+  staff_id: string;
+  rule_type: 'WEEKLY_RECURRING' | 'ONE_OFF';
+  availability_type: 'AVAILABLE' | 'UNAVAILABLE' | 'PREFERRED';
+  weekday: number | null;
+  start_time: string | null;
+  end_time: string | null;
+  one_off_start: string | null;
+  one_off_end: string | null;
+  valid_from: string | null;
+  valid_to: string | null;
+  notes: string | null;
+}
+
+export interface ShiftTradeRequest extends StandardColumns {
+  ticket_id: string;
+  period_id: string | null;
+  initiator_staff_id: string;
+  target_staff_id: string | null;
+  request_type: 'SWAP' | 'RELEASE';
+  status: 'PENDING' | 'ACCEPTED' | 'MANAGER_APPROVED' | 'APPLIED' | 'DENIED' | 'CANCELED';
+  requested_at: string;
+  accepted_at: string | null;
+  approved_at: string | null;
+  applied_at: string | null;
+  manager_user_id: string | null;
+  initiator_note: string | null;
+  manager_note: string | null;
+}
+
+export interface ScheduleConflict extends StandardColumns {
+  period_id: string;
+  ticket_id: string | null;
+  staff_id: string | null;
+  conflict_type:
+    | 'OVERLAP'
+    | 'PTO_CONFLICT'
+    | 'AVAILABILITY_CONFLICT'
+    | 'COVERAGE_GAP'
+    | 'ROLE_MISMATCH'
+    | 'REST_WINDOW_WARNING'
+    | 'MAX_WEEKLY_HOURS_WARNING';
+  severity: 'INFO' | 'WARNING' | 'ERROR';
+  message: string;
+  payload: Record<string, unknown>;
+  is_blocking: boolean;
+  resolved_at: string | null;
+  resolved_by: string | null;
 }
 
 // ---------------------------------------------------------------------------

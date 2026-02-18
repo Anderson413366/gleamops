@@ -25,6 +25,7 @@ import { MessageForm } from '@/components/forms/message-form';
 import TaskCatalogTable from './task-catalog/task-catalog-table';
 import CustomFormsBuilder from './custom-forms/custom-forms-builder';
 import RoutesFleetPanel from './routes/routes-fleet-panel';
+import PlanningPanel from './planning/planning-panel';
 
 interface GeofenceWithSite extends Geofence {
   site?: { name: string; site_code: string } | null;
@@ -50,6 +51,7 @@ interface InspectionWithRelations extends Inspection {
 
 const TABS = [
   { key: 'calendar', label: 'Calendar', icon: <Calendar className="h-4 w-4" /> },
+  { key: 'planning', label: 'Planning', icon: <ClipboardList className="h-4 w-4" /> },
   { key: 'tickets', label: 'Work Tickets', icon: <ClipboardList className="h-4 w-4" /> },
   { key: 'jobs', label: 'Service Plans', icon: <Briefcase className="h-4 w-4" /> },
   { key: 'task-catalog', label: 'Task Catalog', icon: <Library className="h-4 w-4" /> },
@@ -215,6 +217,8 @@ export default function OperationsPageClient() {
           placeholder={
             tab === 'jobs'
               ? 'Search service plans...'
+              : tab === 'planning'
+                ? 'Search planning tickets, roles, and sites...'
               : tab === 'task-catalog'
                 ? 'Search task catalog...'
                 : tab === 'routes'
@@ -228,6 +232,12 @@ export default function OperationsPageClient() {
         <WeekCalendar
           key={`cal-${refreshKey}`}
           onSelectTicket={(t) => setSelectedTicket(t as TicketWithRelations)}
+        />
+      )}
+      {tab === 'planning' && (
+        <PlanningPanel
+          key={`planning-${refreshKey}`}
+          search={search}
         />
       )}
       {tab === 'tickets' && (

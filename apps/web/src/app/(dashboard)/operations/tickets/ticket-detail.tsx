@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
+import { toast } from 'sonner';
 import {
   ClipboardList, MapPin, Briefcase, Calendar, Clock,
   UserPlus, X, Users, CheckSquare, Square, Camera, ImageIcon,
@@ -19,6 +20,7 @@ import {
   Select,
 } from '@gleamops/ui';
 import { TICKET_STATUS_COLORS, INSPECTION_STATUS_COLORS, ISSUE_SEVERITY_COLORS } from '@gleamops/shared';
+import { fetchJsonWithSupabaseAuth } from '@/lib/supabase/authenticated-fetch';
 import type {
   WorkTicket, TicketAssignment, Staff, TicketChecklistItem, TicketPhoto,
   Inspection, InspectionIssue, TimeException,
@@ -65,6 +67,19 @@ interface InspectionIssueWithContext extends InspectionIssue {
   inspection?: { inspection_code: string } | null;
 }
 
+interface TradeRequestRow {
+  id: string;
+  request_type: 'SWAP' | 'RELEASE';
+  status: 'PENDING' | 'ACCEPTED' | 'MANAGER_APPROVED' | 'APPLIED' | 'DENIED' | 'CANCELED';
+  target_staff_id: string | null;
+  initiator_staff_id: string;
+  initiator_note: string | null;
+  manager_note: string | null;
+  requested_at: string;
+  initiator?: { full_name: string | null; staff_code: string | null } | null;
+  target?: { full_name: string | null; staff_code: string | null } | null;
+}
+
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
@@ -74,6 +89,11 @@ interface TicketDetailProps {
   onClose: () => void;
   onStatusChange?: () => void;
 }
+
+type ApiDataResponse<T> = {
+  success: boolean;
+  data: T;
+};
 
 type TabKey = 'overview' | 'checklist' | 'photos' | 'time' | 'safety' | 'crew' | 'assets' | 'quality' | 'supplies';
 
@@ -101,9 +121,13 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
   const [allStaff, setAllStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(false);
   const [assigning, setAssigning] = useState(false);
+  const [tradeBusy, setTradeBusy] = useState(false);
   const [showAssignForm, setShowAssignForm] = useState(false);
   const [selectedStaffId, setSelectedStaffId] = useState('');
   const [selectedRole, setSelectedRole] = useState('CLEANER');
+  const [currentStaffId, setCurrentStaffId] = useState<string | null>(null);
+  const [tradeRequests, setTradeRequests] = useState<TradeRequestRow[]>([]);
+  const [swapTargetByAssignment, setSwapTargetByAssignment] = useState<Record<string, string>>({});
   const [busyMap, setBusyMap] = useState<Map<string, StaffBusyInfo>>(new Map());
   const [showAvailableOnly, setShowAvailableOnly] = useState(false);
 
@@ -140,7 +164,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
 
-    const [assignRes, staffRes, dayAssignRes, timeRes, exceptionsRes, inspectionsRes, issuesRes, suppliesRes, requirementsRes, checkoutsRes] = await Promise.all([
+    const [assignRes, staffRes, dayAssignRes, timeRes, exceptionsRes, inspectionsRes, issuesRes, suppliesRes, requirementsRes, checkoutsRes, tradesRes, currentStaffRes] = await Promise.all([
       // Staff assignments for this ticket
       supabase
         .from('ticket_assignments')
@@ -211,6 +235,15 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
         .from('ticket_asset_checkouts')
         .select('*')
         .eq('ticket_id', ticket.id),
+      // Shift trades for this ticket
+      supabase
+        .from('shift_trade_requests')
+        .select('id, request_type, status, target_staff_id, initiator_staff_id, initiator_note, manager_note, requested_at, initiator:initiator_staff_id(full_name, staff_code), target:target_staff_id(full_name, staff_code)')
+        .eq('ticket_id', ticket.id)
+        .is('archived_at', null)
+        .order('requested_at', { ascending: false }),
+      // Current staff profile for signed-in user
+      supabase.rpc('fn_current_staff_id'),
     ]);
 
     if (assignRes.data) setAssignments(assignRes.data as unknown as AssignmentWithStaff[]);
@@ -287,6 +320,9 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
     else setAssetRequirements([]);
     if (checkoutsRes.data) setAssetCheckouts(checkoutsRes.data as unknown as TicketAssetCheckout[]);
     else setAssetCheckouts([]);
+    if (tradesRes.data) setTradeRequests(tradesRes.data as unknown as TradeRequestRow[]);
+    else setTradeRequests([]);
+    setCurrentStaffId((currentStaffRes.data as string | null) ?? null);
 
     // Supply usage
     const { data: usageData } = await supabase
@@ -364,6 +400,8 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
     setShowAssignForm(false);
     setSelectedStaffId('');
     setSelectedRole('CLEANER');
+    setTradeRequests([]);
+    setSwapTargetByAssignment({});
     setShowAvailableOnly(false);
     setActiveTab('overview');
   }, [ticket]);
@@ -375,32 +413,53 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
   // -----------------------------------------------------------------------
   const handleAssign = async () => {
     if (!ticket || !selectedStaffId) return;
+    if (ticket.locked_at) {
+      toast.error('This ticket is locked by a published schedule period.');
+      return;
+    }
     setAssigning(true);
     const supabase = getSupabaseBrowserClient();
-    await supabase.from('ticket_assignments').insert({
+    const { error } = await supabase.from('ticket_assignments').insert({
       tenant_id: ticket.tenant_id,
       ticket_id: ticket.id,
       staff_id: selectedStaffId,
       role: selectedRole,
     });
+    if (error) {
+      toast.error(error.message);
+      setAssigning(false);
+      return;
+    }
     setSelectedStaffId('');
     setSelectedRole('CLEANER');
     setShowAssignForm(false);
     setAssigning(false);
-    fetchDetails();
+    await fetchDetails();
   };
 
   const handleRemoveAssignment = async (assignmentId: string) => {
+    if (ticket?.locked_at) {
+      toast.error('This ticket is locked by a published schedule period.');
+      return;
+    }
     const supabase = getSupabaseBrowserClient();
-    await supabase
+    const { error } = await supabase
       .from('ticket_assignments')
       .update({ archived_at: new Date().toISOString() })
       .eq('id', assignmentId);
-    fetchDetails();
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    await fetchDetails();
   };
 
   const handleStatusChange = async (newStatus: string) => {
     if (!ticket) return;
+    if (ticket.locked_at) {
+      toast.error('This ticket is locked by a published schedule period.');
+      return;
+    }
 
     const supabase = getSupabaseBrowserClient();
     const { error } = await supabase.rpc('set_ticket_status', {
@@ -419,7 +478,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
         setActiveTab('assets');
         return;
       }
-      console.error('Status change failed:', error.message);
+      toast.error(error.message);
       return;
     }
 
@@ -501,10 +560,97 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
     }
   };
 
+  const handleRequestTrade = async (assignment: AssignmentWithStaff, requestType: 'RELEASE' | 'SWAP') => {
+    if (!ticket) return;
+    if (ticket.locked_at) {
+      toast.error('This ticket is locked by a published schedule period.');
+      return;
+    }
+
+    const targetStaffId = swapTargetByAssignment[assignment.id] || null;
+    if (requestType === 'SWAP' && !targetStaffId) {
+      toast.error('Pick a target staff member before requesting a swap.');
+      return;
+    }
+
+    setTradeBusy(true);
+    const supabase = getSupabaseBrowserClient();
+    const body = {
+      ticket_id: ticket.id,
+      request_type: requestType,
+      target_staff_id: requestType === 'SWAP' ? targetStaffId : null,
+      initiator_note: requestType === 'SWAP'
+        ? 'Swap requested from ticket crew panel'
+        : 'Release requested from ticket crew panel',
+    };
+    let requestError: Error | null = null;
+    try {
+      await fetchJsonWithSupabaseAuth<ApiDataResponse<TradeRequestRow>>(
+        supabase,
+        '/api/operations/schedule/trades',
+        {
+          method: 'POST',
+          body: JSON.stringify(body),
+        },
+      );
+    } catch (error) {
+      requestError = error instanceof Error ? error : new Error('Trade request failed.');
+    }
+    setTradeBusy(false);
+
+    if (requestError) {
+      toast.error(requestError.message);
+      return;
+    }
+
+    toast.success(requestType === 'SWAP' ? 'Swap request submitted.' : 'Release request submitted.');
+    await fetchDetails();
+  };
+
+  const handleTradeAction = async (
+    rpcName: 'fn_accept_shift_trade' | 'fn_approve_shift_trade' | 'fn_apply_shift_trade' | 'fn_cancel_shift_trade' | 'fn_deny_shift_trade',
+    tradeId: string
+  ) => {
+    const supabase = getSupabaseBrowserClient();
+    setTradeBusy(true);
+    const action = (
+      rpcName === 'fn_accept_shift_trade' ? 'accept'
+      : rpcName === 'fn_approve_shift_trade' ? 'approve'
+      : rpcName === 'fn_apply_shift_trade' ? 'apply'
+      : rpcName === 'fn_cancel_shift_trade' ? 'cancel'
+      : 'deny'
+    );
+    const init: RequestInit = { method: 'POST' };
+    if (action === 'deny') {
+      init.body = JSON.stringify({ manager_note: 'Denied from ticket detail' });
+    }
+
+    let requestError: Error | null = null;
+    try {
+      await fetchJsonWithSupabaseAuth<ApiDataResponse<TradeRequestRow>>(
+        supabase,
+        `/api/operations/schedule/trades/${tradeId}/${action}`,
+        init,
+      );
+    } catch (error) {
+      requestError = error instanceof Error ? error : new Error('Trade action failed.');
+    }
+    setTradeBusy(false);
+
+    if (requestError) {
+      toast.error(requestError.message);
+      return;
+    }
+
+    toast.success('Trade request updated.');
+    await fetchDetails();
+  };
+
   // -----------------------------------------------------------------------
   // Derived data
   // -----------------------------------------------------------------------
   const assignedStaffIds = useMemo(() => new Set(assignments.map((a) => a.staff_id)), [assignments]);
+  const ticketLocked = !!ticket?.locked_at;
 
   const staffForDropdown = useMemo(() => {
     return allStaff
@@ -580,12 +726,16 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
       <div className="space-y-4">
         {/* Status + Change */}
         <div className="flex items-center justify-between">
-          <Badge color={TICKET_STATUS_COLORS[ticket.status] ?? 'gray'}>{ticket.status}</Badge>
+          <div className="flex items-center gap-2">
+            <Badge color={TICKET_STATUS_COLORS[ticket.status] ?? 'gray'}>{ticket.status}</Badge>
+            {ticketLocked ? <Badge color="orange">SCHEDULE LOCKED</Badge> : null}
+          </div>
           <Select
             value={ticket.status}
             onChange={(e) => handleStatusChange(e.target.value)}
             options={STATUS_OPTIONS}
             className="text-xs"
+            disabled={ticketLocked}
           />
         </div>
 
@@ -948,11 +1098,20 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
               <>
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-muted-foreground">{assignments.length} staff assigned</p>
-                  <Button size="sm" variant="secondary" onClick={() => setShowAssignForm(!showAssignForm)}>
+                  <Button size="sm" variant="secondary" onClick={() => setShowAssignForm(!showAssignForm)} disabled={ticketLocked}>
                     <UserPlus className="h-3 w-3" />
                     Assign
                   </Button>
                 </div>
+
+                {ticketLocked ? (
+                  <div className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 p-2">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 text-warning" />
+                    <p className="text-xs text-warning">
+                      Staffing is locked for this ticket because the schedule period has been locked.
+                    </p>
+                  </div>
+                ) : null}
 
                 {showAssignForm && (
                   <div className="p-3 rounded-lg border border-border bg-muted/50 space-y-3">
@@ -1007,6 +1166,11 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                     {assignments.map((a) => {
                       const busy = busyMap.get(a.staff_id);
                       const isBusyElsewhere = !!busy && busy.tickets.length > 0;
+                      const canSelfTrade = !ticketLocked
+                        && !!currentStaffId
+                        && currentStaffId === a.staff_id
+                        && (a.assignment_status ?? 'ASSIGNED') === 'ASSIGNED';
+                      const swapTarget = swapTargetByAssignment[a.id] ?? '';
                       return (
                         <div key={a.id} className={`flex items-center justify-between p-2 rounded-lg border ${
                           isBusyElsewhere ? 'border-warning/30 bg-warning/10' : 'border-border'
@@ -1019,12 +1183,47 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                               <p className="text-sm font-medium">{a.staff?.full_name ?? '—'}</p>
                               <div className="flex items-center gap-1">
                                 <p className="text-xs text-muted-foreground">{a.staff?.staff_code}</p>
+                                <span className="text-xs text-muted-foreground">· {a.assignment_status ?? 'ASSIGNED'}</span>
                                 {isBusyElsewhere && (
                                   <span className="text-xs text-warning font-medium ml-1">
                                     +{busy.tickets.length} other ticket{busy.tickets.length > 1 ? 's' : ''}
                                   </span>
                                 )}
                               </div>
+                              {canSelfTrade ? (
+                                <div className="mt-2 flex flex-wrap items-center gap-1">
+                                  <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    disabled={tradeBusy}
+                                    onClick={() => void handleRequestTrade(a, 'RELEASE')}
+                                  >
+                                    Request Release
+                                  </Button>
+                                  <select
+                                    className="h-8 rounded border border-border bg-background px-2 text-xs"
+                                    value={swapTarget}
+                                    onChange={(event) => setSwapTargetByAssignment((prev) => ({ ...prev, [a.id]: event.target.value }))}
+                                  >
+                                    <option value="">Swap target...</option>
+                                    {allStaff
+                                      .filter((staffRow) => staffRow.id !== a.staff_id)
+                                      .map((staffRow) => (
+                                        <option key={staffRow.id} value={staffRow.id}>
+                                          {staffRow.full_name ?? staffRow.staff_code}
+                                        </option>
+                                      ))}
+                                  </select>
+                                  <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    disabled={tradeBusy || !swapTarget}
+                                    onClick={() => void handleRequestTrade(a, 'SWAP')}
+                                  >
+                                    Request Swap
+                                  </Button>
+                                </div>
+                              ) : null}
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
@@ -1032,6 +1231,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                             <button
                               type="button"
                               onClick={() => handleRemoveAssignment(a.id)}
+                              disabled={ticketLocked}
                               className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-destructive transition-colors"
                             >
                               <X className="h-3 w-3" />
@@ -1042,6 +1242,50 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                     })}
                   </div>
                 )}
+
+                <div className="space-y-2 pt-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Trade Requests</p>
+                  {tradeRequests.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No trade requests for this ticket.</p>
+                  ) : (
+                    tradeRequests.map((trade) => (
+                      <div key={trade.id} className="rounded-lg border border-border p-2 text-xs">
+                        <p className="font-semibold text-foreground">{trade.request_type} · {trade.status}</p>
+                        <p className="text-muted-foreground">
+                          {trade.initiator?.full_name ?? trade.initiator?.staff_code ?? 'Unknown'}
+                          {trade.target ? ` -> ${trade.target.full_name ?? trade.target.staff_code ?? 'Target'}` : ''}
+                        </p>
+                        {trade.initiator_note ? <p className="mt-1 text-muted-foreground">Note: {trade.initiator_note}</p> : null}
+                        {trade.manager_note ? <p className="mt-1 text-muted-foreground">Manager: {trade.manager_note}</p> : null}
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {trade.status === 'PENDING' && trade.request_type === 'SWAP' && trade.target_staff_id ? (
+                            <Button size="sm" variant="secondary" disabled={tradeBusy} onClick={() => void handleTradeAction('fn_accept_shift_trade', trade.id)}>
+                              Accept
+                            </Button>
+                          ) : null}
+                          {trade.status === 'PENDING' || trade.status === 'ACCEPTED' ? (
+                            <>
+                              <Button size="sm" disabled={tradeBusy} onClick={() => void handleTradeAction('fn_approve_shift_trade', trade.id)}>
+                                Approve
+                              </Button>
+                              <Button size="sm" variant="secondary" disabled={tradeBusy} onClick={() => void handleTradeAction('fn_deny_shift_trade', trade.id)}>
+                                Deny
+                              </Button>
+                              <Button size="sm" variant="secondary" disabled={tradeBusy} onClick={() => void handleTradeAction('fn_cancel_shift_trade', trade.id)}>
+                                Cancel
+                              </Button>
+                            </>
+                          ) : null}
+                          {trade.status === 'MANAGER_APPROVED' ? (
+                            <Button size="sm" disabled={tradeBusy} onClick={() => void handleTradeAction('fn_apply_shift_trade', trade.id)}>
+                              Apply
+                            </Button>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </>
             )}
           </div>

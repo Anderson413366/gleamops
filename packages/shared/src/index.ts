@@ -5,7 +5,11 @@ export type * from './types/preferences';
 export type * from './types/assignable';
 export type * from './types/schedule-policy';
 export type * from './types/payroll-checkwriters';
+export type * from './types/schedule';
+export type * from './types/planning';
 export { DEFAULT_UI_PREFERENCES } from './types/preferences';
+export { isValidAssigneePair } from './types/assignable';
+export { resolvePolicy } from './types/schedule-policy';
 
 // Constants
 export * from './constants/index';

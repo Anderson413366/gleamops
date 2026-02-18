@@ -12,6 +12,9 @@ type Permission =
   | 'customers:write'
   | 'schedule:read'
   | 'schedule:write'
+  | 'schedule:publish'
+  | 'schedule:lock'
+  | 'schedule:override_locked'
   | 'team:read'
   | 'team:write'
   | 'team:approve'
@@ -29,13 +32,18 @@ type Permission =
   | 'messaging:write'
   | 'timekeeping:read'
   | 'timekeeping:write'
-  | 'timekeeping:approve';
+  | 'timekeeping:approve'
+  | 'planning:read'
+  | 'planning:write'
+  | 'planning:apply'
+  | 'planning:publish'
+  | 'sync:batch:ingest';
 
 const LEGACY_ROLE_PERMISSIONS: Record<string, Permission[]> = {
   OWNER_ADMIN: [
     'pipeline:read', 'pipeline:write',
     'customers:read', 'customers:write',
-    'schedule:read', 'schedule:write',
+    'schedule:read', 'schedule:write', 'schedule:publish', 'schedule:lock', 'schedule:override_locked',
     'team:read', 'team:write', 'team:approve',
     'reports:read',
     'settings:read', 'settings:write',
@@ -44,11 +52,13 @@ const LEGACY_ROLE_PERMISSIONS: Record<string, Permission[]> = {
     'inspections:read', 'inspections:write',
     'messaging:read', 'messaging:write',
     'timekeeping:read', 'timekeeping:write', 'timekeeping:approve',
+    'planning:read', 'planning:write', 'planning:apply', 'planning:publish',
+    'sync:batch:ingest',
   ],
   MANAGER: [
     'pipeline:read', 'pipeline:write',
     'customers:read', 'customers:write',
-    'schedule:read', 'schedule:write',
+    'schedule:read', 'schedule:write', 'schedule:publish', 'schedule:lock', 'schedule:override_locked',
     'team:read', 'team:write', 'team:approve',
     'reports:read',
     'settings:read',
@@ -57,16 +67,20 @@ const LEGACY_ROLE_PERMISSIONS: Record<string, Permission[]> = {
     'inspections:read', 'inspections:write',
     'messaging:read', 'messaging:write',
     'timekeeping:read', 'timekeeping:write', 'timekeeping:approve',
+    'planning:read', 'planning:write', 'planning:apply', 'planning:publish',
+    'sync:batch:ingest',
   ],
   SUPERVISOR: [
     'pipeline:read',
     'customers:read',
-    'schedule:read', 'schedule:write',
+    'schedule:read', 'schedule:write', 'schedule:publish',
     'team:read',
     'reports:read',
     'inspections:read', 'inspections:write',
     'messaging:read', 'messaging:write',
     'timekeeping:read', 'timekeeping:approve',
+    'planning:read', 'planning:write', 'planning:apply',
+    'sync:batch:ingest',
   ],
   CLEANER: [
     'schedule:read',
@@ -74,6 +88,8 @@ const LEGACY_ROLE_PERMISSIONS: Record<string, Permission[]> = {
     'inspections:read',
     'messaging:read',
     'timekeeping:read', 'timekeeping:write',
+    'planning:read',
+    'sync:batch:ingest',
   ],
   INSPECTOR: [
     'customers:read',
@@ -83,6 +99,8 @@ const LEGACY_ROLE_PERMISSIONS: Record<string, Permission[]> = {
     'inspections:read', 'inspections:write',
     'messaging:read',
     'timekeeping:read',
+    'planning:read',
+    'sync:batch:ingest',
   ],
   SALES: [
     'pipeline:read', 'pipeline:write',

@@ -107,11 +107,17 @@ async function main() {
     if (!alternateHead) {
       throw new Error(`Unable to reach alternate alias https://${alternateAlias}`);
     }
-    const location = alternateHead.headers.get('location') ?? '';
-    if (!location.includes(canonicalDomain)) {
-      throw new Error(
-        `Alternate alias "${alternateAlias}" does not redirect to canonical "${canonicalDomain}".`
+    if (alternateHead.status === 401 || alternateHead.status === 403) {
+      console.log(
+        `Alternate alias "${alternateAlias}" is access-protected (${alternateHead.status}); treating as non-public entrypoint.`
       );
+    } else {
+      const location = alternateHead.headers.get('location') ?? '';
+      if (!location.includes(canonicalDomain)) {
+        throw new Error(
+          `Alternate alias "${alternateAlias}" does not redirect to canonical "${canonicalDomain}".`
+        );
+      }
     }
   }
 

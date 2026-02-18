@@ -6,6 +6,7 @@ node_modules/
 .next/
 dist/
 .turbo/
+*.tsbuildinfo
 
 # Environment
 .env
@@ -41,4 +42,6 @@ blob-report/
 /reports/
 /spreadsheets/
 /scaffold/
+/.audit_data/
+/.audit_screens/
 .vercel

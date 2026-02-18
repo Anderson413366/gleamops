@@ -1,9 +1,0 @@
-{
-  "url": "https://gleamops.vercel.app/pipeline",
-  "tab": "Bids",
-  "searchPlaceholder": "Search bids...",
-  "emptyStateHeading": "No bids",
-  "emptyStateBody": "Create your first bid to start pricing jobs.",
-  "primaryCTAs": ["New Bid"],
-  "secondaryCTAs": ["Sales Admin", "Express Bid"]
-}

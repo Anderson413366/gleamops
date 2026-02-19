@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Home,
   TrendingUp,
@@ -30,7 +30,6 @@ import {
   ClipboardCheck,
   AlertTriangle,
   LineChart,
-  ChevronRight,
 } from 'lucide-react';
 import { getModuleFromPathname, NAVIGATION_V2, roleDisplayName } from '@gleamops/shared';
 import { useAuth } from '@/hooks/use-auth';
@@ -75,8 +74,6 @@ function getInitials(email: string): string {
 
 export function Sidebar() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const activeTab = searchParams.get('tab');
   const activeModule = getModuleFromPathname(pathname);
   const financialIntelEnabled = useFeatureFlag('financial_intel_v1');
   const router = useRouter();
@@ -180,6 +177,7 @@ export function Sidebar() {
           <button
             type="button"
             onClick={() => {
+              // Header owns the CommandPalette open state.
               window.dispatchEvent(new CustomEvent('gleamops:open-command-palette'));
               setMobileOpen(false);
             }}
@@ -193,78 +191,44 @@ export function Sidebar() {
           </button>
         </div>
 
-        {/* Nav items with collapsible sub-items */}
-        <nav className="flex-1 py-3 px-3 space-y-0.5 overflow-y-auto">
+        {/* Nav items */}
+        <nav className="flex-1 py-3 px-3 space-y-1 overflow-y-auto">
           {NAVIGATION_V2.map((item) => {
             const Icon = ICON_MAP[item.icon] ?? Building2;
             const isActive = activeModule === item.id || pathname.startsWith(item.href);
             const badgeCount = badgeCounts[item.id] ?? 0;
-            const hasChildren = item.children && item.children.length > 0;
 
             return (
-              <div key={item.id}>
-                {/* Parent nav item */}
-                <Link
-                  href={item.href}
-                  onClick={() => setMobileOpen(false)}
-                  aria-current={isActive ? 'page' : undefined}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-xl border text-sm font-medium transition-all duration-200 ease-in-out group ${
-                    isActive
-                      ? 'border-module-accent/30 bg-module-accent/15 text-module-accent'
-                      : 'border-transparent text-sidebar-text hover:bg-sidebar-hover hover:text-white'
+              <Link
+                key={item.id}
+                href={item.href}
+                onClick={() => setMobileOpen(false)}
+                aria-current={isActive ? 'page' : undefined}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 ease-in-out group ${
+                  isActive
+                    ? 'border-module-accent/30 bg-module-accent/15 text-module-accent'
+                    : 'border-transparent text-sidebar-text hover:bg-sidebar-hover hover:text-white'
+                }`}
+              >
+                <Icon
+                  className={`h-[18px] w-[18px] shrink-0 transition-colors duration-200 ${
+                    isActive ? 'text-module-accent' : 'text-sidebar-text group-hover:text-white'
                   }`}
-                >
-                  <Icon
-                    className={`h-[18px] w-[18px] shrink-0 transition-colors duration-200 ${
-                      isActive ? 'text-module-accent' : 'text-sidebar-text group-hover:text-white'
-                    }`}
-                  />
-                  <span className="truncate">{item.label}</span>
-                  {hasChildren && (
-                    <ChevronRight
-                      className={`ml-auto h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${
-                        isActive ? 'rotate-90 text-module-accent/60' : 'text-sidebar-text/40'
-                      }`}
-                    />
-                  )}
-                  {!hasChildren && isActive && badgeCount === 0 && (
-                    <span className="ml-auto h-1.5 w-1.5 rounded-full bg-module-accent" />
-                  )}
-                  {badgeCount > 0 && (
-                    <span className={`ml-auto inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-semibold ${
-                      isActive
-                        ? 'bg-module-accent/20 text-module-accent'
-                        : 'bg-destructive/20 text-destructive'
-                    }`}>
-                      {badgeCount}
-                    </span>
-                  )}
-                </Link>
-
-                {/* Collapsible children — shown when active */}
-                {isActive && hasChildren && (
-                  <div className="ml-5 mt-0.5 mb-1 pl-4 border-l border-white/10 space-y-0.5">
-                    {item.children!.map((child) => {
-                      const isChildActive = activeTab === child.key ||
-                        (!activeTab && child === item.children![0]);
-                      return (
-                        <Link
-                          key={child.key}
-                          href={`${item.href}?tab=${child.key}`}
-                          onClick={() => setMobileOpen(false)}
-                          className={`block rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                            isChildActive
-                              ? 'text-module-accent bg-module-accent/10'
-                              : 'text-sidebar-text/70 hover:text-white hover:bg-sidebar-hover'
-                          }`}
-                        >
-                          {child.label}
-                        </Link>
-                      );
-                    })}
-                  </div>
+                />
+                {item.label}
+                {isActive && badgeCount === 0 && (
+                  <span className="ml-auto h-1.5 w-1.5 rounded-full bg-module-accent" />
                 )}
-              </div>
+                {badgeCount > 0 && (
+                  <span className={`ml-auto inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-semibold ${
+                    isActive
+                      ? 'bg-module-accent/20 text-module-accent'
+                      : 'bg-destructive/20 text-destructive'
+                  }`}>
+                    {badgeCount}
+                  </span>
+                )}
+              </Link>
             );
           })}
           {financialIntelEnabled && (
@@ -272,7 +236,7 @@ export function Sidebar() {
               href="/financial-intelligence"
               onClick={() => setMobileOpen(false)}
               aria-current={pathname.startsWith('/financial-intelligence') ? 'page' : undefined}
-              className={`flex items-center gap-3 px-3 py-2 rounded-xl border text-sm font-medium transition-all duration-200 ease-in-out group ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 ease-in-out group ${
                 pathname.startsWith('/financial-intelligence')
                   ? 'border-module-accent/30 bg-module-accent/15 text-module-accent'
                   : 'border-transparent text-sidebar-text hover:bg-sidebar-hover hover:text-white'

@@ -1,10 +1,10 @@
 import { Suspense } from 'react';
-import PipelinePageClient from '../pipeline/pipeline-page';
+import SalesPageClient from './sales-page-client';
 
 export default function SalesPage() {
   return (
     <Suspense fallback={null}>
-      <PipelinePageClient />
+      <SalesPageClient />
     </Suspense>
   );
 }

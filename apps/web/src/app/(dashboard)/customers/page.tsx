@@ -1,10 +1,10 @@
 import { Suspense } from 'react';
-import CRMPageClient from '../crm/crm-page';
+import CustomersPageClient from './customers-page-client';
 
 export default function CustomersPage() {
   return (
     <Suspense fallback={null}>
-      <CRMPageClient />
+      <CustomersPageClient />
     </Suspense>
   );
 }

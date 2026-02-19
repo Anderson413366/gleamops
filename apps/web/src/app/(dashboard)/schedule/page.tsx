@@ -1,10 +1,10 @@
 import { Suspense } from 'react';
-import OperationsPageClient from '../operations/operations-page';
+import SchedulePageClient from './schedule-page';
 
 export default function SchedulePage() {
   return (
     <Suspense fallback={null}>
-      <OperationsPageClient defaultTab="calendar" />
+      <SchedulePageClient />
     </Suspense>
   );
 }

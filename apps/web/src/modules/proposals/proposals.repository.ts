@@ -112,3 +112,27 @@ export async function insertFollowUpSends(
 ) {
   return db.from('sales_followup_sends').insert(sends);
 }
+
+export async function findProposalForSignature(
+  db: ReturnType<typeof createDb>,
+  proposalId: string,
+  tenantId: string,
+) {
+  return db
+    .from('sales_proposals')
+    .select('id')
+    .eq('id', proposalId)
+    .eq('tenant_id', tenantId)
+    .single();
+}
+
+export async function insertSignatureRecord(
+  db: ReturnType<typeof createDb>,
+  payload: Record<string, unknown>,
+) {
+  return db
+    .from('sales_proposal_signatures')
+    .insert(payload)
+    .select('*')
+    .single();
+}

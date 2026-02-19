@@ -14,8 +14,8 @@ import {
 } from '../../src/hooks/use-ticket-detail';
 import { enqueue, getPendingItemIds } from '../../src/lib/mutation-queue';
 import { useSyncState, syncNow } from '../../src/hooks/use-sync';
-import ChecklistItem from '../../src/components/ChecklistItem';
-import SyncStatusBar from '../../src/components/SyncStatusBar';
+import ChecklistItem from '../../src/components/checklist-item';
+import SyncStatusBar from '../../src/components/sync-status-bar';
 
 function formatSyncAge(iso: string | null): string {
   if (!iso) return '';

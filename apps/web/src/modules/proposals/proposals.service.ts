@@ -10,6 +10,7 @@ import {
   PROPOSAL_007,
   SYS_002,
 } from '@gleamops/shared';
+import type { NextRequest } from 'next/server';
 import {
   createDb,
   findProposal,
@@ -19,6 +20,8 @@ import {
   fetchFollowUpTemplates,
   insertFollowUpSequence,
   insertFollowUpSends,
+  findProposalForSignature,
+  insertSignatureRecord,
 } from './proposals.repository';
 
 const INSTANCE = '/api/proposals/send';
@@ -101,6 +104,60 @@ export async function sendProposal(
     const message = err instanceof Error ? err.message : 'Unexpected server error';
     console.error('[proposal-send] Unexpected error:', err);
     return { success: false, error: SYS_002(message, INSTANCE) };
+  }
+}
+
+export async function createProposalSignature(
+  tenantId: string,
+  proposalId: string,
+  body: {
+    signerName: string;
+    signerEmail: string;
+    signatureTypeCode: string;
+    signatureFileId?: string | null;
+    signatureFontName?: string | null;
+  },
+  request: NextRequest,
+  apiPath: string,
+): Promise<ServiceResult> {
+  try {
+    const ipAddress =
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+      request.headers.get('x-real-ip') ??
+      null;
+    const userAgent = request.headers.get('user-agent') ?? null;
+
+    const db = createDb();
+
+    // Verify proposal exists and belongs to tenant
+    const { data: proposal, error: propErr } = await findProposalForSignature(db, proposalId, tenantId);
+    if (propErr || !proposal) {
+      return { success: false, error: createProblemDetails('PROPOSAL_007', 'Proposal not found', 404, 'Proposal not found or access denied', apiPath) };
+    }
+
+    // Insert signature record
+    const { data: signature, error: sigErr } = await insertSignatureRecord(db, {
+      tenant_id: tenantId,
+      proposal_id: proposalId,
+      signer_name: body.signerName.trim(),
+      signer_email: body.signerEmail.trim(),
+      signature_type_code: body.signatureTypeCode,
+      signature_file_id: body.signatureFileId || null,
+      signature_font_name: body.signatureFontName || null,
+      signed_at: new Date().toISOString(),
+      ip_address: ipAddress,
+      user_agent: userAgent,
+    });
+
+    if (sigErr || !signature) {
+      return { success: false, error: SYS_002(sigErr?.message ?? 'Failed to create signature record', apiPath) };
+    }
+
+    return { success: true, data: { success: true, signature } };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Unexpected server error';
+    console.error('[proposal-signature] Unexpected error:', msg);
+    return { success: false, error: SYS_002(msg, apiPath) };
   }
 }
 

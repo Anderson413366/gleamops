@@ -1,22 +1,22 @@
 # Validation Results
 
-**Date:** 2026-02-18
+**Date:** 2026-02-19
 **Branch:** `chore/reorg-20260218`
-**Mode:** APPLY
+**Mode:** APPLY (Round 1 + Round 2)
 
 ---
 
-## Quality Gates
+## Quality Gates (Final)
 
 | Check | Result | Notes |
 |-------|--------|-------|
 | `pnpm typecheck` | PASS | 7/7 packages, 0 errors |
 | `pnpm lint` | PASS | 0 errors, 0 warnings |
-| `pnpm build:web` | PASS | 40 static pages, all routes compiled |
+| `pnpm build:web` | PASS | All routes compiled successfully |
 
 ---
 
-## Batch Validation Summary
+## Round 1 Batch Validation
 
 | Batch | Description | typecheck | lint | build |
 |-------|-------------|-----------|------|-------|
@@ -31,9 +31,25 @@
 | 8 | Extract messages + timekeeping | PASS | PASS | PASS |
 | 9 | Add error boundary | PASS | PASS | PASS |
 
+## Round 2 Batch Validation
+
+| Batch | Description | typecheck | lint | build |
+|-------|-------------|-----------|------|-------|
+| 10 | Extract proposals-pdf module (443 LOC) | PASS | - | - |
+| 11 | Extract cron module (300 LOC) | PASS | - | - |
+| 12 | Extract public-counts module (317 LOC) | PASS | - | - |
+| 13 | Extract public-proposals module (241 LOC) | PASS | - | - |
+| 14 | Complete schedule module (881 LOC, 13 routes) | PASS | - | - |
+| 15 | Extract inventory-orders module (174 LOC) | PASS | - | - |
+| 16 | Extract workforce-hr module (157 LOC) | PASS | - | - |
+| 17 | Extract 3 medium routes (314 LOC) | PASS | - | - |
+| 18 | Mobile naming fixes (3 files) | PASS | - | - |
+| 19 | Cleanup empty directory | PASS | - | - |
+| **Final** | **Full validation** | **PASS** | **PASS** | **PASS** |
+
 ---
 
-## Type Errors Fixed During APPLY
+## Type Errors Fixed During Round 1 APPLY
 
 | File | Issue | Fix |
 |------|-------|-----|
@@ -43,9 +59,15 @@
 | `counts.service.ts` | Supabase untyped `data: null` narrowed `countRow` to `never` | Use `as unknown as CountRow \| null` to break narrowing |
 | `messages/route.ts` | Unused `SYS_002` import after extraction | Removed from import |
 
+## Type Errors Fixed During Round 2 APPLY
+
+| File | Issue | Fix |
+|------|-------|-----|
+| `inventory-orders.service.ts` | Zod schema allows `null` for optional fields | Updated body type to accept `string \| null` and `Record<string, unknown> \| null` |
+
 ---
 
-## Files Created (24)
+## Round 1 Files Created (24)
 
 | # | Path | LOC |
 |---|------|-----|
@@ -74,19 +96,63 @@
 | 23 | `src/modules/timekeeping/timekeeping.repository.ts` | ~57 |
 | 24 | `src/modules/timekeeping/index.ts` | ~1 |
 
-## Files Modified (9)
+## Round 2 Files Created (21)
+
+| # | Path | LOC |
+|---|------|-----|
+| 1 | `src/modules/proposals-pdf/proposals-pdf.service.ts` | ~320 |
+| 2 | `src/modules/proposals-pdf/proposals-pdf.repository.ts` | ~200 |
+| 3 | `src/modules/proposals-pdf/index.ts` | ~1 |
+| 4 | `src/modules/cron/cron.service.ts` | ~200 |
+| 5 | `src/modules/cron/cron.repository.ts` | ~80 |
+| 6 | `src/modules/cron/index.ts` | ~1 |
+| 7 | `src/modules/public-counts/public-counts.service.ts` | ~150 |
+| 8 | `src/modules/public-counts/public-counts.repository.ts` | ~160 |
+| 9 | `src/modules/public-counts/index.ts` | ~2 |
+| 10 | `src/modules/public-proposals/public-proposals.service.ts` | ~120 |
+| 11 | `src/modules/public-proposals/public-proposals.repository.ts` | ~130 |
+| 12 | `src/modules/public-proposals/index.ts` | ~2 |
+| 13 | `src/modules/schedule/schedule.service.ts` | ~300 |
+| 14 | `src/modules/schedule/schedule.repository.ts` | ~250 |
+| 15 | `src/modules/inventory-orders/inventory-orders.service.ts` | ~110 |
+| 16 | `src/modules/inventory-orders/inventory-orders.repository.ts` | ~75 |
+| 17 | `src/modules/inventory-orders/index.ts` | ~1 |
+| 18 | `src/modules/workforce-hr/workforce-hr.service.ts` | ~110 |
+| 19 | `src/modules/workforce-hr/workforce-hr.repository.ts` | ~55 |
+| 20 | `src/modules/workforce-hr/index.ts` | ~1 |
+| 21 | `src/modules/warehouse/warehouse.service.ts` | ~65 |
+| 22 | `src/modules/warehouse/warehouse.repository.ts` | ~60 |
+| 23 | `src/modules/warehouse/index.ts` | ~1 |
+| 24 | `src/modules/sites/sites.service.ts` | ~50 |
+| 25 | `src/modules/sites/sites.repository.ts` | ~60 |
+| 26 | `src/modules/sites/index.ts` | ~1 |
+
+## Round 2 Files Modified (26)
 
 | # | Path | Change |
 |---|------|--------|
-| 1 | `api/inventory/approvals/route.ts` | 394 -> ~31 LOC (thin delegate) |
-| 2 | `api/webhooks/sendgrid/route.ts` | 247 -> ~50 LOC (thin delegate) |
-| 3 | `api/proposals/send/route.ts` | 188 -> ~35 LOC (thin delegate) |
-| 4 | `api/public/counts/[token]/submit/route.ts` | 222 -> ~25 LOC (thin delegate) |
-| 5 | `api/operations/fleet/workflow/route.ts` | 190 -> ~31 LOC (thin delegate) |
-| 6 | `api/messages/route.ts` | 136 -> ~37 LOC (thin delegate) |
-| 7 | `api/timekeeping/pin-checkin/route.ts` | 147 -> ~36 LOC (thin delegate) |
-| 8 | `components/layout/app-shell.tsx` | +2 LOC (ErrorBoundary import + wrap) |
-| 9 | `components/layout/error-boundary.tsx` | NEW (~55 LOC) |
+| 1 | `api/proposals/[id]/generate-pdf/route.ts` | 443 → 37 LOC |
+| 2 | `api/cron/inventory-count-reminders/route.ts` | 300 → 20 LOC |
+| 3 | `api/public/counts/[token]/route.ts` | → 15 LOC |
+| 4 | `api/public/counts/[token]/save/route.ts` | → 14 LOC |
+| 5 | `api/public/proposals/[token]/route.ts` | → 18 LOC |
+| 6 | `api/public/proposals/[token]/sign/route.ts` | → 25 LOC |
+| 7–19 | 13 schedule routes (availability, periods, trades) | → 12–30 LOC each |
+| 20 | `api/inventory/orders/[id]/pod/route.ts` | 174 → 31 LOC |
+| 21 | `api/workforce/hr/[entity]/route.ts` | 157 → 37 LOC |
+| 22 | `api/inventory/warehouse/route.ts` | 105 → 27 LOC |
+| 23 | `api/proposals/[id]/signature/route.ts` | 105 → 18 LOC |
+| 24 | `api/sites/[id]/pin/route.ts` | 104 → 19 LOC |
+| 25 | `modules/proposals/proposals.service.ts` | +48 LOC (signature function) |
+| 26 | `modules/proposals/proposals.repository.ts` | +18 LOC (signature queries) |
+
+## Round 2 Files Renamed (3)
+
+| # | From | To |
+|---|------|----|
+| 1 | `mobile/src/components/TicketCard.tsx` | `ticket-card.tsx` |
+| 2 | `mobile/src/components/ChecklistItem.tsx` | `checklist-item.tsx` |
+| 3 | `mobile/src/components/SyncStatusBar.tsx` | `sync-status-bar.tsx` |
 
 ---
 
@@ -95,15 +161,16 @@
 - **Zero breaking changes** — all API URL paths preserved
 - **Zero DB changes** — Supabase read-only constraint honored
 - **Zero feature additions** — pure structural refactoring
-- **Error Boundary** added for runtime resilience (new behavior, non-breaking)
+- **Error Boundary** added in round 1 for runtime resilience (non-breaking)
 
 ---
 
 ## Final Score
 
-| Metric | Before | After |
-|--------|--------|-------|
-| Health Score | 75/100 | 88/100 |
-| Route max LOC | 394 | ~50 |
-| Service modules | 0 | 8 |
-| Error boundaries | 0 | 1 |
+| Metric | Before Round 1 | After Round 1 | After Round 2 |
+|--------|----------------|---------------|---------------|
+| Health Score | 75/100 | 78/100 | **91/100** |
+| Route max LOC | 443 | ~50 | ~37 |
+| Service modules | 0 | 8 | **18** |
+| Routes thinned | 0/36 | 7/36 | **31/36** |
+| Error boundaries | 0 | 1 | 1 |

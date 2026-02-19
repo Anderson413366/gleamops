@@ -1,1 +1,1 @@
-export { sendProposal } from './proposals.service';
+export { sendProposal, createProposalSignature } from './proposals.service';

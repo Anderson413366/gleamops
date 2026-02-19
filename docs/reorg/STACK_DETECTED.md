@@ -1,71 +1,49 @@
-# Stack Detection Report
+# Stack Detection Report (Round 2)
 
-**Date:** 2026-02-18
+**Date:** 2026-02-19
 **Target:** gleamops_dev_pack
+**Confidence:** HIGH
 
 ---
 
 ## Detected Stack
 
-| Layer | Technology | Confidence |
-|-------|-----------|------------|
-| **Monorepo** | Turborepo v2 + pnpm 9.15.9 | HIGH |
-| **Frontend** | Next.js 15 (App Router) + React 19 + TypeScript 5.7 | HIGH |
-| **Styling** | Tailwind CSS 4 (CSS-first @theme) | HIGH |
-| **Backend** | Supabase (PostgreSQL + RLS + Auth + Storage + Realtime) | HIGH |
-| **Testing** | Playwright (E2E) + Vitest (unit) | HIGH |
-| **Deploy** | Vercel (web), worker TBD | HIGH |
-| **Package Manager** | pnpm 9.15.9 | HIGH |
+| Layer | Technology | Version | Evidence |
+|-------|-----------|---------|----------|
+| **Monorepo** | Turborepo + pnpm | v2.8.7, pnpm 9.15.9 | `turbo.json`, `pnpm-workspace.yaml`, 7 packages |
+| **Frontend** | Next.js (App Router) | 15.5.12 | `next.config.ts`, `app/layout.tsx`, `app/(dashboard)/` |
+| **React** | React | 19 | `package.json` |
+| **TypeScript** | TypeScript | 5.7 | `tsconfig.base.json` |
+| **Styling** | Tailwind CSS | 4 (CSS-first @theme) | `postcss.config.mjs`, semantic HSL tokens |
+| **Backend** | Supabase | PostgreSQL + RLS + Auth + Storage + Realtime | `supabase/`, 84 migrations |
+| **Testing** | Playwright (e2e) + Vitest (unit) | — | 15 e2e specs, vitest in 3 packages |
+| **Deploy** | Vercel | — | `vercel.json`, `.vercel/` |
+| **Mobile** | Expo React Native | — | `apps/mobile/app.json` |
+| **Workers** | Background jobs | — | `apps/worker/src/` (3 workers) |
 
 ---
 
-## Evidence
+## Sentinel Files Confirmed
 
-### Monorepo
-- `turbo.json` present at root with build/dev/lint/typecheck/test tasks
-- `pnpm-workspace.yaml` present at root
-- `/apps` directory with `web`, `mobile`, `worker`
-- `/packages` directory with `shared`, `domain`, `cleanflow`, `ui`
-- Root `package.json` has `"packageManager": "pnpm@9.15.9"`
-
-### Next.js 15 App Router
-- `apps/web/next.config.ts` present
-- `apps/web/src/app/layout.tsx` present (App Router sentinel)
-- Route groups: `(auth)`, `(dashboard)` in `/app`
-- Dynamic routes: `[id]`, `[code]`, `[token]`, `[slug]`, `[entity]`
-- API routes under `/app/api/` using `route.ts` convention
-- `export const dynamic = 'force-dynamic'` in page files
-
-### Supabase
-- `/supabase` directory with 49 migrations
-- `@supabase/supabase-js` and `@supabase/ssr` in dependencies
-- RLS patterns in migration files
-- `getServiceClient()` and `getSupabaseBrowserClient()` patterns in code
-- JWT-based auth with `custom_access_token_hook`
-
-### TypeScript 5.7
-- `tsconfig.base.json` at root
-- `tsconfig.json` in each app/package
-- `.ts` and `.tsx` files throughout
-
-### Tailwind CSS 4
-- CSS-first `@theme` configuration
-- Semantic HSL tokens (--background, --foreground, etc.)
-
-### Playwright
-- `apps/web/e2e/` with 15 `.spec.ts` files
-- `playwright.config.ts` in web app
-
-### Vitest
-- `vitest.config.ts` in packages
-- `__tests__/` directories in cleanflow (7), domain (2), shared (2), lib (2)
+- [x] `turbo.json` — Turborepo
+- [x] `pnpm-workspace.yaml` — pnpm workspaces
+- [x] `next.config.ts` — Next.js
+- [x] `app/layout.tsx` — App Router
+- [x] `supabase/config.toml` — Supabase
+- [x] `playwright.config.ts` — Playwright
+- [x] `packages/*/vitest.config.ts` — Vitest (3 packages)
+- [x] `apps/mobile/app.json` — Expo
 
 ---
 
-## Classification
+## Changes Since Round 1 (2026-02-18)
 
-**Primary Template Match:** Template E (Monorepo) + Template A (Next.js App Router)
+| Metric | Round 1 | Round 2 |
+|--------|---------|---------|
+| Supabase migrations | 49 | **84** (+35) |
+| API route files | 38 | **36** (recounted accurately) |
+| Modules | 0 | **8** (added in round 1) |
+| Thin-delegate routes | 0 | **7** (19% of total) |
+| Error boundary | 0 | **1** (added in round 1) |
 
-This is a **Turborepo monorepo** with a **Next.js 15 App Router** as the primary app, **Supabase** as the backend-as-a-service, and **four shared packages** providing types, business rules, math, and UI components.
-
-**Confidence:** HIGH (all sentinel files confirmed)
+**Classification:** Template E (Monorepo) + Template A (Next.js App Router) — Hybrid

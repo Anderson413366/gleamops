@@ -1,329 +1,156 @@
-gleamops_dev_pack/
+gleamops_dev_pack/                              # Turborepo monorepo (pnpm 9.15.9)
 ├── .claude/
-│   ├── hooks/quality-gates.sh
-│   ├── rules/
-│   │   ├── backend-lock.md
-│   │   ├── quality.md
-│   │   └── ui.md
+│   ├── rules/backend-lock.md, quality.md, ui.md
 │   └── settings.json
 ├── apps/
 │   ├── mobile/                                  # Expo React Native (future)
 │   │   ├── app/
 │   │   │   ├── (auth)/login.tsx
-│   │   │   ├── (tabs)/_layout.tsx
-│   │   │   ├── inspection/
-│   │   │   └── ticket/
+│   │   │   ├── (tabs)/ [5 tabs]
+│   │   │   ├── inspection/[id].tsx
+│   │   │   └── ticket/[id].tsx
 │   │   └── src/
-│   │       ├── components/
-│   │       ├── contexts/
-│   │       ├── hooks/
-│   │       └── lib/
+│   │       ├── components/                      # ⚠ 3 PascalCase files (convention break)
+│   │       │   ├── ChecklistItem.tsx
+│   │       │   ├── SyncStatusBar.tsx
+│   │       │   └── TicketCard.tsx
+│   │       ├── contexts/auth-context.tsx
+│   │       ├── hooks/ [6 hooks]
+│   │       └── lib/ [5 files]
 │   ├── web/                                     # Next.js 15 App Router
-│   │   ├── e2e/                                 # 15 Playwright specs
-│   │   │   ├── a11y-navigation.spec.ts
-│   │   │   ├── auth.setup.ts
-│   │   │   ├── bid-wizard.spec.ts
-│   │   │   ├── click-propagation.spec.ts
-│   │   │   ├── detail-pages.spec.ts
-│   │   │   ├── financial-intelligence.spec.ts
-│   │   │   ├── job-form.spec.ts
-│   │   │   ├── navigation.spec.ts
-│   │   │   ├── p0-workflows.spec.ts
-│   │   │   ├── preferences.spec.ts
-│   │   │   ├── proposal-send.spec.ts
-│   │   │   ├── prospect-form.spec.ts
-│   │   │   ├── redirect-navigation.spec.ts
-│   │   │   ├── staff-assign.spec.ts
-│   │   │   └── table-filters.spec.ts
-│   │   ├── public/
+│   │   ├── e2e/ [15 Playwright specs]
+│   │   ├── public/ [3 files]
 │   │   └── src/
+│   │       ├── middleware.ts
 │   │       ├── app/
 │   │       │   ├── (auth)/login/page.tsx
-│   │       │   ├── (dashboard)/
-│   │       │   │   ├── admin/
-│   │       │   │   │   ├── data-hub/
-│   │       │   │   │   ├── import/
-│   │       │   │   │   ├── lookups/
-│   │       │   │   │   ├── playground/
-│   │       │   │   │   ├── rules/
-│   │       │   │   │   ├── sequences/
-│   │       │   │   │   └── services/
-│   │       │   │   │       ├── services/
-│   │       │   │   │       └── tasks/[id]/
-│   │       │   │   ├── assets/
-│   │       │   │   │   ├── eq-assignments/
-│   │       │   │   │   ├── equipment/[code]/
-│   │       │   │   │   ├── keys/[id]/
-│   │       │   │   │   ├── maintenance/
-│   │       │   │   │   └── vehicles/[id]/
-│   │       │   │   ├── crm/
-│   │       │   │   │   ├── clients/[id]/
-│   │       │   │   │   ├── contacts/[code]/
-│   │       │   │   │   └── sites/[id]/
+│   │       │   ├── (dashboard)/                 # 10 nav modules + detail pages
+│   │       │   │   ├── admin/                   [6 sub-routes + services/tasks/[id]]
+│   │       │   │   ├── assets/                  [5 sub-routes + 3 detail pages]
+│   │       │   │   ├── crm/                     [3 sub-routes + 3 detail pages]
 │   │       │   │   ├── customers/               # REDIRECT → /crm
 │   │       │   │   ├── financial/               # REDIRECT → /money
 │   │       │   │   ├── financial-intelligence/
 │   │       │   │   ├── home/
-│   │       │   │   ├── inventory/
-│   │       │   │   │   ├── counts/[id]/
-│   │       │   │   │   ├── forecasting/
-│   │       │   │   │   ├── kits/
-│   │       │   │   │   ├── orders/
-│   │       │   │   │   ├── site-assignments/
-│   │       │   │   │   ├── supplies/[id]/
-│   │       │   │   │   └── warehouse/
+│   │       │   │   ├── inventory/               [7 sub-routes + 2 detail pages]
 │   │       │   │   ├── money/
-│   │       │   │   ├── operations/
-│   │       │   │   │   ├── calendar/
-│   │       │   │   │   ├── custom-forms/
-│   │       │   │   │   ├── geofence/
-│   │       │   │   │   ├── inspections/
-│   │       │   │   │   ├── jobs/[id]/
-│   │       │   │   │   ├── messages/
-│   │       │   │   │   ├── planning/
-│   │       │   │   │   ├── routes/
-│   │       │   │   │   ├── task-catalog/[id]/
-│   │       │   │   │   └── tickets/[id]/
+│   │       │   │   ├── operations/              [11 sub-routes + 3 detail pages]
 │   │       │   │   ├── people/                  # REDIRECT → /workforce
-│   │       │   │   ├── pipeline/
-│   │       │   │   │   ├── admin/
-│   │       │   │   │   ├── analytics/
-│   │       │   │   │   ├── bids/[id]/ + steps/
-│   │       │   │   │   ├── opportunities/[id]/
-│   │       │   │   │   ├── proposals/[id]/
-│   │       │   │   │   ├── prospects/[id]/
-│   │       │   │   │   └── supply-calculator/
-│   │       │   │   │       ├── hooks/
-│   │       │   │   │       ├── lib/
-│   │       │   │   │       └── steps/
-│   │       │   │   ├── reports/
-│   │       │   │   │   ├── _components/
-│   │       │   │   │   ├── financial/
-│   │       │   │   │   ├── inventory/
-│   │       │   │   │   ├── ops/
-│   │       │   │   │   ├── quality/
-│   │       │   │   │   ├── sales/
-│   │       │   │   │   └── workforce/
-│   │       │   │   ├── safety/
-│   │       │   │   │   ├── audit-center/
-│   │       │   │   │   ├── calendar/
-│   │       │   │   │   ├── certifications/
-│   │       │   │   │   ├── documents/
-│   │       │   │   │   ├── incidents/
-│   │       │   │   │   └── training/
-│   │       │   │   ├── schedule/                # REDIRECT → /operations
-│   │       │   │   ├── services/
-│   │       │   │   │   ├── mapping/
-│   │       │   │   │   ├── scope-library/
-│   │       │   │   │   ├── services/
-│   │       │   │   │   └── tasks/[id]/
+│   │       │   │   ├── pipeline/                [7 sub-routes + 4 detail pages]
+│   │       │   │   ├── reports/                 [6 dashboards]
+│   │       │   │   ├── safety/                  [6 sub-routes]
+│   │       │   │   ├── schedule/                [4 sub-routes (mirrors ops)]
+│   │       │   │   ├── services/                [3 sub-routes + tasks/[id]]
 │   │       │   │   ├── settings/
 │   │       │   │   ├── subcontractors/          # REDIRECT → /vendors
 │   │       │   │   ├── team/                    # REDIRECT → /workforce
-│   │       │   │   ├── vendors/
-│   │       │   │   │   ├── jobs/
-│   │       │   │   │   ├── subcontractors/[code]/
-│   │       │   │   │   ├── supply-vendors/[slug]/
-│   │       │   │   │   └── vendor-directory/
-│   │       │   │   └── workforce/
-│   │       │   │       ├── exceptions/
-│   │       │   │       ├── hr/
-│   │       │   │       ├── messages/
-│   │       │   │       ├── payroll/
-│   │       │   │       ├── positions/
-│   │       │   │       ├── staff/[code]/
-│   │       │   │       ├── timekeeping/
-│   │       │   │       └── timesheets/
-│   │       │   ├── api/                         # 38 route handlers
-│   │       │   │   ├── contracts/route.ts
-│   │       │   │   ├── cron/inventory-count-reminders/route.ts
-│   │       │   │   ├── finance/invoices/route.ts
-│   │       │   │   ├── integrations/connections/route.ts
+│   │       │   │   ├── vendors/                 [4 sub-routes + 2 detail pages]
+│   │       │   │   └── workforce/               [9 sub-routes + staff/[code]]
+│   │       │   ├── api/                         # 36 route handlers
+│   │       │   │   ├── contracts/route.ts                             (77 LOC)
+│   │       │   │   ├── cron/inventory-count-reminders/route.ts        (300 LOC) ⚠ FAT
+│   │       │   │   ├── finance/invoices/route.ts                      (81 LOC)
+│   │       │   │   ├── integrations/connections/route.ts              (77 LOC)
 │   │       │   │   ├── inventory/
-│   │       │   │   │   ├── approvals/route.ts          (394 LOC)
-│   │       │   │   │   ├── orders/[id]/pod/route.ts
-│   │       │   │   │   └── warehouse/route.ts
-│   │       │   │   ├── issues/route.ts
-│   │       │   │   ├── messages/route.ts                (136 LOC)
+│   │       │   │   │   ├── approvals/route.ts                         (31 LOC) ✓ THIN
+│   │       │   │   │   ├── orders/[id]/pod/route.ts                   (174 LOC) ⚠ FAT
+│   │       │   │   │   └── warehouse/route.ts                         (105 LOC)
+│   │       │   │   ├── issues/route.ts                                (86 LOC)
+│   │       │   │   ├── messages/route.ts                              (37 LOC) ✓ THIN
 │   │       │   │   ├── operations/
-│   │       │   │   │   ├── fleet/workflow/route.ts      (190 LOC)
-│   │       │   │   │   └── schedule/
-│   │       │   │   │       ├── availability/[id]/archive/route.ts
-│   │       │   │   │       ├── conflicts/route.ts
-│   │       │   │   │       ├── periods/[id]/lock/route.ts
-│   │       │   │   │       ├── periods/[id]/publish/route.ts
-│   │       │   │   │       ├── periods/[id]/validate/route.ts
-│   │       │   │   │       ├── trades/[id]/accept/route.ts
-│   │       │   │   │       ├── trades/[id]/apply/route.ts
-│   │       │   │   │       ├── trades/[id]/approve/route.ts
-│   │       │   │   │       ├── trades/[id]/cancel/route.ts
-│   │       │   │   │       └── trades/[id]/deny/route.ts
-│   │       │   │   ├── payroll/runs/route.ts
+│   │       │   │   │   ├── fleet/workflow/route.ts                    (31 LOC) ✓ THIN
+│   │       │   │   │   └── schedule/                                  (881 LOC total)
+│   │       │   │   │       ├── availability/route.ts                  (112 LOC)
+│   │       │   │   │       ├── availability/[id]/archive/route.ts     (89 LOC)
+│   │       │   │   │       ├── conflicts/route.ts                     (41 LOC)
+│   │       │   │   │       ├── periods/route.ts                       (96 LOC)
+│   │       │   │   │       ├── periods/[id]/lock/route.ts             (58 LOC)
+│   │       │   │   │       ├── periods/[id]/publish/route.ts          (58 LOC)
+│   │       │   │   │       ├── periods/[id]/validate/route.ts         (67 LOC)
+│   │       │   │   │       ├── trades/route.ts                        (98 LOC)
+│   │       │   │   │       ├── trades/[id]/accept/route.ts            (54 LOC)
+│   │       │   │   │       ├── trades/[id]/apply/route.ts             (56 LOC)
+│   │       │   │   │       ├── trades/[id]/approve/route.ts           (56 LOC)
+│   │       │   │   │       ├── trades/[id]/cancel/route.ts            (54 LOC)
+│   │       │   │   │       └── trades/[id]/deny/route.ts              (67 LOC)
+│   │       │   │   ├── payroll/runs/route.ts                          (77 LOC)
 │   │       │   │   ├── proposals/
-│   │       │   │   │   ├── [id]/generate-pdf/route.ts
-│   │       │   │   │   ├── [id]/signature/route.ts
-│   │       │   │   │   └── send/route.ts                (188 LOC)
+│   │       │   │   │   ├── [id]/generate-pdf/route.ts                 (443 LOC) ⚠ FATTEST
+│   │       │   │   │   ├── [id]/signature/route.ts                    (105 LOC)
+│   │       │   │   │   └── send/route.ts                              (37 LOC) ✓ THIN
 │   │       │   │   ├── public/
-│   │       │   │   │   ├── counts/[token]/save/route.ts
-│   │       │   │   │   ├── counts/[token]/submit/route.ts  (222 LOC)
-│   │       │   │   │   ├── proposals/[token]/route.ts
-│   │       │   │   │   └── proposals/[token]/sign/route.ts
-│   │       │   │   ├── sites/[id]/pin/route.ts          (105 LOC)
-│   │       │   │   ├── timekeeping/pin-checkin/route.ts  (147 LOC)
-│   │       │   │   ├── webhooks/sendgrid/route.ts       (247 LOC)
-│   │       │   │   └── workforce/hr/[entity]/route.ts   (157 LOC)
+│   │       │   │   │   ├── counts/[token]/route.ts                    (182 LOC) ⚠ FAT
+│   │       │   │   │   ├── counts/[token]/save/route.ts               (135 LOC)
+│   │       │   │   │   ├── counts/[token]/submit/route.ts             (27 LOC) ✓ THIN
+│   │       │   │   │   ├── proposals/[token]/route.ts                 (132 LOC)
+│   │       │   │   │   └── proposals/[token]/sign/route.ts            (109 LOC)
+│   │       │   │   ├── sites/[id]/pin/route.ts                        (104 LOC)
+│   │       │   │   ├── timekeeping/pin-checkin/route.ts               (36 LOC) ✓ THIN
+│   │       │   │   ├── webhooks/sendgrid/route.ts                     (56 LOC) ✓ THIN
+│   │       │   │   └── workforce/hr/[entity]/route.ts                 (157 LOC) ⚠ FAT
 │   │       │   ├── auth/callback/route.ts
 │   │       │   ├── count/[token]/
 │   │       │   ├── offline/
 │   │       │   └── proposal/[token]/
 │   │       ├── components/
-│   │       │   ├── activity/
-│   │       │   ├── detail/
-│   │       │   │   ├── profile-completeness-card.tsx
-│   │       │   │   └── status-toggle-dialog.tsx
+│   │       │   ├── activity/activity-history-section.tsx
+│   │       │   ├── detail/ [2 files]
 │   │       │   ├── directory/entity-card.tsx
-│   │       │   ├── empty-states/
-│   │       │   ├── forms/                       # 27 entity forms
-│   │       │   │   ├── client-form.tsx
-│   │       │   │   ├── contact-form.tsx
-│   │       │   │   ├── equipment-assignment-form.tsx
-│   │       │   │   ├── equipment-form.tsx
-│   │       │   │   ├── geofence-form.tsx
-│   │       │   │   ├── inventory-count-form.tsx
-│   │       │   │   ├── job-form.tsx
-│   │       │   │   ├── job-log-form.tsx
-│   │       │   │   ├── key-form.tsx
-│   │       │   │   ├── lookup-form.tsx
-│   │       │   │   ├── maintenance-form.tsx
-│   │       │   │   ├── message-form.tsx
-│   │       │   │   ├── opportunity-form.tsx
-│   │       │   │   ├── position-form.tsx
-│   │       │   │   ├── production-rate-form.tsx
-│   │       │   │   ├── prospect-form.tsx
-│   │       │   │   ├── service-form.tsx
-│   │       │   │   ├── site-form.tsx
-│   │       │   │   ├── site-pin-form.tsx
-│   │       │   │   ├── staff-form.tsx
-│   │       │   │   ├── subcontractor-form.tsx
-│   │       │   │   ├── supply-form.tsx
-│   │       │   │   ├── supply-order-form.tsx
-│   │       │   │   ├── supply-vendor-form.tsx
-│   │       │   │   ├── task-form.tsx
-│   │       │   │   ├── training-course-form.tsx
-│   │       │   │   └── vehicle-form.tsx
+│   │       │   ├── empty-states/pipeline-flow-hint.tsx
+│   │       │   ├── forms/ [28 form components]          # ⚠ 140+ direct .from() calls
 │   │       │   ├── layout/
 │   │       │   │   ├── app-shell.tsx
 │   │       │   │   ├── breadcrumbs.tsx
-│   │       │   │   ├── header.tsx
+│   │       │   │   ├── error-boundary.tsx               ✓ NEW (round 1)
+│   │       │   │   ├── header.tsx                       # ⚠ 12 .from() calls
 │   │       │   │   ├── offline-banner.tsx
 │   │       │   │   └── sidebar.tsx
-│   │       │   ├── links/
-│   │       │   ├── modules/
-│   │       │   └── scanner/
-│   │       ├── hooks/                           # 19 custom hooks
-│   │       │   ├── use-auth.ts
-│   │       │   ├── use-barcode-scanner.ts
-│   │       │   ├── use-bulk-select.ts
-│   │       │   ├── use-density.ts
-│   │       │   ├── use-feature-flag.ts
-│   │       │   ├── use-form.ts
-│   │       │   ├── use-keyboard-shortcuts.ts
-│   │       │   ├── use-locale.ts
-│   │       │   ├── use-lookups.ts
-│   │       │   ├── use-offline-mutation-sync.ts
-│   │       │   ├── use-pagination.ts
-│   │       │   ├── use-realtime.ts
-│   │       │   ├── use-role.ts
-│   │       │   ├── use-server-pagination.ts
-│   │       │   ├── use-synced-tab.ts
-│   │       │   ├── use-table-sort.ts
-│   │       │   ├── use-theme.ts
-│   │       │   ├── use-ui-preferences.ts
-│   │       │   └── use-view-preference.ts
-│   │       └── lib/
-│   │           ├── __tests__/
-│   │           │   ├── role-guard.test.ts
-│   │           │   └── sendgrid-webhook-verify.test.ts
-│   │           ├── api/
-│   │           │   ├── audit.ts
-│   │           │   ├── auth-guard.ts
-│   │           │   ├── role-guard.ts
-│   │           │   ├── service-client.ts
-│   │           │   ├── user-client.ts
-│   │           │   └── validate-request.ts
-│   │           ├── offline/mutation-queue.ts
-│   │           ├── pdf/proposal-template.tsx
-│   │           ├── repositories/enterprise-mappers.ts
-│   │           ├── schema/field-parity-index.ts
-│   │           ├── supabase/
-│   │           │   ├── authenticated-fetch.ts
-│   │           │   ├── client.ts
-│   │           │   ├── middleware.ts
-│   │           │   └── server.ts
-│   │           ├── utils/
-│   │           │   ├── date.ts
-│   │           │   └── job-financials.ts
-│   │           ├── vendors/supply-vendor-profiles.ts
-│   │           ├── sendgrid-webhook-verify.ts
-│   │           └── upload-to-storage.ts
-│   └── worker/                                  # Background workers
-│       └── src/
-│           ├── index.ts
-│           ├── send-worker.ts
-│           ├── followup-worker.ts
-│           └── qbo-timesheet-worker.ts
+│   │       │   ├── links/entity-link.tsx
+│   │       │   ├── modules/ [empty]
+│   │       │   └── scanner/barcode-scanner.tsx
+│   │       ├── hooks/ [19 hooks]
+│   │       ├── lib/
+│   │       │   ├── __tests__/ [2 tests]
+│   │       │   ├── api/ [6 files: audit, auth-guard, role-guard, service-client, user-client, validate-request]
+│   │       │   ├── offline/mutation-queue.ts
+│   │       │   ├── pdf/proposal-template.tsx
+│   │       │   ├── repositories/enterprise-mappers.ts
+│   │       │   ├── schema/field-parity-index.ts
+│   │       │   ├── supabase/ [4 files]
+│   │       │   ├── utils/ [2 files]
+│   │       │   ├── vendors/supply-vendor-profiles.ts
+│   │       │   ├── sendgrid-webhook-verify.ts
+│   │       │   └── upload-to-storage.ts
+│   │       └── modules/                         # ✓ NEW (round 1) — 8 domain modules
+│   │           ├── counts/    [index, repository, service]
+│   │           ├── fleet/     [index, repository, service]
+│   │           ├── inventory/ [index, repository, service, permissions]
+│   │           ├── messages/  [index, repository, service]
+│   │           ├── proposals/ [index, repository, service]
+│   │           ├── schedule/  [index, permissions]        # ⚠ STUB (no service/repository)
+│   │           ├── timekeeping/ [index, repository, service]
+│   │           └── webhooks/  [index, repository, service]
+│   └── worker/
+│       └── src/ [4 files: index, send-worker, followup-worker, qbo-timesheet-worker]
+├── docs/
+│   └── reorg/ [12 artifacts from round 1]
+├── openapi/openapi.yaml
 ├── packages/
-│   ├── cleanflow/                               # Bid math engine (pure)
-│   │   └── src/
-│   │       ├── __tests__/                       # 7 test files
-│   │       ├── engine.ts
-│   │       ├── workload.ts
-│   │       ├── pricing.ts
-│   │       ├── production-rates.ts
-│   │       ├── specialization.ts
-│   │       ├── weighted-wage.ts
-│   │       ├── day-porter.ts
-│   │       ├── consumables.ts
-│   │       ├── contract-projection.ts
-│   │       ├── express-load.ts
-│   │       ├── scope-express-load.ts
-│   │       ├── supply-pricing.ts
-│   │       ├── supply-constants.ts
-│   │       └── index.ts
-│   ├── domain/                                  # Business rules (RBAC, state machine)
-│   │   └── src/
-│   │       ├── __tests__/                       # 2 test files
-│   │       ├── status-machine.ts
-│   │       ├── permissions.ts
-│   │       └── index.ts
-│   ├── shared/                                  # Types, constants, validation, errors
-│   │   └── src/
-│   │       ├── __tests__/                       # 2 test files
-│   │       ├── constants/index.ts
-│   │       ├── errors/problem-details.ts
-│   │       ├── scope-library/                   # 8 files
-│   │       ├── types/
-│   │       │   ├── database.ts
-│   │       │   ├── app.ts
-│   │       │   └── preferences.ts
-│   │       ├── validation/index.ts
-│   │       ├── i18n.ts
-│   │       └── index.ts
-│   └── ui/                                      # 31 React components
-│       └── src/
-│           ├── components/                      # 31 component files
-│           ├── utils.ts
-│           └── index.ts
+│   ├── cleanflow/  [15 src + 8 tests]          ✓ HEALTHY
+│   ├── domain/     [3 src + 2 tests]           ✓ HEALTHY
+│   ├── shared/     [20 src + 2 tests]          ✓ HEALTHY
+│   └── ui/         [33 src + 0 tests]          ⚠ NO TESTS
+├── scripts/ [9 utility scripts]
 ├── supabase/
-│   ├── migrations/                              # 49 SQL files
+│   ├── migrations/ [84 SQL files]
 │   ├── functions/
 │   └── snippets/
-├── docs/                                        # 30+ dev pack docs
-├── openapi/
-├── scripts/
 ├── CLAUDE.md
-├── package.json
 ├── turbo.json
 ├── pnpm-workspace.yaml
-├── tsconfig.base.json
-└── vercel.json
+└── tsconfig.base.json
+
+LEGEND:
+  ✓ THIN  = Route properly delegates to modules/ (≤40 LOC)
+  ⚠ FAT   = Route has inline business logic (>100 LOC)
+  ⚠       = Issue requiring attention

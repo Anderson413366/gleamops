@@ -1,134 +1,180 @@
-# Reorganization Plan
+# Reorganization Plan (Round 2)
 
-**Date:** 2026-02-18
+**Date:** 2026-02-19
 **Mode:** PLAN_ONLY
-**Branch:** `chore/reorg-20260218` (to be created in APPLY mode)
+**Branch:** `chore/reorg-20260218` (continuing from round 1)
 
 ---
 
 ## Summary
 
-Extract business logic from 8 oversized API route handlers into a new `modules/` service + repository layer. Routes become thin delegates (<50 LOC). No file moves — only logic extraction and route refactoring.
+Round 2 extracts business logic from the remaining 24 oversized API route handlers into new and existing `modules/` service + repository files. Completes the schedule module (currently a stub). Fixes naming inconsistencies and cleans up empty directories.
 
-**Files created:** ~25 new module files
-**Files modified:** ~8 route handlers
-**Files moved:** 0
-**Files deleted:** 0
+**Files created:** ~21 new module files
+**Files modified:** ~24 route handlers
+**Files moved/renamed:** 3 (mobile PascalCase → kebab-case)
+**Files deleted:** 1 (empty directory)
 
 ---
 
 ## Batch Execution Plan
 
-### Batch 1 — Scaffolding (ZERO RISK)
-**What:** Create empty `modules/` directory with 8 module folders and placeholder `index.ts` files.
-**Files created:** 8 `index.ts` files
-**Validation:** `turbo typecheck` (no new imports yet, nothing should break)
-**Rollback:** Delete `modules/` directory
-
-### Batch 2 — Inventory Approvals (HIGHEST IMPACT)
-**What:** Extract the largest route handler (394 LOC) into service + repository + permissions.
-**Source:** `api/inventory/approvals/route.ts`
+### Batch 10 — Proposals PDF Generation (443 LOC — FATTEST FILE)
+**What:** Extract PDF generation, merge, upload logic from the largest remaining route.
+**Source:** `api/proposals/[id]/generate-pdf/route.ts`
 **Creates:**
-- `modules/inventory/inventory.service.ts`
-- `modules/inventory/inventory.repository.ts`
-- `modules/inventory/inventory.permissions.ts`
-**Modifies:** `api/inventory/approvals/route.ts` (394 → ~40 LOC)
+- `modules/proposals-pdf/proposals-pdf.service.ts` — PDF generation + merge + upload logic
+- `modules/proposals-pdf/proposals-pdf.repository.ts` — proposal/bid/client/tenant/signature queries + Storage ops
+- `modules/proposals-pdf/index.ts` — barrel
+**Modifies:** `api/proposals/[id]/generate-pdf/route.ts` (443 → ~40 LOC)
+**Risk:** HIGH — touches 10 DB tables + Storage, creates own Supabase client
 **Validation:**
-1. `turbo typecheck`
-2. `turbo build`
-3. E2E: `pnpm --filter @gleamops/web e2e -- --grep "approval"` (if test exists) or manual test
-**Rollback:** `git checkout -- apps/web/src/app/api/inventory/approvals/route.ts` + delete module files
+1. `pnpm typecheck`
+2. `pnpm build:web`
+3. Manual: generate a test PDF, verify output matches
+**Rollback:** `git checkout -- apps/web/src/app/api/proposals/[id]/generate-pdf/route.ts` + delete module
 
-### Batch 3 — SendGrid Webhooks
-**What:** Extract webhook event processing (247 LOC).
-**Source:** `api/webhooks/sendgrid/route.ts`
+### Batch 11 — Cron Reminders (300 LOC)
+**What:** Extract reminder logic, email template, notification from cron route.
+**Source:** `api/cron/inventory-count-reminders/route.ts`
 **Creates:**
-- `modules/webhooks/webhooks.service.ts`
-- `modules/webhooks/webhooks.repository.ts`
-**Modifies:** `api/webhooks/sendgrid/route.ts` (247 → ~30 LOC)
+- `modules/cron/cron.service.ts` — reminder logic + email template + notification
+- `modules/cron/cron.repository.ts` — site/count/membership/notification queries + auth.admin calls
+- `modules/cron/index.ts` — barrel
+**Modifies:** `api/cron/inventory-count-reminders/route.ts` (300 → ~30 LOC)
+**Risk:** HIGH — creates own Supabase client, calls auth.admin, sends emails via SendGrid
 **Validation:**
-1. `turbo typecheck`
-2. `turbo build`
-3. Unit test: `lib/__tests__/sendgrid-webhook-verify.test.ts` still passes
-**Rollback:** `git checkout -- apps/web/src/app/api/webhooks/sendgrid/route.ts` + delete module files
+1. `pnpm typecheck`
+2. `pnpm build:web`
+**Rollback:** `git checkout` + delete module
 
-### Batch 4 — Proposal Send
-**What:** Extract rate limiting + follow-up wiring (188 LOC).
-**Source:** `api/proposals/send/route.ts`
-**Creates:**
-- `modules/proposals/proposals.service.ts`
-- `modules/proposals/proposals.repository.ts`
-**Modifies:** `api/proposals/send/route.ts` (188 → ~35 LOC)
-**Validation:**
-1. `turbo typecheck`
-2. `turbo build`
-3. E2E: `proposal-send.spec.ts`
-**Rollback:** `git checkout -- apps/web/src/app/api/proposals/send/route.ts` + delete module files
-
-### Batch 5 — Public Count Submission
-**What:** Extract count submission + due date calc (222 LOC).
-**Source:** `api/public/counts/[token]/submit/route.ts`
-**Creates:**
-- `modules/counts/counts.service.ts`
-- `modules/counts/counts.repository.ts`
-**Modifies:** `api/public/counts/[token]/submit/route.ts` (222 → ~35 LOC)
-**Validation:**
-1. `turbo typecheck`
-2. `turbo build`
-**Rollback:** `git checkout` + delete module files
-
-### Batch 6 — Fleet DVIR
-**What:** Extract DVIR checklist calculation (190 LOC).
-**Source:** `api/operations/fleet/workflow/route.ts`
-**Creates:**
-- `modules/fleet/fleet.service.ts`
-- `modules/fleet/fleet.repository.ts`
-**Modifies:** `api/operations/fleet/workflow/route.ts` (190 → ~35 LOC)
-**Validation:**
-1. `turbo typecheck`
-2. `turbo build`
-**Rollback:** `git checkout` + delete module files
-
-### Batch 7 — Schedule Permissions
-**What:** Centralize schedule permission functions into module.
-**Source:** `lib/api/role-guard.ts` (move schedule-specific functions)
-**Creates:**
-- `modules/schedule/schedule.permissions.ts`
-**Modifies:**
-- `lib/api/role-guard.ts` (remove schedule-specific functions, or keep as re-exports initially)
-- `api/operations/schedule/trades/[id]/approve/route.ts` (update import)
-**Validation:**
-1. `turbo typecheck`
-2. `turbo build`
-**Rollback:** `git checkout` + delete module files
-
-### Batch 8 — Messages + Timekeeping (LOW IMPACT)
-**What:** Extract remaining moderate-complexity routes.
+### Batch 12 — Public Counts Read + Save (317 LOC)
+**What:** Extract count hydration, detail mapping, fallback logic, and save/partial update logic.
 **Sources:**
-- `api/messages/route.ts` (136 LOC)
-- `api/timekeeping/pin-checkin/route.ts` (147 LOC)
+- `api/public/counts/[token]/route.ts` (182 LOC)
+- `api/public/counts/[token]/save/route.ts` (135 LOC)
 **Creates:**
-- `modules/messages/messages.service.ts`
-- `modules/messages/messages.repository.ts`
-- `modules/timekeeping/timekeeping.service.ts`
-- `modules/timekeeping/timekeeping.repository.ts`
-**Modifies:** Both route files
+- `modules/public-counts/public-counts.service.ts` — count hydration + detail mapping + save logic
+- `modules/public-counts/public-counts.repository.ts` — count/detail/supply queries
+- `modules/public-counts/index.ts` — barrel
+**Modifies:** Both routes to thin delegates
+**Risk:** MEDIUM — creates own Supabase client, public-facing (no auth)
 **Validation:**
-1. `turbo typecheck`
-2. `turbo build`
-**Rollback:** `git checkout` + delete module files
+1. `pnpm typecheck`
+2. `pnpm build:web`
+**Rollback:** `git checkout` + delete module
 
-### Batch 9 — Error Boundary (ADDITIVE)
-**What:** Add React Error Boundary component to app shell.
+### Batch 13 — Public Proposals Read + Sign (241 LOC)
+**What:** Extract proposal fetch, hydration, signature validation + storage.
+**Sources:**
+- `api/public/proposals/[token]/route.ts` (132 LOC)
+- `api/public/proposals/[token]/sign/route.ts` (109 LOC)
 **Creates:**
-- `components/layout/error-boundary.tsx`
-**Modifies:**
-- `components/layout/app-shell.tsx` (wrap children with error boundary)
+- `modules/public-proposals/public-proposals.service.ts` — proposal hydration + signature validation
+- `modules/public-proposals/public-proposals.repository.ts` — proposal/signature queries
+- `modules/public-proposals/index.ts` — barrel
+**Modifies:** Both routes to thin delegates
+**Risk:** MEDIUM — creates own Supabase client, public-facing (no auth)
 **Validation:**
-1. `turbo typecheck`
-2. `turbo build`
-3. Manual: throw test error in dev → verify boundary catches it
-**Rollback:** `git checkout -- apps/web/src/components/layout/app-shell.tsx` + delete error-boundary.tsx
+1. `pnpm typecheck`
+2. `pnpm build:web`
+**Rollback:** `git checkout` + delete module
+
+### Batch 14 — Schedule (881 LOC, 13 routes — MOST FILES)
+**What:** Complete the schedule module (currently a stub with permissions only). Extract all period, trade, and availability logic.
+**Sources:** 13 route files under `api/operations/schedule/`
+**Creates:**
+- `modules/schedule/schedule.service.ts` — period/trade/availability logic, `currentStaffId()` (deduplicated)
+- `modules/schedule/schedule.repository.ts` — all schedule Supabase queries + RPCs
+**Modifies:** All 13 schedule route files to thin delegates
+**Risk:** HIGH — largest batch by file count, RPC-heavy, shared `currentStaffId()` helper duplicated in 2 files
+**Validation:**
+1. `pnpm typecheck`
+2. `pnpm build:web`
+3. E2E: any schedule-related specs
+**Rollback:** `git checkout -- apps/web/src/app/api/operations/schedule/` + revert module changes
+
+### Batch 15 — Inventory Orders/POD (174 LOC)
+**What:** Extract POD upsert, status update, file validation logic.
+**Source:** `api/inventory/orders/[id]/pod/route.ts`
+**Creates:**
+- `modules/inventory-orders/inventory-orders.service.ts` — POD upsert + status + file validation
+- `modules/inventory-orders/inventory-orders.repository.ts` — delivery/order/file queries
+- `modules/inventory-orders/index.ts` — barrel
+**Modifies:** `api/inventory/orders/[id]/pod/route.ts` (174 → ~35 LOC)
+**Risk:** MEDIUM — creates own Supabase client, handles file uploads
+**Validation:**
+1. `pnpm typecheck`
+2. `pnpm build:web`
+**Rollback:** `git checkout` + delete module
+
+### Batch 16 — Workforce HR (157 LOC)
+**What:** Extract polymorphic entity handler + audit trail.
+**Source:** `api/workforce/hr/[entity]/route.ts`
+**Creates:**
+- `modules/workforce-hr/workforce-hr.service.ts` — polymorphic entity handler + audit
+- `modules/workforce-hr/workforce-hr.repository.ts` — 6 HR table queries
+- `modules/workforce-hr/index.ts` — barrel
+**Modifies:** `api/workforce/hr/[entity]/route.ts` (157 → ~35 LOC)
+**Risk:** MEDIUM — polymorphic routing across 6 entity types
+**Validation:**
+1. `pnpm typecheck`
+2. `pnpm build:web`
+**Rollback:** `git checkout` + delete module
+
+### Batch 17 — Medium Routes (314 LOC: warehouse 105 + signature 105 + pin 104)
+**What:** Extract remaining medium-complexity routes into existing or new modules.
+**Sources:**
+- `api/inventory/warehouse/route.ts` (105 LOC) → add to existing `modules/inventory/`
+- `api/proposals/[id]/signature/route.ts` (105 LOC) → add to existing `modules/proposals/`
+- `api/sites/[id]/pin/route.ts` (104 LOC) → new `modules/sites/`
+**Creates:**
+- `modules/sites/sites.service.ts` — PIN management logic
+- `modules/sites/sites.repository.ts` — sites repository
+- `modules/sites/index.ts` — barrel
+**Modifies:**
+- `modules/inventory/inventory.service.ts` — add warehouse transfer logic
+- `modules/proposals/proposals.service.ts` — add signature capture logic
+- All 3 route files to thin delegates
+**Risk:** MEDIUM — extends existing modules (must preserve existing exports)
+**Validation:**
+1. `pnpm typecheck`
+2. `pnpm build:web`
+**Rollback:** `git checkout` + revert module changes + delete new module
+
+### Batch 18 — Naming Fixes
+**What:** Normalize 3 PascalCase mobile component files to kebab-case.
+**Renames:**
+- `apps/mobile/src/components/ChecklistItem.tsx` → `checklist-item.tsx`
+- `apps/mobile/src/components/SyncStatusBar.tsx` → `sync-status-bar.tsx`
+- `apps/mobile/src/components/TicketCard.tsx` → `ticket-card.tsx`
+**Note:** `eq-assignments` rename deferred (low risk, would change URL routing)
+**Risk:** LOW — mobile components, update all imports
+**Validation:**
+1. `pnpm typecheck`
+2. `pnpm build:web`
+**Rollback:** `git mv` back to PascalCase
+
+### Batch 19 — Cleanup
+**What:** Remove empty `components/modules/` directory.
+**Deletes:** `apps/web/src/components/modules/` (empty directory)
+**Risk:** LOW — directory has no files
+**Validation:** `ls` confirms directory is gone
+**Rollback:** `mkdir`
+
+---
+
+## Deferred Routes (P3 — thin CRUD, <90 LOC)
+
+These routes are already thin enough that extraction provides minimal benefit:
+
+| Route | LOC | Why Deferred |
+|-------|-----|-------------|
+| `contracts/route.ts` | 77 | Simple CRUD |
+| `finance/invoices/route.ts` | 81 | Simple CRUD |
+| `payroll/runs/route.ts` | 77 | Simple CRUD |
+| `integrations/connections/route.ts` | 77 | Simple CRUD |
+| `issues/route.ts` | 86 | Simple CRUD |
 
 ---
 
@@ -141,6 +187,9 @@ pnpm typecheck
 # Full build
 pnpm build:web
 
+# Lint
+pnpm lint
+
 # Unit tests
 pnpm test
 
@@ -152,30 +201,33 @@ pnpm --filter @gleamops/web e2e
 
 ## Post-Reorg Health Score (Projected)
 
-| Category | Before | After | Delta |
-|----------|--------|-------|-------|
-| Symmetry | 14/20 | 18/20 | +4 |
-| Naming Clarity | 18/20 | 18/20 | 0 |
-| Boundary Integrity | 10/20 | 17/20 | +7 |
-| Depth Control | 8/10 | 8/10 | 0 |
-| Duplication Control | 10/10 | 10/10 | 0 |
-| Discoverability | 7/10 | 9/10 | +2 |
-| Build/Test Stability | 8/10 | 8/10 | 0 |
-| **TOTAL** | **75/100** | **88/100** | **+13** |
+| Category | Round 1 (actual) | Round 2 (projected) | Max | Delta |
+|----------|-----------------|-------------------|-----|-------|
+| Symmetry | 15/20 | 19/20 | 20 | +4 |
+| Naming Clarity | 18/20 | 19/20 | 20 | +1 |
+| Boundary Integrity | 12/20 | 17/20 | 20 | +5 |
+| Depth Control | 10/10 | 10/10 | 10 | 0 |
+| Duplication Control | 8/10 | 10/10 | 10 | +2 |
+| Discoverability | 8/10 | 9/10 | 10 | +1 |
+| Build/Test Stability | 7/10 | 7/10 | 10 | 0 |
+| **TOTAL** | **78/100** | **91/100** | **100** | **+13** |
 
 ---
 
 ## Definition of Done
 
-- [ ] `docs/reorg/` artifacts created
-- [ ] `modules/` directory exists with 8 domain modules
-- [ ] All module files follow Golden Module structure
-- [ ] All targeted route handlers are <50 LOC
+- [ ] `docs/reorg/` artifacts updated for round 2
+- [ ] 6 new modules created under `modules/`
+- [ ] Schedule module completed (service + repository)
+- [ ] All new module files follow Golden Module structure
+- [ ] 31/36 route handlers are <50 LOC (5 deferred P3)
+- [ ] All 9 inline `createClient()` calls eliminated
+- [ ] `currentStaffId()` duplication resolved
 - [ ] `turbo build` passes
 - [ ] `turbo typecheck` passes
-- [ ] `turbo test` passes
-- [ ] All 15 E2E specs pass
+- [ ] `pnpm lint` passes
 - [ ] No circular dependencies introduced
 - [ ] No orphaned files
 - [ ] No behavior change detected
-- [ ] Error boundary catches component errors
+- [ ] Mobile naming conventions normalized
+- [ ] Empty `components/modules/` removed

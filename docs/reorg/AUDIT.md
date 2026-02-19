@@ -1,87 +1,78 @@
-# Architecture Smell Audit
+# Architecture Smell Audit (Round 2)
 
-**Date:** 2026-02-18
+**Date:** 2026-02-19
 **Target:** apps/web/src (primary focus)
 
 ---
 
 ## Issue List
 
-### STRUCTURAL (folder ownership ambiguity)
+### STRUCTURAL
+
+| # | Issue | Severity | Location | Status |
+|---|-------|----------|----------|--------|
+| STR-1 | No service/module layer exists | ~~HIGH~~ | — | ✅ FIXED (round 1: 8 modules created) |
+| STR-2 | Business logic in route handlers | HIGH | 29/36 routes still have inline logic | OPEN |
+| STR-3 | Schedule module is a stub | MEDIUM | `modules/schedule/` has no service/repository | OPEN |
+| STR-4 | No error boundary | ~~LOW~~ | — | ✅ FIXED (round 1) |
+| STR-5 | 5 FAT routes remain (>150 LOC) | HIGH | generate-pdf (443), cron (300), public-counts (182), orders/pod (174), workforce/hr (157) | NEW |
+| STR-6 | `components/modules/` directory is empty | LOW | `components/modules/` exists but has no files | NEW |
+
+### NAMING
+
+| # | Issue | Severity | Location | Status |
+|---|-------|----------|----------|--------|
+| NAM-1 | `eq-assignments` abbreviation | LOW | `(dashboard)/assets/eq-assignments/` | OPEN |
+| NAM-2 | 3 PascalCase files in mobile | LOW | `ChecklistItem.tsx`, `SyncStatusBar.tsx`, `TicketCard.tsx` | NEW |
+
+### BOUNDARIES
+
+| # | Issue | Severity | Location | Status |
+|---|-------|----------|----------|--------|
+| BND-1 | 9 routes create own Supabase client | HIGH | generate-pdf, cron, signature, 3x public/counts, 2x public/proposals, orders/pod | OPEN |
+| BND-2 | 27 component files with direct `.from()` calls | HIGH | forms/ (140+ calls), header.tsx (12 calls) | NEW — largest debt category |
+| BND-3 | `currentStaffId()` duplicated in 2 schedule routes | LOW | availability/route.ts, availability/[id]/archive/route.ts | NEW |
+
+### DEPTH
 
 | # | Issue | Severity | Location |
 |---|-------|----------|----------|
-| STR-1 | No service/module layer exists | HIGH | `apps/web/src/` has no `modules/` directory |
-| STR-2 | Business logic lives directly in route handlers | HIGH | 5+ route files with 188-394 LOC of inline logic |
-| STR-3 | Repository layer is vestigial | MEDIUM | `lib/repositories/` has 1 file (`enterprise-mappers.ts`) |
-| STR-4 | No error boundary component | LOW | No React Error Boundary in app shell |
+| DEP-1 | API routes nest to 7-8 levels | LOW | All Next.js convention — no action needed |
 
-### NAMING (abbreviations, unclear names, duplicates)
+### DUPLICATION
 
-| # | Issue | Severity | Location |
-|---|-------|----------|----------|
-| NAM-1 | `lib/` files lack domain descriptors | LOW | `auth-guard.ts` vs `auth.guard.ts` — functional but inconsistent with module convention |
-| NAM-2 | `eq-assignments` abbreviation | LOW | `(dashboard)/assets/eq-assignments/` — "eq" is short for "equipment" |
+| # | Issue | Severity | Location | Status |
+|---|-------|----------|----------|--------|
+| DUP-1 | 9 inline `createClient()` definitions | MEDIUM | Routes bypassing shared `getServiceClient()` | NEW |
+| DUP-2 | `currentStaffId()` duplicated in 2 files | LOW | schedule availability routes | NEW |
 
-**Note:** Overall naming is excellent. Consistent kebab-case, `use-` prefix on hooks, `{entity}-form.tsx` on forms. No mixed casing.
+### IMPORT/EXPORT HAZARDS
 
-### BOUNDARIES (data in UI, domain in routes, etc.)
-
-| # | Issue | Severity | Location |
-|---|-------|----------|----------|
-| BND-1 | Direct Supabase access in ALL route handlers | HIGH | 12/12 sampled routes import `getServiceClient()` directly |
-| BND-2 | Workflow state machines embedded in routes | HIGH | `api/inventory/approvals/route.ts` (394 LOC) |
-| BND-3 | Rate limiting logic embedded in route | HIGH | `api/proposals/send/route.ts` (188 LOC) |
-| BND-4 | Event normalization in webhook route | HIGH | `api/webhooks/sendgrid/route.ts` (247 LOC) |
-| BND-5 | Date calculation in public route | MEDIUM | `api/public/counts/[token]/submit/route.ts` (222 LOC) |
-| BND-6 | DVIR calculation in fleet route | MEDIUM | `api/operations/fleet/workflow/route.ts` (190 LOC) |
-| BND-7 | Inline permission checks in 2 routes | MEDIUM | `hasApprovalRole()` in inventory, `canManageSchedule()` in schedule |
-
-### DEPTH (nesting >3)
-
-| # | Issue | Severity | Location |
-|---|-------|----------|----------|
-| DEP-1 | API routes nest to 8 levels | LOW | `api/operations/schedule/periods/[id]/publish/route.ts` |
-| DEP-2 | Schedule trades nest to 8 levels | LOW | `api/operations/schedule/trades/[id]/approve/route.ts` |
-
-**Note:** Nesting is driven by Next.js file conventions + RESTful resource hierarchy. Semantically correct — no arbitrary depth.
-
-### DUPLICATION (constants/types/utils)
-
-| # | Issue | Severity | Location |
-|---|-------|----------|----------|
-| DUP-1 | None detected | N/A | Types, constants, status colors all centralized in `@gleamops/shared` |
-
-**Note:** Package architecture successfully prevents duplication. 23 status color maps in one file, all types in `@gleamops/shared`, validation schemas shared between client and server.
-
-### IMPORT/EXPORT HAZARDS (barrels, circular deps, hidden exports)
-
-| # | Issue | Severity | Location |
-|---|-------|----------|----------|
-| IMP-1 | No circular dependencies detected | N/A | Dependency flow: domain -> shared; cleanflow -> shared; ui -> shared; web -> all |
-| IMP-2 | Package barrels are clean and explicit | N/A | Each package `index.ts` uses named exports only |
+| # | Issue | Severity | Status |
+|---|-------|----------|--------|
+| IMP-1 | No circular dependencies | N/A | CLEAR |
+| IMP-2 | Package barrels clean | N/A | CLEAR |
+| IMP-3 | Module -> lib imports are clean | N/A | CLEAR (verified) |
 
 ---
 
 ## Repo Health Score (0-100)
 
-| Category | Score | Max | Rationale |
-|----------|-------|-----|-----------|
-| **Symmetry** | 14 | 20 | Packages are symmetrical. Route handlers are not (no module layer). |
-| **Naming Clarity** | 18 | 20 | Excellent consistency. Minor: `eq-assignments`, lib file descriptors. |
-| **Boundary Integrity** | 10 | 20 | Packages respect boundaries. API routes violate them (DB + logic + permissions inline). |
-| **Depth Control** | 8 | 10 | Deep nesting is framework-driven, not arbitrary. Minor deduction for 8-level API routes. |
-| **Duplication Control** | 10 | 10 | Zero duplication detected. Single source of truth for all shared concerns. |
-| **Discoverability** | 7 | 10 | A new dev can navigate modules and pages quickly. Business logic in routes is harder to find. |
-| **Build/Test Stability** | 8 | 10 | Turbo pipeline works. 15 E2E specs + 13 unit tests. Component-level tests missing. |
-| **TOTAL** | **75** | **100** | |
+| Category | Round 1 | Round 2 | Max | Rationale |
+|----------|---------|---------|-----|-----------|
+| **Symmetry** | 14 | 15 | 20 | +1: modules layer exists. -5: only 7/36 routes delegate. |
+| **Naming Clarity** | 18 | 18 | 20 | Unchanged. Excellent kebab-case. Minor: eq-abbreviation, 3 mobile PascalCase. |
+| **Boundary Integrity** | 10 | 12 | 20 | +2: 7 routes now properly layered. -8: 27 components with DB calls, 9 inline clients. |
+| **Depth Control** | 8 | 10 | 10 | +2: all deep nesting is Next.js convention, zero arbitrary depth. |
+| **Duplication Control** | 10 | 8 | 10 | -2: 9 inline createClient, 1 duplicated helper. |
+| **Discoverability** | 7 | 8 | 10 | +1: modules layer helps. Most domains still hidden in routes. |
+| **Build/Test Stability** | 8 | 7 | 10 | -1: deeper audit shows packages/ui has 0 tests, shared is sparse. |
+| **TOTAL** | **75** | **78** | **100** | **+3 from round 1** |
 
 ### Score Interpretation
-- 90-100: Award-grade
-- 75-89: Production-solid, targeted improvements needed
-- 60-74: Functional but disorganized
-- <60: Needs significant restructuring
 
-**Current: 75/100 — Production-solid**
+**Current: 78/100 — Production-solid, targeted improvements needed**
 
-The codebase is well-built. The package layer (shared/domain/cleanflow/ui) is exemplary. The deficit is concentrated in the API route layer, which acts as a monolithic controller pattern instead of delegating to service/repository modules.
+Round 1 addressed the 7 worst routes. The deeper round 2 audit uncovered additional issues (component boundary violations, inline Supabase clients, schedule stub) that weren't visible in round 1. The net improvement is +3 points after accounting for newly discovered issues.
+
+**Projected after round 2: 90/100** (if all P0-P2 routes extracted + schedule completed)

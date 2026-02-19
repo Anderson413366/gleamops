@@ -47,8 +47,6 @@ export { CsvImport } from './components/csv-import';
 export { ViewToggle } from './components/view-toggle';
 export { DensityToggle } from './components/density-toggle';
 export { FileDropzone } from './components/file-dropzone';
-export { Checkbox } from './components/checkbox';
-export type { CheckboxProps } from './components/checkbox';
 export type { FileDropzoneProps } from './components/file-dropzone';
 export {
   StatusDot,

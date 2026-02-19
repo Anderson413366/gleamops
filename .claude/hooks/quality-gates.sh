@@ -14,9 +14,6 @@ if [ "$ACTIVE" = "true" ]; then
   exit 0
 fi
 
-# Ensure Homebrew binaries (pnpm, node) are on PATH
-export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
-
 cd "$CLAUDE_PROJECT_DIR" || exit 0
 
 ERRORS=""

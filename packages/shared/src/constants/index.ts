@@ -7,16 +7,17 @@ import type { LegacyUserRole, ModuleAccent, ModuleKey, NavItem, StatusColor, Use
 // Navigation (6 consolidated modules)
 // ---------------------------------------------------------------------------
 export const NAV_ITEMS: NavItem[] = [
-  { id: 'command', label: 'Command Center', href: '/command', icon: 'Home' },
-  { id: 'schedule', label: 'Employee Schedule', href: '/schedule', icon: 'Calendar' },
-  { id: 'planning', label: 'Evening Planning', href: '/planning', icon: 'Calendar' },
-  { id: 'work', label: 'Work Execution', href: '/work', icon: 'Calendar' },
-  { id: 'customers', label: 'Customers And Sites', href: '/customers', icon: 'Building2' },
-  { id: 'sales', label: 'Sales', href: '/sales', icon: 'TrendingUp' },
-  { id: 'people', label: 'People', href: '/people', icon: 'Users' },
-  { id: 'supplies', label: 'Supplies And Assets', href: '/supplies', icon: 'Package' },
-  { id: 'insights', label: 'Insights', href: '/insights', icon: 'BarChart3' },
-  { id: 'platform', label: 'Platform', href: '/platform', icon: 'Settings' },
+  { id: 'home', label: 'Home', href: '/home', icon: 'Home' },
+  { id: 'pipeline', label: 'Pipeline', href: '/pipeline', icon: 'TrendingUp' },
+  { id: 'crm', label: 'CRM', href: '/crm', icon: 'Building2' },
+  { id: 'operations', label: 'Operations', href: '/operations', icon: 'Calendar' },
+  { id: 'workforce', label: 'Workforce', href: '/workforce', icon: 'Users' },
+  { id: 'inventory', label: 'Inventory', href: '/inventory', icon: 'Package' },
+  { id: 'assets', label: 'Assets', href: '/assets', icon: 'Wrench' },
+  { id: 'vendors', label: 'Vendors', href: '/vendors', icon: 'Truck' },
+  { id: 'safety', label: 'Safety & Compliance', href: '/safety', icon: 'ShieldCheck' },
+  { id: 'reports', label: 'Reports', href: '/reports', icon: 'BarChart3' },
+  { id: 'admin', label: 'Admin', href: '/admin', icon: 'Settings' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -40,13 +41,6 @@ export const MODULE_ACCENTS: Record<ModuleKey, ModuleAccent> = {
 export const DEFAULT_MODULE_KEY: ModuleKey = 'home';
 
 export function getModuleFromPathname(pathname: string): ModuleKey {
-  if (pathname.startsWith('/command')) return 'home';
-  if (pathname.startsWith('/sales')) return 'pipeline';
-  if (pathname.startsWith('/planning')) return 'operations';
-  if (pathname.startsWith('/work')) return 'operations';
-  if (pathname.startsWith('/supplies')) return 'inventory';
-  if (pathname.startsWith('/insights')) return 'reports';
-  if (pathname.startsWith('/platform')) return 'admin';
   if (pathname.startsWith('/pipeline')) return 'pipeline';
   if (pathname.startsWith('/crm') || pathname.startsWith('/customers')) return 'crm';
   if (pathname.startsWith('/operations') || pathname.startsWith('/schedule')) return 'operations';

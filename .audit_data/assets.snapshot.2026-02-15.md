@@ -1,0 +1,137 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#main-content"
+    - complementary [ref=e4]:
+      - link "GleamOps" [ref=e6] [cursor=pointer]:
+        - /url: /home
+        - img [ref=e8]
+        - generic [ref=e10]: GleamOps
+      - button "Search... ⌘K" [ref=e12]:
+        - img [ref=e13]
+        - generic [ref=e16]: Search...
+        - generic [ref=e17]: ⌘K
+      - navigation [ref=e18]:
+        - link "Home" [ref=e19] [cursor=pointer]:
+          - /url: /home
+          - img [ref=e20]
+          - text: Home
+        - link "Pipeline" [ref=e23] [cursor=pointer]:
+          - /url: /pipeline
+          - img [ref=e24]
+          - text: Pipeline
+        - link "CRM" [ref=e27] [cursor=pointer]:
+          - /url: /crm
+          - img [ref=e28]
+          - text: CRM
+        - link "Operations" [ref=e32] [cursor=pointer]:
+          - /url: /operations
+          - img [ref=e33]
+          - text: Operations
+        - link "Workforce" [ref=e35] [cursor=pointer]:
+          - /url: /workforce
+          - img [ref=e36]
+          - text: Workforce
+        - link "Inventory" [ref=e41] [cursor=pointer]:
+          - /url: /inventory
+          - img [ref=e42]
+          - text: Inventory
+        - link "Assets" [ref=e46] [cursor=pointer]:
+          - /url: /assets
+          - img [ref=e47]
+          - text: Assets
+        - link "Vendors" [ref=e50] [cursor=pointer]:
+          - /url: /vendors
+          - img [ref=e51]
+          - text: Vendors
+        - link "Safety" [ref=e56] [cursor=pointer]:
+          - /url: /safety
+          - img [ref=e57]
+          - text: Safety
+        - link "Admin" [ref=e60] [cursor=pointer]:
+          - /url: /admin
+          - img [ref=e61]
+          - text: Admin
+      - button "Quick Action" [ref=e64]:
+        - img [ref=e65]
+        - text: Quick Action
+      - generic [ref=e66]:
+        - generic [ref=e67]:
+          - generic [ref=e68]: AG
+          - generic [ref=e69]:
+            - paragraph [ref=e70]: agomes@andersoncleaning.com
+            - paragraph [ref=e71]: authenticated
+        - link "Settings" [ref=e72] [cursor=pointer]:
+          - /url: /settings?view=profile
+          - img [ref=e73]
+          - text: Settings
+        - button "Sign out" [ref=e76]:
+          - img [ref=e77]
+          - text: Sign out
+    - generic [ref=e80]:
+      - banner [ref=e81]:
+        - generic [ref=e82]:
+          - navigation "Breadcrumb" [ref=e84]:
+            - link "Home" [ref=e86] [cursor=pointer]:
+              - /url: /
+            - generic [ref=e87]:
+              - img [ref=e88]
+              - generic [ref=e90]: Assets
+          - generic [ref=e91]:
+            - button "Search" [ref=e92]:
+              - img [ref=e93]
+              - generic [ref=e96]: Search...
+              - generic [ref=e97]: ⌘K
+            - generic [ref=e98]:
+              - button "Comfortable density" [ref=e99]:
+                - img [ref=e100]
+              - button "Compact density" [ref=e101]:
+                - img [ref=e102]
+            - button "Theme" [ref=e104]:
+              - img [ref=e105]
+            - button "Notifications" [ref=e108]:
+              - img [ref=e109]
+            - button "AG" [ref=e113] [cursor=pointer]
+      - main [ref=e114]:
+        - generic [ref=e115]:
+          - generic [ref=e116]:
+            - generic [ref=e117]:
+              - heading "Assets" [level=1] [ref=e118]
+              - paragraph [ref=e119]: Equipment, keys, vehicles, and maintenance
+            - button "New Equipment" [ref=e120]:
+              - img [ref=e121]
+              - text: New Equipment
+          - generic [ref=e122]:
+            - generic [ref=e124]:
+              - paragraph [ref=e125]: Equipment Assets
+              - paragraph [ref=e126]: "0"
+            - generic [ref=e128]:
+              - paragraph [ref=e129]: Active Vehicles
+              - paragraph [ref=e130]: "0"
+            - generic [ref=e132]:
+              - paragraph [ref=e133]: Keys Requiring Attention
+              - paragraph [ref=e134]: "0"
+            - generic [ref=e136]:
+              - paragraph [ref=e137]: Maintenance Due in 30 Days
+              - paragraph [ref=e138]: "0"
+          - generic [ref=e139]:
+            - button "Equipment" [ref=e140]:
+              - img [ref=e141]
+              - text: Equipment
+            - button "Eq. Assignments" [ref=e143]:
+              - img [ref=e144]
+              - text: Eq. Assignments
+            - button "Keys" [ref=e147]:
+              - img [ref=e148]
+              - text: Keys
+            - button "Vehicles" [ref=e151]:
+              - img [ref=e152]
+              - text: Vehicles
+            - button "Maintenance" [ref=e157]:
+              - img [ref=e158]
+              - text: Maintenance
+          - generic [ref=e161]:
+            - img [ref=e162]
+            - textbox "Search equipment..." [ref=e165]
+  - region "Notifications alt+T"
+  - alert [ref=e258]

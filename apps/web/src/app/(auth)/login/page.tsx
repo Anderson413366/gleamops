@@ -30,11 +30,7 @@ export default function LoginPage() {
       return;
     }
 
-    const nextPath = typeof window !== 'undefined'
-      ? new URLSearchParams(window.location.search).get('next')
-      : null;
-    const destination = nextPath && nextPath.startsWith('/') ? nextPath : '/command';
-    router.push(destination);
+    router.push('/home');
   }
 
   return (

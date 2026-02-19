@@ -717,31 +717,31 @@ export default function HomePage() {
                 label="Active Clients"
                 value={metrics.activeClients ?? 0}
                 icon={<Building2 className="h-5 w-5" />}
-                href="/customers?tab=clients"
+                href="/crm?tab=clients"
               />
               <StatCard
                 label="Active Sites"
                 value={metrics.activeSites ?? 0}
                 icon={<MapPin className="h-5 w-5" />}
-                href="/customers?tab=sites"
+                href="/crm?tab=sites"
               />
               <StatCard
                 label="Active Jobs"
                 value={metrics.activeJobs ?? 0}
                 icon={<Briefcase className="h-5 w-5" />}
-                href="/work?tab=tickets"
+                href="/operations?tab=jobs"
               />
               <StatCard
                 label="Open Tickets"
                 value={metrics.openTickets ?? 0}
                 icon={<Ticket className="h-5 w-5" />}
-                href="/work?tab=tickets"
+                href="/operations?tab=tickets"
               />
               <StatCard
                 label="Active Staff"
                 value={metrics.activeStaff ?? 0}
                 icon={<Users className="h-5 w-5" />}
-                href="/people?tab=staff"
+                href="/workforce?tab=staff"
               />
               {!simpleView && (
                 <>
@@ -749,19 +749,19 @@ export default function HomePage() {
                     label="Pending Bids"
                     value={metrics.pendingBids ?? 0}
                     icon={<FileText className="h-5 w-5" />}
-                    href="/sales?tab=bids"
+                    href="/pipeline?tab=bids"
                   />
                   <StatCard
                     label="Revenue/mo"
                     value={`$${((metrics.revenueThisMonth ?? 0) / 1000).toFixed(1)}k`}
                     icon={<DollarSign className="h-5 w-5" />}
-                    href="/insights?tab=financial"
+                    href="/reports?tab=financial"
                   />
                   <StatCard
                     label="Overdue Inspections"
                     value={metrics.overdueInspections ?? 0}
                     icon={<ShieldAlert className="h-5 w-5" />}
-                    href="/work?tab=inspections"
+                    href="/operations?tab=inspections"
                   />
                 </>
               )}
@@ -788,25 +788,25 @@ export default function HomePage() {
                 label="Pipeline Value"
                 value={`$${((metrics.pipelineValue ?? 0) / 1000).toFixed(1)}k`}
                 icon={<TrendingUp className="h-5 w-5" />}
-                href="/sales?tab=opportunities"
+                href="/pipeline?tab=opportunities"
               />
               <StatCard
                 label="Proposals Sent (30d)"
                 value={metrics.proposalsSent30d ?? 0}
                 icon={<Send className="h-5 w-5" />}
-                href="/sales?tab=proposals"
+                href="/pipeline?tab=proposals"
               />
               <StatCard
                 label="Win Rate"
                 value={`${metrics.winRate ?? 0}%`}
                 icon={<Trophy className="h-5 w-5" />}
-                href="/sales?tab=prospects"
+                href="/pipeline?tab=analytics"
               />
               <StatCard
                 label="Follow-ups Due"
                 value={metrics.followupsDue ?? 0}
                 icon={<Mail className="h-5 w-5" />}
-                href="/sales?tab=proposals"
+                href="/pipeline?tab=proposals"
               />
             </>
           )}
@@ -822,19 +822,19 @@ export default function HomePage() {
               label="Pending Approvals"
               value={metrics.pendingApprovals ?? 0}
               icon={<Clock className="h-5 w-5" />}
-              href="/supplies?tab=orders"
+              href="/inventory?tab=warehouse"
             />
             <StatCard
               label="POD Exceptions"
               value={metrics.podExceptions ?? 0}
               icon={<FileText className="h-5 w-5" />}
-              href="/supplies?tab=orders"
+              href="/inventory?tab=orders"
             />
             <StatCard
               label="Overdue DVIR"
               value={metrics.overdueDvir ?? 0}
               icon={<AlertTriangle className="h-5 w-5" />}
-              href="/work?tab=routes"
+              href="/operations?tab=routes"
             />
           </div>
         </div>

@@ -64,7 +64,7 @@ const TABS = [
   { key: 'messages', label: 'Messages', icon: <MessageSquare className="h-4 w-4" /> },
 ];
 
-export default function OperationsPageClient({ defaultTab }: { defaultTab?: string } = {}) {
+export default function OperationsPageClient() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -72,7 +72,7 @@ export default function OperationsPageClient({ defaultTab }: { defaultTab?: stri
   const action = searchParams.get('action');
   const [tab, setTab] = useSyncedTab({
     tabKeys: TABS.map((entry) => entry.key),
-    defaultTab: initialTicketId ? 'tickets' : (defaultTab ?? 'planning'),
+    defaultTab: initialTicketId ? 'tickets' : 'planning',
   });
   const [search, setSearch] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);

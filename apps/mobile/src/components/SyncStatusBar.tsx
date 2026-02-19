@@ -10,7 +10,6 @@ import { Colors } from '../lib/constants';
 
 export interface SyncStatusBarProps {
   pendingCount: number;
-  failedCount?: number;
   lastSyncAt: string | null;
   isSyncing?: boolean;
   onSyncPress?: () => void;
@@ -30,25 +29,15 @@ function formatSyncAge(iso: string | null): string {
 
 export default function SyncStatusBar({
   pendingCount,
-  failedCount = 0,
   lastSyncAt,
   isSyncing = false,
   onSyncPress,
 }: SyncStatusBarProps) {
   const hasPending = pendingCount > 0;
-  const hasFailed = failedCount > 0;
-  const bgColor = hasFailed
-    ? Colors.light.error + '15'
-    : hasPending
-      ? Colors.light.warning + '15'
-      : Colors.light.success + '15';
-  const borderColor = hasFailed
-    ? Colors.light.error + '40'
-    : hasPending
-      ? Colors.light.warning + '40'
-      : Colors.light.success + '40';
-  const dotColor = hasFailed ? Colors.light.error : hasPending ? Colors.light.warning : Colors.light.success;
-  const textColor = hasFailed ? Colors.light.error : hasPending ? Colors.light.warning : Colors.light.success;
+  const bgColor = hasPending ? Colors.light.warning + '15' : Colors.light.success + '15';
+  const borderColor = hasPending ? Colors.light.warning + '40' : Colors.light.success + '40';
+  const dotColor = hasPending ? Colors.light.warning : Colors.light.success;
+  const textColor = hasPending ? Colors.light.warning : Colors.light.success;
 
   return (
     <TouchableOpacity
@@ -70,8 +59,6 @@ export default function SyncStatusBar({
           <Text style={[styles.statusText, { color: textColor }]}>
             {isSyncing
               ? 'Syncing...'
-              : hasFailed
-                ? `${failedCount} failed item${failedCount > 1 ? 's' : ''}`
               : hasPending
                 ? `${pendingCount} change${pendingCount > 1 ? 's' : ''} pending`
                 : 'All synced'}
@@ -83,7 +70,7 @@ export default function SyncStatusBar({
       </View>
 
       {/* Sync action hint */}
-      {(hasPending || hasFailed) && !isSyncing && onSyncPress && (
+      {hasPending && !isSyncing && onSyncPress && (
         <Text style={styles.tapHint}>Tap to sync</Text>
       )}
     </TouchableOpacity>

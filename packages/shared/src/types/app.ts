@@ -45,7 +45,7 @@ export interface ModuleAccent {
 }
 
 export interface NavItem {
-  id: string;
+  id: NavSpace;
   label: string;
   href: string;
   icon: string; // lucide icon name

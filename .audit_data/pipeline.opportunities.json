@@ -1,0 +1,9 @@
+{
+  "url": "https://gleamops.vercel.app/pipeline",
+  "tab": "Opportunities",
+  "searchPlaceholder": "Search opportunities...",
+  "emptyStateHeading": "No opportunities",
+  "emptyStateBody": "Create your first opportunity to start tracking the pipeline.",
+  "primaryCTA": "New Opportunity",
+  "secondaryCTA": "Sales Admin"
+}

@@ -52,6 +52,52 @@ function normalizeSeries(values: number[]) {
   return values.map((v) => (Number.isFinite(v) ? (v - min) / range : 0));
 }
 
+export function Sparkline(props: {
+  values: number[];
+  width?: number;
+  height?: number;
+  className?: string;
+  strokeClassName?: string;
+  ariaLabel?: string;
+}) {
+  const width = props.width ?? 140;
+  const height = props.height ?? 36;
+  const vals = props.values.length ? props.values : [0];
+  const n = vals.length;
+  const norm = normalizeSeries(vals);
+  const pad = 2;
+  const innerW = Math.max(1, width - pad * 2);
+  const innerH = Math.max(1, height - pad * 2);
+  const points = norm
+    .map((v, i) => {
+      const x = pad + (n === 1 ? innerW / 2 : (i / (n - 1)) * innerW);
+      const y = pad + (1 - v) * innerH;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(' ');
+
+  return (
+    <svg
+      role="img"
+      aria-label={props.ariaLabel ?? 'Trend'}
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      className={cn('shrink-0', props.className)}
+    >
+      <polyline
+        points={points}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={props.strokeClassName ?? 'text-primary'}
+      />
+    </svg>
+  );
+}
+
 export function MiniBars(props: {
   values: number[];
   width?: number;

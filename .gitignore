@@ -6,7 +6,6 @@ node_modules/
 .next/
 dist/
 .turbo/
-*.tsbuildinfo
 
 # Environment
 .env
@@ -27,10 +26,6 @@ supabase/.branches/
 .DS_Store
 Thumbs.db
 
-# Claude Code worktrees (local checkouts, not source)
-.claude/worktrees/
-.claude/settings.local.json
-
 # Testing
 coverage/
 e2e/.auth/
@@ -46,6 +41,4 @@ blob-report/
 /reports/
 /spreadsheets/
 /scaffold/
-/.audit_data/
-/.audit_screens/
 .vercel

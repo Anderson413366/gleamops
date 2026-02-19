@@ -1,0 +1,576 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#main-content"
+    - complementary [ref=e4]:
+      - link "GleamOps" [ref=e6] [cursor=pointer]:
+        - /url: /home
+        - img [ref=e8]
+        - generic [ref=e10]: GleamOps
+      - button "Search... ⌘K" [ref=e12]:
+        - img [ref=e13]
+        - generic [ref=e16]: Search...
+        - generic [ref=e17]: ⌘K
+      - navigation [ref=e18]:
+        - link "Home" [ref=e19] [cursor=pointer]:
+          - /url: /home
+          - img [ref=e20]
+          - text: Home
+        - link "Pipeline" [ref=e23] [cursor=pointer]:
+          - /url: /pipeline
+          - img [ref=e24]
+          - text: Pipeline
+        - link "CRM" [ref=e27] [cursor=pointer]:
+          - /url: /crm
+          - img [ref=e28]
+          - text: CRM
+        - link "Operations" [ref=e32] [cursor=pointer]:
+          - /url: /operations
+          - img [ref=e33]
+          - text: Operations
+        - link "Workforce" [ref=e35] [cursor=pointer]:
+          - /url: /workforce
+          - img [ref=e36]
+          - text: Workforce
+        - link "Inventory" [ref=e41] [cursor=pointer]:
+          - /url: /inventory
+          - img [ref=e42]
+          - text: Inventory
+        - link "Assets" [ref=e47] [cursor=pointer]:
+          - /url: /assets
+          - img [ref=e48]
+          - text: Assets
+        - link "Vendors" [ref=e50] [cursor=pointer]:
+          - /url: /vendors
+          - img [ref=e51]
+          - text: Vendors
+        - link "Safety" [ref=e56] [cursor=pointer]:
+          - /url: /safety
+          - img [ref=e57]
+          - text: Safety
+        - link "Admin" [ref=e60] [cursor=pointer]:
+          - /url: /admin
+          - img [ref=e61]
+          - text: Admin
+      - button "Quick Action" [ref=e64]:
+        - img [ref=e65]
+        - text: Quick Action
+      - generic [ref=e66]:
+        - generic [ref=e67]:
+          - generic [ref=e68]: AG
+          - generic [ref=e69]:
+            - paragraph [ref=e70]: agomes@andersoncleaning.com
+            - paragraph [ref=e71]: authenticated
+        - link "Settings" [ref=e72] [cursor=pointer]:
+          - /url: /settings?view=profile
+          - img [ref=e73]
+          - text: Settings
+        - button "Sign out" [ref=e76]:
+          - img [ref=e77]
+          - text: Sign out
+    - generic [ref=e80]:
+      - banner [ref=e81]:
+        - generic [ref=e82]:
+          - navigation "Breadcrumb" [ref=e84]:
+            - link "Home" [ref=e86] [cursor=pointer]:
+              - /url: /
+            - generic [ref=e87]:
+              - img [ref=e88]
+              - generic [ref=e90]: Inventory
+          - generic [ref=e91]:
+            - button "Search" [ref=e92]:
+              - img [ref=e93]
+              - generic [ref=e96]: Search...
+              - generic [ref=e97]: ⌘K
+            - generic [ref=e98]:
+              - button "Comfortable density" [ref=e99]:
+                - img [ref=e100]
+              - button "Compact density" [ref=e101]:
+                - img [ref=e102]
+            - button "Theme" [ref=e104]:
+              - img [ref=e105]
+            - button "Notifications" [ref=e108]:
+              - img [ref=e109]
+            - button "AG" [ref=e113] [cursor=pointer]
+      - main [ref=e114]:
+        - generic [ref=e115]:
+          - generic [ref=e116]:
+            - generic [ref=e117]:
+              - heading "Inventory" [level=1] [ref=e118]
+              - paragraph [ref=e119]: Supplies, kits, site assignments, counts, and orders
+            - generic [ref=e120]:
+              - button "Simple View" [ref=e121]:
+                - img [ref=e122]
+                - text: Simple View
+              - button "New Supply" [ref=e124]:
+                - img [ref=e125]
+                - text: New Supply
+          - generic [ref=e126]:
+            - generic [ref=e128]:
+              - paragraph [ref=e129]: Active Supplies
+              - paragraph [ref=e130]: "0"
+            - generic [ref=e132]:
+              - paragraph [ref=e133]: Replenishment Watch
+              - paragraph [ref=e134]: "0"
+            - generic [ref=e136]:
+              - paragraph [ref=e137]: Open Orders
+              - paragraph [ref=e138]: "0"
+            - generic [ref=e140]:
+              - paragraph [ref=e141]: Pending Counts
+              - paragraph [ref=e142]: "0"
+          - generic [ref=e143]:
+            - button "Supply Catalog" [ref=e144]:
+              - img [ref=e145]
+              - text: Supply Catalog
+            - button "Kits" [ref=e149]:
+              - img [ref=e150]
+              - text: Kits
+            - button "Site Assignments" [ref=e153]:
+              - img [ref=e154]
+              - text: Site Assignments
+            - button "Counts" [ref=e157]:
+              - img [ref=e158]
+              - text: Counts
+            - button "Orders" [ref=e161]:
+              - img [ref=e162]
+              - text: Orders
+          - generic [ref=e166]:
+            - img [ref=e167]
+            - textbox "Search supplies..." [ref=e170]
+          - generic [ref=e228]:
+            - generic [ref=e229]:
+              - generic [ref=e230]:
+                - button "List view" [ref=e231]:
+                  - img [ref=e232]
+                - button "Card view" [ref=e233]:
+                  - img [ref=e234]
+              - button "Export 64 records as CSV" [ref=e239]:
+                - img [ref=e240]
+                - text: Export CSV
+            - generic [ref=e243]:
+              - button "All 64" [ref=e244]:
+                - text: All
+                - generic [ref=e245]: "64"
+              - button "Active 0" [ref=e246]:
+                - text: Active
+                - generic [ref=e247]: "0"
+              - button "Discontinued 0" [ref=e248]:
+                - text: Discontinued
+                - generic [ref=e249]: "0"
+            - table [ref=e251]:
+              - rowgroup [ref=e252]:
+                - row "Code Name Category Brand Unit Cost Vendor Status SDS" [ref=e253]:
+                  - columnheader "Code" [ref=e254] [cursor=pointer]:
+                    - generic [ref=e255]:
+                      - text: Code
+                      - img [ref=e256]
+                  - columnheader "Name" [ref=e259] [cursor=pointer]:
+                    - generic [ref=e260]:
+                      - text: Name
+                      - img [ref=e261]
+                  - columnheader "Category" [ref=e263] [cursor=pointer]:
+                    - generic [ref=e264]:
+                      - text: Category
+                      - img [ref=e265]
+                  - columnheader "Brand" [ref=e268]:
+                    - generic [ref=e269]: Brand
+                  - columnheader "Unit" [ref=e270] [cursor=pointer]:
+                    - generic [ref=e271]:
+                      - text: Unit
+                      - img [ref=e272]
+                  - columnheader "Cost" [ref=e275] [cursor=pointer]:
+                    - generic [ref=e276]:
+                      - text: Cost
+                      - img [ref=e277]
+                  - columnheader "Vendor" [ref=e280]:
+                    - generic [ref=e281]: Vendor
+                  - columnheader "Status" [ref=e282]:
+                    - generic [ref=e283]: Status
+                  - columnheader "SDS" [ref=e284]:
+                    - generic [ref=e285]: SDS
+              - rowgroup [ref=e286]:
+                - row "BAG-SAN-WX BAG WAXED SANITARY DISPOSAL LINER 500/CS Liners & Bags Generic Commercial Case — Imperial Dade Active View" [ref=e287] [cursor=pointer]:
+                  - cell "BAG-SAN-WX" [ref=e288]
+                  - cell "BAG WAXED SANITARY DISPOSAL LINER 500/CS" [ref=e289]
+                  - cell "Liners & Bags" [ref=e290]
+                  - cell "Generic Commercial" [ref=e291]
+                  - cell "Case" [ref=e292]
+                  - cell "—" [ref=e293]
+                  - cell "Imperial Dade" [ref=e294]
+                  - cell "Active" [ref=e295]:
+                    - generic [ref=e296]: Active
+                  - cell "View" [ref=e298]:
+                    - link "View" [ref=e299]:
+                      - /url: N/A - Non-hazardous
+                      - img [ref=e300]
+                      - text: View
+                - row "BAT-C-DUR-10 BATTERY C ALKALINE DURACELL COPPERTOP 10/PK Safety & PPE Duracell Pack — Staples Active View" [ref=e304] [cursor=pointer]:
+                  - cell "BAT-C-DUR-10" [ref=e305]
+                  - cell "BATTERY C ALKALINE DURACELL COPPERTOP 10/PK" [ref=e306]
+                  - cell "Safety & PPE" [ref=e307]
+                  - cell "Duracell" [ref=e308]
+                  - cell "Pack" [ref=e309]
+                  - cell "—" [ref=e310]
+                  - cell "Staples" [ref=e311]
+                  - cell "Active" [ref=e312]:
+                    - generic [ref=e313]: Active
+                  - cell "View" [ref=e315]:
+                    - link "View" [ref=e316]:
+                      - /url: N/A - Non-hazardous
+                      - img [ref=e317]
+                      - text: View
+                - row "BAT-D-DUR-12 BATTERY D ALKALINE DURACELL INDUSTRIAL 12/PK Other Duracell Pack — Staples Active View" [ref=e321] [cursor=pointer]:
+                  - cell "BAT-D-DUR-12" [ref=e322]
+                  - cell "BATTERY D ALKALINE DURACELL INDUSTRIAL 12/PK" [ref=e323]
+                  - cell "Other" [ref=e324]
+                  - cell "Duracell" [ref=e325]
+                  - cell "Pack" [ref=e326]
+                  - cell "—" [ref=e327]
+                  - cell "Staples" [ref=e328]
+                  - cell "Active" [ref=e329]:
+                    - generic [ref=e330]: Active
+                  - cell "View" [ref=e332]:
+                    - link "View" [ref=e333]:
+                      - /url: N/A - Non-hazardous
+                      - img [ref=e334]
+                      - text: View
+                - row "BURN-FLR-SUN-4G BURNISH FLOOR SUNSWEPT 4GAL/CS Chemicals - Floor Care Sunswept Case — Imperial Dade Active View" [ref=e338] [cursor=pointer]:
+                  - cell "BURN-FLR-SUN-4G" [ref=e339]
+                  - cell "BURNISH FLOOR SUNSWEPT 4GAL/CS" [ref=e340]
+                  - cell "Chemicals - Floor Care" [ref=e341]
+                  - cell "Sunswept" [ref=e342]
+                  - cell "Case" [ref=e343]
+                  - cell "—" [ref=e344]
+                  - cell "Imperial Dade" [ref=e345]
+                  - cell "Active" [ref=e346]:
+                    - generic [ref=e347]: Active
+                  - cell "View" [ref=e349]:
+                    - link "View" [ref=e350]:
+                      - /url: See SDS Sheet
+                      - img [ref=e351]
+                      - text: View
+                - row "CLN-BTH-NABC-1L CLEANER BATHROOM NABC DISINFECTANT CONCENTRATE 1L 2/CS Chemicals - General NABC Case — Imperial Dade Active View" [ref=e355] [cursor=pointer]:
+                  - cell "CLN-BTH-NABC-1L" [ref=e356]
+                  - cell "CLEANER BATHROOM NABC DISINFECTANT CONCENTRATE 1L 2/CS" [ref=e357]
+                  - cell "Chemicals - General" [ref=e358]
+                  - cell "NABC" [ref=e359]
+                  - cell "Case" [ref=e360]
+                  - cell "—" [ref=e361]
+                  - cell "Imperial Dade" [ref=e362]
+                  - cell "Active" [ref=e363]:
+                    - generic [ref=e364]: Active
+                  - cell "View" [ref=e366]:
+                    - link "View" [ref=e367]:
+                      - /url: See SDS Sheet
+                      - img [ref=e368]
+                      - text: View
+                - row "CLN-DIS-SPRC-32OZ CLEANER DISINFECTANT SPARCLING RTU 32OZ 12/CS Chemicals - General SparCling Case — Imperial Dade Active View" [ref=e372] [cursor=pointer]:
+                  - cell "CLN-DIS-SPRC-32OZ" [ref=e373]
+                  - cell "CLEANER DISINFECTANT SPARCLING RTU 32OZ 12/CS" [ref=e374]
+                  - cell "Chemicals - General" [ref=e375]
+                  - cell "SparCling" [ref=e376]
+                  - cell "Case" [ref=e377]
+                  - cell "—" [ref=e378]
+                  - cell "Imperial Dade" [ref=e379]
+                  - cell "Active" [ref=e380]:
+                    - generic [ref=e381]: Active
+                  - cell "View" [ref=e383]:
+                    - link "View" [ref=e384]:
+                      - /url: See SDS Sheet
+                      - img [ref=e385]
+                      - text: View
+                - row "CLN-GLS-BIORW-1L CLEANER GLASS BIORENEW CONCENTRATE 1L 2/CS Chemicals - General Windex Case — Imperial Dade Active View" [ref=e389] [cursor=pointer]:
+                  - cell "CLN-GLS-BIORW-1L" [ref=e390]
+                  - cell "CLEANER GLASS BIORENEW CONCENTRATE 1L 2/CS" [ref=e391]
+                  - cell "Chemicals - General" [ref=e392]
+                  - cell "Windex" [ref=e393]
+                  - cell "Case" [ref=e394]
+                  - cell "—" [ref=e395]
+                  - cell "Imperial Dade" [ref=e396]
+                  - cell "Active" [ref=e397]:
+                    - generic [ref=e398]: Active
+                  - cell "View" [ref=e400]:
+                    - link "View" [ref=e401]:
+                      - /url: See SDS Sheet
+                      - img [ref=e402]
+                      - text: View
+                - row "CLN-MP-TRIB-1L CLEANER MULTI-PURPOSE TRIBASE CONCENTRATE 1L 2/CS Chemicals - General TriBase Case — Imperial Dade Active View" [ref=e406] [cursor=pointer]:
+                  - cell "CLN-MP-TRIB-1L" [ref=e407]
+                  - cell "CLEANER MULTI-PURPOSE TRIBASE CONCENTRATE 1L 2/CS" [ref=e408]
+                  - cell "Chemicals - General" [ref=e409]
+                  - cell "TriBase" [ref=e410]
+                  - cell "Case" [ref=e411]
+                  - cell "—" [ref=e412]
+                  - cell "Imperial Dade" [ref=e413]
+                  - cell "Active" [ref=e414]:
+                    - generic [ref=e415]: Active
+                  - cell "View" [ref=e417]:
+                    - link "View" [ref=e418]:
+                      - /url: See SDS Sheet
+                      - img [ref=e419]
+                      - text: View
+                - row "DISP-SANT-PUR DISPENSER SANITIZER MANUAL PURELL EACH Chemicals - Restroom Purell Each — Imperial Dade Active View" [ref=e423] [cursor=pointer]:
+                  - cell "DISP-SANT-PUR" [ref=e424]
+                  - cell "DISPENSER SANITIZER MANUAL PURELL EACH" [ref=e425]
+                  - cell "Chemicals - Restroom" [ref=e426]
+                  - cell "Purell" [ref=e427]
+                  - cell "Each" [ref=e428]
+                  - cell "—" [ref=e429]
+                  - cell "Imperial Dade" [ref=e430]
+                  - cell "Active" [ref=e431]:
+                    - generic [ref=e432]: Active
+                  - cell "View" [ref=e434]:
+                    - link "View" [ref=e435]:
+                      - /url: N/A - Non-hazardous
+                      - img [ref=e436]
+                      - text: View
+                - row "DISP-SOAP-DEB-M DISPENSER SOAP MANUAL DEB BLACK PROFILE EACH Chemicals - General Deb Each — Imperial Dade Active View" [ref=e440] [cursor=pointer]:
+                  - cell "DISP-SOAP-DEB-M" [ref=e441]
+                  - cell "DISPENSER SOAP MANUAL DEB BLACK PROFILE EACH" [ref=e442]
+                  - cell "Chemicals - General" [ref=e443]
+                  - cell "Deb" [ref=e444]
+                  - cell "Each" [ref=e445]
+                  - cell "—" [ref=e446]
+                  - cell "Imperial Dade" [ref=e447]
+                  - cell "Active" [ref=e448]:
+                    - generic [ref=e449]: Active
+                  - cell "View" [ref=e451]:
+                    - link "View" [ref=e452]:
+                      - /url: N/A - Non-hazardous
+                      - img [ref=e453]
+                      - text: View
+                - row "DISP-SOAP-GP DISPENSER SOAP MANUAL GP SMOKE GRAY EACH Chemicals - General Georgia-Pacific Each — Imperial Dade Active View" [ref=e457] [cursor=pointer]:
+                  - cell "DISP-SOAP-GP" [ref=e458]
+                  - cell "DISPENSER SOAP MANUAL GP SMOKE GRAY EACH" [ref=e459]
+                  - cell "Chemicals - General" [ref=e460]
+                  - cell "Georgia-Pacific" [ref=e461]
+                  - cell "Each" [ref=e462]
+                  - cell "—" [ref=e463]
+                  - cell "Imperial Dade" [ref=e464]
+                  - cell "Active" [ref=e465]:
+                    - generic [ref=e466]: Active
+                  - cell "View" [ref=e468]:
+                    - link "View" [ref=e469]:
+                      - /url: N/A - Non-hazardous
+                      - img [ref=e470]
+                      - text: View
+                - row "DISP-SOAP-DEB-TF DISPENSER SOAP TOUCH-FREE DEB BLACK/CHROME EACH Chemicals - General Deb Each — Imperial Dade Active View" [ref=e474] [cursor=pointer]:
+                  - cell "DISP-SOAP-DEB-TF" [ref=e475]
+                  - cell "DISPENSER SOAP TOUCH-FREE DEB BLACK/CHROME EACH" [ref=e476]
+                  - cell "Chemicals - General" [ref=e477]
+                  - cell "Deb" [ref=e478]
+                  - cell "Each" [ref=e479]
+                  - cell "—" [ref=e480]
+                  - cell "Imperial Dade" [ref=e481]
+                  - cell "Active" [ref=e482]:
+                    - generic [ref=e483]: Active
+                  - cell "View" [ref=e485]:
+                    - link "View" [ref=e486]:
+                      - /url: N/A - Non-hazardous
+                      - img [ref=e487]
+                      - text: View
+                - row "DISP-TT-JRT-TWN DISPENSER TISSUE TWIN JUMBO WHITE EACH Paper Products Georgia-Pacific Each — Imperial Dade Active View" [ref=e491] [cursor=pointer]:
+                  - cell "DISP-TT-JRT-TWN" [ref=e492]
+                  - cell "DISPENSER TISSUE TWIN JUMBO WHITE EACH" [ref=e493]
+                  - cell "Paper Products" [ref=e494]
+                  - cell "Georgia-Pacific" [ref=e495]
+                  - cell "Each" [ref=e496]
+                  - cell "—" [ref=e497]
+                  - cell "Imperial Dade" [ref=e498]
+                  - cell "Active" [ref=e499]:
+                    - generic [ref=e500]: Active
+                  - cell "View" [ref=e502]:
+                    - link "View" [ref=e503]:
+                      - /url: N/A - Non-hazardous
+                      - img [ref=e504]
+                      - text: View
+                - row "ELIM-ODR-CNSM-1GAL ELIMINATOR ODOR CONSUME NATURES WAY RTU 1GAL 4/CS Other Consume Case — Imperial Dade Active View" [ref=e508] [cursor=pointer]:
+                  - cell "ELIM-ODR-CNSM-1GAL" [ref=e509]
+                  - cell "ELIMINATOR ODOR CONSUME NATURES WAY RTU 1GAL 4/CS" [ref=e510]
+                  - cell "Other" [ref=e511]
+                  - cell "Consume" [ref=e512]
+                  - cell "Case" [ref=e513]
+                  - cell "—" [ref=e514]
+                  - cell "Imperial Dade" [ref=e515]
+                  - cell "Active" [ref=e516]:
+                    - generic [ref=e517]: Active
+                  - cell "View" [ref=e519]:
+                    - link "View" [ref=e520]:
+                      - /url: See SDS Sheet
+                      - img [ref=e521]
+                      - text: View
+                - row "VAC-BAG-6QT-10 FILTER VACUUM BAG 6QT 10/PK Liners & Bags Generic Commercial Pack — Uline Active View" [ref=e525] [cursor=pointer]:
+                  - cell "VAC-BAG-6QT-10" [ref=e526]
+                  - cell "FILTER VACUUM BAG 6QT 10/PK" [ref=e527]
+                  - cell "Liners & Bags" [ref=e528]
+                  - cell "Generic Commercial" [ref=e529]
+                  - cell "Pack" [ref=e530]
+                  - cell "—" [ref=e531]
+                  - cell "Uline" [ref=e532]
+                  - cell "Active" [ref=e533]:
+                    - generic [ref=e534]: Active
+                  - cell "View" [ref=e536]:
+                    - link "View" [ref=e537]:
+                      - /url: N/A - Non-hazardous
+                      - img [ref=e538]
+                      - text: View
+                - row "FIN-FLR-ISHN-5G FINISH FLOOR ISHINE HIGH-GLOSS 5GAL PAIL Chemicals - Floor Care iShine Pail — Imperial Dade Active View" [ref=e542] [cursor=pointer]:
+                  - cell "FIN-FLR-ISHN-5G" [ref=e543]
+                  - cell "FINISH FLOOR ISHINE HIGH-GLOSS 5GAL PAIL" [ref=e544]
+                  - cell "Chemicals - Floor Care" [ref=e545]
+                  - cell "iShine" [ref=e546]
+                  - cell "Pail" [ref=e547]
+                  - cell "—" [ref=e548]
+                  - cell "Imperial Dade" [ref=e549]
+                  - cell "Active" [ref=e550]:
+                    - generic [ref=e551]: Active
+                  - cell "View" [ref=e553]:
+                    - link "View" [ref=e554]:
+                      - /url: See SDS Sheet
+                      - img [ref=e555]
+                      - text: View
+                - row "SAFE-GLAS-CLR GLASSES SAFETY CLEAR ANTI-FOG EACH Safety & PPE 3M Each — Uline Active View" [ref=e559] [cursor=pointer]:
+                  - cell "SAFE-GLAS-CLR" [ref=e560]
+                  - cell "GLASSES SAFETY CLEAR ANTI-FOG EACH" [ref=e561]
+                  - cell "Safety & PPE" [ref=e562]
+                  - cell "3M" [ref=e563]
+                  - cell "Each" [ref=e564]
+                  - cell "—" [ref=e565]
+                  - cell "Uline" [ref=e566]
+                  - cell "Active" [ref=e567]:
+                    - generic [ref=e568]: Active
+                  - cell "View" [ref=e570]:
+                    - link "View" [ref=e571]:
+                      - /url: N/A - Non-hazardous
+                      - img [ref=e572]
+                      - text: View
+                - row "GLV-NIT-LG-100 GLOVE NITRILE LARGE POWDER-FREE 100/BOX 10 BOXES Safety & PPE Generic Case — Uline Active View" [ref=e576] [cursor=pointer]:
+                  - cell "GLV-NIT-LG-100" [ref=e577]
+                  - cell "GLOVE NITRILE LARGE POWDER-FREE 100/BOX 10 BOXES" [ref=e578]
+                  - cell "Safety & PPE" [ref=e579]
+                  - cell "Generic" [ref=e580]
+                  - cell "Case" [ref=e581]
+                  - cell "—" [ref=e582]
+                  - cell "Uline" [ref=e583]
+                  - cell "Active" [ref=e584]:
+                    - generic [ref=e585]: Active
+                  - cell "View" [ref=e587]:
+                    - link "View" [ref=e588]:
+                      - /url: N/A - Non-hazardous
+                      - img [ref=e589]
+                      - text: View
+                - row "GLV-NIT-MD-100 GLOVE NITRILE MEDIUM POWDER-FREE 100/BOX 10 BOXES Safety & PPE Generic Case — Uline Active View" [ref=e593] [cursor=pointer]:
+                  - cell "GLV-NIT-MD-100" [ref=e594]
+                  - cell "GLOVE NITRILE MEDIUM POWDER-FREE 100/BOX 10 BOXES" [ref=e595]
+                  - cell "Safety & PPE" [ref=e596]
+                  - cell "Generic" [ref=e597]
+                  - cell "Case" [ref=e598]
+                  - cell "—" [ref=e599]
+                  - cell "Uline" [ref=e600]
+                  - cell "Active" [ref=e601]:
+                    - generic [ref=e602]: Active
+                  - cell "View" [ref=e604]:
+                    - link "View" [ref=e605]:
+                      - /url: N/A - Non-hazardous
+                      - img [ref=e606]
+                      - text: View
+                - row "GLV-NIT-SM-100 GLOVE NITRILE SMALL POWDER-FREE 100/BOX 10 BOXES Safety & PPE Generic Case — Uline Active View" [ref=e610] [cursor=pointer]:
+                  - cell "GLV-NIT-SM-100" [ref=e611]
+                  - cell "GLOVE NITRILE SMALL POWDER-FREE 100/BOX 10 BOXES" [ref=e612]
+                  - cell "Safety & PPE" [ref=e613]
+                  - cell "Generic" [ref=e614]
+                  - cell "Case" [ref=e615]
+                  - cell "—" [ref=e616]
+                  - cell "Uline" [ref=e617]
+                  - cell "Active" [ref=e618]:
+                    - generic [ref=e619]: Active
+                  - cell "View" [ref=e621]:
+                    - link "View" [ref=e622]:
+                      - /url: N/A - Non-hazardous
+                      - img [ref=e623]
+                      - text: View
+                - row "GLV-NIT-XL-100 GLOVE NITRILE X-LARGE POWDER-FREE 100/BOX 10 BOXES Safety & PPE Generic Case — Uline Active View" [ref=e627] [cursor=pointer]:
+                  - cell "GLV-NIT-XL-100" [ref=e628]
+                  - cell "GLOVE NITRILE X-LARGE POWDER-FREE 100/BOX 10 BOXES" [ref=e629]
+                  - cell "Safety & PPE" [ref=e630]
+                  - cell "Generic" [ref=e631]
+                  - cell "Case" [ref=e632]
+                  - cell "—" [ref=e633]
+                  - cell "Uline" [ref=e634]
+                  - cell "Active" [ref=e635]:
+                    - generic [ref=e636]: Active
+                  - cell "View" [ref=e638]:
+                    - link "View" [ref=e639]:
+                      - /url: N/A - Non-hazardous
+                      - img [ref=e640]
+                      - text: View
+                - row "LNR-16-LT LINER 16 GAL 12MIC LIGHT-DUTY CLEAR 500/CS Liners & Bags Generic Commercial Case — Uline Active View" [ref=e644] [cursor=pointer]:
+                  - cell "LNR-16-LT" [ref=e645]
+                  - cell "LINER 16 GAL 12MIC LIGHT-DUTY CLEAR 500/CS" [ref=e646]
+                  - cell "Liners & Bags" [ref=e647]
+                  - cell "Generic Commercial" [ref=e648]
+                  - cell "Case" [ref=e649]
+                  - cell "—" [ref=e650]
+                  - cell "Uline" [ref=e651]
+                  - cell "Active" [ref=e652]:
+                    - generic [ref=e653]: Active
+                  - cell "View" [ref=e655]:
+                    - link "View" [ref=e656]:
+                      - /url: N/A - Non-hazardous
+                      - img [ref=e657]
+                      - text: View
+                - row "LNR-33-HD LINER 33 GAL 1.5M HEAVY-DUTY BLACK 100/CS Liners & Bags Generic Commercial Case — Uline Active View" [ref=e661] [cursor=pointer]:
+                  - cell "LNR-33-HD" [ref=e662]
+                  - cell "LINER 33 GAL 1.5M HEAVY-DUTY BLACK 100/CS" [ref=e663]
+                  - cell "Liners & Bags" [ref=e664]
+                  - cell "Generic Commercial" [ref=e665]
+                  - cell "Case" [ref=e666]
+                  - cell "—" [ref=e667]
+                  - cell "Uline" [ref=e668]
+                  - cell "Active" [ref=e669]:
+                    - generic [ref=e670]: Active
+                  - cell "View" [ref=e672]:
+                    - link "View" [ref=e673]:
+                      - /url: N/A - Non-hazardous
+                      - img [ref=e674]
+                      - text: View
+                - row "LNR-33-LT LINER 33 GAL 16MIC LIGHT-DUTY CLEAR 250/CS Liners & Bags Generic Commercial Case — Uline Active View" [ref=e678] [cursor=pointer]:
+                  - cell "LNR-33-LT" [ref=e679]
+                  - cell "LINER 33 GAL 16MIC LIGHT-DUTY CLEAR 250/CS" [ref=e680]
+                  - cell "Liners & Bags" [ref=e681]
+                  - cell "Generic Commercial" [ref=e682]
+                  - cell "Case" [ref=e683]
+                  - cell "—" [ref=e684]
+                  - cell "Uline" [ref=e685]
+                  - cell "Active" [ref=e686]:
+                    - generic [ref=e687]: Active
+                  - cell "View" [ref=e689]:
+                    - link "View" [ref=e690]:
+                      - /url: N/A - Non-hazardous
+                      - img [ref=e691]
+                      - text: View
+                - row "LNR-56-HD LINER 56 GAL 1.5M HEAVY-DUTY BLACK 100/CS Liners & Bags Generic Commercial Case — Uline Active View" [ref=e695] [cursor=pointer]:
+                  - cell "LNR-56-HD" [ref=e696]
+                  - cell "LINER 56 GAL 1.5M HEAVY-DUTY BLACK 100/CS" [ref=e697]
+                  - cell "Liners & Bags" [ref=e698]
+                  - cell "Generic Commercial" [ref=e699]
+                  - cell "Case" [ref=e700]
+                  - cell "—" [ref=e701]
+                  - cell "Uline" [ref=e702]
+                  - cell "Active" [ref=e703]:
+                    - generic [ref=e704]: Active
+                  - cell "View" [ref=e706]:
+                    - link "View" [ref=e707]:
+                      - /url: N/A - Non-hazardous
+                      - img [ref=e708]
+                      - text: View
+            - generic [ref=e712]:
+              - generic [ref=e713]: 1–25 of 64
+              - generic [ref=e714]:
+                - button "Previous page" [disabled] [ref=e715]:
+                  - img [ref=e716]
+                - generic [ref=e718]: 1 / 3
+                - button "Next page" [ref=e719]:
+                  - img [ref=e720]
+  - region "Notifications alt+T"
+  - alert [ref=e227]

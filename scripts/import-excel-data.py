@@ -31,11 +31,6 @@ if not SUPABASE_URL or not SERVICE_KEY:
     print('  export SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"')
     sys.exit(1)
 
-if not os.path.isfile(EXCEL_PATH):
-    print(f'ERROR: Excel file not found at: {EXCEL_PATH}')
-    print('  export EXCEL_PATH="/absolute/path/to/Anderson_Cleaning_Database_UPDATED_Feb2026.xlsx"')
-    sys.exit(1)
-
 HEADERS = {
     'apikey': SERVICE_KEY,
     'Authorization': f'Bearer {SERVICE_KEY}',

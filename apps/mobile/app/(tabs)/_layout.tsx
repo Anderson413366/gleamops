@@ -44,22 +44,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'My Day',
+          title: 'Today',
           headerTitle: 'GleamOps',
-        }}
-      />
-      <Tabs.Screen
-        name="schedule"
-        options={{
-          title: 'Schedule',
-          headerTitle: 'My Schedule',
-        }}
-      />
-      <Tabs.Screen
-        name="work"
-        options={{
-          title: 'Work',
-          headerTitle: 'Work Execution',
         }}
       />
       <Tabs.Screen
@@ -67,13 +53,6 @@ export default function TabLayout() {
         options={{
           title: 'Tickets',
           headerTitle: 'Work Tickets',
-        }}
-      />
-      <Tabs.Screen
-        name="sync-inbox"
-        options={{
-          title: 'Sync',
-          headerTitle: 'Sync Inbox',
         }}
       />
       <Tabs.Screen

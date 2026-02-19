@@ -1,0 +1,197 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#main-content"
+    - complementary [ref=e4]:
+      - link "GleamOps" [ref=e6] [cursor=pointer]:
+        - /url: /home
+        - img [ref=e8]
+        - generic [ref=e10]: GleamOps
+      - button "Search... ⌘K" [ref=e12]:
+        - img [ref=e13]
+        - generic [ref=e16]: Search...
+        - generic [ref=e17]: ⌘K
+      - navigation [ref=e18]:
+        - link "Home" [ref=e19] [cursor=pointer]:
+          - /url: /home
+          - img [ref=e20]
+          - text: Home
+        - link "Pipeline" [ref=e23] [cursor=pointer]:
+          - /url: /pipeline
+          - img [ref=e24]
+          - text: Pipeline
+        - link "CRM" [ref=e27] [cursor=pointer]:
+          - /url: /crm
+          - img [ref=e28]
+          - text: CRM
+        - link "Operations" [ref=e32] [cursor=pointer]:
+          - /url: /operations
+          - img [ref=e33]
+          - text: Operations
+        - link "Workforce" [ref=e35] [cursor=pointer]:
+          - /url: /workforce
+          - img [ref=e36]
+          - text: Workforce
+        - link "Inventory" [ref=e41] [cursor=pointer]:
+          - /url: /inventory
+          - img [ref=e42]
+          - text: Inventory
+        - link "Assets" [ref=e46] [cursor=pointer]:
+          - /url: /assets
+          - img [ref=e47]
+          - text: Assets
+        - link "Vendors" [ref=e49] [cursor=pointer]:
+          - /url: /vendors
+          - img [ref=e50]
+          - text: Vendors
+        - link "Safety" [ref=e55] [cursor=pointer]:
+          - /url: /safety
+          - img [ref=e56]
+          - text: Safety
+        - link "Admin" [ref=e59] [cursor=pointer]:
+          - /url: /admin
+          - img [ref=e60]
+          - text: Admin
+      - button "Quick Action" [ref=e63]:
+        - img [ref=e64]
+        - text: Quick Action
+      - generic [ref=e65]:
+        - generic [ref=e66]:
+          - generic [ref=e67]: AG
+          - generic [ref=e68]:
+            - paragraph [ref=e69]: agomes@andersoncleaning.com
+            - paragraph [ref=e70]: authenticated
+        - link "Settings" [ref=e71] [cursor=pointer]:
+          - /url: /settings?view=profile
+          - img [ref=e72]
+          - text: Settings
+        - button "Sign out" [ref=e75]:
+          - img [ref=e76]
+          - text: Sign out
+    - generic [ref=e79]:
+      - banner [ref=e80]:
+        - generic [ref=e81]:
+          - navigation "Breadcrumb" [ref=e83]:
+            - link "Home" [ref=e85] [cursor=pointer]:
+              - /url: /
+            - generic [ref=e86]:
+              - img [ref=e87]
+              - generic [ref=e89]: Settings
+          - generic [ref=e90]:
+            - button "Search" [ref=e91]:
+              - img [ref=e92]
+              - generic [ref=e95]: Search...
+              - generic [ref=e96]: ⌘K
+            - generic [ref=e97]:
+              - button "Comfortable density" [ref=e98]:
+                - img [ref=e99]
+              - button "Compact density" [ref=e100]:
+                - img [ref=e101]
+            - button "Theme" [ref=e103]:
+              - img [ref=e104]
+            - button "Notifications" [ref=e107]:
+              - img [ref=e108]
+            - button "AG" [ref=e112] [cursor=pointer]
+      - main [ref=e113]:
+        - generic [ref=e114]:
+          - generic [ref=e115]:
+            - heading "Settings" [level=1] [ref=e116]
+            - paragraph [ref=e117]: Manage your company profile and preferences
+          - generic [ref=e118]:
+            - generic [ref=e119]:
+              - heading "Company Profile" [level=3] [ref=e121]:
+                - img [ref=e122]
+                - text: Company Profile
+              - generic [ref=e126]:
+                - generic [ref=e127]:
+                  - generic [ref=e128]: Company Name
+                  - textbox "Company Name" [ref=e129]:
+                    - /placeholder: Your company name
+                - generic [ref=e130]:
+                  - generic [ref=e131]: Company Phone
+                  - textbox "Company Phone" [ref=e132]:
+                    - /placeholder: (555) 123-4567
+                - generic [ref=e133]:
+                  - generic [ref=e134]: Company Email
+                  - textbox "Company Email" [ref=e135]:
+                    - /placeholder: info@company.com
+                - button "Save Changes" [ref=e137]:
+                  - img [ref=e138]
+                  - text: Save Changes
+            - generic [ref=e142]:
+              - heading "Appearance" [level=3] [ref=e144]:
+                - img [ref=e145]
+                - text: Appearance
+              - generic [ref=e151]:
+                - generic [ref=e152]:
+                  - paragraph [ref=e153]: Theme
+                  - generic [ref=e154]:
+                    - button "Light" [ref=e155]:
+                      - img [ref=e156]
+                      - text: Light
+                    - button "Dark" [ref=e162]:
+                      - img [ref=e163]
+                      - text: Dark
+                - generic [ref=e165]:
+                  - generic [ref=e166]:
+                    - paragraph [ref=e167]: True Black Mode
+                    - paragraph [ref=e168]: Uses pure black backgrounds for OLED screens. Only applies in dark mode.
+                  - switch [ref=e169] [cursor=pointer]
+            - generic [ref=e170]:
+              - heading "Neurodivergent Preferences" [level=3] [ref=e172]:
+                - img [ref=e173]
+                - text: Neurodivergent Preferences
+              - generic [ref=e183]:
+                - button "Focus Mode Hide non-essential panels and keep one task at a time in view. Off" [ref=e184]:
+                  - generic [ref=e185]:
+                    - paragraph [ref=e186]:
+                      - img [ref=e187]
+                      - text: Focus Mode
+                    - paragraph [ref=e193]: Hide non-essential panels and keep one task at a time in view.
+                  - generic [ref=e194]: "Off"
+                - button "Simple View (Low-Energy Mode) Show only the most important cards and actions on dense pages. Off" [ref=e195]:
+                  - generic [ref=e196]:
+                    - paragraph [ref=e197]:
+                      - img [ref=e198]
+                      - text: Simple View (Low-Energy Mode)
+                    - paragraph [ref=e203]: Show only the most important cards and actions on dense pages.
+                  - generic [ref=e204]: "Off"
+                - button "Time Awareness Show subtle time context like last refresh and time-sensitive indicators. On" [ref=e205]:
+                  - generic [ref=e206]:
+                    - paragraph [ref=e207]:
+                      - img [ref=e208]
+                      - text: Time Awareness
+                    - paragraph [ref=e211]: Show subtle time context like last refresh and time-sensitive indicators.
+                  - generic [ref=e212]: "On"
+                - button "Positive Completion Feedback Enable gentle success feedback after key actions complete. On" [ref=e213]:
+                  - generic [ref=e214]:
+                    - paragraph [ref=e215]:
+                      - img [ref=e216]
+                      - text: Positive Completion Feedback
+                    - paragraph [ref=e218]: Enable gentle success feedback after key actions complete.
+                  - generic [ref=e219]: "On"
+                - button "Dyslexia Font Assist Use stronger letter shapes and spacing for easier reading. Off" [ref=e220]:
+                  - generic [ref=e221]:
+                    - paragraph [ref=e222]:
+                      - img [ref=e223]
+                      - text: Dyslexia Font Assist
+                    - paragraph [ref=e225]: Use stronger letter shapes and spacing for easier reading.
+                  - generic [ref=e226]: "Off"
+            - generic [ref=e227]:
+              - heading "Account" [level=3] [ref=e229]:
+                - img [ref=e230]
+                - text: Account
+              - generic [ref=e232]:
+                - generic [ref=e233]:
+                  - paragraph [ref=e234]: Email
+                  - paragraph [ref=e235]: agomes@andersoncleaning.com
+                - generic [ref=e236]:
+                  - paragraph [ref=e237]: Role
+                  - paragraph [ref=e238]: Authenticated
+            - generic [ref=e239]:
+              - heading "Notifications" [level=3] [ref=e241]:
+                - img [ref=e242]
+                - text: Notifications
+              - paragraph [ref=e246]: Notification preferences coming soon.
+  - region "Notifications alt+T"
+  - alert [ref=e247]

@@ -1,13 +1,19 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Users, Building2, CalendarClock, ArrowLeftRight, Lock } from 'lucide-react';
-import { ChipTabs, SearchInput, EmptyState } from '@gleamops/ui';
-import type { WorkTicket } from '@gleamops/shared';
+import { Calendar, ClipboardList, Briefcase, ClipboardCheck, FileText } from 'lucide-react';
+import { ChipTabs, SearchInput } from '@gleamops/ui';
+import type { WorkTicket, Inspection } from '@gleamops/shared';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
 
-import WeekCalendar from './calendar/week-calendar';
+import TicketsTable from './tickets/tickets-table';
 import { TicketDetail } from './tickets/ticket-detail';
+import JobsTable from './jobs/jobs-table';
+import WeekCalendar from './calendar/week-calendar';
+import InspectionsTable from './inspections/inspections-table';
+import { InspectionDetail } from './inspections/inspection-detail';
+import { CreateInspectionForm } from './inspections/create-inspection-form';
+import TemplatesTable from './inspections/templates-table';
 
 interface TicketWithRelations extends WorkTicket {
   job?: { job_code: string; billing_amount?: number | null } | null;
@@ -20,92 +26,70 @@ interface TicketWithRelations extends WorkTicket {
   assignments?: { staff?: { full_name: string } | null }[];
 }
 
+interface InspectionWithRelations extends Inspection {
+  site?: { name: string; site_code: string } | null;
+  inspector?: { full_name: string; staff_code: string } | null;
+  template?: { name: string } | null;
+  ticket?: { ticket_code: string } | null;
+}
+
 const TABS = [
-  { key: 'by-employee', label: 'By Employee', icon: <Users className="h-4 w-4" /> },
-  { key: 'by-site', label: 'By Site', icon: <Building2 className="h-4 w-4" /> },
-  { key: 'availability', label: 'Availability', icon: <CalendarClock className="h-4 w-4" /> },
-  { key: 'trades', label: 'Trades', icon: <ArrowLeftRight className="h-4 w-4" /> },
-  { key: 'publish-lock', label: 'Publish And Lock', icon: <Lock className="h-4 w-4" /> },
+  { key: 'calendar', label: 'Calendar', icon: <Calendar className="h-4 w-4" /> },
+  { key: 'tickets', label: 'Work Tickets', icon: <ClipboardList className="h-4 w-4" /> },
+  { key: 'jobs', label: 'Service Plans', icon: <Briefcase className="h-4 w-4" /> },
+  { key: 'inspections', label: 'Inspections', icon: <ClipboardCheck className="h-4 w-4" /> },
+  { key: 'templates', label: 'Templates', icon: <FileText className="h-4 w-4" /> },
 ];
 
 export default function SchedulePageClient() {
   const [tab, setTab] = useSyncedTab({
     tabKeys: TABS.map((entry) => entry.key),
-    defaultTab: 'by-employee',
-    aliases: { employee: 'by-employee', site: 'by-site', calendar: 'by-employee' },
+    defaultTab: 'calendar',
+    aliases: { service_plans: 'jobs', 'service-plans': 'jobs' },
   });
   const [search, setSearch] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedTicket, setSelectedTicket] = useState<TicketWithRelations | null>(null);
+  const [selectedInspection, setSelectedInspection] = useState<InspectionWithRelations | null>(null);
+  const [showCreateInspection, setShowCreateInspection] = useState(false);
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Employee Schedule</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          By Employee, By Site, Availability, Trades, Publish And Lock
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Schedule</h1>
+          <p className="text-sm text-muted-foreground mt-1">Calendar, Work Tickets, Service Plans, Inspections, Templates</p>
+        </div>
       </div>
 
       <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
-
-      {(tab === 'availability' || tab === 'trades') && (
+      {tab !== 'calendar' && (
         <SearchInput value={search} onChange={setSearch} placeholder={`Search ${tab}...`} />
       )}
 
-      {tab === 'by-employee' && (
+      {tab === 'calendar' && (
         <WeekCalendar
-          key={`emp-${refreshKey}`}
+          key={`cal-${refreshKey}`}
           onSelectTicket={(t) => setSelectedTicket(t as TicketWithRelations)}
         />
       )}
-
-      {tab === 'by-site' && (
-        <WeekCalendar
-          key={`site-${refreshKey}`}
-          onSelectTicket={(t) => setSelectedTicket(t as TicketWithRelations)}
+      {tab === 'tickets' && (
+        <TicketsTable
+          key={`t-${refreshKey}`}
+          search={search}
         />
       )}
-
-      {tab === 'availability' && (
-        <EmptyState
-          icon={<CalendarClock className="h-10 w-10" />}
-          title="Staff Availability"
-          description="Manage staff availability windows, time-off requests, and recurring schedules."
-          bullets={[
-            'View and edit staff availability by day/week',
-            'Approve or deny time-off requests',
-            'Set recurring availability patterns',
-          ]}
+      {tab === 'jobs' && <JobsTable key={`j-${refreshKey}`} search={search} />}
+      {tab === 'inspections' && (
+        <InspectionsTable
+          key={`i-${refreshKey}`}
+          search={search}
+          onSelect={(insp) => setSelectedInspection(insp as InspectionWithRelations)}
+          onCreateNew={() => setShowCreateInspection(true)}
         />
       )}
-
-      {tab === 'trades' && (
-        <EmptyState
-          icon={<ArrowLeftRight className="h-10 w-10" />}
-          title="Shift Trades"
-          description="Review and approve shift trade requests between team members."
-          bullets={[
-            'View pending trade requests',
-            'Approve or deny trades with conflict checking',
-            'Trade history and audit trail',
-          ]}
-        />
-      )}
-
-      {tab === 'publish-lock' && (
-        <EmptyState
-          icon={<Lock className="h-10 w-10" />}
-          title="Publish And Lock"
-          description="Publish finalized schedules and lock periods to prevent changes."
-          bullets={[
-            'Publish schedules to notify staff',
-            'Lock schedule periods (Owner/Manager only)',
-            'View publish history and locked ranges',
-          ]}
-        />
-      )}
+      {tab === 'templates' && <TemplatesTable key={`tmpl-${refreshKey}`} search={search} />}
 
       <TicketDetail
         ticket={selectedTicket}
@@ -113,6 +97,25 @@ export default function SchedulePageClient() {
         onClose={() => setSelectedTicket(null)}
         onStatusChange={() => {
           setSelectedTicket(null);
+          refresh();
+        }}
+      />
+
+      <InspectionDetail
+        inspection={selectedInspection}
+        open={!!selectedInspection}
+        onClose={() => setSelectedInspection(null)}
+        onUpdate={() => {
+          setSelectedInspection(null);
+          refresh();
+        }}
+      />
+
+      <CreateInspectionForm
+        open={showCreateInspection}
+        onClose={() => setShowCreateInspection(false)}
+        onCreated={() => {
+          setShowCreateInspection(false);
           refresh();
         }}
       />

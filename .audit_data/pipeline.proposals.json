@@ -1,0 +1,8 @@
+{
+  "url": "https://gleamops.vercel.app/pipeline",
+  "tab": "Proposals",
+  "searchPlaceholder": "Search proposals...",
+  "emptyStateHeading": "No proposals",
+  "emptyStateBody": "Generate a proposal from a priced bid.",
+  "secondaryCTA": "Sales Admin"
+}

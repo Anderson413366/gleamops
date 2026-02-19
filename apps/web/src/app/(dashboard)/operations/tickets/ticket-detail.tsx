@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import {
   ClipboardList, MapPin, Briefcase, Calendar, Clock,
   UserPlus, X, Users, CheckSquare, Square, Camera, ImageIcon,
-  AlertTriangle, Eye, Timer, Shield, Star,
+  AlertTriangle, Filter, Eye, Timer, Shield, Star,
   ExternalLink, Key, Package, Plus,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -28,8 +28,6 @@ import type {
   TicketSupplyUsage,
 } from '@gleamops/shared';
 import { SupplyUsageForm } from '@/components/forms/supply-usage-form';
-import { AssignablePicker, type AssignableValue } from '@/components/assignable-picker';
-import { isValidAssigneePair } from '@gleamops/shared';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -125,12 +123,13 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
   const [assigning, setAssigning] = useState(false);
   const [tradeBusy, setTradeBusy] = useState(false);
   const [showAssignForm, setShowAssignForm] = useState(false);
-  const [selectedAssignee, setSelectedAssignee] = useState<AssignableValue | null>(null);
+  const [selectedStaffId, setSelectedStaffId] = useState('');
   const [selectedRole, setSelectedRole] = useState('CLEANER');
   const [currentStaffId, setCurrentStaffId] = useState<string | null>(null);
   const [tradeRequests, setTradeRequests] = useState<TradeRequestRow[]>([]);
   const [swapTargetByAssignment, setSwapTargetByAssignment] = useState<Record<string, string>>({});
   const [busyMap, setBusyMap] = useState<Map<string, StaffBusyInfo>>(new Map());
+  const [showAvailableOnly, setShowAvailableOnly] = useState(false);
 
   // Time
   const [timeEntries, setTimeEntries] = useState<{ id: string; staff_name: string; start_at: string; end_at: string | null; duration_minutes: number | null; status: string }[]>([]);
@@ -399,10 +398,11 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
 
   useEffect(() => {
     setShowAssignForm(false);
-    setSelectedAssignee(null);
+    setSelectedStaffId('');
     setSelectedRole('CLEANER');
     setTradeRequests([]);
     setSwapTargetByAssignment({});
+    setShowAvailableOnly(false);
     setActiveTab('overview');
   }, [ticket]);
 
@@ -412,15 +412,9 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
   // Handlers
   // -----------------------------------------------------------------------
   const handleAssign = async () => {
-    if (!ticket || !selectedAssignee) return;
+    if (!ticket || !selectedStaffId) return;
     if (ticket.locked_at) {
       toast.error('This ticket is locked by a published schedule period.');
-      return;
-    }
-    const staffId = selectedAssignee.type === 'staff' ? selectedAssignee.id : null;
-    const subcontractorId = selectedAssignee.type === 'subcontractor' ? selectedAssignee.id : null;
-    if (!isValidAssigneePair(staffId, subcontractorId)) {
-      toast.error('Select either a staff member or a subcontractor.');
       return;
     }
     setAssigning(true);
@@ -428,8 +422,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
     const { error } = await supabase.from('ticket_assignments').insert({
       tenant_id: ticket.tenant_id,
       ticket_id: ticket.id,
-      staff_id: staffId,
-      subcontractor_id: subcontractorId,
+      staff_id: selectedStaffId,
       role: selectedRole,
     });
     if (error) {
@@ -437,7 +430,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
       setAssigning(false);
       return;
     }
-    setSelectedAssignee(null);
+    setSelectedStaffId('');
     setSelectedRole('CLEANER');
     setShowAssignForm(false);
     setAssigning(false);
@@ -659,6 +652,23 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
   const assignedStaffIds = useMemo(() => new Set(assignments.map((a) => a.staff_id)), [assignments]);
   const ticketLocked = !!ticket?.locked_at;
 
+  const staffForDropdown = useMemo(() => {
+    return allStaff
+      .filter((s) => !assignedStaffIds.has(s.id))
+      .filter((s) => !showAvailableOnly || !busyMap.has(s.id))
+      .map((s) => {
+        const busy = busyMap.get(s.id);
+        const isBusy = !!busy && busy.tickets.length > 0;
+        const busyLabel = isBusy
+          ? ` [BUSY: ${busy.tickets.map((t) => t.siteName).join(', ')}]`
+          : '';
+        return {
+          value: s.id,
+          label: `${s.full_name} (${s.staff_code}) — ${s.role}${busyLabel}`,
+          isBusy,
+        };
+      });
+  }, [allStaff, assignedStaffIds, busyMap, showAvailableOnly]);
 
   if (!ticket) return null;
 
@@ -1105,20 +1115,31 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
 
                 {showAssignForm && (
                   <div className="p-3 rounded-lg border border-border bg-muted/50 space-y-3">
-                    <AssignablePicker
-                      value={selectedAssignee}
-                      onChange={setSelectedAssignee}
-                      excludeIds={[...assignedStaffIds]}
-                      label="Assign to"
+                    <label className="flex items-center gap-2 text-xs cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={showAvailableOnly}
+                        onChange={(e) => setShowAvailableOnly(e.target.checked)}
+                        className="rounded border-border"
+                      />
+                      <Filter className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-muted-foreground">Show available only</span>
+                      {showAvailableOnly && <Badge color="green">{staffForDropdown.length} available</Badge>}
+                    </label>
+                    <Select
+                      value={selectedStaffId}
+                      onChange={(e) => setSelectedStaffId(e.target.value)}
+                      placeholder="Select staff member..."
+                      options={staffForDropdown}
                     />
-                    {selectedAssignee?.type === 'staff' && busyMap.has(selectedAssignee.id) && (
+                    {selectedStaffId && busyMap.has(selectedStaffId) && (
                       <div className="flex items-start gap-2 p-2 rounded-lg bg-warning/10 border border-warning/30">
                         <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
                         <div className="text-xs">
                           <p className="font-semibold text-warning">Double-booking warning</p>
                           <p className="text-warning">
                             Already assigned to:{' '}
-                            {busyMap.get(selectedAssignee.id)!.tickets.map((t, i) => (
+                            {busyMap.get(selectedStaffId)!.tickets.map((t, i) => (
                               <span key={t.ticketId}>
                                 {i > 0 && ', '}
                                 <span className="font-mono">{t.ticketCode} ({t.siteName}{t.startTime ? ` ${t.startTime}` : ''})</span>
@@ -1130,7 +1151,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                     )}
                     <Select value={selectedRole} onChange={(e) => setSelectedRole(e.target.value)} options={ROLE_OPTIONS} />
                     <div className="flex gap-2">
-                      <Button size="sm" onClick={handleAssign} disabled={!selectedAssignee || assigning}>
+                      <Button size="sm" onClick={handleAssign} disabled={!selectedStaffId || assigning}>
                         {assigning ? 'Assigning...' : 'Add'}
                       </Button>
                       <Button size="sm" variant="secondary" onClick={() => setShowAssignForm(false)}>Cancel</Button>

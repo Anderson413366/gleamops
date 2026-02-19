@@ -123,8 +123,8 @@ export default function ReportsPageClient() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Reports</h1>
-          <p className="text-sm text-muted-foreground mt-1">Operations, Sales, Financial, Quality, Workforce and Inventory dashboards</p>
+          <h1 className="text-2xl font-bold text-foreground">Insights</h1>
+          <p className="text-sm text-muted-foreground mt-1">Operations, Financial, Workforce, Quality, Inventory dashboards</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
           {updatedAt && <Badge color="gray">{`Updated ${updatedAt}`}</Badge>}

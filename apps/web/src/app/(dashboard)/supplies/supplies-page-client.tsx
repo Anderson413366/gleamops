@@ -9,8 +9,8 @@ import { useSyncedTab } from '@/hooks/use-synced-tab';
 import SuppliesTable from '../inventory/supplies/supplies-table';
 import OrdersTable from '../inventory/orders/orders-table';
 import KitsTable from '../inventory/kits/kits-table';
-import EquipmentTable from '../assets/equipment/equipment-table';
-import VendorsTable from '../vendors/vendor-directory/vendors-table';
+import AssetsPanel from './assets-panel';
+import VendorsPanel from './vendors-panel';
 
 const TABS = [
   { key: 'supplies', label: 'Supplies', icon: <Package className="h-4 w-4" /> },
@@ -30,7 +30,7 @@ export default function SuppliesPageClient() {
   const [tab, setTab] = useSyncedTab({
     tabKeys: TABS.map((t) => t.key),
     defaultTab: 'supplies',
-    aliases: { 'supply-catalog': 'supplies', warehouse: 'supplies' },
+    aliases: { 'supply-catalog': 'supplies', warehouse: 'supplies', equipment: 'assets', subcontractors: 'vendors' },
   });
   const [search, setSearch] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
@@ -42,12 +42,10 @@ export default function SuppliesPageClient() {
     pendingCounts: 0,
   });
 
-  // autoCreate triggers
+  // autoCreate triggers for supplies-only tabs
   const [autoCreateSupply, setAutoCreateSupply] = useState(false);
   const [autoCreateKit, setAutoCreateKit] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
-  const [vendorFormOpen, setVendorFormOpen] = useState(false);
-  const [assetFormOpen, setAssetFormOpen] = useState(false);
 
   useEffect(() => {
     async function fetchKpis() {
@@ -80,14 +78,10 @@ export default function SuppliesPageClient() {
       setAutoCreateKit(true);
     } else if (tab === 'orders') {
       setFormOpen(true);
-    } else if (tab === 'assets') {
-      setAssetFormOpen(true);
-    } else if (tab === 'vendors') {
-      setVendorFormOpen(true);
     }
   };
 
-  const addLabel = ADD_LABELS[tab] ?? (tab === 'assets' ? 'New Equipment' : tab === 'vendors' ? 'New Vendor' : '');
+  const addLabel = ADD_LABELS[tab] ?? '';
 
   return (
     <div className="space-y-6">
@@ -104,15 +98,20 @@ export default function SuppliesPageClient() {
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Supplies</p><p className="text-xl font-semibold">{kpis.activeSupplies}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Below Par</p><p className={`text-xl font-semibold ${kpis.belowPar > 0 ? 'text-destructive' : ''}`}>{kpis.belowPar}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Open Orders</p><p className="text-xl font-semibold">{kpis.openOrders}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Pending Counts</p><p className="text-xl font-semibold">{kpis.pendingCounts}</p></CardContent></Card>
-      </div>
+      {/* Top-level KPIs only shown for supply tabs */}
+      {(tab === 'supplies' || tab === 'orders' || tab === 'kits') && (
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Supplies</p><p className="text-xl font-semibold">{kpis.activeSupplies}</p></CardContent></Card>
+          <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Below Par</p><p className={`text-xl font-semibold ${kpis.belowPar > 0 ? 'text-destructive' : ''}`}>{kpis.belowPar}</p></CardContent></Card>
+          <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Open Orders</p><p className="text-xl font-semibold">{kpis.openOrders}</p></CardContent></Card>
+          <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Pending Counts</p><p className="text-xl font-semibold">{kpis.pendingCounts}</p></CardContent></Card>
+        </div>
+      )}
 
       <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
-      <SearchInput value={search} onChange={setSearch} placeholder={`Search ${tab}...`} />
+      {tab !== 'assets' && tab !== 'vendors' && (
+        <SearchInput value={search} onChange={setSearch} placeholder={`Search ${tab}...`} />
+      )}
 
       {tab === 'supplies' && (
         <SuppliesTable
@@ -140,20 +139,18 @@ export default function SuppliesPageClient() {
         />
       )}
       {tab === 'assets' && (
-        <EquipmentTable
+        <AssetsPanel
           key={`assets-${refreshKey}`}
           search={search}
-          formOpen={assetFormOpen}
-          onFormClose={() => setAssetFormOpen(false)}
+          refreshKey={refreshKey}
           onRefresh={refresh}
         />
       )}
       {tab === 'vendors' && (
-        <VendorsTable
+        <VendorsPanel
           key={`vendors-${refreshKey}`}
           search={search}
-          formOpen={vendorFormOpen}
-          onFormClose={() => setVendorFormOpen(false)}
+          refreshKey={refreshKey}
           onRefresh={refresh}
         />
       )}

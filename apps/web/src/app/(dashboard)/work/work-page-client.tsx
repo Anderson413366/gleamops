@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { ClipboardList, ClipboardCheck, Route, MessageSquare } from 'lucide-react';
-import { ChipTabs, SearchInput } from '@gleamops/ui';
+import { ChipTabs, SearchInput, Card, CardContent } from '@gleamops/ui';
 import type { WorkTicket, Inspection, MessageThread } from '@gleamops/shared';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
 
 import TicketsTable from '../operations/tickets/tickets-table';
@@ -60,21 +61,53 @@ export default function WorkPageClient() {
   const [, setShowNewThread] = useState(false);
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
+  // KPIs from Operations
+  const [kpis, setKpis] = useState({
+    todayTickets: 0,
+    openTickets: 0,
+    activeJobs: 0,
+    openAlerts: 0,
+  });
+
+  useEffect(() => {
+    async function fetchKpis() {
+      const supabase = getSupabaseBrowserClient();
+      const today = new Date().toISOString().slice(0, 10);
+      const [todayRes, openRes, jobsRes, alertsRes] = await Promise.all([
+        supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('scheduled_date', today).is('archived_at', null),
+        supabase.from('work_tickets').select('id', { count: 'exact', head: true }).in('status', ['SCHEDULED', 'IN_PROGRESS']).is('archived_at', null),
+        supabase.from('site_jobs').select('id', { count: 'exact', head: true }).eq('status', 'ACTIVE').is('archived_at', null),
+        supabase.from('alerts').select('id', { count: 'exact', head: true }).eq('alert_type', 'TIME_EXCEPTION').is('dismissed_at', null),
+      ]);
+
+      setKpis({
+        todayTickets: todayRes.count ?? 0,
+        openTickets: openRes.count ?? 0,
+        activeJobs: jobsRes.count ?? 0,
+        openAlerts: alertsRes.count ?? 0,
+      });
+    }
+    fetchKpis();
+  }, [refreshKey]);
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Work Execution</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Tickets, Inspections, Routes, Messages
-        </p>
+        <p className="text-sm text-muted-foreground mt-1">Tickets, Inspections, Routes, Messages</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Tickets Today</p><p className="text-xl font-semibold">{kpis.todayTickets}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Open Tickets</p><p className="text-xl font-semibold">{kpis.openTickets}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Service Plans</p><p className="text-xl font-semibold">{kpis.activeJobs}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Open Alerts</p><p className="text-xl font-semibold text-warning">{kpis.openAlerts}</p></CardContent></Card>
       </div>
 
       <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
       <SearchInput value={search} onChange={setSearch} placeholder={`Search ${tab}...`} />
 
-      {tab === 'tickets' && (
-        <TicketsTable key={`t-${refreshKey}`} search={search} />
-      )}
+      {tab === 'tickets' && <TicketsTable key={`t-${refreshKey}`} search={search} />}
 
       {tab === 'inspections' && (
         <InspectionsTable
@@ -85,9 +118,7 @@ export default function WorkPageClient() {
         />
       )}
 
-      {tab === 'routes' && (
-        <RoutesFleetPanel key={`r-${refreshKey}`} search={search} />
-      )}
+      {tab === 'routes' && <RoutesFleetPanel key={`r-${refreshKey}`} search={search} />}
 
       {tab === 'messages' && (
         <MessagesList
@@ -105,29 +136,20 @@ export default function WorkPageClient() {
         ticket={selectedTicket}
         open={!!selectedTicket}
         onClose={() => setSelectedTicket(null)}
-        onStatusChange={() => {
-          setSelectedTicket(null);
-          refresh();
-        }}
+        onStatusChange={() => { setSelectedTicket(null); refresh(); }}
       />
 
       <InspectionDetail
         inspection={selectedInspection}
         open={!!selectedInspection}
         onClose={() => setSelectedInspection(null)}
-        onUpdate={() => {
-          setSelectedInspection(null);
-          refresh();
-        }}
+        onUpdate={() => { setSelectedInspection(null); refresh(); }}
       />
 
       <CreateInspectionForm
         open={showCreateInspection}
         onClose={() => setShowCreateInspection(false)}
-        onCreated={() => {
-          setShowCreateInspection(false);
-          refresh();
-        }}
+        onCreated={() => { setShowCreateInspection(false); refresh(); }}
       />
 
       {selectedThread && (

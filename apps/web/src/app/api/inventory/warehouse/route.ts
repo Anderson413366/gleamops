@@ -1,105 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createProblemDetails } from '@gleamops/shared';
 import { extractAuth, isAuthError } from '@/lib/api/auth-guard';
-import { extractAuditContext, writeAuditMutation } from '@/lib/api/audit';
-import { getServiceClient } from '@/lib/api/service-client';
+import { getWarehouseRecords, createWarehouseRecord } from '@/modules/warehouse';
 
 const INSTANCE = '/api/inventory/warehouse';
 const CONTENT_TYPE_PROBLEM = 'application/problem+json';
-
-function problemResponse(pd: ReturnType<typeof createProblemDetails>) {
-  return NextResponse.json(pd, {
-    status: pd.status,
-    headers: { 'Content-Type': CONTENT_TYPE_PROBLEM },
-  });
-}
 
 export async function GET(request: NextRequest) {
   const auth = await extractAuth(request, INSTANCE);
   if (isAuthError(auth)) return auth;
 
-  const { tenantId } = auth;
-  const db = getServiceClient();
   const resource = request.nextUrl.searchParams.get('resource') ?? 'stock-levels';
-
-  const table =
-    resource === 'locations'
-      ? 'inventory_locations'
-      : resource === 'items'
-        ? 'items'
-        : resource === 'movements'
-          ? 'stock_movements'
-          : 'stock_levels';
-
-  const { data, error } = await db
-    .from(table)
-    .select('*')
-    .eq('tenant_id', tenantId)
-    .is('archived_at', null)
-    .limit(500);
-
-  if (error) {
-    return problemResponse(
-      createProblemDetails('INV_001', 'Failed to load warehouse data', 500, error.message, INSTANCE),
-    );
-  }
-
-  return NextResponse.json({ resource, data: data ?? [] });
+  const result = await getWarehouseRecords(auth.tenantId, resource, INSTANCE);
+  if (!result.success) return NextResponse.json(result.error, { status: result.error.status, headers: { 'Content-Type': CONTENT_TYPE_PROBLEM } });
+  return NextResponse.json(result.data);
 }
 
 export async function POST(request: NextRequest) {
   const auth = await extractAuth(request, INSTANCE);
   if (isAuthError(auth)) return auth;
 
-  const { tenantId, userId } = auth;
   const payload = await request.json();
-  const db = getServiceClient();
-  const table = (payload?.table as string | undefined) ?? 'stock_movements';
-
-  const allowed = new Set([
-    'inventory_locations',
-    'items',
-    'stock_levels',
-    'stock_movements',
-    'purchase_orders',
-    'supply_requests',
-  ]);
-  if (!allowed.has(table)) {
-    return problemResponse(
-      createProblemDetails('INV_002', 'Invalid warehouse table', 400, `Unsupported table: ${table}`, INSTANCE),
-    );
-  }
-
-  const insertPayload = {
-    ...payload,
-    tenant_id: tenantId,
-  };
-  delete (insertPayload as Record<string, unknown>).table;
-
-  const { data, error } = await db
-    .from(table)
-    .insert(insertPayload)
-    .select('*')
-    .single();
-
-  if (error) {
-    return problemResponse(
-      createProblemDetails('INV_003', 'Failed to create warehouse record', 400, error.message, INSTANCE),
-    );
-  }
-
-  await writeAuditMutation({
-    db,
-    tenantId,
-    actorUserId: userId,
-    entityType: table,
-    entityId: data?.id ?? null,
-    entityCode: null,
-    action: 'CREATE',
-    before: null,
-    after: (data as Record<string, unknown>) ?? null,
-    context: extractAuditContext(request, `warehouse_${table}_create`),
-  });
-
-  return NextResponse.json({ table, data }, { status: 201 });
+  const result = await createWarehouseRecord(auth, request, payload, INSTANCE);
+  if (!result.success) return NextResponse.json(result.error, { status: result.error.status, headers: { 'Content-Type': CONTENT_TYPE_PROBLEM } });
+  return NextResponse.json(result.data, { status: 201 });
 }

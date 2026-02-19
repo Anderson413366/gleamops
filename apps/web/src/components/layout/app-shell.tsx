@@ -6,6 +6,7 @@ import { X } from 'lucide-react';
 import { Sidebar } from './sidebar';
 import { Header } from './header';
 import { OfflineBanner } from './offline-banner';
+import { ErrorBoundary } from './error-boundary';
 import { Button } from '@gleamops/ui';
 import { DEFAULT_MODULE_KEY, getModuleFromPathname, MODULE_ACCENTS } from '@gleamops/shared';
 import { useUiPreferences } from '@/hooks/use-ui-preferences';
@@ -50,7 +51,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         )}
         <main id="main-content" tabIndex={-1} className="app-shell-main mx-auto w-full max-w-[1680px] px-4 py-6 sm:px-6 lg:px-8">
-          {children}
+          <ErrorBoundary>{children}</ErrorBoundary>
         </main>
       </div>
 

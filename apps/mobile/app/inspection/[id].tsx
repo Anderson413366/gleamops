@@ -12,7 +12,7 @@ import {
 } from '../../src/hooks/use-inspection-detail';
 import { enqueue, getPendingInspectionItemIds } from '../../src/lib/mutation-queue';
 import { useSyncState, syncNow } from '../../src/hooks/use-sync';
-import SyncStatusBar from '../../src/components/SyncStatusBar';
+import SyncStatusBar from '../../src/components/sync-status-bar';
 
 // ---------------------------------------------------------------------------
 // Constants

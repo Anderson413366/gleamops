@@ -1,0 +1,169 @@
+gleamops_dev_pack/                              # Turborepo monorepo (pnpm 9.15.9)
+├── .claude/                                     # UNCHANGED
+├── apps/
+│   ├── mobile/                                  # CHANGED (batch 18: kebab-case renames)
+│   │   ├── app/                                 # UNCHANGED
+│   │   └── src/
+│   │       ├── components/
+│   │       │   ├── checklist-item.tsx            # RENAMED (was ChecklistItem.tsx)
+│   │       │   ├── sync-status-bar.tsx           # RENAMED (was SyncStatusBar.tsx)
+│   │       │   └── ticket-card.tsx               # RENAMED (was TicketCard.tsx)
+│   │       ├── contexts/                        # UNCHANGED
+│   │       ├── hooks/                           # UNCHANGED
+│   │       └── lib/                             # UNCHANGED
+│   ├── web/
+│   │   ├── e2e/                                 # UNCHANGED (15 Playwright specs)
+│   │   ├── public/                              # UNCHANGED
+│   │   └── src/
+│   │       ├── app/
+│   │       │   ├── (auth)/login/                # UNCHANGED
+│   │       │   ├── (dashboard)/                 # UNCHANGED (all page files stay as-is)
+│   │       │   ├── api/                         # MODIFIED — 31/36 routes now thin delegates
+│   │       │   │   ├── contracts/route.ts                            (77 LOC — deferred)
+│   │       │   │   ├── cron/inventory-count-reminders/route.ts       (~30 LOC) ✓ THINNED
+│   │       │   │   ├── finance/invoices/route.ts                     (81 LOC — deferred)
+│   │       │   │   ├── integrations/connections/route.ts             (77 LOC — deferred)
+│   │       │   │   ├── inventory/
+│   │       │   │   │   ├── approvals/route.ts                        (~40 LOC) ✓ THIN (round 1)
+│   │       │   │   │   ├── orders/[id]/pod/route.ts                  (~35 LOC) ✓ THINNED
+│   │       │   │   │   └── warehouse/route.ts                        (~35 LOC) ✓ THINNED
+│   │       │   │   ├── issues/route.ts                               (86 LOC — deferred)
+│   │       │   │   ├── messages/route.ts                             (~30 LOC) ✓ THIN (round 1)
+│   │       │   │   ├── operations/
+│   │       │   │   │   ├── fleet/workflow/route.ts                   (~35 LOC) ✓ THIN (round 1)
+│   │       │   │   │   └── schedule/                                 (13 routes, all thinned)
+│   │       │   │   │       ├── availability/route.ts                 (~30 LOC) ✓ THINNED
+│   │       │   │   │       ├── availability/[id]/archive/route.ts    (~25 LOC) ✓ THINNED
+│   │       │   │   │       ├── conflicts/route.ts                    (~25 LOC) ✓ THINNED
+│   │       │   │   │       ├── periods/route.ts                      (~30 LOC) ✓ THINNED
+│   │       │   │   │       ├── periods/[id]/lock/route.ts            (~25 LOC) ✓ THINNED
+│   │       │   │   │       ├── periods/[id]/publish/route.ts         (~25 LOC) ✓ THINNED
+│   │       │   │   │       ├── periods/[id]/validate/route.ts        (~25 LOC) ✓ THINNED
+│   │       │   │   │       ├── trades/route.ts                       (~30 LOC) ✓ THINNED
+│   │       │   │   │       ├── trades/[id]/accept/route.ts           (~25 LOC) ✓ THINNED
+│   │       │   │   │       ├── trades/[id]/apply/route.ts            (~25 LOC) ✓ THINNED
+│   │       │   │   │       ├── trades/[id]/approve/route.ts          (~25 LOC) ✓ THINNED
+│   │       │   │   │       ├── trades/[id]/cancel/route.ts           (~25 LOC) ✓ THINNED
+│   │       │   │   │       └── trades/[id]/deny/route.ts             (~25 LOC) ✓ THINNED
+│   │       │   │   ├── payroll/runs/route.ts                         (77 LOC — deferred)
+│   │       │   │   ├── proposals/
+│   │       │   │   │   ├── [id]/generate-pdf/route.ts                (~40 LOC) ✓ THINNED
+│   │       │   │   │   ├── [id]/signature/route.ts                   (~35 LOC) ✓ THINNED
+│   │       │   │   │   └── send/route.ts                             (~35 LOC) ✓ THIN (round 1)
+│   │       │   │   ├── public/
+│   │       │   │   │   ├── counts/[token]/route.ts                   (~30 LOC) ✓ THINNED
+│   │       │   │   │   ├── counts/[token]/save/route.ts              (~30 LOC) ✓ THINNED
+│   │       │   │   │   ├── counts/[token]/submit/route.ts            (~35 LOC) ✓ THIN (round 1)
+│   │       │   │   │   ├── proposals/[token]/route.ts                (~30 LOC) ✓ THINNED
+│   │       │   │   │   └── proposals/[token]/sign/route.ts           (~30 LOC) ✓ THINNED
+│   │       │   │   ├── sites/[id]/pin/route.ts                       (~30 LOC) ✓ THINNED
+│   │       │   │   ├── timekeeping/pin-checkin/route.ts              (~30 LOC) ✓ THIN (round 1)
+│   │       │   │   ├── webhooks/sendgrid/route.ts                    (~30 LOC) ✓ THIN (round 1)
+│   │       │   │   └── workforce/hr/[entity]/route.ts                (~35 LOC) ✓ THINNED
+│   │       │   ├── auth/callback/
+│   │       │   ├── count/[token]/
+│   │       │   ├── offline/
+│   │       │   └── proposal/[token]/
+│   │       │
+│   │       ├── components/
+│   │       │   ├── activity/
+│   │       │   ├── detail/
+│   │       │   ├── directory/
+│   │       │   ├── empty-states/
+│   │       │   ├── forms/                       # 27 entity forms (unchanged)
+│   │       │   ├── layout/
+│   │       │   │   ├── app-shell.tsx
+│   │       │   │   ├── breadcrumbs.tsx
+│   │       │   │   ├── error-boundary.tsx       ✓ (round 1)
+│   │       │   │   ├── header.tsx
+│   │       │   │   ├── offline-banner.tsx
+│   │       │   │   └── sidebar.tsx
+│   │       │   ├── links/
+│   │       │   │   └── [modules/ removed]       ✓ CLEANED (batch 19)
+│   │       │   └── scanner/
+│   │       │
+│   │       ├── hooks/                           # UNCHANGED (19 hooks)
+│   │       │
+│   │       ├── lib/                             # UNCHANGED
+│   │       │
+│   │       └── modules/                         # 14 domain modules (8 round 1 + 6 round 2)
+│   │           ├── inventory/
+│   │           │   ├── inventory.service.ts      ✓ (round 1)
+│   │           │   ├── inventory.repository.ts   ✓ (round 1)
+│   │           │   ├── inventory.permissions.ts  ✓ (round 1)
+│   │           │   └── index.ts
+│   │           ├── webhooks/
+│   │           │   ├── webhooks.service.ts       ✓ (round 1)
+│   │           │   ├── webhooks.repository.ts    ✓ (round 1)
+│   │           │   └── index.ts
+│   │           ├── proposals/
+│   │           │   ├── proposals.service.ts      ✓ (round 1) + EXTENDED (signature, batch 17)
+│   │           │   ├── proposals.repository.ts   ✓ (round 1)
+│   │           │   └── index.ts
+│   │           ├── counts/
+│   │           │   ├── counts.service.ts         ✓ (round 1)
+│   │           │   ├── counts.repository.ts      ✓ (round 1)
+│   │           │   └── index.ts
+│   │           ├── fleet/
+│   │           │   ├── fleet.service.ts          ✓ (round 1)
+│   │           │   ├── fleet.repository.ts       ✓ (round 1)
+│   │           │   └── index.ts
+│   │           ├── schedule/
+│   │           │   ├── schedule.service.ts        NEW (batch 14)
+│   │           │   ├── schedule.repository.ts     NEW (batch 14)
+│   │           │   ├── schedule.permissions.ts   ✓ (round 1)
+│   │           │   └── index.ts
+│   │           ├── messages/
+│   │           │   ├── messages.service.ts       ✓ (round 1)
+│   │           │   ├── messages.repository.ts    ✓ (round 1)
+│   │           │   └── index.ts
+│   │           ├── timekeeping/
+│   │           │   ├── timekeeping.service.ts    ✓ (round 1)
+│   │           │   ├── timekeeping.repository.ts ✓ (round 1)
+│   │           │   └── index.ts
+│   │           ├── proposals-pdf/                 NEW (batch 10)
+│   │           │   ├── proposals-pdf.service.ts
+│   │           │   ├── proposals-pdf.repository.ts
+│   │           │   └── index.ts
+│   │           ├── cron/                          NEW (batch 11)
+│   │           │   ├── cron.service.ts
+│   │           │   ├── cron.repository.ts
+│   │           │   └── index.ts
+│   │           ├── public-counts/                 NEW (batch 12)
+│   │           │   ├── public-counts.service.ts
+│   │           │   ├── public-counts.repository.ts
+│   │           │   └── index.ts
+│   │           ├── public-proposals/              NEW (batch 13)
+│   │           │   ├── public-proposals.service.ts
+│   │           │   ├── public-proposals.repository.ts
+│   │           │   └── index.ts
+│   │           ├── inventory-orders/              NEW (batch 15)
+│   │           │   ├── inventory-orders.service.ts
+│   │           │   ├── inventory-orders.repository.ts
+│   │           │   └── index.ts
+│   │           ├── workforce-hr/                  NEW (batch 16)
+│   │           │   ├── workforce-hr.service.ts
+│   │           │   ├── workforce-hr.repository.ts
+│   │           │   └── index.ts
+│   │           └── sites/                         NEW (batch 17)
+│   │               ├── sites.service.ts
+│   │               ├── sites.repository.ts
+│   │               └── index.ts
+│   │
+│   └── worker/                                  # UNCHANGED
+│
+├── packages/                                    # UNCHANGED
+├── supabase/                                    # UNCHANGED (backend-lock)
+├── docs/
+│   └── reorg/                                   # Updated artifacts (round 2)
+├── openapi/                                     # UNCHANGED
+├── scripts/                                     # UNCHANGED
+├── CLAUDE.md                                    # UNCHANGED
+├── turbo.json                                   # UNCHANGED
+└── pnpm-workspace.yaml                          # UNCHANGED
+
+LEGEND:
+  ✓ THIN       = Route properly delegates to modules/ (≤40 LOC)
+  ✓ THINNED    = Route thinned in round 2 (was >100 LOC)
+  — deferred   = Thin CRUD route (<90 LOC), deferred to P3
+  NEW          = Created in this round

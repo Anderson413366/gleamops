@@ -47,3 +47,6 @@ blob-report/
 # Dev audit artifacts (snapshots, screenshots)
 .audit_data/
 .audit_screens/
+
+# Claude worktrees
+.claude/worktrees/

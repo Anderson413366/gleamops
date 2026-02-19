@@ -1,0 +1,56 @@
+from_path,to_path,reason,risk,import_fix,batch
+# === ROUND 2 BATCHES (10-19) ===
+# Batch 10: Proposals PDF generation (443 LOC — FATTEST FILE)
+(extract) api/proposals/[id]/generate-pdf/route.ts,modules/proposals-pdf/proposals-pdf.service.ts,Extract PDF generation + merge + upload logic,HIGH,Y,10
+(extract) api/proposals/[id]/generate-pdf/route.ts,modules/proposals-pdf/proposals-pdf.repository.ts,Extract proposal/bid/client/tenant/signature queries + Storage ops,HIGH,Y,10
+(new),modules/proposals-pdf/index.ts,Create proposals-pdf module barrel,LOW,N,10
+api/proposals/[id]/generate-pdf/route.ts,api/proposals/[id]/generate-pdf/route.ts,Refactor route to thin delegate (~40 LOC),HIGH,Y,10
+# Batch 11: Cron reminders (300 LOC)
+(extract) api/cron/inventory-count-reminders/route.ts,modules/cron/cron.service.ts,Extract reminder logic + email template + notification,HIGH,Y,11
+(extract) api/cron/inventory-count-reminders/route.ts,modules/cron/cron.repository.ts,Extract site/count/membership/notification queries + auth.admin calls,HIGH,Y,11
+(new),modules/cron/index.ts,Create cron module barrel,LOW,N,11
+api/cron/inventory-count-reminders/route.ts,api/cron/inventory-count-reminders/route.ts,Refactor route to thin delegate (~30 LOC),HIGH,Y,11
+# Batch 12: Public counts read + save (317 LOC)
+(extract) api/public/counts/[token]/route.ts,modules/public-counts/public-counts.service.ts,Extract count hydration + detail mapping + fallback logic,MEDIUM,Y,12
+(extract) api/public/counts/[token]/route.ts,modules/public-counts/public-counts.repository.ts,Extract count/detail/supply queries,MEDIUM,Y,12
+(extract) api/public/counts/[token]/save/route.ts,modules/public-counts/public-counts.service.ts,Extract save/partial update logic,MEDIUM,Y,12
+(new),modules/public-counts/index.ts,Create public-counts module barrel,LOW,N,12
+api/public/counts/[token]/route.ts,api/public/counts/[token]/route.ts,Refactor to thin delegate,MEDIUM,Y,12
+api/public/counts/[token]/save/route.ts,api/public/counts/[token]/save/route.ts,Refactor to thin delegate,MEDIUM,Y,12
+# Batch 13: Public proposals read + sign (241 LOC)
+(extract) api/public/proposals/[token]/route.ts,modules/public-proposals/public-proposals.service.ts,Extract proposal fetch + hydration,MEDIUM,Y,13
+(extract) api/public/proposals/[token]/sign/route.ts,modules/public-proposals/public-proposals.service.ts,Extract signature validation + storage,MEDIUM,Y,13
+(extract) api/public/proposals/[token]/*,modules/public-proposals/public-proposals.repository.ts,Extract proposal/signature queries,MEDIUM,Y,13
+(new),modules/public-proposals/index.ts,Create public-proposals module barrel,LOW,N,13
+api/public/proposals/[token]/route.ts,api/public/proposals/[token]/route.ts,Refactor to thin delegate,MEDIUM,Y,13
+api/public/proposals/[token]/sign/route.ts,api/public/proposals/[token]/sign/route.ts,Refactor to thin delegate,MEDIUM,Y,13
+# Batch 14: Schedule (881 LOC across 13 files — most files)
+(extract) api/operations/schedule/**,modules/schedule/schedule.service.ts,Extract period/trade/availability logic,HIGH,Y,14
+(extract) api/operations/schedule/**,modules/schedule/schedule.repository.ts,Extract all schedule Supabase queries + RPCs,HIGH,Y,14
+api/operations/schedule/**,api/operations/schedule/**,Refactor 13 routes to thin delegates,HIGH,Y,14
+# Batch 15: Inventory orders/POD (174 LOC)
+(extract) api/inventory/orders/[id]/pod/route.ts,modules/inventory-orders/inventory-orders.service.ts,Extract POD upsert + status + file validation,MEDIUM,Y,15
+(extract) api/inventory/orders/[id]/pod/route.ts,modules/inventory-orders/inventory-orders.repository.ts,Extract delivery/order/file queries,MEDIUM,Y,15
+(new),modules/inventory-orders/index.ts,Create inventory-orders module barrel,LOW,N,15
+api/inventory/orders/[id]/pod/route.ts,api/inventory/orders/[id]/pod/route.ts,Refactor to thin delegate,MEDIUM,Y,15
+# Batch 16: Workforce HR (157 LOC)
+(extract) api/workforce/hr/[entity]/route.ts,modules/workforce-hr/workforce-hr.service.ts,Extract polymorphic entity handler + audit,MEDIUM,Y,16
+(extract) api/workforce/hr/[entity]/route.ts,modules/workforce-hr/workforce-hr.repository.ts,Extract 6 HR table queries,MEDIUM,Y,16
+(new),modules/workforce-hr/index.ts,Create workforce-hr module barrel,LOW,N,16
+api/workforce/hr/[entity]/route.ts,api/workforce/hr/[entity]/route.ts,Refactor to thin delegate,MEDIUM,Y,16
+# Batch 17: Medium routes (inventory/warehouse 105 + proposals/signature 105 + sites/pin 104 = 314 LOC)
+(extract) api/inventory/warehouse/route.ts,modules/inventory/inventory.service.ts,Add warehouse transfer logic to existing inventory module,MEDIUM,Y,17
+(extract) api/proposals/[id]/signature/route.ts,modules/proposals/proposals.service.ts,Add signature capture to existing proposals module,MEDIUM,Y,17
+(extract) api/sites/[id]/pin/route.ts,modules/sites/sites.service.ts,Extract PIN management logic,LOW,Y,17
+(new),modules/sites/sites.repository.ts,Create sites repository,LOW,N,17
+(new),modules/sites/index.ts,Create sites module barrel,LOW,N,17
+api/inventory/warehouse/route.ts,api/inventory/warehouse/route.ts,Refactor to thin delegate,MEDIUM,Y,17
+api/proposals/[id]/signature/route.ts,api/proposals/[id]/signature/route.ts,Refactor to thin delegate,MEDIUM,Y,17
+api/sites/[id]/pin/route.ts,api/sites/[id]/pin/route.ts,Refactor to thin delegate,LOW,Y,17
+# Batch 18: Naming fixes
+(rename) apps/mobile/src/components/ChecklistItem.tsx,apps/mobile/src/components/checklist-item.tsx,Normalize to kebab-case,LOW,Y,18
+(rename) apps/mobile/src/components/SyncStatusBar.tsx,apps/mobile/src/components/sync-status-bar.tsx,Normalize to kebab-case,LOW,Y,18
+(rename) apps/mobile/src/components/TicketCard.tsx,apps/mobile/src/components/ticket-card.tsx,Normalize to kebab-case,LOW,Y,18
+(rename) (dashboard)/assets/eq-assignments/,Consider renaming to equipment-assignments/,Clarify abbreviation,LOW,Y,18
+# Batch 19: Cleanup
+(delete),apps/web/src/components/modules/,Remove empty directory,LOW,N,19

@@ -7,8 +7,8 @@ import { useRouter } from 'expo-router';
 import { useMyDay, type TodayTicket } from '../../src/hooks/use-my-day';
 import { useSyncState, syncNow } from '../../src/hooks/use-sync';
 import { Colors } from '../../src/lib/constants';
-import TicketCard from '../../src/components/TicketCard';
-import SyncStatusBar from '../../src/components/SyncStatusBar';
+import TicketCard from '../../src/components/ticket-card';
+import SyncStatusBar from '../../src/components/sync-status-bar';
 
 function getGreeting(): string {
   const hour = new Date().getHours();

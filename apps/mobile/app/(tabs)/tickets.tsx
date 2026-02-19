@@ -6,7 +6,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useWeekTickets } from '../../src/hooks/use-week-tickets';
 import { Colors } from '../../src/lib/constants';
-import TicketCard from '../../src/components/TicketCard';
+import TicketCard from '../../src/components/ticket-card';
 
 export default function TicketsScreen() {
   const router = useRouter();

@@ -1,0 +1,34 @@
+from_path,to_path,reason,risk,import_fix,batch
+(new),apps/web/src/modules/inventory/index.ts,Create inventory module barrel,LOW,N,1
+(new),apps/web/src/modules/webhooks/index.ts,Create webhooks module barrel,LOW,N,1
+(new),apps/web/src/modules/counts/index.ts,Create counts module barrel,LOW,N,1
+(new),apps/web/src/modules/fleet/index.ts,Create fleet module barrel,LOW,N,1
+(new),apps/web/src/modules/proposals/index.ts,Create proposals module barrel,LOW,N,1
+(new),apps/web/src/modules/schedule/index.ts,Create schedule module barrel,LOW,N,1
+(new),apps/web/src/modules/messages/index.ts,Create messages module barrel,LOW,N,1
+(new),apps/web/src/modules/timekeeping/index.ts,Create timekeeping module barrel,LOW,N,1
+(extract) apps/web/src/app/api/inventory/approvals/route.ts,apps/web/src/modules/inventory/inventory.service.ts,Extract approval workflow state machine + step transitions,HIGH,Y,2
+(extract) apps/web/src/app/api/inventory/approvals/route.ts,apps/web/src/modules/inventory/inventory.repository.ts,Extract all Supabase queries from approvals route,HIGH,Y,2
+(extract) apps/web/src/app/api/inventory/approvals/route.ts,apps/web/src/modules/inventory/inventory.permissions.ts,Extract hasApprovalRole() from inline check,MEDIUM,Y,2
+apps/web/src/app/api/inventory/approvals/route.ts,apps/web/src/app/api/inventory/approvals/route.ts,Refactor route to thin delegate (~40 LOC),HIGH,Y,2
+(extract) apps/web/src/app/api/webhooks/sendgrid/route.ts,apps/web/src/modules/webhooks/webhooks.service.ts,Extract event normalization + status priority + bounce logic,HIGH,Y,3
+(extract) apps/web/src/app/api/webhooks/sendgrid/route.ts,apps/web/src/modules/webhooks/webhooks.repository.ts,Extract event upserts + follow-up stop queries,HIGH,Y,3
+apps/web/src/app/api/webhooks/sendgrid/route.ts,apps/web/src/app/api/webhooks/sendgrid/route.ts,Refactor route to thin delegate,HIGH,Y,3
+(extract) apps/web/src/app/api/proposals/send/route.ts,apps/web/src/modules/proposals/proposals.service.ts,Extract rate limiting + follow-up wiring logic,MEDIUM,Y,4
+(extract) apps/web/src/app/api/proposals/send/route.ts,apps/web/src/modules/proposals/proposals.repository.ts,Extract send record + follow-up sequence DB inserts,MEDIUM,Y,4
+apps/web/src/app/api/proposals/send/route.ts,apps/web/src/app/api/proposals/send/route.ts,Refactor route to thin delegate,MEDIUM,Y,4
+(extract) apps/web/src/app/api/public/counts/[token]/submit/route.ts,apps/web/src/modules/counts/counts.service.ts,Extract next due date calc + alert status logic,MEDIUM,Y,5
+(extract) apps/web/src/app/api/public/counts/[token]/submit/route.ts,apps/web/src/modules/counts/counts.repository.ts,Extract count submission + site update queries,MEDIUM,Y,5
+apps/web/src/app/api/public/counts/[token]/submit/route.ts,apps/web/src/app/api/public/counts/[token]/submit/route.ts,Refactor route to thin delegate,MEDIUM,Y,5
+(extract) apps/web/src/app/api/operations/fleet/workflow/route.ts,apps/web/src/modules/fleet/fleet.service.ts,Extract DVIR checklist calculation + vehicle state logic,MEDIUM,Y,6
+(extract) apps/web/src/app/api/operations/fleet/workflow/route.ts,apps/web/src/modules/fleet/fleet.repository.ts,Extract fleet DB queries,MEDIUM,Y,6
+apps/web/src/app/api/operations/fleet/workflow/route.ts,apps/web/src/app/api/operations/fleet/workflow/route.ts,Refactor route to thin delegate,MEDIUM,Y,6
+(extract) apps/web/src/app/api/operations/schedule/trades/[id]/approve/route.ts,apps/web/src/modules/schedule/schedule.permissions.ts,Extract canManageSchedule() permission check,LOW,Y,7
+(extract) apps/web/src/lib/api/role-guard.ts,apps/web/src/modules/schedule/schedule.permissions.ts,Move schedule-specific permission functions to module,LOW,Y,7
+(extract) apps/web/src/app/api/messages/route.ts,apps/web/src/modules/messages/messages.service.ts,Extract thread creation multi-insert logic,LOW,Y,8
+(extract) apps/web/src/app/api/messages/route.ts,apps/web/src/modules/messages/messages.repository.ts,Extract thread + member + message DB inserts,LOW,Y,8
+apps/web/src/app/api/messages/route.ts,apps/web/src/app/api/messages/route.ts,Refactor route to thin delegate,LOW,Y,8
+(extract) apps/web/src/app/api/timekeeping/pin-checkin/route.ts,apps/web/src/modules/timekeeping/timekeeping.service.ts,Extract PIN verification + time event logic,LOW,Y,8
+(extract) apps/web/src/app/api/timekeeping/pin-checkin/route.ts,apps/web/src/modules/timekeeping/timekeeping.repository.ts,Extract PIN RPC + time entry DB inserts,LOW,Y,8
+apps/web/src/app/api/timekeeping/pin-checkin/route.ts,apps/web/src/app/api/timekeeping/pin-checkin/route.ts,Refactor route to thin delegate,LOW,Y,8
+(new),apps/web/src/components/layout/error-boundary.tsx,Add React Error Boundary wrapper for app shell,LOW,N,9

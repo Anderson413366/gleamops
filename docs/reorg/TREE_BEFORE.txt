@@ -1,0 +1,329 @@
+gleamops_dev_pack/
+├── .claude/
+│   ├── hooks/quality-gates.sh
+│   ├── rules/
+│   │   ├── backend-lock.md
+│   │   ├── quality.md
+│   │   └── ui.md
+│   └── settings.json
+├── apps/
+│   ├── mobile/                                  # Expo React Native (future)
+│   │   ├── app/
+│   │   │   ├── (auth)/login.tsx
+│   │   │   ├── (tabs)/_layout.tsx
+│   │   │   ├── inspection/
+│   │   │   └── ticket/
+│   │   └── src/
+│   │       ├── components/
+│   │       ├── contexts/
+│   │       ├── hooks/
+│   │       └── lib/
+│   ├── web/                                     # Next.js 15 App Router
+│   │   ├── e2e/                                 # 15 Playwright specs
+│   │   │   ├── a11y-navigation.spec.ts
+│   │   │   ├── auth.setup.ts
+│   │   │   ├── bid-wizard.spec.ts
+│   │   │   ├── click-propagation.spec.ts
+│   │   │   ├── detail-pages.spec.ts
+│   │   │   ├── financial-intelligence.spec.ts
+│   │   │   ├── job-form.spec.ts
+│   │   │   ├── navigation.spec.ts
+│   │   │   ├── p0-workflows.spec.ts
+│   │   │   ├── preferences.spec.ts
+│   │   │   ├── proposal-send.spec.ts
+│   │   │   ├── prospect-form.spec.ts
+│   │   │   ├── redirect-navigation.spec.ts
+│   │   │   ├── staff-assign.spec.ts
+│   │   │   └── table-filters.spec.ts
+│   │   ├── public/
+│   │   └── src/
+│   │       ├── app/
+│   │       │   ├── (auth)/login/page.tsx
+│   │       │   ├── (dashboard)/
+│   │       │   │   ├── admin/
+│   │       │   │   │   ├── data-hub/
+│   │       │   │   │   ├── import/
+│   │       │   │   │   ├── lookups/
+│   │       │   │   │   ├── playground/
+│   │       │   │   │   ├── rules/
+│   │       │   │   │   ├── sequences/
+│   │       │   │   │   └── services/
+│   │       │   │   │       ├── services/
+│   │       │   │   │       └── tasks/[id]/
+│   │       │   │   ├── assets/
+│   │       │   │   │   ├── eq-assignments/
+│   │       │   │   │   ├── equipment/[code]/
+│   │       │   │   │   ├── keys/[id]/
+│   │       │   │   │   ├── maintenance/
+│   │       │   │   │   └── vehicles/[id]/
+│   │       │   │   ├── crm/
+│   │       │   │   │   ├── clients/[id]/
+│   │       │   │   │   ├── contacts/[code]/
+│   │       │   │   │   └── sites/[id]/
+│   │       │   │   ├── customers/               # REDIRECT → /crm
+│   │       │   │   ├── financial/               # REDIRECT → /money
+│   │       │   │   ├── financial-intelligence/
+│   │       │   │   ├── home/
+│   │       │   │   ├── inventory/
+│   │       │   │   │   ├── counts/[id]/
+│   │       │   │   │   ├── forecasting/
+│   │       │   │   │   ├── kits/
+│   │       │   │   │   ├── orders/
+│   │       │   │   │   ├── site-assignments/
+│   │       │   │   │   ├── supplies/[id]/
+│   │       │   │   │   └── warehouse/
+│   │       │   │   ├── money/
+│   │       │   │   ├── operations/
+│   │       │   │   │   ├── calendar/
+│   │       │   │   │   ├── custom-forms/
+│   │       │   │   │   ├── geofence/
+│   │       │   │   │   ├── inspections/
+│   │       │   │   │   ├── jobs/[id]/
+│   │       │   │   │   ├── messages/
+│   │       │   │   │   ├── planning/
+│   │       │   │   │   ├── routes/
+│   │       │   │   │   ├── task-catalog/[id]/
+│   │       │   │   │   └── tickets/[id]/
+│   │       │   │   ├── people/                  # REDIRECT → /workforce
+│   │       │   │   ├── pipeline/
+│   │       │   │   │   ├── admin/
+│   │       │   │   │   ├── analytics/
+│   │       │   │   │   ├── bids/[id]/ + steps/
+│   │       │   │   │   ├── opportunities/[id]/
+│   │       │   │   │   ├── proposals/[id]/
+│   │       │   │   │   ├── prospects/[id]/
+│   │       │   │   │   └── supply-calculator/
+│   │       │   │   │       ├── hooks/
+│   │       │   │   │       ├── lib/
+│   │       │   │   │       └── steps/
+│   │       │   │   ├── reports/
+│   │       │   │   │   ├── _components/
+│   │       │   │   │   ├── financial/
+│   │       │   │   │   ├── inventory/
+│   │       │   │   │   ├── ops/
+│   │       │   │   │   ├── quality/
+│   │       │   │   │   ├── sales/
+│   │       │   │   │   └── workforce/
+│   │       │   │   ├── safety/
+│   │       │   │   │   ├── audit-center/
+│   │       │   │   │   ├── calendar/
+│   │       │   │   │   ├── certifications/
+│   │       │   │   │   ├── documents/
+│   │       │   │   │   ├── incidents/
+│   │       │   │   │   └── training/
+│   │       │   │   ├── schedule/                # REDIRECT → /operations
+│   │       │   │   ├── services/
+│   │       │   │   │   ├── mapping/
+│   │       │   │   │   ├── scope-library/
+│   │       │   │   │   ├── services/
+│   │       │   │   │   └── tasks/[id]/
+│   │       │   │   ├── settings/
+│   │       │   │   ├── subcontractors/          # REDIRECT → /vendors
+│   │       │   │   ├── team/                    # REDIRECT → /workforce
+│   │       │   │   ├── vendors/
+│   │       │   │   │   ├── jobs/
+│   │       │   │   │   ├── subcontractors/[code]/
+│   │       │   │   │   ├── supply-vendors/[slug]/
+│   │       │   │   │   └── vendor-directory/
+│   │       │   │   └── workforce/
+│   │       │   │       ├── exceptions/
+│   │       │   │       ├── hr/
+│   │       │   │       ├── messages/
+│   │       │   │       ├── payroll/
+│   │       │   │       ├── positions/
+│   │       │   │       ├── staff/[code]/
+│   │       │   │       ├── timekeeping/
+│   │       │   │       └── timesheets/
+│   │       │   ├── api/                         # 38 route handlers
+│   │       │   │   ├── contracts/route.ts
+│   │       │   │   ├── cron/inventory-count-reminders/route.ts
+│   │       │   │   ├── finance/invoices/route.ts
+│   │       │   │   ├── integrations/connections/route.ts
+│   │       │   │   ├── inventory/
+│   │       │   │   │   ├── approvals/route.ts          (394 LOC)
+│   │       │   │   │   ├── orders/[id]/pod/route.ts
+│   │       │   │   │   └── warehouse/route.ts
+│   │       │   │   ├── issues/route.ts
+│   │       │   │   ├── messages/route.ts                (136 LOC)
+│   │       │   │   ├── operations/
+│   │       │   │   │   ├── fleet/workflow/route.ts      (190 LOC)
+│   │       │   │   │   └── schedule/
+│   │       │   │   │       ├── availability/[id]/archive/route.ts
+│   │       │   │   │       ├── conflicts/route.ts
+│   │       │   │   │       ├── periods/[id]/lock/route.ts
+│   │       │   │   │       ├── periods/[id]/publish/route.ts
+│   │       │   │   │       ├── periods/[id]/validate/route.ts
+│   │       │   │   │       ├── trades/[id]/accept/route.ts
+│   │       │   │   │       ├── trades/[id]/apply/route.ts
+│   │       │   │   │       ├── trades/[id]/approve/route.ts
+│   │       │   │   │       ├── trades/[id]/cancel/route.ts
+│   │       │   │   │       └── trades/[id]/deny/route.ts
+│   │       │   │   ├── payroll/runs/route.ts
+│   │       │   │   ├── proposals/
+│   │       │   │   │   ├── [id]/generate-pdf/route.ts
+│   │       │   │   │   ├── [id]/signature/route.ts
+│   │       │   │   │   └── send/route.ts                (188 LOC)
+│   │       │   │   ├── public/
+│   │       │   │   │   ├── counts/[token]/save/route.ts
+│   │       │   │   │   ├── counts/[token]/submit/route.ts  (222 LOC)
+│   │       │   │   │   ├── proposals/[token]/route.ts
+│   │       │   │   │   └── proposals/[token]/sign/route.ts
+│   │       │   │   ├── sites/[id]/pin/route.ts          (105 LOC)
+│   │       │   │   ├── timekeeping/pin-checkin/route.ts  (147 LOC)
+│   │       │   │   ├── webhooks/sendgrid/route.ts       (247 LOC)
+│   │       │   │   └── workforce/hr/[entity]/route.ts   (157 LOC)
+│   │       │   ├── auth/callback/route.ts
+│   │       │   ├── count/[token]/
+│   │       │   ├── offline/
+│   │       │   └── proposal/[token]/
+│   │       ├── components/
+│   │       │   ├── activity/
+│   │       │   ├── detail/
+│   │       │   │   ├── profile-completeness-card.tsx
+│   │       │   │   └── status-toggle-dialog.tsx
+│   │       │   ├── directory/entity-card.tsx
+│   │       │   ├── empty-states/
+│   │       │   ├── forms/                       # 27 entity forms
+│   │       │   │   ├── client-form.tsx
+│   │       │   │   ├── contact-form.tsx
+│   │       │   │   ├── equipment-assignment-form.tsx
+│   │       │   │   ├── equipment-form.tsx
+│   │       │   │   ├── geofence-form.tsx
+│   │       │   │   ├── inventory-count-form.tsx
+│   │       │   │   ├── job-form.tsx
+│   │       │   │   ├── job-log-form.tsx
+│   │       │   │   ├── key-form.tsx
+│   │       │   │   ├── lookup-form.tsx
+│   │       │   │   ├── maintenance-form.tsx
+│   │       │   │   ├── message-form.tsx
+│   │       │   │   ├── opportunity-form.tsx
+│   │       │   │   ├── position-form.tsx
+│   │       │   │   ├── production-rate-form.tsx
+│   │       │   │   ├── prospect-form.tsx
+│   │       │   │   ├── service-form.tsx
+│   │       │   │   ├── site-form.tsx
+│   │       │   │   ├── site-pin-form.tsx
+│   │       │   │   ├── staff-form.tsx
+│   │       │   │   ├── subcontractor-form.tsx
+│   │       │   │   ├── supply-form.tsx
+│   │       │   │   ├── supply-order-form.tsx
+│   │       │   │   ├── supply-vendor-form.tsx
+│   │       │   │   ├── task-form.tsx
+│   │       │   │   ├── training-course-form.tsx
+│   │       │   │   └── vehicle-form.tsx
+│   │       │   ├── layout/
+│   │       │   │   ├── app-shell.tsx
+│   │       │   │   ├── breadcrumbs.tsx
+│   │       │   │   ├── header.tsx
+│   │       │   │   ├── offline-banner.tsx
+│   │       │   │   └── sidebar.tsx
+│   │       │   ├── links/
+│   │       │   ├── modules/
+│   │       │   └── scanner/
+│   │       ├── hooks/                           # 19 custom hooks
+│   │       │   ├── use-auth.ts
+│   │       │   ├── use-barcode-scanner.ts
+│   │       │   ├── use-bulk-select.ts
+│   │       │   ├── use-density.ts
+│   │       │   ├── use-feature-flag.ts
+│   │       │   ├── use-form.ts
+│   │       │   ├── use-keyboard-shortcuts.ts
+│   │       │   ├── use-locale.ts
+│   │       │   ├── use-lookups.ts
+│   │       │   ├── use-offline-mutation-sync.ts
+│   │       │   ├── use-pagination.ts
+│   │       │   ├── use-realtime.ts
+│   │       │   ├── use-role.ts
+│   │       │   ├── use-server-pagination.ts
+│   │       │   ├── use-synced-tab.ts
+│   │       │   ├── use-table-sort.ts
+│   │       │   ├── use-theme.ts
+│   │       │   ├── use-ui-preferences.ts
+│   │       │   └── use-view-preference.ts
+│   │       └── lib/
+│   │           ├── __tests__/
+│   │           │   ├── role-guard.test.ts
+│   │           │   └── sendgrid-webhook-verify.test.ts
+│   │           ├── api/
+│   │           │   ├── audit.ts
+│   │           │   ├── auth-guard.ts
+│   │           │   ├── role-guard.ts
+│   │           │   ├── service-client.ts
+│   │           │   ├── user-client.ts
+│   │           │   └── validate-request.ts
+│   │           ├── offline/mutation-queue.ts
+│   │           ├── pdf/proposal-template.tsx
+│   │           ├── repositories/enterprise-mappers.ts
+│   │           ├── schema/field-parity-index.ts
+│   │           ├── supabase/
+│   │           │   ├── authenticated-fetch.ts
+│   │           │   ├── client.ts
+│   │           │   ├── middleware.ts
+│   │           │   └── server.ts
+│   │           ├── utils/
+│   │           │   ├── date.ts
+│   │           │   └── job-financials.ts
+│   │           ├── vendors/supply-vendor-profiles.ts
+│   │           ├── sendgrid-webhook-verify.ts
+│   │           └── upload-to-storage.ts
+│   └── worker/                                  # Background workers
+│       └── src/
+│           ├── index.ts
+│           ├── send-worker.ts
+│           ├── followup-worker.ts
+│           └── qbo-timesheet-worker.ts
+├── packages/
+│   ├── cleanflow/                               # Bid math engine (pure)
+│   │   └── src/
+│   │       ├── __tests__/                       # 7 test files
+│   │       ├── engine.ts
+│   │       ├── workload.ts
+│   │       ├── pricing.ts
+│   │       ├── production-rates.ts
+│   │       ├── specialization.ts
+│   │       ├── weighted-wage.ts
+│   │       ├── day-porter.ts
+│   │       ├── consumables.ts
+│   │       ├── contract-projection.ts
+│   │       ├── express-load.ts
+│   │       ├── scope-express-load.ts
+│   │       ├── supply-pricing.ts
+│   │       ├── supply-constants.ts
+│   │       └── index.ts
+│   ├── domain/                                  # Business rules (RBAC, state machine)
+│   │   └── src/
+│   │       ├── __tests__/                       # 2 test files
+│   │       ├── status-machine.ts
+│   │       ├── permissions.ts
+│   │       └── index.ts
+│   ├── shared/                                  # Types, constants, validation, errors
+│   │   └── src/
+│   │       ├── __tests__/                       # 2 test files
+│   │       ├── constants/index.ts
+│   │       ├── errors/problem-details.ts
+│   │       ├── scope-library/                   # 8 files
+│   │       ├── types/
+│   │       │   ├── database.ts
+│   │       │   ├── app.ts
+│   │       │   └── preferences.ts
+│   │       ├── validation/index.ts
+│   │       ├── i18n.ts
+│   │       └── index.ts
+│   └── ui/                                      # 31 React components
+│       └── src/
+│           ├── components/                      # 31 component files
+│           ├── utils.ts
+│           └── index.ts
+├── supabase/
+│   ├── migrations/                              # 49 SQL files
+│   ├── functions/
+│   └── snippets/
+├── docs/                                        # 30+ dev pack docs
+├── openapi/
+├── scripts/
+├── CLAUDE.md
+├── package.json
+├── turbo.json
+├── pnpm-workspace.yaml
+├── tsconfig.base.json
+└── vercel.json

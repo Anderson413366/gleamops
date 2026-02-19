@@ -1,0 +1,146 @@
+gleamops_dev_pack/
+├── .claude/                                     # UNCHANGED
+├── apps/
+│   ├── mobile/                                  # UNCHANGED
+│   ├── web/
+│   │   ├── e2e/                                 # UNCHANGED (15 Playwright specs)
+│   │   ├── public/                              # UNCHANGED
+│   │   └── src/
+│   │       ├── app/                             # UNCHANGED (routes stay in place)
+│   │       │   ├── (auth)/login/
+│   │       │   ├── (dashboard)/                 # UNCHANGED (all page files stay as-is)
+│   │       │   │   ├── admin/
+│   │       │   │   ├── assets/
+│   │       │   │   ├── crm/
+│   │       │   │   ├── customers/               # REDIRECT (unchanged)
+│   │       │   │   ├── financial/               # REDIRECT (unchanged)
+│   │       │   │   ├── financial-intelligence/
+│   │       │   │   ├── home/
+│   │       │   │   ├── inventory/
+│   │       │   │   ├── money/
+│   │       │   │   ├── operations/
+│   │       │   │   ├── people/                  # REDIRECT (unchanged)
+│   │       │   │   ├── pipeline/
+│   │       │   │   ├── reports/
+│   │       │   │   ├── safety/
+│   │       │   │   ├── schedule/                # REDIRECT (unchanged)
+│   │       │   │   ├── services/
+│   │       │   │   ├── settings/
+│   │       │   │   ├── subcontractors/          # REDIRECT (unchanged)
+│   │       │   │   ├── team/                    # REDIRECT (unchanged)
+│   │       │   │   ├── vendors/
+│   │       │   │   └── workforce/
+│   │       │   ├── api/                         # MODIFIED (routes become thin delegates)
+│   │       │   │   ├── contracts/route.ts                        # unchanged (already thin)
+│   │       │   │   ├── cron/
+│   │       │   │   ├── finance/invoices/route.ts                 # unchanged (already thin)
+│   │       │   │   ├── integrations/connections/route.ts         # unchanged (already thin)
+│   │       │   │   ├── inventory/
+│   │       │   │   │   ├── approvals/route.ts                    # THINNED (394 → ~40 LOC)
+│   │       │   │   │   ├── orders/[id]/pod/route.ts              # unchanged
+│   │       │   │   │   └── warehouse/route.ts                    # unchanged
+│   │       │   │   ├── issues/route.ts                           # unchanged
+│   │       │   │   ├── messages/route.ts                         # THINNED (136 → ~30 LOC)
+│   │       │   │   ├── operations/
+│   │       │   │   │   ├── fleet/workflow/route.ts               # THINNED (190 → ~35 LOC)
+│   │       │   │   │   └── schedule/                             # route files unchanged (already use RPC)
+│   │       │   │   ├── payroll/runs/route.ts                     # unchanged (already thin)
+│   │       │   │   ├── proposals/
+│   │       │   │   │   ├── [id]/generate-pdf/route.ts            # unchanged
+│   │       │   │   │   ├── [id]/signature/route.ts               # unchanged
+│   │       │   │   │   └── send/route.ts                         # THINNED (188 → ~35 LOC)
+│   │       │   │   ├── public/
+│   │       │   │   │   ├── counts/[token]/save/route.ts          # unchanged
+│   │       │   │   │   ├── counts/[token]/submit/route.ts        # THINNED (222 → ~35 LOC)
+│   │       │   │   │   ├── proposals/[token]/route.ts            # unchanged
+│   │       │   │   │   └── proposals/[token]/sign/route.ts       # unchanged
+│   │       │   │   ├── sites/[id]/pin/route.ts                   # unchanged
+│   │       │   │   ├── timekeeping/pin-checkin/route.ts          # THINNED (147 → ~30 LOC)
+│   │       │   │   ├── webhooks/sendgrid/route.ts                # THINNED (247 → ~30 LOC)
+│   │       │   │   └── workforce/hr/[entity]/route.ts            # unchanged
+│   │       │   ├── auth/callback/
+│   │       │   ├── count/[token]/
+│   │       │   ├── offline/
+│   │       │   └── proposal/[token]/
+│   │       │
+│   │       ├── components/                      # UNCHANGED
+│   │       │   ├── activity/
+│   │       │   ├── detail/
+│   │       │   ├── directory/
+│   │       │   ├── empty-states/
+│   │       │   ├── forms/                       # 27 entity forms (unchanged)
+│   │       │   ├── layout/
+│   │       │   │   ├── app-shell.tsx
+│   │       │   │   ├── breadcrumbs.tsx
+│   │       │   │   ├── error-boundary.tsx       # NEW
+│   │       │   │   ├── header.tsx
+│   │       │   │   ├── offline-banner.tsx
+│   │       │   │   └── sidebar.tsx
+│   │       │   ├── links/
+│   │       │   ├── modules/
+│   │       │   └── scanner/
+│   │       │
+│   │       ├── hooks/                           # UNCHANGED (19 hooks)
+│   │       │
+│   │       ├── lib/                             # UNCHANGED
+│   │       │   ├── __tests__/
+│   │       │   ├── api/
+│   │       │   ├── offline/
+│   │       │   ├── pdf/
+│   │       │   ├── repositories/
+│   │       │   ├── schema/
+│   │       │   ├── supabase/
+│   │       │   ├── utils/
+│   │       │   └── vendors/
+│   │       │
+│   │       └── modules/                         # NEW — Domain service + repository layer
+│   │           ├── inventory/
+│   │           │   ├── inventory.service.ts      # Approval workflow, step transitions
+│   │           │   ├── inventory.repository.ts   # All inventory Supabase queries
+│   │           │   ├── inventory.permissions.ts  # hasApprovalRole()
+│   │           │   └── index.ts
+│   │           ├── webhooks/
+│   │           │   ├── webhooks.service.ts       # Event normalization, status priority, bounce handling
+│   │           │   ├── webhooks.repository.ts    # Event upserts, follow-up stop logic
+│   │           │   └── index.ts
+│   │           ├── proposals/
+│   │           │   ├── proposals.service.ts      # Rate limiting, follow-up sequence wiring
+│   │           │   ├── proposals.repository.ts   # Send records, follow-up inserts
+│   │           │   └── index.ts
+│   │           ├── counts/
+│   │           │   ├── counts.service.ts         # Next due date calc, alert status
+│   │           │   ├── counts.repository.ts      # Count submission, site updates
+│   │           │   └── index.ts
+│   │           ├── fleet/
+│   │           │   ├── fleet.service.ts          # DVIR checklist calc, vehicle state
+│   │           │   ├── fleet.repository.ts       # Fleet Supabase queries
+│   │           │   └── index.ts
+│   │           ├── schedule/
+│   │           │   ├── schedule.permissions.ts   # canManageSchedule, canPublishSchedule
+│   │           │   └── index.ts
+│   │           ├── messages/
+│   │           │   ├── messages.service.ts       # Thread creation orchestration
+│   │           │   ├── messages.repository.ts    # Thread + member + message DB
+│   │           │   └── index.ts
+│   │           └── timekeeping/
+│   │               ├── timekeeping.service.ts    # PIN verification logic
+│   │               ├── timekeeping.repository.ts # PIN RPC + time event DB
+│   │               └── index.ts
+│   │
+│   └── worker/                                  # UNCHANGED
+│
+├── packages/                                    # UNCHANGED
+│   ├── shared/
+│   ├── domain/
+│   ├── cleanflow/
+│   └── ui/
+│
+├── supabase/                                    # UNCHANGED (backend-lock)
+├── docs/
+│   └── reorg/                                   # NEW — Reorg artifacts
+├── openapi/                                     # UNCHANGED
+├── scripts/                                     # UNCHANGED
+├── CLAUDE.md                                    # UNCHANGED
+├── package.json                                 # UNCHANGED
+├── turbo.json                                   # UNCHANGED
+└── pnpm-workspace.yaml                          # UNCHANGED

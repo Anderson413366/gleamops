@@ -1,10 +1,10 @@
 import { Suspense } from 'react';
-import WorkforcePageClient from '../workforce/workforce-page';
+import PeoplePageClient from './people-page-client';
 
 export default function PeoplePage() {
   return (
     <Suspense fallback={null}>
-      <WorkforcePageClient />
+      <PeoplePageClient />
     </Suspense>
   );
 }

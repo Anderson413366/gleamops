@@ -1,10 +1,10 @@
 import { Suspense } from 'react';
-import InventoryPageClient from '../inventory/inventory-page';
+import SuppliesPageClient from './supplies-page-client';
 
 export default function SuppliesPage() {
   return (
     <Suspense fallback={null}>
-      <InventoryPageClient />
+      <SuppliesPageClient />
     </Suspense>
   );
 }

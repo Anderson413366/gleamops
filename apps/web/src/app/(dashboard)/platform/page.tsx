@@ -1,10 +1,10 @@
 import { Suspense } from 'react';
-import AdminPageClient from '../admin/admin-page';
+import PlatformPageClient from './platform-page-client';
 
 export default function PlatformPage() {
   return (
     <Suspense fallback={null}>
-      <AdminPageClient />
+      <PlatformPageClient />
     </Suspense>
   );
 }

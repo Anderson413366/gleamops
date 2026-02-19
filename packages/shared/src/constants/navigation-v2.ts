@@ -15,6 +15,7 @@ export const NAVIGATION_V2: NavV2Item[] = [
   { id: 'sales', label: 'Sales', href: '/sales', icon: 'TrendingUp', group: 'customers' },
   { id: 'people', label: 'People', href: '/people', icon: 'Users', group: 'resources' },
   { id: 'supplies', label: 'Supplies And Assets', href: '/supplies', icon: 'Package', group: 'resources' },
+  { id: 'safety', label: 'Safety', href: '/safety', icon: 'ShieldCheck', group: 'resources' },
   { id: 'insights', label: 'Insights', href: '/insights', icon: 'BarChart3', group: 'insights' },
   { id: 'platform', label: 'Platform', href: '/platform', icon: 'Settings', group: 'platform' },
 ];

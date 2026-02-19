@@ -14,9 +14,9 @@ GleamOps is a **B2B SaaS ERP for commercial cleaning** that replaces spreadsheet
 - **Frontend**: Next.js 15 (App Router), React 19, TypeScript 5.7, Tailwind CSS 4
 - **Backend**: Supabase (PostgreSQL + RLS + Auth + Storage + Realtime)
 - **Math Engine**: CleanFlow (packages/cleanflow) — pure functions, no DB calls
-- **UI Library**: @gleamops/ui — 31 components, semantic HSL token system
+- **UI Library**: @gleamops/ui — 32 components, semantic HSL token system
 - **Deploy**: Vercel (web), worker TBD
-- **Status**: Milestones A–C complete. 10 navigation modules, 33 routes, 15 detail pages, 27 forms, 49 migrations.
+- **Status**: Milestones A–H complete. 10 navigation modules, 36 API routes, 21 detail pages, 29 forms, 84 migrations, 16 service modules.
 
 ---
 
@@ -125,21 +125,22 @@ gleamops_dev_pack/
 │   │       │       ├── people/            # Legacy redirect + staff detail route alias
 │   │       │       └── subcontractors/    # Legacy redirect to /vendors
 │   │       ├── components/
-│   │       │   ├── forms/         # 27 entity form components
+│   │       │   ├── forms/         # 29 entity form components
 │   │       │   └── layout/        # AppShell, Header, Sidebar
-│   │       ├── hooks/             # 15 custom hooks
-│   │       └── lib/               # Supabase clients, utils
+│   │       ├── hooks/             # 19 custom hooks
+│   │       ├── lib/               # Supabase clients, auth guard, audit, utils
+│   │       └── modules/           # 16 domain service modules
 │   ├── worker/                    # Background jobs (PDFs, follow-ups)
-│   └── mobile/                    # Expo React Native (future)
+│   └── mobile/                    # Expo React Native (in development)
 ├── packages/
 │   ├── shared/                    # Types, Zod schemas, constants, error catalog
 │   ├── domain/                    # Pure business rules (status machine, RBAC)
 │   ├── cleanflow/                 # Bid math engine (pure functions)
-│   └── ui/                        # Design system (31 components)
+│   └── ui/                        # Design system (32 components)
 ├── supabase/
-│   ├── migrations/                # 49 SQL migration files (7,015 lines)
-│   └── functions/                 # Edge Functions (Deno) — TBD
-├── docs/                          # 29 dev pack docs + 6 appendices
+│   ├── migrations/                # 84 SQL migration files (13,349 lines)
+│   └── functions/                 # Edge Functions (Deno)
+├── docs/                          # 74 documentation files
 ├── openapi/                       # OpenAPI 3.1 contract
 └── CLAUDE.md                      # This file
 ```
@@ -165,7 +166,7 @@ Additional: `/reports`, `/schedule`, `/services`, `/settings`, `/subcontractors`
 
 ---
 
-## Detail Pages (15 dynamic routes)
+## Detail Pages (21 dynamic routes)
 
 Every detail page follows the same layout: Back link → Avatar circle → Stat cards → Section cards (`<dl>` key-value) → Edit + Deactivate buttons → Metadata footer.
 
@@ -403,7 +404,7 @@ export function EntityForm({ open, onClose, initialData, onSuccess }) {
 
 ---
 
-## UI Components (@gleamops/ui — 31 components)
+## UI Components (@gleamops/ui — 32 components)
 
 | Component | Purpose |
 |-----------|---------|
@@ -441,7 +442,7 @@ export function EntityForm({ open, onClose, initialData, onSuccess }) {
 
 ---
 
-## Form Components (27 forms)
+## Form Components (29 forms)
 
 Located at `apps/web/src/components/forms/`:
 
@@ -477,7 +478,7 @@ Located at `apps/web/src/components/forms/`:
 
 ---
 
-## Custom Hooks (15 hooks)
+## Custom Hooks (19 hooks)
 
 Located at `apps/web/src/hooks/`:
 
@@ -501,7 +502,7 @@ Located at `apps/web/src/hooks/`:
 
 ---
 
-## Card Grids (8 entities)
+## Card Grids (12 entities)
 
 | Entity | File |
 |--------|------|
@@ -559,7 +560,7 @@ prospectSchema, bidSchema, convertBidSchema, loginSchema
 
 ---
 
-## Migration Files (49 SQL files, 7,015 lines)
+## Migration Files (84 SQL files, 13,349 lines)
 
 | Range | What |
 |-------|------|
@@ -569,6 +570,8 @@ prospectSchema, bidSchema, convertBidSchema, loginSchema
 | 00026–00033 | Site supplies, inventory/assets, supply costing, ticket RPC, restructure, blueprint, cleanup, profiles |
 | 00034–00043 | Job assignments, archive cascade, materialized views, indexes, spreadsheet alignment, sales, conversions, constraints, search |
 | 00044–00049 | Storage hardening, new modules, follow-up worker, constraint relaxation, photo URLs |
+| 00050–00060 | HR tables, fleet DVIR, messaging, schedule availability, inventory counts |
+| 00061–00084 | Safety certs, training, production rates, geofences, mobile sync, warehouse, PIN codes |
 
 ---
 
@@ -586,6 +589,38 @@ prospectSchema, bidSchema, convertBidSchema, loginSchema
 - Tenant A: `TNT-0001` — "Anderson Cleaning Services"
 - Tenant B: `TNT-0002` — "Other Cleaning Co" (isolation test)
 - Auto-assign trigger: new auth.users → OWNER_ADMIN on TNT-0001
+
+---
+
+## Service Modules (16 domains)
+
+All 36 API routes follow the **thin delegate** pattern: `auth → validate → service → respond`.
+
+Located at `apps/web/src/modules/`:
+
+| Module | Domain | Pattern |
+|--------|--------|---------|
+| `inventory` | Approval workflows | service + repository |
+| `inventory-orders` | Proof of delivery | service + repository |
+| `webhooks` | SendGrid event processing | service + repository |
+| `proposals` | Send + signature capture | service + repository |
+| `proposals-pdf` | PDF generation | service + repository |
+| `counts` | Count submission | service + repository |
+| `public-counts` | Public count access | service + repository |
+| `public-proposals` | Public proposal access | service + repository |
+| `fleet` | DVIR inspections | service + repository |
+| `schedule` | 13 schedule routes (dual-client) | service + repository + permissions |
+| `messages` | Thread messaging | service + repository |
+| `timekeeping` | Clock in/out | service + repository |
+| `cron` | Scheduled jobs | service + repository |
+| `workforce-hr` | Polymorphic HR CRUD (6 entities) | service + repository |
+| `warehouse` | Warehouse inventory | service + repository |
+| `sites` | Site PIN codes | service + repository |
+
+Each module follows the **golden module** pattern:
+- `{domain}.service.ts` — Business logic, returns `ServiceResult<T>`
+- `{domain}.repository.ts` — Supabase queries, data access
+- `index.ts` — Barrel export
 
 ---
 

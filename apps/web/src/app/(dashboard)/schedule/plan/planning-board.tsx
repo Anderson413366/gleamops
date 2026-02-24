@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Button, Card, CardContent } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { PlanningStatus } from '@gleamops/shared';
+import { useMediaQuery } from '@/hooks/use-media-query';
 import { PlanningCard, type PlanningTicket } from './planning-card';
 import { StaffingGapPanel } from './staffing-gap-panel';
 import { HandoffSummary } from './handoff-summary';
@@ -55,6 +56,8 @@ export default function PlanningBoard({ search = '' }: PlanningBoardProps) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [dragOverColumn, setDragOverColumn] = useState<PlanningStatus | null>(null);
+  const [mobileColumn, setMobileColumn] = useState<PlanningStatus>('NOT_STARTED');
+  const isMobile = useMediaQuery('(max-width: 767px)');
 
   // ----- data fetching -----
   const loadTickets = useCallback(async () => {
@@ -172,6 +175,10 @@ export default function PlanningBoard({ search = '' }: PlanningBoardProps) {
 
   const handleQuickAssign = useCallback(
     async (ticketId: string, staffId: string) => {
+      if (!staffId) {
+        toast.info('Use the Staffing Gaps panel to assign staff.');
+        return;
+      }
       setBusy(true);
       const { error } = await supabase.from('ticket_assignments').insert({
         ticket_id: ticketId,
@@ -304,7 +311,50 @@ export default function PlanningBoard({ search = '' }: PlanningBoardProps) {
             </Card>
           ))}
         </div>
+      ) : isMobile ? (
+        /* Mobile: segmented tabs for columns, single column view */
+        <div className="space-y-3">
+          <div role="tablist" aria-label="Planning columns" className="flex gap-1 rounded-lg bg-muted p-1">
+            {COLUMNS.map((col) => {
+              const count = columnTickets[col.key].length;
+              return (
+                <button
+                  key={col.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={mobileColumn === col.key}
+                  onClick={() => setMobileColumn(col.key)}
+                  className={`flex-1 min-h-[44px] rounded-md px-2 py-2 text-xs font-medium transition-colors ${
+                    mobileColumn === col.key
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {col.label} ({count})
+                </button>
+              );
+            })}
+          </div>
+          <div className="space-y-2">
+            {columnTickets[mobileColumn].map((ticket) => (
+              <PlanningCard
+                key={ticket.id}
+                ticket={ticket}
+                onMarkReady={handleMarkReady}
+                onAssign={() => toast.info('Use the Staffing Gaps panel to assign staff.')}
+              />
+            ))}
+            {columnTickets[mobileColumn].length === 0 && (
+              <p className="text-xs text-muted-foreground text-center py-8">
+                {mobileColumn === 'READY'
+                  ? 'Mark tickets as ready from the other tabs'
+                  : 'No tickets'}
+              </p>
+            )}
+          </div>
+        </div>
       ) : (
+        /* Desktop: 3-column drag-and-drop board */
         <div className="grid gap-4 md:grid-cols-3">
           {COLUMNS.map((col) => {
             const items = columnTickets[col.key];
@@ -337,7 +387,7 @@ export default function PlanningBoard({ search = '' }: PlanningBoardProps) {
                       key={ticket.id}
                       ticket={ticket}
                       onMarkReady={handleMarkReady}
-                      onAssign={() => handleQuickAssign(ticket.id, '')}
+                      onAssign={() => toast.info('Use the Staffing Gaps panel to assign staff.')}
                       draggable
                       onDragStart={handleDragStart}
                     />

@@ -28,6 +28,8 @@ describe('feature-flags', () => {
         mobile_inspections: false,
         qbo_timesheet_sync: false,
         financial_intel_v1: false,
+        v2_navigation: false,
+        planning_board: false,
       });
     });
 
@@ -98,6 +100,8 @@ describe('feature-flags', () => {
         'mobile_inspections',
         'qbo_timesheet_sync',
         'financial_intel_v1',
+        'v2_navigation',
+        'planning_board',
       ];
       for (const domain of domains) {
         // All should be false by default

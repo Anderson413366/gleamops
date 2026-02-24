@@ -33,6 +33,7 @@ import {
   TICKET_STATUS_COLORS,
   PROSPECT_STATUS_COLORS,
 } from '@gleamops/shared';
+import { WhatsNewBanner } from '@/components/layout/whats-new-banner';
 import type { StatusColor } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
@@ -695,6 +696,9 @@ export default function HomePage() {
           </div>
         )}
       </div>
+
+      {/* What's New banner — dismissed via localStorage */}
+      <WhatsNewBanner />
 
       {/* Executive Dashboard — Stat Cards */}
       <div>

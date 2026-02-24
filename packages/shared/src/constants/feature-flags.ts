@@ -15,7 +15,9 @@ export type FeatureDomain =
   | 'messaging_v1'
   | 'mobile_inspections'
   | 'qbo_timesheet_sync'
-  | 'financial_intel_v1';
+  | 'financial_intel_v1'
+  | 'v2_navigation'
+  | 'planning_board';
 
 export type FeatureFlags = Record<FeatureDomain, boolean>;
 
@@ -28,6 +30,8 @@ const DOMAIN_TO_ENV: Record<FeatureDomain, string> = {
   mobile_inspections: 'NEXT_PUBLIC_FF_MOBILE_INSPECTIONS',
   qbo_timesheet_sync: 'NEXT_PUBLIC_FF_QBO_TIMESHEET_SYNC',
   financial_intel_v1: 'NEXT_PUBLIC_FF_FINANCIAL_INTEL_V1',
+  v2_navigation: 'NEXT_PUBLIC_FF_V2_NAVIGATION',
+  planning_board: 'NEXT_PUBLIC_FF_PLANNING_BOARD',
 };
 
 /**
@@ -39,6 +43,8 @@ const WORKER_ENV: Record<string, string> = {
   NEXT_PUBLIC_FF_PROPOSAL_STUDIO_V2: 'FF_PROPOSAL_STUDIO_V2',
   NEXT_PUBLIC_FF_QBO_TIMESHEET_SYNC: 'FF_QBO_TIMESHEET_SYNC',
   NEXT_PUBLIC_FF_FINANCIAL_INTEL_V1: 'FF_FINANCIAL_INTEL_V1',
+  NEXT_PUBLIC_FF_V2_NAVIGATION: 'FF_V2_NAVIGATION',
+  NEXT_PUBLIC_FF_PLANNING_BOARD: 'FF_PLANNING_BOARD',
 };
 
 const ALL_DOMAINS: FeatureDomain[] = [
@@ -50,6 +56,8 @@ const ALL_DOMAINS: FeatureDomain[] = [
   'mobile_inspections',
   'qbo_timesheet_sync',
   'financial_intel_v1',
+  'v2_navigation',
+  'planning_board',
 ];
 
 let _cache: FeatureFlags | null = null;

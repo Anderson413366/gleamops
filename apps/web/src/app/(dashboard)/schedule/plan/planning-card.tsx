@@ -127,7 +127,7 @@ export function PlanningCard({
           <button
             type="button"
             onClick={() => onAssign(ticket.id)}
-            className="text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded px-1 py-0.5"
+            className="text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded min-h-[44px] min-w-[44px] flex items-center justify-center px-2 py-1 -my-1"
           >
             Assign
           </button>
@@ -136,7 +136,7 @@ export function PlanningCard({
           <button
             type="button"
             onClick={() => onMarkReady(ticket.id)}
-            className="text-xs font-medium text-success hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded px-1 py-0.5 ml-auto"
+            className="text-xs font-medium text-success hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded min-h-[44px] min-w-[44px] flex items-center justify-center px-2 py-1 -my-1 ml-auto"
           >
             Ready ✓
           </button>

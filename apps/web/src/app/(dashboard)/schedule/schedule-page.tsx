@@ -91,7 +91,7 @@ export default function SchedulePageClient() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <Card>
           <CardContent className="pt-4">
             <p className="text-xs text-muted-foreground">Tickets Today</p>

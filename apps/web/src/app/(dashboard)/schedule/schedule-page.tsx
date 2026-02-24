@@ -1,20 +1,16 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { Calendar, ClipboardList, Briefcase, ClipboardCheck, FileText } from 'lucide-react';
-import { ChipTabs, SearchInput } from '@gleamops/ui';
-import type { WorkTicket, Inspection } from '@gleamops/shared';
+import { useState, useEffect } from 'react';
+import { Calendar, ClipboardList, Clock, ArrowLeftRight } from 'lucide-react';
+import { ChipTabs, SearchInput, Card, CardContent } from '@gleamops/ui';
+import type { WorkTicket } from '@gleamops/shared';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
 
-import TicketsTable from './tickets/tickets-table';
-import { TicketDetail } from './tickets/ticket-detail';
-import JobsTable from './jobs/jobs-table';
-import WeekCalendar from './calendar/week-calendar';
-import InspectionsTable from './inspections/inspections-table';
-import { InspectionDetail } from './inspections/inspection-detail';
-import { CreateInspectionForm } from './inspections/create-inspection-form';
-import TemplatesTable from './inspections/templates-table';
+import WeekCalendar from '../operations/calendar/week-calendar';
+import PlanningPanel from '../operations/planning/planning-panel';
 
+// Re-use ticket relations type
 interface TicketWithRelations extends WorkTicket {
   job?: { job_code: string; billing_amount?: number | null } | null;
   site?: {
@@ -26,46 +22,122 @@ interface TicketWithRelations extends WorkTicket {
   assignments?: { staff?: { full_name: string } | null }[];
 }
 
-interface InspectionWithRelations extends Inspection {
-  site?: { name: string; site_code: string } | null;
-  inspector?: { full_name: string; staff_code: string } | null;
-  template?: { name: string } | null;
-  ticket?: { ticket_code: string } | null;
-}
-
 const TABS = [
   { key: 'calendar', label: 'Calendar', icon: <Calendar className="h-4 w-4" /> },
-  { key: 'tickets', label: 'Work Tickets', icon: <ClipboardList className="h-4 w-4" /> },
-  { key: 'jobs', label: 'Service Plans', icon: <Briefcase className="h-4 w-4" /> },
-  { key: 'inspections', label: 'Inspections', icon: <ClipboardCheck className="h-4 w-4" /> },
-  { key: 'templates', label: 'Templates', icon: <FileText className="h-4 w-4" /> },
+  { key: 'plan', label: 'Plan', icon: <ClipboardList className="h-4 w-4" /> },
+  { key: 'availability', label: 'Availability', icon: <Clock className="h-4 w-4" /> },
+  { key: 'trades', label: 'Trades', icon: <ArrowLeftRight className="h-4 w-4" /> },
 ];
 
 export default function SchedulePageClient() {
   const [tab, setTab] = useSyncedTab({
     tabKeys: TABS.map((entry) => entry.key),
     defaultTab: 'calendar',
-    aliases: { service_plans: 'jobs', 'service-plans': 'jobs' },
+    aliases: { planning: 'plan' },
   });
   const [search, setSearch] = useState('');
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [selectedTicket, setSelectedTicket] = useState<TicketWithRelations | null>(null);
-  const [selectedInspection, setSelectedInspection] = useState<InspectionWithRelations | null>(null);
-  const [showCreateInspection, setShowCreateInspection] = useState(false);
-  const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
+  const [refreshKey] = useState(0);
+  const [, setSelectedTicket] = useState<TicketWithRelations | null>(null);
+  const [kpis, setKpis] = useState({
+    todayTickets: 0,
+    coverageGaps: 0,
+    publishedPeriods: 0,
+    pendingTrades: 0,
+  });
+
+  useEffect(() => {
+    async function fetchKpis() {
+      const supabase = getSupabaseBrowserClient();
+      const today = new Date().toISOString().slice(0, 10);
+      const [todayRes, gapsRes, periodsRes, tradesRes] = await Promise.all([
+        supabase
+          .from('work_tickets')
+          .select('id', { count: 'exact', head: true })
+          .eq('scheduled_date', today)
+          .is('archived_at', null),
+        supabase
+          .from('schedule_conflicts')
+          .select('id', { count: 'exact', head: true })
+          .eq('conflict_type', 'COVERAGE_GAP')
+          .eq('is_blocking', true),
+        supabase
+          .from('schedule_periods')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'PUBLISHED'),
+        supabase
+          .from('shift_trade_requests')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'PENDING'),
+      ]);
+
+      setKpis({
+        todayTickets: todayRes.count ?? 0,
+        coverageGaps: gapsRes.count ?? 0,
+        publishedPeriods: periodsRes.count ?? 0,
+        pendingTrades: tradesRes.count ?? 0,
+      });
+    }
+    fetchKpis();
+  }, [refreshKey]);
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Schedule</h1>
-          <p className="text-sm text-muted-foreground mt-1">Calendar, Work Tickets, Service Plans, Inspections, Templates</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Who goes where, when?
+          </p>
         </div>
       </div>
 
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <Card>
+          <CardContent className="pt-4">
+            <p className="text-xs text-muted-foreground">Tickets Today</p>
+            <p className="text-xl font-semibold">{kpis.todayTickets}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <p className="text-xs text-muted-foreground">Coverage Gaps</p>
+            <p className={`text-xl font-semibold ${kpis.coverageGaps > 0 ? 'text-destructive' : ''}`}>
+              {kpis.coverageGaps}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <p className="text-xs text-muted-foreground">Published Periods</p>
+            <p className="text-xl font-semibold">{kpis.publishedPeriods}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <p className="text-xs text-muted-foreground">Pending Trades</p>
+            <p className={`text-xl font-semibold ${kpis.pendingTrades > 0 ? 'text-warning' : ''}`}>
+              {kpis.pendingTrades}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
       <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
+
       {tab !== 'calendar' && (
-        <SearchInput value={search} onChange={setSearch} placeholder={`Search ${tab}...`} />
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder={
+            tab === 'plan'
+              ? 'Search planning tickets, roles, and sites...'
+              : tab === 'availability'
+                ? 'Search staff availability...'
+                : tab === 'trades'
+                  ? 'Search trade requests...'
+                  : `Search ${tab}...`
+          }
+        />
       )}
 
       {tab === 'calendar' && (
@@ -74,51 +146,35 @@ export default function SchedulePageClient() {
           onSelectTicket={(t) => setSelectedTicket(t as TicketWithRelations)}
         />
       )}
-      {tab === 'tickets' && (
-        <TicketsTable
-          key={`t-${refreshKey}`}
-          search={search}
-        />
+
+      {tab === 'plan' && (
+        <PlanningPanel key={`planning-${refreshKey}`} search={search} />
       )}
-      {tab === 'jobs' && <JobsTable key={`j-${refreshKey}`} search={search} />}
-      {tab === 'inspections' && (
-        <InspectionsTable
-          key={`i-${refreshKey}`}
-          search={search}
-          onSelect={(insp) => setSelectedInspection(insp as InspectionWithRelations)}
-          onCreateNew={() => setShowCreateInspection(true)}
-        />
+
+      {tab === 'availability' && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Clock className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+            <h3 className="text-lg font-semibold text-foreground mb-2">Staff Availability</h3>
+            <p className="text-sm text-muted-foreground max-w-md mx-auto">
+              View and manage staff availability rules, PTO calendar, and one-off exceptions.
+              This view is coming soon.
+            </p>
+          </CardContent>
+        </Card>
       )}
-      {tab === 'templates' && <TemplatesTable key={`tmpl-${refreshKey}`} search={search} />}
 
-      <TicketDetail
-        ticket={selectedTicket}
-        open={!!selectedTicket}
-        onClose={() => setSelectedTicket(null)}
-        onStatusChange={() => {
-          setSelectedTicket(null);
-          refresh();
-        }}
-      />
-
-      <InspectionDetail
-        inspection={selectedInspection}
-        open={!!selectedInspection}
-        onClose={() => setSelectedInspection(null)}
-        onUpdate={() => {
-          setSelectedInspection(null);
-          refresh();
-        }}
-      />
-
-      <CreateInspectionForm
-        open={showCreateInspection}
-        onClose={() => setShowCreateInspection(false)}
-        onCreated={() => {
-          setShowCreateInspection(false);
-          refresh();
-        }}
-      />
+      {tab === 'trades' && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <ArrowLeftRight className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+            <h3 className="text-lg font-semibold text-foreground mb-2">Shift Trades</h3>
+            <p className="text-sm text-muted-foreground max-w-md mx-auto">
+              No shift trade requests. Staff can request trades from their schedule view.
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

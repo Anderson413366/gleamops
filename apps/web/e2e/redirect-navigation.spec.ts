@@ -2,11 +2,11 @@ import { test, expect } from '@playwright/test';
 
 const REDIRECT_CASES = [
   { from: '/', to: '/home' },
-  { from: '/customers', to: '/crm' },
-  { from: '/team', to: '/workforce' },
-  { from: '/people', to: '/workforce' },
-  { from: '/schedule', to: '/operations' },
-  { from: '/subcontractors', to: '/vendors' },
+  { from: '/customers', to: '/clients' },
+  { from: '/people', to: '/team' },
+  { from: '/workforce', to: '/team' },
+  { from: '/operations', to: '/jobs' },
+  { from: '/subcontractors', to: '/clients' },
   { from: '/admin/services', to: '/services' },
 ];
 
@@ -25,14 +25,20 @@ test.describe('Redirect navigation hygiene', () => {
     expect(root.pathname).toBe('/home');
     expect(root.searchParams.get('src')).toBe('test');
 
-    await page.goto('/schedule?tab=tickets');
+    await page.goto('/operations?tab=tickets');
     const u1 = new URL(page.url());
-    expect(u1.pathname).toBe('/operations');
+    expect(u1.pathname).toBe('/jobs');
     expect(u1.searchParams.get('tab')).toBe('tickets');
 
     await page.goto('/people?tab=staff');
     const u2 = new URL(page.url());
-    expect(u2.pathname).toBe('/workforce');
+    expect(u2.pathname).toBe('/team');
     expect(u2.searchParams.get('tab')).toBe('staff');
+
+    await page.goto('/subcontractors?src=legacy');
+    const u3 = new URL(page.url());
+    expect(u3.pathname).toBe('/clients');
+    expect(u3.searchParams.get('src')).toBe('legacy');
+    expect(u3.searchParams.get('tab')).toBe('partners');
   });
 });

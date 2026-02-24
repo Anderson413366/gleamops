@@ -80,7 +80,7 @@ export default function TaskDetailPage() {
   const searchParams = useSearchParams();
   const from = searchParams.get('from');
   const isOperationsTaskCatalog = from === 'operations' || pathname.startsWith('/operations/task-catalog');
-  const backHref = isOperationsTaskCatalog ? '/operations/task-catalog' : '/services';
+  const backHref = isOperationsTaskCatalog ? '/admin?tab=task-catalog' : '/services';
   const backLabel = isOperationsTaskCatalog ? 'Back to Task Catalog' : 'Back to Services Library';
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);

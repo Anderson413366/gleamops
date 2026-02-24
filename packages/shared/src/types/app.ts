@@ -24,12 +24,17 @@ export type UserRole = LegacyUserRole | AndersonUserRole;
 // Navigation spaces
 export type NavSpace =
   | 'home'
+  | 'schedule'
+  | 'jobs'
   | 'pipeline'
   | 'crm'
+  | 'clients'
   | 'operations'
   | 'workforce'
+  | 'team'
   | 'inventory'
   | 'assets'
+  | 'equipment'
   | 'vendors'
   | 'safety'
   | 'admin'

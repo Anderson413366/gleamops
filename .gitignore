@@ -50,3 +50,7 @@ blob-report/
 
 # Claude worktrees
 .claude/worktrees/
+
+# OpenClaw local runtime/watch artifacts
+.openclaw/
+.openclaw-watch/

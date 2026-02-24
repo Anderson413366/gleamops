@@ -45,15 +45,16 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Wrench,
   Settings,
   ShieldCheck,
+  ClipboardCheck,
 };
 
 const QUICK_ACTION_ITEMS = [
   { id: 'new-client', label: 'New Client', icon: UserPlus, href: '/crm?action=create-client' },
   { id: 'new-site', label: 'New Site', icon: MapPin, href: '/crm?action=create-site' },
   { id: 'new-prospect', label: 'New Prospect', icon: TrendingUp, href: '/pipeline?action=create-prospect' },
-  { id: 'new-job', label: 'New Service Plan', icon: Briefcase, href: '/operations?tab=jobs&action=create-job' },
-  { id: 'new-inspection', label: 'New Inspection', icon: ClipboardCheck, href: '/operations?action=create-inspection' },
-  { id: 'log-ticket', label: 'Log Ticket', icon: AlertTriangle, href: '/operations?action=create-ticket' },
+  { id: 'new-job', label: 'New Service Plan', icon: Briefcase, href: '/jobs?tab=tickets&action=create-job' },
+  { id: 'new-inspection', label: 'New Inspection', icon: ClipboardCheck, href: '/jobs?tab=inspections&action=create-inspection' },
+  { id: 'log-ticket', label: 'Log Ticket', icon: AlertTriangle, href: '/jobs?tab=tickets&action=create-ticket' },
 ];
 
 function getInitials(email: string): string {
@@ -89,7 +90,7 @@ export function Sidebar() {
             .in('status', ['SCHEDULED', 'IN_PROGRESS']),
         ]);
         setBadgeCounts({
-          operations: ticketsRes.count || 0,
+          jobs: ticketsRes.count || 0,
         });
       } catch {
         // Badge counts are non-critical

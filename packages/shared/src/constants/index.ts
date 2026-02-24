@@ -4,20 +4,20 @@
 import type { LegacyUserRole, ModuleAccent, ModuleKey, NavItem, StatusColor, UserRole } from '../types/app';
 
 // ---------------------------------------------------------------------------
-// Navigation (6 consolidated modules)
+// Navigation — Phase 2: Full rename (CRM→Clients, Workforce→Team, Assets→Equipment, Admin→Settings)
 // ---------------------------------------------------------------------------
 export const NAV_ITEMS: NavItem[] = [
   { id: 'home', label: 'Home', href: '/home', icon: 'Home' },
+  { id: 'schedule', label: 'Schedule', href: '/schedule', icon: 'Calendar' },
+  { id: 'jobs', label: 'Jobs', href: '/jobs', icon: 'ClipboardCheck' },
+  { id: 'clients', label: 'Clients', href: '/clients', icon: 'Building2' },
   { id: 'pipeline', label: 'Pipeline', href: '/pipeline', icon: 'TrendingUp' },
-  { id: 'crm', label: 'CRM', href: '/crm', icon: 'Building2' },
-  { id: 'operations', label: 'Operations', href: '/operations', icon: 'Calendar' },
-  { id: 'workforce', label: 'Workforce', href: '/workforce', icon: 'Users' },
+  { id: 'team', label: 'Team', href: '/team', icon: 'Users' },
   { id: 'inventory', label: 'Inventory', href: '/inventory', icon: 'Package' },
-  { id: 'assets', label: 'Assets', href: '/assets', icon: 'Wrench' },
-  { id: 'vendors', label: 'Vendors', href: '/vendors', icon: 'Truck' },
-  { id: 'safety', label: 'Safety & Compliance', href: '/safety', icon: 'ShieldCheck' },
+  { id: 'equipment', label: 'Equipment', href: '/equipment', icon: 'Wrench' },
+  { id: 'safety', label: 'Safety', href: '/safety', icon: 'ShieldCheck' },
   { id: 'reports', label: 'Reports', href: '/reports', icon: 'BarChart3' },
-  { id: 'admin', label: 'Admin', href: '/admin', icon: 'Settings' },
+  { id: 'settings', label: 'Settings', href: '/settings', icon: 'Settings' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -25,12 +25,17 @@ export const NAV_ITEMS: NavItem[] = [
 // ---------------------------------------------------------------------------
 export const MODULE_ACCENTS: Record<ModuleKey, ModuleAccent> = {
   home: { name: 'Harbor Blue', hex: '#2563EB', hsl: '217 82% 54%' },
+  schedule: { name: 'Sunset Orange', hex: '#F97316', hsl: '24 95% 53%' },
+  jobs: { name: 'Signal Red', hex: '#EF4444', hsl: '0 84% 60%' },
   pipeline: { name: 'Canyon Orange', hex: '#F97316', hsl: '24 95% 53%' },
   crm: { name: 'Evergreen', hex: '#10B981', hsl: '160 84% 39%' },
+  clients: { name: 'Evergreen', hex: '#10B981', hsl: '160 84% 39%' },
   operations: { name: 'Royal Indigo', hex: '#4F46E5', hsl: '244 75% 59%' },
   workforce: { name: 'Rosewood', hex: '#E11D48', hsl: '347 77% 50%' },
+  team: { name: 'Amethyst', hex: '#A855F7', hsl: '271 81% 65%' },
   inventory: { name: 'Goldenrod', hex: '#D97706', hsl: '35 91% 44%' },
   assets: { name: 'Slate Teal', hex: '#0F766E', hsl: '175 77% 26%' },
+  equipment: { name: 'Hot Pink', hex: '#EC4899', hsl: '330 81% 60%' },
   vendors: { name: 'Grape', hex: '#7C3AED', hsl: '263 70% 56%' },
   safety: { name: 'Forest', hex: '#15803D', hsl: '142 72% 29%' },
   admin: { name: 'Charcoal', hex: '#334155', hsl: '215 25% 27%' },
@@ -41,20 +46,27 @@ export const MODULE_ACCENTS: Record<ModuleKey, ModuleAccent> = {
 export const DEFAULT_MODULE_KEY: ModuleKey = 'home';
 
 export function getModuleFromPathname(pathname: string): ModuleKey {
+  // Primary routes (Phase 2)
+  if (pathname.startsWith('/schedule')) return 'schedule';
+  if (pathname.startsWith('/jobs')) return 'jobs';
+  if (pathname.startsWith('/clients')) return 'clients';
   if (pathname.startsWith('/pipeline')) return 'pipeline';
-  if (pathname.startsWith('/crm') || pathname.startsWith('/customers')) return 'crm';
-  if (pathname.startsWith('/operations') || pathname.startsWith('/schedule')) return 'operations';
-  if (pathname.startsWith('/workforce') || pathname.startsWith('/people') || pathname.startsWith('/team')) return 'workforce';
+  if (pathname.startsWith('/team')) return 'team';
   if (pathname.startsWith('/inventory')) return 'inventory';
-  if (pathname.startsWith('/assets')) return 'assets';
-  if (pathname.startsWith('/vendors') || pathname.startsWith('/subcontractors')) return 'vendors';
+  if (pathname.startsWith('/equipment')) return 'equipment';
   if (pathname.startsWith('/safety')) return 'safety';
-  if (pathname.startsWith('/admin') || pathname.startsWith('/services')) return 'admin';
+  if (pathname.startsWith('/reports')) return 'reports';
+  if (pathname.startsWith('/settings')) return 'settings';
+  // Legacy routes → map to new module keys
+  if (pathname.startsWith('/crm') || pathname.startsWith('/customers')) return 'clients';
+  if (pathname.startsWith('/operations')) return 'jobs';
+  if (pathname.startsWith('/workforce') || pathname.startsWith('/people')) return 'team';
+  if (pathname.startsWith('/assets')) return 'equipment';
+  if (pathname.startsWith('/vendors') || pathname.startsWith('/subcontractors')) return 'clients';
+  if (pathname.startsWith('/admin') || pathname.startsWith('/services')) return 'settings';
   if (pathname.startsWith('/financial-intelligence')) return 'reports';
   if (pathname.startsWith('/financial')) return 'reports';
   if (pathname.startsWith('/money')) return 'reports';
-  if (pathname.startsWith('/reports')) return 'reports';
-  if (pathname.startsWith('/settings')) return 'settings';
   return 'home';
 }
 

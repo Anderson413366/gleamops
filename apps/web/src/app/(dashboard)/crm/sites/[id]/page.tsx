@@ -1117,7 +1117,7 @@ export default function SiteDetailPage() {
           </h3>
           <div className="flex items-center gap-2">
             <Link
-              href={`/operations?tab=jobs&site=${encodeURIComponent(site.site_code)}&action=new`}
+              href={`/jobs?tab=tickets&site=${encodeURIComponent(site.site_code)}&action=create-job`}
               className="inline-flex items-center rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             >
               + Assign Job
@@ -1570,7 +1570,7 @@ export default function SiteDetailPage() {
           </Link>
 
           <Link
-            href={`/operations?tab=jobs&site=${encodeURIComponent(site.site_code)}`}
+            href={`/jobs?tab=tickets&site=${encodeURIComponent(site.site_code)}`}
             className="rounded-lg border border-border bg-muted/10 p-4 text-center transition-colors hover:bg-muted"
           >
             <Users className="mx-auto h-5 w-5 text-muted-foreground" />

@@ -196,7 +196,7 @@ export default function OpsDashboard(props: { rangeDays: number; refreshKey: num
           title="Ticket Status (Today)"
           subtitle="Visual breakdown of ticket statuses scheduled today."
           action={
-            <Button size="sm" variant="secondary" onClick={() => router.push('/operations')}>
+            <Button size="sm" variant="secondary" onClick={() => router.push('/jobs')}>
               View Operations <ArrowRight className="h-4 w-4" />
             </Button>
           }

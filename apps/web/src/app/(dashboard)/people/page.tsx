@@ -19,5 +19,5 @@ function toQueryString(searchParams?: SearchParams) {
 
 export default async function PeopleRedirect({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const sp = searchParams ? await searchParams : undefined;
-  redirect(`/workforce${toQueryString(sp)}`);
+  redirect(`/team${toQueryString(sp)}`);
 }

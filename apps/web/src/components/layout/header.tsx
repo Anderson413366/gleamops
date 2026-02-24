@@ -109,7 +109,7 @@ function getAlertLink(item: FeedItem): string | null {
       return '/workforce?tab=exceptions';
     case 'work_ticket':
       // Legacy links used /schedule; operations now owns ticket details.
-      return `/operations?tab=tickets&ticket=${item.entity_id}`;
+      return `/jobs?tab=tickets&ticket=${item.entity_id}`;
     case 'time_entry':
       return '/workforce?tab=timekeeping';
     default:
@@ -133,14 +133,14 @@ type GoNavKey = 'h' | 'c' | 'o' | 'w';
 const QUICK_CREATE_ROUTES: Record<QuickCreateAction, string> = {
   'create-client': '/crm?tab=clients&action=create-client',
   'create-site': '/crm?tab=sites&action=create-site',
-  'create-job': '/operations?tab=jobs&action=create-job',
+  'create-job': '/jobs?tab=tickets&action=create-job',
   'create-prospect': '/pipeline?tab=prospects&action=create-prospect',
 };
 
 const GO_NAV_ROUTES: Record<GoNavKey, string> = {
   h: '/home',
   c: '/crm',
-  o: '/operations',
+  o: '/jobs',
   w: '/workforce',
 };
 
@@ -528,12 +528,12 @@ export function Header() {
         onSelect: () => goToSection('c'),
       },
       {
-        id: 'goto-operations',
-        label: 'Go to Operations',
-        sublabel: 'Navigate to Operations module',
+        id: 'goto-jobs',
+        label: 'Go to Jobs',
+        sublabel: 'Navigate to Jobs module',
         category: 'Go To',
         icon: <Clock className="h-4 w-4" />,
-        keywords: ['go operations', 'go to operations', 'operations', 'tickets', 'jobs'],
+        keywords: ['go jobs', 'go to jobs', 'jobs', 'tickets', 'operations'],
         onSelect: () => goToSection('o'),
       },
       {

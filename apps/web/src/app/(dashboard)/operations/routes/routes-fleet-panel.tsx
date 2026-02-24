@@ -207,7 +207,6 @@ export default function RoutesFleetPanel({ search }: Props) {
         .from('site_jobs')
         .select('id, job_code, job_name, service_date, site_id')
         .is('archived_at', null)
-        .in('status', ['ACTIVE', 'SCHEDULED', 'IN_PROGRESS'])
         .order('service_date', { ascending: false })
         .limit(400),
       supabase

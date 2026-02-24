@@ -160,7 +160,7 @@ export default function AuditCenter({ search }: Props) {
               <p className="font-medium text-foreground">Critical Priority</p>
               <p className="text-xs text-muted-foreground">{kpis.criticalIssues} issues at critical priority.</p>
             </div>
-            <Link className="inline-flex items-center text-xs font-medium text-blue-600 hover:underline" href="/operations?tab=tickets">
+            <Link className="inline-flex items-center text-xs font-medium text-blue-600 hover:underline" href="/jobs?tab=tickets">
               Open work tickets for remediation →
             </Link>
           </CardContent>

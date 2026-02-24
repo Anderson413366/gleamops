@@ -202,7 +202,7 @@ export default function QualityDashboard(props: { rangeDays: number; refreshKey:
           title="Inspections by Status"
           subtitle="All inspections in the system by current status."
           action={
-            <Button size="sm" variant="secondary" onClick={() => router.push('/operations')}>
+            <Button size="sm" variant="secondary" onClick={() => router.push('/jobs')}>
               View Operations <ArrowRight className="h-4 w-4" />
             </Button>
           }

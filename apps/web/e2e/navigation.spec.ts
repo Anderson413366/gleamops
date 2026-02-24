@@ -8,16 +8,16 @@ test.describe.configure({ mode: 'serial' });
 
 const SIDEBAR_ROUTES = [
   { label: 'Home', href: '/home' },
+  { label: 'Schedule', href: '/schedule' },
+  { label: 'Jobs', href: '/jobs' },
+  { label: 'Clients', href: '/clients' },
   { label: 'Pipeline', href: '/pipeline' },
-  { label: 'CRM', href: '/crm' },
-  { label: 'Operations', href: '/operations' },
-  { label: 'Workforce', href: '/workforce' },
+  { label: 'Team', href: '/team' },
   { label: 'Inventory', href: '/inventory' },
-  { label: 'Assets', href: '/assets' },
-  { label: 'Vendors', href: '/vendors' },
-  { label: 'Safety & Compliance', href: '/safety' },
+  { label: 'Equipment', href: '/equipment' },
+  { label: 'Safety', href: '/safety' },
   { label: 'Reports', href: '/reports' },
-  { label: 'Admin', href: '/admin' },
+  { label: 'Settings', href: '/settings' },
 ];
 
 test.describe('Sidebar navigation', () => {
@@ -30,7 +30,7 @@ test.describe('Sidebar navigation', () => {
       const sidebar = page.locator('aside:visible');
       await expect(sidebar).toBeVisible({ timeout: 10_000 });
 
-      const link = sidebar.getByRole('link', { name: label, exact: true });
+      const link = sidebar.locator(`a[href="${href}"]`).first();
       await expect(link).toBeVisible({ timeout: 10_000 });
       await link.click();
 
@@ -46,7 +46,7 @@ test.describe('Sidebar navigation', () => {
 // ---------------------------------------------------------------------------
 
 test.describe('Tab navigation (no route change)', () => {
-  test('CRM tab selection remains stable after click (no flicker bounce)', async ({ page }) => {
+  test('Clients tab selection remains stable after click (no flicker bounce)', async ({ page }) => {
     const clickTabUntilUrl = async (label: 'Sites' | 'Clients', urlPattern: RegExp) => {
       const tabButton = page.getByRole('tab', { name: label, exact: true }).first();
       await expect(tabButton).toBeVisible({ timeout: 10_000 });
@@ -58,22 +58,22 @@ test.describe('Tab navigation (no route change)', () => {
       await expect(page).toHaveURL(urlPattern);
     };
 
-    await page.goto('/crm?tab=clients');
+    await page.goto('/clients?tab=clients');
     await expect(page.getByPlaceholder('Search clients...')).toBeVisible({ timeout: 10_000 });
 
-    await clickTabUntilUrl('Sites', /\/crm\?tab=sites/);
+    await clickTabUntilUrl('Sites', /\/clients\?tab=sites/);
     await expect(page.getByPlaceholder('Search sites...')).toBeVisible({ timeout: 10_000 });
 
     await page.waitForTimeout(350);
-    await expect(page).toHaveURL(/\/crm\?tab=sites/);
+    await expect(page).toHaveURL(/\/clients\?tab=sites/);
     await expect(page.getByPlaceholder('Search sites...')).toBeVisible({ timeout: 10_000 });
 
-    await clickTabUntilUrl('Clients', /\/crm\?tab=clients/);
+    await clickTabUntilUrl('Clients', /\/clients\?tab=clients/);
     await expect(page.getByPlaceholder('Search clients...')).toBeVisible({ timeout: 10_000 });
   });
 
-  test('CRM tabs stay on /crm', async ({ page }) => {
-    await page.goto('/crm');
+  test('Clients tabs stay on /clients', async ({ page }) => {
+    await page.goto('/clients');
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 10_000 });
 
     const tabs = page.locator('[role="tablist"] button, [data-tab]');
@@ -83,14 +83,13 @@ test.describe('Tab navigation (no route change)', () => {
       const tab = tabs.nth(i);
       if (await tab.isVisible()) {
         await tab.click();
-        // URL should still be /crm (not navigated away)
-        await expect(page).toHaveURL(/\/crm/);
+        await expect(page).toHaveURL(/\/clients/);
       }
     }
   });
 
-  test('Operations tabs stay on /operations', async ({ page }) => {
-    await page.goto('/operations');
+  test('Schedule tabs stay on /schedule', async ({ page }) => {
+    await page.goto('/schedule');
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 10_000 });
 
     const tabs = page.locator('[role="tablist"] button, [data-tab]');
@@ -100,13 +99,13 @@ test.describe('Tab navigation (no route change)', () => {
       const tab = tabs.nth(i);
       if (await tab.isVisible()) {
         await tab.click();
-        await expect(page).toHaveURL(/\/operations/);
+        await expect(page).toHaveURL(/\/schedule/);
       }
     }
   });
 
-  test('Workforce tabs stay on /workforce', async ({ page }) => {
-    await page.goto('/workforce');
+  test('Jobs tabs stay on /jobs', async ({ page }) => {
+    await page.goto('/jobs');
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 10_000 });
 
     const tabs = page.locator('[role="tablist"] button, [data-tab]');
@@ -116,7 +115,23 @@ test.describe('Tab navigation (no route change)', () => {
       const tab = tabs.nth(i);
       if (await tab.isVisible()) {
         await tab.click();
-        await expect(page).toHaveURL(/\/workforce/);
+        await expect(page).toHaveURL(/\/jobs/);
+      }
+    }
+  });
+
+  test('Team tabs stay on /team', async ({ page }) => {
+    await page.goto('/team');
+    await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 10_000 });
+
+    const tabs = page.locator('[role="tablist"] button, [data-tab]');
+    const tabCount = await tabs.count();
+
+    for (let i = 0; i < tabCount; i++) {
+      const tab = tabs.nth(i);
+      if (await tab.isVisible()) {
+        await tab.click();
+        await expect(page).toHaveURL(/\/team/);
       }
     }
   });
@@ -137,8 +152,8 @@ test.describe('Tab navigation (no route change)', () => {
     }
   });
 
-  test('Assets tabs stay on /assets', async ({ page }) => {
-    await page.goto('/assets');
+  test('Equipment tabs stay on /equipment', async ({ page }) => {
+    await page.goto('/equipment');
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 10_000 });
 
     const tabs = page.locator('[role="tablist"] button, [data-tab]');
@@ -148,13 +163,13 @@ test.describe('Tab navigation (no route change)', () => {
       const tab = tabs.nth(i);
       if (await tab.isVisible()) {
         await tab.click();
-        await expect(page).toHaveURL(/\/assets/);
+        await expect(page).toHaveURL(/\/equipment/);
       }
     }
   });
 
-  test('Admin tabs stay on /admin', async ({ page }) => {
-    await page.goto('/admin');
+  test('Settings tabs stay on /settings', async ({ page }) => {
+    await page.goto('/settings');
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 10_000 });
 
     const tabs = page.locator('[role="tablist"] button, [data-tab]');
@@ -164,7 +179,7 @@ test.describe('Tab navigation (no route change)', () => {
       const tab = tabs.nth(i);
       if (await tab.isVisible()) {
         await tab.click();
-        await expect(page).toHaveURL(/\/admin/);
+        await expect(page).toHaveURL(/\/settings/);
       }
     }
   });
@@ -193,17 +208,16 @@ test.describe('Tab navigation (no route change)', () => {
 
 test.describe('Direct tab URL sync', () => {
   const CASES = [
-    { url: '/assets?tab=vehicles', expectedSearchPlaceholder: 'Search vehicles...', canonicalTab: 'vehicles' },
-    { url: '/assets?tab=keys', expectedSearchPlaceholder: 'Search keys...', canonicalTab: 'keys' },
-    { url: '/assets?tab=maintenance', expectedSearchPlaceholder: 'Search maintenance...', canonicalTab: 'maintenance' },
-    { url: '/crm?tab=sites', expectedSearchPlaceholder: 'Search sites...', canonicalTab: 'sites' },
-    { url: '/crm?tab=contacts', expectedSearchPlaceholder: 'Search contacts...', canonicalTab: 'contacts' },
-    { url: '/workforce?tab=positions', expectedSearchPlaceholder: 'Search positions...', canonicalTab: 'positions' },
-    { url: '/workforce?tab=timekeeping', expectedSearchPlaceholder: 'Search timekeeping...', canonicalTab: 'timekeeping' },
-    { url: '/operations?tab=inspections', expectedSearchPlaceholder: 'Search inspections...', canonicalTab: 'inspections' },
-    { url: '/operations?tab=templates', expectedSearchPlaceholder: 'Search templates...', canonicalTab: 'templates' },
-    { url: '/vendors?tab=job-details', expectedSearchPlaceholder: 'Search jobs...', canonicalTab: 'jobs' },
-    { url: '/vendors?tab=supply-vendors', expectedSearchPlaceholder: 'Search vendors...', canonicalTab: 'vendors' },
+    { url: '/equipment?tab=vehicles', expectedSearchPlaceholder: 'Search vehicles...', canonicalTab: 'vehicles' },
+    { url: '/equipment?tab=keys', expectedSearchPlaceholder: 'Search keys...', canonicalTab: 'keys' },
+    { url: '/equipment?tab=maintenance', expectedSearchPlaceholder: 'Search maintenance...', canonicalTab: 'maintenance' },
+    { url: '/clients?tab=sites', expectedSearchPlaceholder: 'Search sites...', canonicalTab: 'sites' },
+    { url: '/clients?tab=contacts', expectedSearchPlaceholder: 'Search contacts...', canonicalTab: 'contacts' },
+    { url: '/team?tab=positions', expectedSearchPlaceholder: 'Search positions...', canonicalTab: 'positions' },
+    { url: '/team?tab=timesheets', expectedSearchPlaceholder: 'Search timesheets...', canonicalTab: 'timesheets' },
+    { url: '/jobs?tab=inspections', expectedSearchPlaceholder: 'Search inspections...', canonicalTab: 'inspections' },
+    { url: '/schedule?tab=plan', expectedSearchPlaceholder: 'Search planning tickets, roles, and sites...', canonicalTab: 'plan' },
+    { url: '/clients?tab=partners', expectedSearchPlaceholder: 'Search partners...', canonicalTab: 'partners' },
     { url: '/safety?tab=training-courses', expectedSearchPlaceholder: 'Search courses...', canonicalTab: 'courses' },
   ] as const;
 
@@ -238,31 +252,30 @@ test.describe('Route transitions', () => {
     throw lastError;
   };
 
-  test('Home → CRM → Operations → back to Home', async ({ page }) => {
+  test('Home → Schedule → Jobs → back to Home', async ({ page }) => {
     await gotoWithRetry(page, '/home');
     await expect(page).toHaveURL(/\/home/);
 
-    await gotoWithRetry(page, '/crm');
-    await expect(page).toHaveURL(/\/crm/);
+    await gotoWithRetry(page, '/schedule');
+    await expect(page).toHaveURL(/\/schedule/);
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 10_000 });
 
-    await gotoWithRetry(page, '/operations');
-    await expect(page).toHaveURL(/\/operations/);
+    await gotoWithRetry(page, '/jobs');
+    await expect(page).toHaveURL(/\/jobs/);
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 10_000 });
 
     await gotoWithRetry(page, '/home');
     await expect(page).toHaveURL(/\/home/);
   });
 
-  test('Pipeline → Vendors → Settings', async ({ page }) => {
+  test('Pipeline → Clients → Settings', async ({ page }) => {
     await gotoWithRetry(page, '/pipeline');
     await expect(page).toHaveURL(/\/pipeline/);
 
-    await gotoWithRetry(page, '/vendors');
-    await expect(page).toHaveURL(/\/vendors/);
+    await gotoWithRetry(page, '/clients');
+    await expect(page).toHaveURL(/\/clients/);
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 10_000 });
 
-    // Settings is accessed differently (may be in profile dropdown)
     await gotoWithRetry(page, '/settings');
     await expect(page).toHaveURL(/\/settings/);
   });
@@ -271,8 +284,8 @@ test.describe('Route transitions', () => {
     await gotoWithRetry(page, '/home');
     await expect(page).toHaveURL(/\/home/);
 
-    await gotoWithRetry(page, '/crm');
-    await expect(page).toHaveURL(/\/crm/);
+    await gotoWithRetry(page, '/clients');
+    await expect(page).toHaveURL(/\/clients/);
 
     await page.goBack();
     await expect(page).toHaveURL(/\/home/);

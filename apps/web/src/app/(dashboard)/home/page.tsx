@@ -717,31 +717,31 @@ export default function HomePage() {
                 label="Active Clients"
                 value={metrics.activeClients ?? 0}
                 icon={<Building2 className="h-5 w-5" />}
-                href="/crm?tab=clients"
+                href="/clients?tab=clients"
               />
               <StatCard
                 label="Active Sites"
                 value={metrics.activeSites ?? 0}
                 icon={<MapPin className="h-5 w-5" />}
-                href="/crm?tab=sites"
+                href="/clients?tab=sites"
               />
               <StatCard
                 label="Active Jobs"
                 value={metrics.activeJobs ?? 0}
                 icon={<Briefcase className="h-5 w-5" />}
-                href="/operations?tab=jobs"
+                href="/jobs?tab=tickets"
               />
               <StatCard
                 label="Open Tickets"
                 value={metrics.openTickets ?? 0}
                 icon={<Ticket className="h-5 w-5" />}
-                href="/operations?tab=tickets"
+                href="/jobs?tab=tickets"
               />
               <StatCard
                 label="Active Staff"
                 value={metrics.activeStaff ?? 0}
                 icon={<Users className="h-5 w-5" />}
-                href="/workforce?tab=staff"
+                href="/team?tab=staff"
               />
               {!simpleView && (
                 <>
@@ -761,7 +761,7 @@ export default function HomePage() {
                     label="Overdue Inspections"
                     value={metrics.overdueInspections ?? 0}
                     icon={<ShieldAlert className="h-5 w-5" />}
-                    href="/operations?tab=inspections"
+                    href="/jobs?tab=inspections"
                   />
                 </>
               )}
@@ -834,7 +834,7 @@ export default function HomePage() {
               label="Overdue DVIR"
               value={metrics.overdueDvir ?? 0}
               icon={<AlertTriangle className="h-5 w-5" />}
-              href="/operations?tab=routes"
+              href="/jobs?tab=routes"
             />
           </div>
         </div>
@@ -1051,7 +1051,7 @@ export default function HomePage() {
                   >
                     <div className="min-w-0 flex-1">
                       <Link
-                        href={`/crm/sites/${encodeURIComponent(site.site_code)}`}
+                        href={`/clients/sites/${encodeURIComponent(site.site_code)}`}
                         className="font-medium text-blue-600 hover:underline dark:text-blue-400"
                       >
                         {site.name} ({site.site_code})

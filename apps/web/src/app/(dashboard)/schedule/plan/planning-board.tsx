@@ -36,6 +36,7 @@ const TICKET_SELECT_LEGACY = `
   site:site_id(id, name, site_code),
   assignments:ticket_assignments(id, assignment_status, staff_id, staff:staff_id(full_name))
 `;
+const PLANNING_V2_ENABLED = process.env.NEXT_PUBLIC_ENABLE_PLANNING_V2 === 'true';
 
 function tomorrow(): string {
   const d = new Date();
@@ -91,7 +92,9 @@ export default function PlanningBoard({ search = '' }: PlanningBoardProps) {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const [selectedDate, setSelectedDate] = useState(tomorrow);
   const [tickets, setTickets] = useState<PlanningTicket[]>([]);
-  const [planningSchemaMode, setPlanningSchemaMode] = useState<'v2' | 'legacy'>('v2');
+  const [planningSchemaMode, setPlanningSchemaMode] = useState<'v2' | 'legacy'>(
+    PLANNING_V2_ENABLED ? 'v2' : 'legacy'
+  );
   const [staff, setStaff] = useState<StaffOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -101,6 +104,28 @@ export default function PlanningBoard({ search = '' }: PlanningBoardProps) {
 
   // ----- data fetching -----
   const loadTickets = useCallback(async () => {
+    const loadLegacyTickets = async () => {
+      const legacy = await supabase
+        .from('work_tickets')
+        .select(TICKET_SELECT_LEGACY)
+        .eq('scheduled_date', selectedDate)
+        .is('archived_at', null)
+        .order('start_time', { ascending: true });
+
+      if (legacy.error) {
+        toast.error(legacy.error.message);
+        return;
+      }
+
+      setPlanningSchemaMode('legacy');
+      setTickets((legacy.data ?? []).map((row) => normalizeTicket(row as Partial<PlanningTicket>)));
+    };
+
+    if (!PLANNING_V2_ENABLED) {
+      await loadLegacyTickets();
+      return;
+    }
+
     const primary = await supabase
       .from('work_tickets')
       .select(TICKET_SELECT_V2)
@@ -119,20 +144,7 @@ export default function PlanningBoard({ search = '' }: PlanningBoardProps) {
       return;
     }
 
-    const legacy = await supabase
-      .from('work_tickets')
-      .select(TICKET_SELECT_LEGACY)
-      .eq('scheduled_date', selectedDate)
-      .is('archived_at', null)
-      .order('start_time', { ascending: true });
-
-    if (legacy.error) {
-      toast.error(legacy.error.message);
-      return;
-    }
-
-    setPlanningSchemaMode('legacy');
-    setTickets((legacy.data ?? []).map((row) => normalizeTicket(row as Partial<PlanningTicket>)));
+    await loadLegacyTickets();
     toast.info('Planning status column not available in this environment. Showing compatibility view.');
   }, [supabase, selectedDate]);
 

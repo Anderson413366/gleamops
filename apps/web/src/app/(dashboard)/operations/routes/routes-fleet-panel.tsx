@@ -200,7 +200,7 @@ export default function RoutesFleetPanel({ search }: Props) {
       supabase
         .from('staff')
         .select('id, staff_code, full_name')
-        .eq('status', 'ACTIVE')
+        .eq('staff_status', 'ACTIVE')
         .is('archived_at', null)
         .order('full_name', { ascending: true }),
       supabase

@@ -8,7 +8,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
 
 import WeekCalendar from '../operations/calendar/week-calendar';
-import PlanningPanel from '../operations/planning/planning-panel';
+import PlanningBoard from './plan/planning-board';
 
 // Re-use ticket relations type
 interface TicketWithRelations extends WorkTicket {
@@ -148,7 +148,7 @@ export default function SchedulePageClient() {
       )}
 
       {tab === 'plan' && (
-        <PlanningPanel key={`planning-${refreshKey}`} search={search} />
+        <PlanningBoard key={`planning-${refreshKey}`} search={search} />
       )}
 
       {tab === 'availability' && (

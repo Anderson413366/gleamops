@@ -559,7 +559,10 @@ export interface WorkTicket extends StandardColumns {
   published_by: string | null;
   locked_at: string | null;
   locked_by: string | null;
+  planning_status: 'NOT_STARTED' | 'IN_PROGRESS' | 'READY';
 }
+
+export type PlanningStatus = WorkTicket['planning_status'];
 
 export interface TicketAssignment extends StandardColumns {
   ticket_id: string;

@@ -17,7 +17,7 @@ describe('feature-flags', () => {
   });
 
   describe('getFeatureFlags', () => {
-    it('returns all flags disabled by default', () => {
+    it('returns defaults when env vars are absent', () => {
       const flags = getFeatureFlags();
       expect(flags).toEqual({
         schema_parity: false,
@@ -28,7 +28,8 @@ describe('feature-flags', () => {
         mobile_inspections: false,
         qbo_timesheet_sync: false,
         financial_intel_v1: false,
-        v2_navigation: false,
+        schedule_liberation: true,
+        v2_navigation: true,
         planning_board: false,
       });
     });
@@ -47,6 +48,15 @@ describe('feature-flags', () => {
       expect(flags.ops_geofence_auto).toBe(false);
       expect(flags.qbo_timesheet_sync).toBe(false);
       expect(flags.financial_intel_v1).toBe(false);
+    });
+
+    it('allows explicit disable for default-enabled flags', () => {
+      vi.stubEnv('NEXT_PUBLIC_FF_V2_NAVIGATION', 'disabled');
+      vi.stubEnv('NEXT_PUBLIC_FF_SCHEDULE_LIBERATION', '0');
+
+      const flags = getFeatureFlags();
+      expect(flags.v2_navigation).toBe(false);
+      expect(flags.schedule_liberation).toBe(false);
     });
 
     it('treats "disabled" as false', () => {
@@ -100,12 +110,13 @@ describe('feature-flags', () => {
         'mobile_inspections',
         'qbo_timesheet_sync',
         'financial_intel_v1',
+        'schedule_liberation',
         'v2_navigation',
         'planning_board',
       ];
       for (const domain of domains) {
-        // All should be false by default
-        expect(isFeatureEnabled(domain)).toBe(false);
+        const expectedDefault = domain === 'schedule_liberation' || domain === 'v2_navigation';
+        expect(isFeatureEnabled(domain)).toBe(expectedDefault);
       }
     });
   });

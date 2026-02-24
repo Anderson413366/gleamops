@@ -8,11 +8,14 @@ import {
   Check,
   Search,
   Building2,
+  Calendar,
   MapPin,
   Briefcase,
   Users,
   TrendingUp,
   FileText,
+  ClipboardCheck,
+  Wrench,
   Settings,
   LogOut,
   Sun,
@@ -106,12 +109,12 @@ function getAlertLink(item: FeedItem): string | null {
 
   switch (item.entity_type) {
     case 'time_exception':
-      return '/workforce?tab=exceptions';
+      return '/jobs?tab=time';
     case 'work_ticket':
       // Legacy links used /schedule; operations now owns ticket details.
       return `/jobs?tab=tickets&ticket=${item.entity_id}`;
     case 'time_entry':
-      return '/workforce?tab=timekeeping';
+      return '/team?tab=timesheets';
     default:
       return null;
   }
@@ -128,20 +131,22 @@ function getInitials(email: string): string {
 }
 
 type QuickCreateAction = 'create-client' | 'create-site' | 'create-job' | 'create-prospect';
-type GoNavKey = 'h' | 'c' | 'o' | 'w';
+type GoNavKey = 'h' | 's' | 'j' | 'c' | 't' | 'e';
 
 const QUICK_CREATE_ROUTES: Record<QuickCreateAction, string> = {
-  'create-client': '/crm?tab=clients&action=create-client',
-  'create-site': '/crm?tab=sites&action=create-site',
+  'create-client': '/clients?tab=clients&action=create-client',
+  'create-site': '/clients?tab=sites&action=create-site',
   'create-job': '/jobs?tab=tickets&action=create-job',
   'create-prospect': '/pipeline?tab=prospects&action=create-prospect',
 };
 
 const GO_NAV_ROUTES: Record<GoNavKey, string> = {
   h: '/home',
-  c: '/crm',
-  o: '/jobs',
-  w: '/workforce',
+  s: '/schedule',
+  j: '/jobs',
+  c: '/clients',
+  t: '/team',
+  e: '/equipment',
 };
 
 interface ShortcutRow {
@@ -157,9 +162,11 @@ const SHORTCUT_ROWS: ShortcutRow[] = [
   { keys: 'Cmd/Ctrl + Shift + J', description: 'New Service Plan' },
   { keys: 'Cmd/Ctrl + Shift + P', description: 'New Prospect' },
   { keys: 'G then H', description: 'Go to Home' },
-  { keys: 'G then C', description: 'Go to CRM' },
-  { keys: 'G then O', description: 'Go to Operations' },
-  { keys: 'G then W', description: 'Go to Workforce' },
+  { keys: 'G then S', description: 'Go to Schedule' },
+  { keys: 'G then J', description: 'Go to Jobs' },
+  { keys: 'G then C', description: 'Go to Clients' },
+  { keys: 'G then T', description: 'Go to Team' },
+  { keys: 'G then E', description: 'Go to Equipment' },
   { keys: 'Esc', description: 'Close modal / drawer / palette' },
 ];
 
@@ -432,7 +439,7 @@ export function Header() {
         }
 
         if (goSequenceRef.current) {
-          if (key === 'h' || key === 'c' || key === 'o' || key === 'w') {
+          if (key === 'h' || key === 's' || key === 'j' || key === 'c' || key === 't' || key === 'e') {
             e.preventDefault();
             goToSection(key as GoNavKey);
             clearGoSequence();
@@ -519,31 +526,49 @@ export function Header() {
         onSelect: () => goToSection('h'),
       },
       {
-        id: 'goto-crm',
-        label: 'Go to CRM',
-        sublabel: 'Navigate to CRM module',
+        id: 'goto-schedule',
+        label: 'Go to Schedule',
+        sublabel: 'Navigate to Schedule module',
         category: 'Go To',
-        icon: <Building2 className="h-4 w-4" />,
-        keywords: ['go crm', 'go to crm', 'crm', 'clients'],
-        onSelect: () => goToSection('c'),
+        icon: <Calendar className="h-4 w-4" />,
+        keywords: ['go schedule', 'go to schedule', 'schedule', 'calendar', 'planning'],
+        onSelect: () => goToSection('s'),
       },
       {
         id: 'goto-jobs',
         label: 'Go to Jobs',
         sublabel: 'Navigate to Jobs module',
         category: 'Go To',
-        icon: <Clock className="h-4 w-4" />,
+        icon: <ClipboardCheck className="h-4 w-4" />,
         keywords: ['go jobs', 'go to jobs', 'jobs', 'tickets', 'operations'],
-        onSelect: () => goToSection('o'),
+        onSelect: () => goToSection('j'),
       },
       {
-        id: 'goto-workforce',
-        label: 'Go to Workforce',
-        sublabel: 'Navigate to Workforce module',
+        id: 'goto-clients',
+        label: 'Go to Clients',
+        sublabel: 'Navigate to Clients module',
+        category: 'Go To',
+        icon: <Building2 className="h-4 w-4" />,
+        keywords: ['go clients', 'go to clients', 'clients', 'crm', 'customers'],
+        onSelect: () => goToSection('c'),
+      },
+      {
+        id: 'goto-team',
+        label: 'Go to Team',
+        sublabel: 'Navigate to Team module',
         category: 'Go To',
         icon: <Users className="h-4 w-4" />,
-        keywords: ['go workforce', 'go to workforce', 'workforce', 'staff', 'team'],
-        onSelect: () => goToSection('w'),
+        keywords: ['go team', 'go to team', 'team', 'workforce', 'staff'],
+        onSelect: () => goToSection('t'),
+      },
+      {
+        id: 'goto-equipment',
+        label: 'Go to Equipment',
+        sublabel: 'Navigate to Equipment module',
+        category: 'Go To',
+        icon: <Wrench className="h-4 w-4" />,
+        keywords: ['go equipment', 'go to equipment', 'equipment', 'assets'],
+        onSelect: () => goToSection('e'),
       },
     ];
 
@@ -608,7 +633,7 @@ export function Header() {
           sublabel: c.client_code,
           category: 'Clients',
           icon: <Building2 className="h-4 w-4" />,
-          href: `/crm?client=${c.client_code}`,
+          href: `/clients?client=${c.client_code}`,
         });
       }
     }
@@ -621,7 +646,7 @@ export function Header() {
           sublabel: s.address?.street || '',
           category: 'Sites',
           icon: <MapPin className="h-4 w-4" />,
-          href: `/crm?site=${s.site_code}`,
+          href: `/clients?site=${s.site_code}`,
         });
       }
     }
@@ -660,7 +685,7 @@ export function Header() {
           sublabel: s.staff_code,
           category: 'Team',
           icon: <Users className="h-4 w-4" />,
-          href: `/workforce/staff/${s.staff_code}`,
+          href: `/team/staff/${s.staff_code}`,
         });
       }
     }

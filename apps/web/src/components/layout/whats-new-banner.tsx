@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { X, Sparkles } from 'lucide-react';
 import { Button } from '@gleamops/ui';
+import { useFeatureFlag } from '@/hooks/use-feature-flag';
 
 const STORAGE_KEY = 'gleamops_v2_nav_dismissed';
 const BANNER_VERSION = '2.0'; // bump to re-show after future updates
@@ -12,9 +13,14 @@ const BANNER_VERSION = '2.0'; // bump to re-show after future updates
  * Dismissed state is persisted in localStorage.
  */
 export function WhatsNewBanner() {
+  const v2NavigationEnabled = useFeatureFlag('v2_navigation');
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
+    if (!v2NavigationEnabled) {
+      setVisible(false);
+      return;
+    }
     try {
       const dismissed = localStorage.getItem(STORAGE_KEY);
       if (dismissed !== BANNER_VERSION) {
@@ -23,7 +29,9 @@ export function WhatsNewBanner() {
     } catch {
       // localStorage unavailable — don't show
     }
-  }, []);
+  }, [v2NavigationEnabled]);
+
+  if (!v2NavigationEnabled) return null;
 
   function dismiss() {
     setVisible(false);

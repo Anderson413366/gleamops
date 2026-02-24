@@ -4,7 +4,7 @@
  * Flags are read from `NEXT_PUBLIC_FF_*` env vars (web/mobile) or `FF_*` (worker).
  * Values are cached on first read — restart the process to pick up changes.
  *
- * Default: all flags disabled.
+ * Default: most flags disabled. Navigation/scheduling IA flags default enabled.
  */
 
 export type FeatureDomain =
@@ -16,6 +16,7 @@ export type FeatureDomain =
   | 'mobile_inspections'
   | 'qbo_timesheet_sync'
   | 'financial_intel_v1'
+  | 'schedule_liberation'
   | 'v2_navigation'
   | 'planning_board';
 
@@ -30,6 +31,7 @@ const DOMAIN_TO_ENV: Record<FeatureDomain, string> = {
   mobile_inspections: 'NEXT_PUBLIC_FF_MOBILE_INSPECTIONS',
   qbo_timesheet_sync: 'NEXT_PUBLIC_FF_QBO_TIMESHEET_SYNC',
   financial_intel_v1: 'NEXT_PUBLIC_FF_FINANCIAL_INTEL_V1',
+  schedule_liberation: 'NEXT_PUBLIC_FF_SCHEDULE_LIBERATION',
   v2_navigation: 'NEXT_PUBLIC_FF_V2_NAVIGATION',
   planning_board: 'NEXT_PUBLIC_FF_PLANNING_BOARD',
 };
@@ -43,6 +45,7 @@ const WORKER_ENV: Record<string, string> = {
   NEXT_PUBLIC_FF_PROPOSAL_STUDIO_V2: 'FF_PROPOSAL_STUDIO_V2',
   NEXT_PUBLIC_FF_QBO_TIMESHEET_SYNC: 'FF_QBO_TIMESHEET_SYNC',
   NEXT_PUBLIC_FF_FINANCIAL_INTEL_V1: 'FF_FINANCIAL_INTEL_V1',
+  NEXT_PUBLIC_FF_SCHEDULE_LIBERATION: 'FF_SCHEDULE_LIBERATION',
   NEXT_PUBLIC_FF_V2_NAVIGATION: 'FF_V2_NAVIGATION',
   NEXT_PUBLIC_FF_PLANNING_BOARD: 'FF_PLANNING_BOARD',
 };
@@ -56,18 +59,26 @@ const ALL_DOMAINS: FeatureDomain[] = [
   'mobile_inspections',
   'qbo_timesheet_sync',
   'financial_intel_v1',
+  'schedule_liberation',
   'v2_navigation',
   'planning_board',
 ];
+
+const DOMAIN_DEFAULTS: Partial<FeatureFlags> = {
+  // v2 IA is the current default experience; flags act as rollback controls.
+  schedule_liberation: true,
+  v2_navigation: true,
+};
 
 let _cache: FeatureFlags | null = null;
 
 // Declared locally to avoid requiring @types/node in every consumer package.
 declare const process: { env: Record<string, string | undefined> } | undefined;
 
-function readEnv(key: string): boolean {
-  if (typeof process === 'undefined' || !process.env) return false;
+function readEnvOrDefault(key: string, defaultValue: boolean): boolean {
+  if (typeof process === 'undefined' || !process.env) return defaultValue;
   const val = process.env[key] ?? process.env[WORKER_ENV[key] ?? ''];
+  if (val == null) return defaultValue;
   return val === 'enabled' || val === 'true' || val === '1';
 }
 
@@ -80,7 +91,7 @@ export function getFeatureFlags(): FeatureFlags {
 
   const flags = {} as FeatureFlags;
   for (const domain of ALL_DOMAINS) {
-    flags[domain] = readEnv(DOMAIN_TO_ENV[domain]);
+    flags[domain] = readEnvOrDefault(DOMAIN_TO_ENV[domain], DOMAIN_DEFAULTS[domain] ?? false);
   }
   _cache = flags;
   return _cache;

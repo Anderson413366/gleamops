@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { Award, BookOpen, FileText, CalendarCheck, Plus, ShieldAlert } from 'lucide-react';
+import { Award, BookOpen, CalendarCheck, Plus, ShieldAlert } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
@@ -11,17 +11,13 @@ import CoursesTable from './training/courses-table';
 import CompletionsTable from './training/completions-table';
 import SafetyDocumentsTable from './documents/safety-documents-table';
 import ComplianceCalendar from './calendar/compliance-calendar';
-import AuditCenter from './audit-center/audit-center';
 import IncidentsTable from './incidents/incidents-table';
 
 const TABS = [
   { key: 'certifications', label: 'Certifications', icon: <Award className="h-4 w-4" /> },
-  { key: 'courses', label: 'Training Courses', icon: <BookOpen className="h-4 w-4" /> },
-  { key: 'completions', label: 'Completions', icon: <CalendarCheck className="h-4 w-4" /> },
-  { key: 'documents', label: 'Safety Docs', icon: <FileText className="h-4 w-4" /> },
+  { key: 'training', label: 'Training', icon: <BookOpen className="h-4 w-4" /> },
   { key: 'incidents', label: 'Incidents', icon: <ShieldAlert className="h-4 w-4" /> },
-  { key: 'calendar', label: 'Compliance Calendar', icon: <CalendarCheck className="h-4 w-4" /> },
-  { key: 'audit-center', label: 'Audit Center', icon: <ShieldAlert className="h-4 w-4" /> },
+  { key: 'calendar', label: 'Calendar', icon: <CalendarCheck className="h-4 w-4" /> },
 ];
 
 export default function SafetyPageClient() {
@@ -29,9 +25,14 @@ export default function SafetyPageClient() {
     tabKeys: TABS.map((entry) => entry.key),
     defaultTab: 'certifications',
     aliases: {
-      'training-courses': 'courses',
-      'training-completions': 'completions',
-      'safety-documents': 'documents',
+      courses: 'training',
+      completions: 'training',
+      documents: 'training',
+      'training-courses': 'training',
+      'training-completions': 'training',
+      'safety-documents': 'training',
+      'audit-center': 'calendar',
+      'compliance-calendar': 'calendar',
     },
   });
   const [search, setSearch] = useState('');
@@ -46,10 +47,10 @@ export default function SafetyPageClient() {
   });
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
-  const canAdd = ['certifications', 'courses', 'completions', 'documents'].includes(tab);
+  const canAdd = ['certifications', 'training'].includes(tab);
 
   const handleAdd = () => {
-    if (tab === 'courses') {
+    if (tab === 'training') {
       setFormOpen(true);
     } else {
       setAutoCreate(true);
@@ -58,9 +59,7 @@ export default function SafetyPageClient() {
 
   const addLabel: Record<string, string> = {
     certifications: 'New Certification',
-    courses: 'New Course',
-    completions: 'Record Completion',
-    documents: 'New Document',
+    training: 'New Course',
   };
 
   useEffect(() => {
@@ -113,7 +112,7 @@ export default function SafetyPageClient() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Safety & Compliance</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Certifications, Training, Safety Documents, Incidents, Compliance Calendar, Audit Center
+            Certifications, training, incidents, and compliance calendar
           </p>
         </div>
         {canAdd && (
@@ -144,34 +143,41 @@ export default function SafetyPageClient() {
           onAutoCreateHandled={() => setAutoCreate(false)}
         />
       )}
-      {tab === 'courses' && (
-        <CoursesTable
-          key={`courses-${refreshKey}`}
-          search={search}
-          formOpen={formOpen}
-          onFormClose={() => setFormOpen(false)}
-          onRefresh={refresh}
-        />
-      )}
-      {tab === 'completions' && (
-        <CompletionsTable
-          key={`comp-${refreshKey}`}
-          search={search}
-          autoCreate={autoCreate}
-          onAutoCreateHandled={() => setAutoCreate(false)}
-        />
-      )}
-      {tab === 'documents' && (
-        <SafetyDocumentsTable
-          key={`docs-${refreshKey}`}
-          search={search}
-          autoCreate={autoCreate}
-          onAutoCreateHandled={() => setAutoCreate(false)}
-        />
+      {tab === 'training' && (
+        <div className="space-y-6">
+          <section className="space-y-3">
+            <h2 className="text-base font-semibold text-foreground">Courses</h2>
+            <CoursesTable
+              key={`courses-${refreshKey}`}
+              search={search}
+              formOpen={formOpen}
+              onFormClose={() => setFormOpen(false)}
+              onRefresh={refresh}
+            />
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-base font-semibold text-foreground">Completions</h2>
+            <CompletionsTable
+              key={`comp-${refreshKey}`}
+              search={search}
+              autoCreate={autoCreate}
+              onAutoCreateHandled={() => setAutoCreate(false)}
+            />
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-base font-semibold text-foreground">Safety Docs</h2>
+            <SafetyDocumentsTable
+              key={`docs-${refreshKey}`}
+              search={search}
+              autoCreate={false}
+            />
+          </section>
+        </div>
       )}
       {tab === 'incidents' && <IncidentsTable key={`inc-${refreshKey}`} search={search} />}
       {tab === 'calendar' && <ComplianceCalendar key={`cal-${refreshKey}`} />}
-      {tab === 'audit-center' && <AuditCenter key={`audit-${refreshKey}`} search={search} />}
     </div>
   );
 }

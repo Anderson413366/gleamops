@@ -26,15 +26,15 @@ interface EntityLinkProps {
 }
 
 const ROUTE_PREFIX: Record<EntityType, string> = {
-  client: '/crm/clients',
-  site: '/crm/sites',
+  client: '/clients',
+  site: '/clients/sites',
   job: '/operations/jobs',
-  staff: '/workforce/staff',
-  equipment: '/assets/equipment',
-  vehicle: '/assets/vehicles',
-  subcontractor: '/vendors/subcontractors',
+  staff: '/team/staff',
+  equipment: '/equipment',
+  vehicle: '/equipment/vehicles',
+  subcontractor: '/clients/partners',
   supply: '/inventory/supplies',
-  position: '/workforce/positions',
+  position: '/team/positions',
   prospect: '/pipeline/prospects',
   opportunity: '/pipeline/opportunities',
 };

@@ -26,12 +26,12 @@ import {
   Briefcase,
   ClipboardCheck,
   AlertTriangle,
-  LineChart,
 } from 'lucide-react';
-import { getModuleFromPathname, NAV_ITEMS, roleDisplayName } from '@gleamops/shared';
+import { getModuleFromPathname, NAV_ITEMS, roleDisplayName, type NavItem } from '@gleamops/shared';
 import { useAuth } from '@/hooks/use-auth';
 import { useFeatureFlag } from '@/hooks/use-feature-flag';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { NavigationTooltipTour } from './navigation-tooltip-tour';
 
 const ICON_MAP: Record<string, React.ElementType> = {
   Home,
@@ -49,12 +49,25 @@ const ICON_MAP: Record<string, React.ElementType> = {
 };
 
 const QUICK_ACTION_ITEMS = [
-  { id: 'new-client', label: 'New Client', icon: UserPlus, href: '/crm?action=create-client' },
-  { id: 'new-site', label: 'New Site', icon: MapPin, href: '/crm?action=create-site' },
+  { id: 'new-client', label: 'New Client', icon: UserPlus, href: '/clients?action=create-client' },
+  { id: 'new-site', label: 'New Site', icon: MapPin, href: '/clients?action=create-site' },
   { id: 'new-prospect', label: 'New Prospect', icon: TrendingUp, href: '/pipeline?action=create-prospect' },
   { id: 'new-job', label: 'New Service Plan', icon: Briefcase, href: '/jobs?tab=tickets&action=create-job' },
   { id: 'new-inspection', label: 'New Inspection', icon: ClipboardCheck, href: '/jobs?tab=inspections&action=create-inspection' },
   { id: 'log-ticket', label: 'Log Ticket', icon: AlertTriangle, href: '/jobs?tab=tickets&action=create-ticket' },
+];
+
+const LEGACY_NAV_ITEMS: NavItem[] = [
+  { id: 'home', label: 'Home', href: '/home', icon: 'Home' },
+  { id: 'jobs', label: 'Operations', href: '/operations', icon: 'ClipboardCheck' },
+  { id: 'clients', label: 'CRM', href: '/crm', icon: 'Building2' },
+  { id: 'pipeline', label: 'Pipeline', href: '/pipeline', icon: 'TrendingUp' },
+  { id: 'team', label: 'Workforce', href: '/workforce', icon: 'Users' },
+  { id: 'inventory', label: 'Inventory', href: '/inventory', icon: 'Package' },
+  { id: 'equipment', label: 'Assets', href: '/assets', icon: 'Wrench' },
+  { id: 'safety', label: 'Safety', href: '/safety', icon: 'ShieldCheck' },
+  { id: 'reports', label: 'Reports', href: '/reports', icon: 'BarChart3' },
+  { id: 'settings', label: 'Admin', href: '/admin', icon: 'Settings' },
 ];
 
 function getInitials(email: string): string {
@@ -70,7 +83,8 @@ function getInitials(email: string): string {
 export function Sidebar() {
   const pathname = usePathname();
   const activeModule = getModuleFromPathname(pathname);
-  const financialIntelEnabled = useFeatureFlag('financial_intel_v1');
+  const v2NavigationEnabled = useFeatureFlag('v2_navigation');
+  const navItems = v2NavigationEnabled ? NAV_ITEMS : LEGACY_NAV_ITEMS;
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
@@ -188,15 +202,16 @@ export function Sidebar() {
 
         {/* Nav items */}
         <nav className="flex-1 py-3 px-3 space-y-1 overflow-y-auto">
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const Icon = ICON_MAP[item.icon] ?? Building2;
             const isActive = activeModule === item.id || pathname.startsWith(item.href);
             const badgeCount = badgeCounts[item.id] ?? 0;
 
             return (
               <Link
-                key={item.id}
+                key={`${item.id}-${item.href}`}
                 href={item.href}
+                data-nav-id={item.id}
                 onClick={() => setMobileOpen(false)}
                 aria-current={isActive ? 'page' : undefined}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 ease-in-out group ${
@@ -226,28 +241,8 @@ export function Sidebar() {
               </Link>
             );
           })}
-          {financialIntelEnabled && (
-            <Link
-              href="/financial-intelligence"
-              onClick={() => setMobileOpen(false)}
-              aria-current={pathname.startsWith('/financial-intelligence') ? 'page' : undefined}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 ease-in-out group ${
-                pathname.startsWith('/financial-intelligence')
-                  ? 'border-module-accent/30 bg-module-accent/15 text-module-accent'
-                  : 'border-transparent text-sidebar-text hover:bg-sidebar-hover hover:text-white'
-              }`}
-            >
-              <LineChart
-                className={`h-[18px] w-[18px] shrink-0 transition-colors duration-200 ${
-                  pathname.startsWith('/financial-intelligence')
-                    ? 'text-module-accent'
-                    : 'text-sidebar-text group-hover:text-white'
-                }`}
-              />
-              Financial Intel
-            </Link>
-          )}
         </nav>
+        {v2NavigationEnabled && <NavigationTooltipTour />}
 
         {/* Quick Action FAB + Popover */}
         <div className="relative px-3 py-2" ref={quickRef}>

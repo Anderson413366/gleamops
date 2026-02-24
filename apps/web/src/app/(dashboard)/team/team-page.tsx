@@ -60,9 +60,9 @@ export default function TeamPageClient() {
     async function fetchKpis() {
       const supabase = getSupabaseBrowserClient();
       const [activeRes, superRes, excRes, tsRes] = await Promise.all([
-        supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'ACTIVE'),
-        supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'ACTIVE').eq('role', 'SUPERVISOR'),
-        supabase.from('time_exceptions').select('id', { count: 'exact', head: true }).eq('status', 'OPEN'),
+        supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('staff_status', 'ACTIVE'),
+        supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('staff_status', 'ACTIVE').eq('role', 'SUPERVISOR'),
+        supabase.from('time_exceptions').select('id', { count: 'exact', head: true }).is('resolved_at', null),
         supabase.from('timesheets').select('id', { count: 'exact', head: true }).eq('status', 'SUBMITTED'),
       ]);
 

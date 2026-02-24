@@ -1,10 +1,5 @@
-import { Suspense } from 'react';
-import MoneyPageClient from './money-page';
+import { redirect } from 'next/navigation';
 
 export default function MoneyPage() {
-  return (
-    <Suspense fallback={null}>
-      <MoneyPageClient />
-    </Suspense>
-  );
+  redirect('/reports?tab=financial');
 }

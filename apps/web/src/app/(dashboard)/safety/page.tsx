@@ -20,16 +20,16 @@ export default async function SafetyPage({ searchParams }: SafetyPageProps) {
   }
 
   const tab = params.get('tab');
-  if (tab === 'training-courses') {
-    params.set('tab', 'courses');
+  if (tab === 'training-courses' || tab === 'training-completions' || tab === 'safety-documents') {
+    params.set('tab', 'training');
     redirect(`/safety?${params.toString()}`);
   }
-  if (tab === 'training-completions') {
-    params.set('tab', 'completions');
+  if (tab === 'courses' || tab === 'completions' || tab === 'documents') {
+    params.set('tab', 'training');
     redirect(`/safety?${params.toString()}`);
   }
-  if (tab === 'safety-documents') {
-    params.set('tab', 'documents');
+  if (tab === 'audit-center' || tab === 'compliance-calendar') {
+    params.set('tab', 'calendar');
     redirect(`/safety?${params.toString()}`);
   }
 

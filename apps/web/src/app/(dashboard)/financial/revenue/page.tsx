@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation';
 
 export default function FinancialRevenueRedirect() {
-  redirect('/money?tab=revenue');
+  redirect('/reports?tab=financial');
 }
-

@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
-import ServicesLibraryPageClient from './services-library-page';
+import { redirect } from 'next/navigation';
 
 export default function ServicesLibraryPage() {
-  return <ServicesLibraryPageClient />;
+  redirect('/settings?tab=services');
 }

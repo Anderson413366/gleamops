@@ -1,4 +1,8 @@
 import { redirect } from 'next/navigation';
+import { isFeatureEnabled } from '@gleamops/shared';
+import OperationsPageClient from './operations-page';
+
+export const dynamic = 'force-dynamic';
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -46,6 +50,11 @@ export default async function OperationsRedirect({
 }: {
   searchParams?: Promise<SearchParams>;
 }) {
+  const scheduleLiberationEnabled = isFeatureEnabled('schedule_liberation');
+  if (!scheduleLiberationEnabled) {
+    return <OperationsPageClient />;
+  }
+
   const sp = searchParams ? await searchParams : {};
   const tab = getFirstValue(sp.tab);
   const rest = toQueryString(sp, ['tab']);

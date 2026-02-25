@@ -320,13 +320,13 @@ export default function SchedulePageClient() {
         <Card>
           <CardContent className="pt-4">
             <p className="text-xs text-muted-foreground">Tickets Today</p>
-            <p className="text-xl font-semibold">{kpis.todayTickets}</p>
+            <p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.todayTickets}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
             <p className="text-xs text-muted-foreground">Coverage Gaps</p>
-            <p className={`text-xl font-semibold ${kpis.coverageGaps > 0 ? 'text-destructive' : ''}`}>
+            <p className={`text-lg font-semibold sm:text-xl leading-tight ${kpis.coverageGaps > 0 ? 'text-destructive' : ''}`}>
               {kpis.coverageGaps}
             </p>
           </CardContent>
@@ -334,13 +334,13 @@ export default function SchedulePageClient() {
         <Card>
           <CardContent className="pt-4">
             <p className="text-xs text-muted-foreground">Active Work Orders</p>
-            <p className="text-xl font-semibold">{kpis.activeWorkOrders}</p>
+            <p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.activeWorkOrders}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
             <p className="text-xs text-muted-foreground">Published Periods</p>
-            <p className="text-xl font-semibold">{kpis.publishedPeriods}</p>
+            <p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.publishedPeriods}</p>
           </CardContent>
         </Card>
       </div>

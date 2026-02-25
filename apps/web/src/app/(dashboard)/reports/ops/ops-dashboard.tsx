@@ -223,7 +223,7 @@ export default function OpsDashboard(props: { rangeDays: number; refreshKey: num
           ) : (
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-2xl font-semibold tabular-nums">{ticketSeries.values.reduce((a, b) => a + b, 0)}</p>
+                <p className="text-xl font-semibold tabular-nums sm:text-2xl leading-tight">{ticketSeries.values.reduce((a, b) => a + b, 0)}</p>
                 <p className="text-xs text-muted-foreground">Total tickets in range</p>
               </div>
               <MiniBars values={ticketSeries.values} ariaLabel="Tickets per day" />
@@ -237,7 +237,7 @@ export default function OpsDashboard(props: { rangeDays: number; refreshKey: num
           ) : (
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-2xl font-semibold tabular-nums">
+                <p className="text-xl font-semibold tabular-nums sm:text-2xl leading-tight">
                   {Math.round(hoursSeries.values.reduce((a, b) => a + b, 0) * 10) / 10}
                 </p>
                 <p className="text-xs text-muted-foreground">Total hours in range</p>

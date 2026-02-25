@@ -203,10 +203,10 @@ export default function OperationsPageClient() {
 
       {!focusMode && (
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Tickets Today</p><p className="text-xl font-semibold">{kpis.todayTickets}</p></CardContent></Card>
-          <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Open Tickets</p><p className="text-xl font-semibold">{kpis.openTickets}</p></CardContent></Card>
-          <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Jobs</p><p className="text-xl font-semibold">{kpis.activeJobs}</p></CardContent></Card>
-          <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Open Alerts</p><p className="text-xl font-semibold text-warning">{kpis.openAlerts}</p></CardContent></Card>
+          <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Tickets Today</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.todayTickets}</p></CardContent></Card>
+          <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Open Tickets</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.openTickets}</p></CardContent></Card>
+          <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Jobs</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.activeJobs}</p></CardContent></Card>
+          <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Open Alerts</p><p className="text-lg font-semibold sm:text-xl leading-tight text-warning">{kpis.openAlerts}</p></CardContent></Card>
         </div>
       )}
 

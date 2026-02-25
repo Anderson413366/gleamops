@@ -88,10 +88,10 @@ export default function ServicesLibraryPageClient() {
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Tasks</p><p className="text-xl font-semibold">{kpis.activeTasks}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Services</p><p className="text-xl font-semibold">{kpis.activeServices}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Task-Service Mappings</p><p className="text-xl font-semibold">{kpis.mappedTasks}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Unmapped Active Tasks</p><p className="text-xl font-semibold text-warning">{kpis.unmappedActiveTasks}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Tasks</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.activeTasks}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Services</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.activeServices}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Task-Service Mappings</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.mappedTasks}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Unmapped Active Tasks</p><p className="text-lg font-semibold sm:text-xl leading-tight text-warning">{kpis.unmappedActiveTasks}</p></CardContent></Card>
       </div>
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

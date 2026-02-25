@@ -258,7 +258,7 @@ export default function WorkforceDashboard(props: { rangeDays: number; refreshKe
           ) : (
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-2xl font-semibold tabular-nums">
+                <p className="text-xl font-semibold tabular-nums sm:text-2xl leading-tight">
                   {Math.round(hoursSeries.reduce((a, b) => a + b, 0) * 10) / 10}
                 </p>
                 <p className="text-xs text-muted-foreground">Total hours in range</p>

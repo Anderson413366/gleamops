@@ -149,31 +149,31 @@ export default function CRMPageClient() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <Card>
           <CardContent className="pt-4">
-            <p className="text-2xl font-semibold tabular-nums">{kpis.clients}</p>
+            <p className="text-xl font-semibold tabular-nums sm:text-2xl leading-tight">{kpis.clients}</p>
             <p className="text-xs text-muted-foreground">Total Clients</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
-            <p className="text-2xl font-semibold tabular-nums">{kpis.activeClients}</p>
+            <p className="text-xl font-semibold tabular-nums sm:text-2xl leading-tight">{kpis.activeClients}</p>
             <p className="text-xs text-muted-foreground">Active Clients</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
-            <p className="text-2xl font-semibold tabular-nums">{kpis.sites}</p>
+            <p className="text-xl font-semibold tabular-nums sm:text-2xl leading-tight">{kpis.sites}</p>
             <p className="text-xs text-muted-foreground">Total Sites</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
-            <p className="text-2xl font-semibold tabular-nums">{kpis.activeSites}</p>
+            <p className="text-xl font-semibold tabular-nums sm:text-2xl leading-tight">{kpis.activeSites}</p>
             <p className="text-xs text-muted-foreground">Active Sites</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
-            <p className="text-2xl font-semibold tabular-nums">{kpis.contacts}</p>
+            <p className="text-xl font-semibold tabular-nums sm:text-2xl leading-tight">{kpis.contacts}</p>
             <p className="text-xs text-muted-foreground">Contacts</p>
           </CardContent>
         </Card>

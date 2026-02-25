@@ -203,10 +203,10 @@ export default function InventoryPageClient() {
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Supplies</p><p className="text-xl font-semibold">{kpis.activeSupplies}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Below Par</p><p className={`text-xl font-semibold ${kpis.belowPar > 0 ? 'text-red-600 dark:text-red-400' : ''}`}>{kpis.belowPar}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Open Orders</p><p className="text-xl font-semibold">{kpis.openOrders}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Pending Counts</p><p className="text-xl font-semibold">{kpis.pendingCounts}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Supplies</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.activeSupplies}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Below Par</p><p className={`text-lg font-semibold sm:text-xl leading-tight ${kpis.belowPar > 0 ? 'text-red-600 dark:text-red-400' : ''}`}>{kpis.belowPar}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Open Orders</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.openOrders}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Pending Counts</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.pendingCounts}</p></CardContent></Card>
       </div>
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

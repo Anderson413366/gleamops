@@ -55,10 +55,10 @@ export default function SalesAdminPageClient() {
         <p className="mt-1 text-sm text-muted-foreground">Control pricing models, follow-up templates, and proposal inserts.</p>
       </div>
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Production Rates</p><p className="text-xl font-bold">{kpis.productionRates}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Follow-up Templates</p><p className="text-xl font-bold">{kpis.followupTemplates}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Follow-ups</p><p className="text-xl font-bold text-success">{kpis.activeFollowups}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Marketing Inserts</p><p className="text-xl font-bold">{kpis.marketingInserts}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Production Rates</p><p className="text-lg font-bold sm:text-xl leading-tight">{kpis.productionRates}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Follow-up Templates</p><p className="text-lg font-bold sm:text-xl leading-tight">{kpis.followupTemplates}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Follow-ups</p><p className="text-lg font-bold sm:text-xl leading-tight text-success">{kpis.activeFollowups}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Marketing Inserts</p><p className="text-lg font-bold sm:text-xl leading-tight">{kpis.marketingInserts}</p></CardContent></Card>
       </div>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0 lg:flex-1">

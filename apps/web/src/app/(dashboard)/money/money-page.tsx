@@ -548,11 +548,11 @@ export default function MoneyPageClient() {
           </div>
 
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-            <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Total Revenue/mo</p><p className="text-xl font-semibold">{formatCurrency(jobFinancialMetrics.totalRevenue)}</p></CardContent></Card>
-            <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Total Profit/mo</p><p className="text-xl font-semibold">{formatCurrency(jobFinancialMetrics.totalProfit)}</p></CardContent></Card>
-            <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Avg Margin</p><p className="text-xl font-semibold">{formatPct(jobFinancialMetrics.avgMargin)}</p></CardContent></Card>
-            <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Loss Jobs</p><p className="text-xl font-semibold text-red-600">{jobFinancialMetrics.lossJobs}</p></CardContent></Card>
-            <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Premium Jobs</p><p className="text-xl font-semibold text-blue-600">{jobFinancialMetrics.premiumJobs}</p></CardContent></Card>
+            <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Total Revenue/mo</p><p className="text-lg font-semibold sm:text-xl leading-tight">{formatCurrency(jobFinancialMetrics.totalRevenue)}</p></CardContent></Card>
+            <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Total Profit/mo</p><p className="text-lg font-semibold sm:text-xl leading-tight">{formatCurrency(jobFinancialMetrics.totalProfit)}</p></CardContent></Card>
+            <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Avg Margin</p><p className="text-lg font-semibold sm:text-xl leading-tight">{formatPct(jobFinancialMetrics.avgMargin)}</p></CardContent></Card>
+            <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Loss Jobs</p><p className="text-lg font-semibold sm:text-xl leading-tight text-red-600">{jobFinancialMetrics.lossJobs}</p></CardContent></Card>
+            <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Premium Jobs</p><p className="text-lg font-semibold sm:text-xl leading-tight text-blue-600">{jobFinancialMetrics.premiumJobs}</p></CardContent></Card>
           </div>
 
           {sortedJobFinancialRows.length === 0 ? (
@@ -646,10 +646,10 @@ export default function MoneyPageClient() {
       ) : activeTab === 'revenue' ? (
         <>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Monthly Revenue</p><p className="text-xl font-semibold">{formatCurrency(revenueMetrics.monthlyRevenue)}</p></CardContent></Card>
-            <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Annual Revenue</p><p className="text-xl font-semibold">{formatCurrency(revenueMetrics.annualRevenue)}</p></CardContent></Card>
-            <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Avg / Client</p><p className="text-xl font-semibold">{formatCurrency(revenueMetrics.avgPerClient)}</p></CardContent></Card>
-            <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Jobs</p><p className="text-xl font-semibold">{revenueMetrics.activeJobs}</p></CardContent></Card>
+            <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Monthly Revenue</p><p className="text-lg font-semibold sm:text-xl leading-tight">{formatCurrency(revenueMetrics.monthlyRevenue)}</p></CardContent></Card>
+            <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Annual Revenue</p><p className="text-lg font-semibold sm:text-xl leading-tight">{formatCurrency(revenueMetrics.annualRevenue)}</p></CardContent></Card>
+            <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Avg / Client</p><p className="text-lg font-semibold sm:text-xl leading-tight">{formatCurrency(revenueMetrics.avgPerClient)}</p></CardContent></Card>
+            <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Jobs</p><p className="text-lg font-semibold sm:text-xl leading-tight">{revenueMetrics.activeJobs}</p></CardContent></Card>
           </div>
 
           {revenueRows.length === 0 ? (
@@ -710,10 +710,10 @@ export default function MoneyPageClient() {
       ) : (
         <>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
-            <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Daily Income</p><p className="text-xl font-semibold">{formatCurrency(plannedIncomeMetrics.dailyIncome)}</p></CardContent></Card>
-            <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Weekly Income</p><p className="text-xl font-semibold">{formatCurrency(plannedIncomeMetrics.weeklyIncome)}</p></CardContent></Card>
-            <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Monthly Income</p><p className="text-xl font-semibold">{formatCurrency(plannedIncomeMetrics.monthlyIncome)}</p></CardContent></Card>
-            <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Annual Income</p><p className="text-xl font-semibold">{formatCurrency(plannedIncomeMetrics.annualIncome)}</p></CardContent></Card>
+            <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Daily Income</p><p className="text-lg font-semibold sm:text-xl leading-tight">{formatCurrency(plannedIncomeMetrics.dailyIncome)}</p></CardContent></Card>
+            <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Weekly Income</p><p className="text-lg font-semibold sm:text-xl leading-tight">{formatCurrency(plannedIncomeMetrics.weeklyIncome)}</p></CardContent></Card>
+            <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Monthly Income</p><p className="text-lg font-semibold sm:text-xl leading-tight">{formatCurrency(plannedIncomeMetrics.monthlyIncome)}</p></CardContent></Card>
+            <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Annual Income</p><p className="text-lg font-semibold sm:text-xl leading-tight">{formatCurrency(plannedIncomeMetrics.annualIncome)}</p></CardContent></Card>
           </div>
 
           <Card>

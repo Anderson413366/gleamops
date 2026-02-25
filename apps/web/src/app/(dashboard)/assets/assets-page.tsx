@@ -95,10 +95,10 @@ export default function AssetsPageClient() {
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Equipment Assets</p><p className="text-xl font-semibold">{kpis.equipment}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Vehicles</p><p className="text-xl font-semibold">{kpis.activeVehicles}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Keys Requiring Attention</p><p className="text-xl font-semibold text-warning">{kpis.keysAtRisk}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Maintenance Due in 30 Days</p><p className="text-xl font-semibold text-warning">{kpis.maintenanceDueSoon}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Equipment Assets</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.equipment}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Vehicles</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.activeVehicles}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Keys Requiring Attention</p><p className="text-lg font-semibold sm:text-xl leading-tight text-warning">{kpis.keysAtRisk}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Maintenance Due in 30 Days</p><p className="text-lg font-semibold sm:text-xl leading-tight text-warning">{kpis.maintenanceDueSoon}</p></CardContent></Card>
       </div>
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

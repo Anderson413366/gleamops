@@ -218,13 +218,13 @@ export default function JobsPageClient() {
         <Card>
           <CardContent className="pt-4">
             <p className="text-xs text-muted-foreground">Tickets Today</p>
-            <p className="text-xl font-semibold">{kpis.todayTickets}</p>
+            <p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.todayTickets}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
             <p className="text-xs text-muted-foreground">Open Tickets</p>
-            <p className="text-xl font-semibold">{kpis.openTickets}</p>
+            <p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.openTickets}</p>
           </CardContent>
         </Card>
         <Card
@@ -241,13 +241,13 @@ export default function JobsPageClient() {
         >
           <CardContent className="pt-4">
             <p className="text-xs text-muted-foreground">Active Service Plans</p>
-            <p className="text-xl font-semibold">{kpis.activeJobs}</p>
+            <p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.activeJobs}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
             <p className="text-xs text-muted-foreground">Open Alerts</p>
-            <p className="text-xl font-semibold text-warning">{kpis.openAlerts}</p>
+            <p className="text-lg font-semibold sm:text-xl leading-tight text-warning">{kpis.openAlerts}</p>
           </CardContent>
         </Card>
       </div>

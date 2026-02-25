@@ -241,12 +241,12 @@ export default function PipelinePageClient() {
 
       {/* Pipeline Overview Stats */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Pipeline Value</p><p className="text-xl font-bold text-foreground">{pipelineStats.pipelineValue}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Bids</p><p className="text-xl font-bold text-foreground">{pipelineStats.activeBids}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Stale Deals (14d)</p><p className="text-xl font-bold text-warning">{pipelineStats.staleDeals}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Email Issues</p><p className="text-xl font-bold text-destructive">{pipelineStats.emailProblems}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Proposals Sent (30d)</p><p className="text-xl font-bold text-foreground">{pipelineStats.proposalsSent30d}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Win Rate</p><p className="text-xl font-bold text-success">{pipelineStats.winRate}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Pipeline Value</p><p className="text-lg font-bold sm:text-xl leading-tight text-foreground">{pipelineStats.pipelineValue}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Bids</p><p className="text-lg font-bold sm:text-xl leading-tight text-foreground">{pipelineStats.activeBids}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Stale Deals (14d)</p><p className="text-lg font-bold sm:text-xl leading-tight text-warning">{pipelineStats.staleDeals}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Email Issues</p><p className="text-lg font-bold sm:text-xl leading-tight text-destructive">{pipelineStats.emailProblems}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Proposals Sent (30d)</p><p className="text-lg font-bold sm:text-xl leading-tight text-foreground">{pipelineStats.proposalsSent30d}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Win Rate</p><p className="text-lg font-bold sm:text-xl leading-tight text-success">{pipelineStats.winRate}</p></CardContent></Card>
       </div>
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

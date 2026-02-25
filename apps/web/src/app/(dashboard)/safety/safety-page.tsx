@@ -124,10 +124,10 @@ export default function SafetyPageClient() {
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Certs Expiring (30d)</p><p className="text-xl font-semibold text-warning">{kpis.certsExpiring30d}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Expired Certifications</p><p className="text-xl font-semibold text-destructive">{kpis.certsExpired}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Docs Needing Review</p><p className="text-xl font-semibold text-warning">{kpis.docsNeedReview}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Completions Expiring (30d)</p><p className="text-xl font-semibold">{kpis.completionsExpiring30d}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Certs Expiring (30d)</p><p className="text-lg font-semibold sm:text-xl leading-tight text-warning">{kpis.certsExpiring30d}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Expired Certifications</p><p className="text-lg font-semibold sm:text-xl leading-tight text-destructive">{kpis.certsExpired}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Docs Needing Review</p><p className="text-lg font-semibold sm:text-xl leading-tight text-warning">{kpis.docsNeedReview}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Completions Expiring (30d)</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.completionsExpiring30d}</p></CardContent></Card>
       </div>
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

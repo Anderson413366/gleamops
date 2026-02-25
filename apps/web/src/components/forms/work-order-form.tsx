@@ -450,7 +450,16 @@ export function WorkOrderForm({ open, onClose, onSuccess, initialValues }: WorkO
   };
 
   const handleSubmit = async () => {
+    if (currentStep < STEPS.length - 1) {
+      if (!validateStep(currentStep)) {
+        return;
+      }
+      goToStep(currentStep + 1);
+      return;
+    }
+
     if (!validateStep(2)) {
+      goToStep(2);
       return;
     }
 

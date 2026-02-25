@@ -492,24 +492,27 @@ export default function MoneyPageClient() {
         </div>
       </div>
 
-      <ChipTabs tabs={TABS} active={activeTab} onChange={setTab} />
-
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder={
-            activeTab === 'job-financials'
-              ? 'Search service plans, sites, clients...'
-              : activeTab === 'revenue'
-                ? 'Search clients or industries...'
-                : 'Search planned income rows...'
-          }
-          className="min-w-[280px] flex-1"
-        />
-        <div className="flex items-center gap-2">
-          <ViewToggle view={view} onChange={setView} />
-          <ExportButton<Record<string, unknown>> data={exportRows} filename={`money-${activeTab}`} />
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0 lg:flex-1">
+          <ChipTabs tabs={TABS} active={activeTab} onChange={setTab} />
+        </div>
+        <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end lg:w-auto">
+          <div className="flex items-center justify-end gap-2">
+            <ViewToggle view={view} onChange={setView} />
+            <ExportButton<Record<string, unknown>> data={exportRows} filename={`money-${activeTab}`} />
+          </div>
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder={
+              activeTab === 'job-financials'
+                ? 'Search service plans, sites, clients...'
+                : activeTab === 'revenue'
+                  ? 'Search clients or industries...'
+                  : 'Search planned income rows...'
+            }
+            className="w-full lg:w-80"
+          />
         </div>
       </div>
 

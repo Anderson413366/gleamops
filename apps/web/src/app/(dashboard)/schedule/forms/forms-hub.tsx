@@ -26,6 +26,9 @@ import {
 } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
+import { SupplyRequestForm } from '@/components/forms/supply-request-form';
+import { TimeOffRequestForm } from '@/components/forms/time-off-request-form';
+import { EquipmentIssueForm } from '@/components/forms/equipment-issue-form';
 
 type SelfServiceType =
   | 'supply'
@@ -68,12 +71,6 @@ const URGENCY_OPTIONS = [
   { value: 'normal', label: 'Normal' },
   { value: 'high', label: 'High' },
   { value: 'asap', label: 'ASAP' },
-];
-
-const TIME_OFF_TYPE_OPTIONS = [
-  { value: 'PTO', label: 'PTO' },
-  { value: 'SICK', label: 'Sick' },
-  { value: 'PERSONAL', label: 'Personal' },
 ];
 
 const HAZARD_TYPE_OPTIONS = [
@@ -517,88 +514,38 @@ export function FormsHub({ search }: FormsHubProps) {
               />
 
               {activeForm === 'supply' && (
-                <div className="space-y-3">
-                  <Input
-                    label="Item Needed"
-                    value={supplyItem}
-                    onChange={(event) => setSupplyItem(event.target.value)}
-                    placeholder="e.g., Restroom paper"
-                  />
-                  <Input
-                    label="Quantity"
-                    type="number"
-                    min={1}
-                    value={supplyQuantity}
-                    onChange={(event) => setSupplyQuantity(event.target.value)}
-                  />
-                  <Textarea
-                    label="Notes"
-                    value={supplyNotes}
-                    onChange={(event) => setSupplyNotes(event.target.value)}
-                    placeholder="Optional notes for purchasing/stocking"
-                    rows={3}
-                  />
-                </div>
+                <SupplyRequestForm
+                  item={supplyItem}
+                  quantity={supplyQuantity}
+                  notes={supplyNotes}
+                  onItemChange={setSupplyItem}
+                  onQuantityChange={setSupplyQuantity}
+                  onNotesChange={setSupplyNotes}
+                />
               )}
 
               {activeForm === 'time-off' && (
-                <div className="space-y-3">
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <Input
-                      type="date"
-                      label="Start Date"
-                      value={timeOffStart}
-                      onChange={(event) => setTimeOffStart(event.target.value)}
-                    />
-                    <Input
-                      type="date"
-                      label="End Date"
-                      value={timeOffEnd}
-                      onChange={(event) => setTimeOffEnd(event.target.value)}
-                    />
-                  </div>
-                  <Select
-                    label="Type"
-                    value={timeOffType}
-                    onChange={(event) => setTimeOffType(event.target.value)}
-                    options={TIME_OFF_TYPE_OPTIONS}
-                  />
-                  <Textarea
-                    label="Reason"
-                    value={timeOffReason}
-                    onChange={(event) => setTimeOffReason(event.target.value)}
-                    placeholder="Reason for time off"
-                    rows={3}
-                  />
-                </div>
+                <TimeOffRequestForm
+                  startDate={timeOffStart}
+                  endDate={timeOffEnd}
+                  requestType={timeOffType}
+                  reason={timeOffReason}
+                  onStartDateChange={setTimeOffStart}
+                  onEndDateChange={setTimeOffEnd}
+                  onRequestTypeChange={setTimeOffType}
+                  onReasonChange={setTimeOffReason}
+                />
               )}
 
               {activeForm === 'equipment' && (
-                <div className="space-y-3">
-                  <Input
-                    label="Equipment"
-                    value={equipmentName}
-                    onChange={(event) => setEquipmentName(event.target.value)}
-                    placeholder="e.g., Vacuum 03"
-                  />
-                  <Select
-                    label="Issue Severity"
-                    value={equipmentSeverity}
-                    onChange={(event) => setEquipmentSeverity(event.target.value)}
-                    options={[
-                      { value: 'low', label: 'Low' },
-                      { value: 'medium', label: 'Medium' },
-                      { value: 'high', label: 'High' },
-                    ]}
-                  />
-                  <Textarea
-                    label="Description"
-                    value={equipmentDescription}
-                    onChange={(event) => setEquipmentDescription(event.target.value)}
-                    placeholder="Describe the issue and impact on shift"
-                    rows={4}
-                  />
-                </div>
+                <EquipmentIssueForm
+                  equipmentName={equipmentName}
+                  severity={equipmentSeverity}
+                  description={equipmentDescription}
+                  onEquipmentNameChange={setEquipmentName}
+                  onSeverityChange={setEquipmentSeverity}
+                  onDescriptionChange={setEquipmentDescription}
+                />
               )}
 
               {activeForm === 'bio-hazard' && (

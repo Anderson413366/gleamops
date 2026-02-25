@@ -26,7 +26,7 @@ export function ViewToggle({
   view,
   onChange,
   allowCalendar = false,
-  hideOnMobile = true,
+  hideOnMobile = false,
 }: ViewToggleProps) {
   const onCalendarChange = onChange as (view: CalendarView) => void;
 

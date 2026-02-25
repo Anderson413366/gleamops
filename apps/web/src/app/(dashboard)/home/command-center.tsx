@@ -78,11 +78,11 @@ export default function CommandCenter() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <TodaysTasks date={selectedDate} filter={activeFilter} />
-        <CoverageAlerts filter={activeFilter} />
+        <CoverageAlerts date={selectedDate} filter={activeFilter} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <WeeklyProjects filter={activeFilter} />
+        <WeeklyProjects date={selectedDate} filter={activeFilter} />
 
         <div className="grid gap-4">
           <QuickActions />

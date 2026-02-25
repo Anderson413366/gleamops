@@ -23,9 +23,9 @@ const ACTIONS: QuickAction[] = [
   {
     id: 'new-task',
     label: '+ New Task',
-    description: 'Create and assign a same-day operational task.',
+    description: 'Open calendar day view and create same-day ticket assignments.',
     icon: <Plus className="h-4 w-4" aria-hidden="true" />,
-    href: '/operations/task-catalog',
+    href: '/schedule?tab=calendar',
   },
   {
     id: 'new-work-order',
@@ -46,7 +46,7 @@ const ACTIONS: QuickAction[] = [
     label: 'Messages',
     description: 'Open team communications for supervisors and field staff.',
     icon: <MessageSquareMore className="h-4 w-4" aria-hidden="true" />,
-    href: '/team?tab=messages',
+    href: '/workforce?tab=messages',
   },
 ];
 

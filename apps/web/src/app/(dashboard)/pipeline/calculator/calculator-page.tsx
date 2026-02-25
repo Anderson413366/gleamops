@@ -12,6 +12,7 @@ import {
   type BidVersionSnapshot,
 } from '@gleamops/cleanflow';
 import { LiveEstimatePanel } from './live-estimate-panel';
+import { getServiceTypeConfig, ServiceTypeSelector } from './service-type-selector';
 
 interface NumericChangeEvent {
   target: {
@@ -34,17 +35,6 @@ interface CalculatorArea {
   quantity: number;
   minutesPer1000: number;
 }
-
-const SERVICE_TYPE_OPTIONS: Array<{ value: BidTypeCode; label: string }> = [
-  { value: 'JANITORIAL', label: 'Janitorial' },
-  { value: 'DISINFECTING', label: 'Disinfecting' },
-  { value: 'CARPET', label: 'Carpet' },
-  { value: 'WINDOW', label: 'Window' },
-  { value: 'TILE', label: 'Tile' },
-  { value: 'MOVE_IN_OUT', label: 'Move In/Out' },
-  { value: 'POST_CONSTRUCTION', label: 'Post Construction' },
-  { value: 'MAID', label: 'Maid' },
-];
 
 const BUILDING_TYPE_OPTIONS = [
   { value: 'OFFICE', label: 'Office' },
@@ -180,6 +170,7 @@ export default function CalculatorPage() {
   const [marketPriceMonthly, setMarketPriceMonthly] = useState(0);
   const [monthlyOverhead, setMonthlyOverhead] = useState(900);
   const [supplyAllowanceSqft, setSupplyAllowanceSqft] = useState(0.01);
+  const serviceConfig = useMemo(() => getServiceTypeConfig(serviceType), [serviceType]);
 
   const [areas] = useState<CalculatorArea[]>([
     {
@@ -247,7 +238,10 @@ export default function CalculatorPage() {
         {
           task_code: `TASK_${area.areaTypeCode}`,
           frequency_code: 'DAILY',
-          custom_minutes: Math.max(15, (area.sqft / 1000) * area.minutesPer1000),
+          custom_minutes: Math.max(
+            15,
+            (area.sqft / 1000) * serviceConfig.minutesPer1000 * (area.minutesPer1000 / 24),
+          ),
         },
       ],
     })),
@@ -275,6 +269,7 @@ export default function CalculatorPage() {
     monthlyOverhead,
     normalizedAreas,
     pricingMethod,
+    serviceConfig.minutesPer1000,
     serviceType,
     supplyAllowanceSqft,
     targetMarginPct,
@@ -318,18 +313,23 @@ export default function CalculatorPage() {
       </div>
 
       <Card>
+        <CardContent className="pt-6">
+          <ServiceTypeSelector
+            value={serviceType}
+            onChange={(nextType, nextConfig) => {
+              setServiceType(nextType);
+              setDaysPerWeek(nextConfig.recommendedDaysPerWeek);
+              setTargetMarginPct(nextConfig.recommendedTargetMarginPct);
+            }}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader>
           <CardTitle>Calculator Inputs</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="space-y-1.5">
-            <p className="text-xs font-medium text-muted-foreground">Service Type</p>
-            <Select
-              value={serviceType}
-              onChange={(event: SelectChangeEvent) => setServiceType(event.target.value as BidTypeCode)}
-              options={SERVICE_TYPE_OPTIONS}
-            />
-          </div>
           <div className="space-y-1.5">
             <p className="text-xs font-medium text-muted-foreground">Building Type</p>
             <Select
@@ -445,14 +445,6 @@ export default function CalculatorPage() {
       )}
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="border-dashed">
-          <CardHeader>
-            <CardTitle className="text-base">Service Type Selector</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Detailed service cards are added in task 6.11.
-          </CardContent>
-        </Card>
         <Card className="border-dashed">
           <CardHeader>
             <CardTitle className="text-base">Pricing Strategy Selector</CardTitle>

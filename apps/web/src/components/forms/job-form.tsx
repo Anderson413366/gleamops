@@ -162,6 +162,17 @@ interface SiteOption {
   accessNotes: string | null;
 }
 
+interface SiteBlueprintDraft {
+  securityProtocol: string;
+  janitorialClosetLocation: string;
+  supplyStorageLocation: string;
+  waterSourceLocation: string;
+  dumpsterLocation: string;
+  entryInstructions: string;
+  parkingInstructions: string;
+  accessNotes: string;
+}
+
 interface TaskCatalogRow {
   id: string;
   task_code: string;
@@ -179,6 +190,17 @@ interface SelectedTask {
   minutesPerVisit: number;
   quantity: number;
 }
+
+const EMPTY_SITE_BLUEPRINT_DRAFT: SiteBlueprintDraft = {
+  securityProtocol: '',
+  janitorialClosetLocation: '',
+  supplyStorageLocation: '',
+  waterSourceLocation: '',
+  dumpsterLocation: '',
+  entryInstructions: '',
+  parkingInstructions: '',
+  accessNotes: '',
+};
 
 function parseDayCodes(scheduleDays: string | null): string[] {
   if (!scheduleDays) return [];
@@ -248,6 +270,7 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
   const [hourlyCostRate, setHourlyCostRate] = useState<number>(25);
   const [loadingServiceTemplate, setLoadingServiceTemplate] = useState(false);
   const [codeGenerationFailed, setCodeGenerationFailed] = useState(false);
+  const [siteBlueprintDraft, setSiteBlueprintDraft] = useState<SiteBlueprintDraft>(EMPTY_SITE_BLUEPRINT_DRAFT);
 
   const initialValues = useMemo<SiteJobFormData>(() => {
     return initialData
@@ -283,6 +306,19 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
     schema: siteJobSchema,
     initialValues,
     onSubmit: async (data) => {
+      const siteBlueprintPayload = data.site_id
+        ? {
+            security_protocol: siteBlueprintDraft.securityProtocol.trim() || null,
+            janitorial_closet_location: siteBlueprintDraft.janitorialClosetLocation.trim() || null,
+            supply_storage_location: siteBlueprintDraft.supplyStorageLocation.trim() || null,
+            water_source_location: siteBlueprintDraft.waterSourceLocation.trim() || null,
+            dumpster_location: siteBlueprintDraft.dumpsterLocation.trim() || null,
+            entry_instructions: siteBlueprintDraft.entryInstructions.trim() || null,
+            parking_instructions: siteBlueprintDraft.parkingInstructions.trim() || null,
+            access_notes: siteBlueprintDraft.accessNotes.trim() || null,
+          }
+        : null;
+
       if (isEdit) {
         const { job_code, ...fields } = data;
         void job_code;
@@ -326,6 +362,35 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
         }
       }
 
+      if (siteBlueprintPayload && data.site_id) {
+        const { error: siteBlueprintError } = await supabase
+          .from('sites')
+          .update(siteBlueprintPayload)
+          .eq('id', data.site_id);
+
+        if (siteBlueprintError) {
+          toast.warning('Service plan saved, but site blueprint updates could not be synced.');
+        } else {
+          setSites((previous) =>
+            previous.map((site) => (
+              site.value === data.site_id
+                ? {
+                    ...site,
+                    securityProtocol: siteBlueprintPayload.security_protocol,
+                    janitorialClosetLocation: siteBlueprintPayload.janitorial_closet_location,
+                    supplyStorageLocation: siteBlueprintPayload.supply_storage_location,
+                    waterSourceLocation: siteBlueprintPayload.water_source_location,
+                    dumpsterLocation: siteBlueprintPayload.dumpster_location,
+                    entryInstructions: siteBlueprintPayload.entry_instructions,
+                    parkingInstructions: siteBlueprintPayload.parking_instructions,
+                    accessNotes: siteBlueprintPayload.access_notes,
+                  }
+                : site
+            )),
+          );
+        }
+      }
+
       onSuccess?.();
       handleClose();
     },
@@ -343,6 +408,7 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
     setSelectedCatalogTaskIds([]);
     setSelectedTasks([]);
     setHourlyCostRate(25);
+    setSiteBlueprintDraft(EMPTY_SITE_BLUEPRINT_DRAFT);
   }, [open, reset, initialValues]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -496,6 +562,118 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
     () => sites.find((site) => site.value === values.site_id) ?? null,
     [sites, values.site_id],
   );
+
+  useEffect(() => {
+    if (!selectedSiteBlueprint) {
+      setSiteBlueprintDraft(EMPTY_SITE_BLUEPRINT_DRAFT);
+      return;
+    }
+
+    setSiteBlueprintDraft({
+      securityProtocol: selectedSiteBlueprint.securityProtocol ?? '',
+      janitorialClosetLocation: selectedSiteBlueprint.janitorialClosetLocation ?? '',
+      supplyStorageLocation: selectedSiteBlueprint.supplyStorageLocation ?? '',
+      waterSourceLocation: selectedSiteBlueprint.waterSourceLocation ?? '',
+      dumpsterLocation: selectedSiteBlueprint.dumpsterLocation ?? '',
+      entryInstructions: selectedSiteBlueprint.entryInstructions ?? '',
+      parkingInstructions: selectedSiteBlueprint.parkingInstructions ?? '',
+      accessNotes: selectedSiteBlueprint.accessNotes ?? '',
+    });
+  }, [selectedSiteBlueprint]);
+
+  const siteBlueprintEditor = selectedSiteBlueprint ? (
+    <Card className="border-dashed border-module-accent/30 bg-muted/20">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm">Site Blueprint (Editable)</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div>
+          <p className="text-xs text-muted-foreground">Site</p>
+          <p className="font-medium text-sm">
+            {selectedSiteBlueprint.siteCode
+              ? `${selectedSiteBlueprint.siteCode} - ${selectedSiteBlueprint.siteName}`
+              : selectedSiteBlueprint.siteName}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Updates here sync directly to the selected site profile.
+          </p>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Input
+            label="Security Protocol"
+            value={siteBlueprintDraft.securityProtocol}
+            onChange={(event) => setSiteBlueprintDraft((previous) => ({
+              ...previous,
+              securityProtocol: event.target.value,
+            }))}
+          />
+          <Input
+            label="Janitorial Closet"
+            value={siteBlueprintDraft.janitorialClosetLocation}
+            onChange={(event) => setSiteBlueprintDraft((previous) => ({
+              ...previous,
+              janitorialClosetLocation: event.target.value,
+            }))}
+          />
+          <Input
+            label="Supply Storage"
+            value={siteBlueprintDraft.supplyStorageLocation}
+            onChange={(event) => setSiteBlueprintDraft((previous) => ({
+              ...previous,
+              supplyStorageLocation: event.target.value,
+            }))}
+          />
+          <Input
+            label="Water Source"
+            value={siteBlueprintDraft.waterSourceLocation}
+            onChange={(event) => setSiteBlueprintDraft((previous) => ({
+              ...previous,
+              waterSourceLocation: event.target.value,
+            }))}
+          />
+          <Input
+            label="Dumpster Location"
+            value={siteBlueprintDraft.dumpsterLocation}
+            onChange={(event) => setSiteBlueprintDraft((previous) => ({
+              ...previous,
+              dumpsterLocation: event.target.value,
+            }))}
+          />
+        </div>
+
+        <div className="grid gap-3">
+          <Textarea
+            label="Entry Instructions"
+            value={siteBlueprintDraft.entryInstructions}
+            onChange={(event) => setSiteBlueprintDraft((previous) => ({
+              ...previous,
+              entryInstructions: event.target.value,
+            }))}
+            rows={2}
+          />
+          <Textarea
+            label="Parking Instructions"
+            value={siteBlueprintDraft.parkingInstructions}
+            onChange={(event) => setSiteBlueprintDraft((previous) => ({
+              ...previous,
+              parkingInstructions: event.target.value,
+            }))}
+            rows={2}
+          />
+          <Textarea
+            label="Access Notes"
+            value={siteBlueprintDraft.accessNotes}
+            onChange={(event) => setSiteBlueprintDraft((previous) => ({
+              ...previous,
+              accessNotes: event.target.value,
+            }))}
+            rows={2}
+          />
+        </div>
+      </CardContent>
+    </Card>
+  ) : null;
 
   const selectedDayCodes = useMemo(() => parseDayCodes(values.schedule_days), [values.schedule_days]);
 
@@ -664,6 +842,7 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
     setTaskCatalogSearch('');
     setSelectedCatalogTaskIds([]);
     setCodeGenerationFailed(false);
+    setSiteBlueprintDraft(EMPTY_SITE_BLUEPRINT_DRAFT);
     onClose();
   };
 
@@ -752,55 +931,7 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
               onChange={(e) => setValue('service_id', e.target.value || null)}
               options={[{ value: '', label: 'None' }, ...services]}
             />
-            {selectedSiteBlueprint ? (
-              <Card className="border-dashed border-module-accent/30 bg-muted/20">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Site Blueprint (Read-only)</CardTitle>
-                </CardHeader>
-                <CardContent className="grid gap-2 text-sm sm:grid-cols-2">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Site</p>
-                    <p className="font-medium">
-                      {selectedSiteBlueprint.siteCode
-                        ? `${selectedSiteBlueprint.siteCode} - ${selectedSiteBlueprint.siteName}`
-                        : selectedSiteBlueprint.siteName}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Security Protocol</p>
-                    <p className="font-medium">{selectedSiteBlueprint.securityProtocol || 'Not Set'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Janitorial Closet</p>
-                    <p className="font-medium">{selectedSiteBlueprint.janitorialClosetLocation || 'Not Set'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Supply Storage</p>
-                    <p className="font-medium">{selectedSiteBlueprint.supplyStorageLocation || 'Not Set'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Water Source</p>
-                    <p className="font-medium">{selectedSiteBlueprint.waterSourceLocation || 'Not Set'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Dumpster</p>
-                    <p className="font-medium">{selectedSiteBlueprint.dumpsterLocation || 'Not Set'}</p>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <p className="text-xs text-muted-foreground">Entry Instructions</p>
-                    <p className="font-medium whitespace-pre-wrap">{selectedSiteBlueprint.entryInstructions || 'Not Set'}</p>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <p className="text-xs text-muted-foreground">Parking Instructions</p>
-                    <p className="font-medium whitespace-pre-wrap">{selectedSiteBlueprint.parkingInstructions || 'Not Set'}</p>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <p className="text-xs text-muted-foreground">Access Notes</p>
-                    <p className="font-medium whitespace-pre-wrap">{selectedSiteBlueprint.accessNotes || 'Not Set'}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : null}
+            {siteBlueprintEditor}
             <Textarea label="Special Requirements" value={values.special_requirements ?? ''} onChange={(e) => setValue('special_requirements', e.target.value || null)} />
             <Textarea label="Specifications" value={values.specifications ?? ''} onChange={(e) => setValue('specifications', e.target.value || null)} />
             <Textarea label="Notes" value={values.notes ?? ''} onChange={(e) => setValue('notes', e.target.value || null)} />
@@ -1099,55 +1230,7 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
                   </ul>
                 )}
 
-                {selectedSiteBlueprint ? (
-                  <Card className="border-dashed border-module-accent/30 bg-muted/20">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm">Site Blueprint (Read-only)</CardTitle>
-                    </CardHeader>
-                    <CardContent className="grid gap-2 text-sm sm:grid-cols-2">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Site</p>
-                        <p className="font-medium">
-                          {selectedSiteBlueprint.siteCode
-                            ? `${selectedSiteBlueprint.siteCode} - ${selectedSiteBlueprint.siteName}`
-                            : selectedSiteBlueprint.siteName}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Security Protocol</p>
-                        <p className="font-medium">{selectedSiteBlueprint.securityProtocol || 'Not Set'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Janitorial Closet</p>
-                        <p className="font-medium">{selectedSiteBlueprint.janitorialClosetLocation || 'Not Set'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Supply Storage</p>
-                        <p className="font-medium">{selectedSiteBlueprint.supplyStorageLocation || 'Not Set'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Water Source</p>
-                        <p className="font-medium">{selectedSiteBlueprint.waterSourceLocation || 'Not Set'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Dumpster</p>
-                        <p className="font-medium">{selectedSiteBlueprint.dumpsterLocation || 'Not Set'}</p>
-                      </div>
-                      <div className="sm:col-span-2">
-                        <p className="text-xs text-muted-foreground">Entry Instructions</p>
-                        <p className="font-medium whitespace-pre-wrap">{selectedSiteBlueprint.entryInstructions || 'Not Set'}</p>
-                      </div>
-                      <div className="sm:col-span-2">
-                        <p className="text-xs text-muted-foreground">Parking Instructions</p>
-                        <p className="font-medium whitespace-pre-wrap">{selectedSiteBlueprint.parkingInstructions || 'Not Set'}</p>
-                      </div>
-                      <div className="sm:col-span-2">
-                        <p className="text-xs text-muted-foreground">Access Notes</p>
-                        <p className="font-medium whitespace-pre-wrap">{selectedSiteBlueprint.accessNotes || 'Not Set'}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ) : null}
+                {siteBlueprintEditor}
 
                 <Textarea
                   label="Special Requirements"

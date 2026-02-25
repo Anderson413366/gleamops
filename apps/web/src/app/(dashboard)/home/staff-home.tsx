@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CalendarDays, ClipboardList, FileText, ShieldAlert, Timer } from 'lucide-react';
 import { Badge, Card, CardContent, CardHeader, CardTitle } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { ClockInButton } from '@/components/clock-in-button';
 
 interface StaffContext {
   id: string;
@@ -242,6 +243,12 @@ export default function StaffHome() {
           Today&apos;s shifts, checklist progress, and self-service tools for {staff.full_name}.
         </p>
       </div>
+
+      <Card>
+        <CardContent className="pt-5">
+          <ClockInButton onStatusChange={() => { void load(); }} />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent className="pt-5">

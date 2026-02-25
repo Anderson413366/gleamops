@@ -26,7 +26,9 @@ export function usePagination<T>(data: T[], pageSize = 25) {
   ));
 
   const totalItems = data.length;
-  const effectivePageSize = pageSizeSetting === 0 ? Math.max(totalItems, 1) : pageSizeSetting;
+  const effectivePageSize = pageSizeSetting === 0
+    ? Math.max(totalItems, pageSize, 1)
+    : pageSizeSetting;
   const totalPages = Math.max(1, Math.ceil(totalItems / effectivePageSize));
 
   // Reset to page 1 when data shape or page-size changes.

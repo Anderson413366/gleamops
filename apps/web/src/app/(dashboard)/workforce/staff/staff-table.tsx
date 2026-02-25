@@ -357,13 +357,11 @@ export default function StaffTable({
           )}
         </>
       )}
-      {filtered.length > 0 && (
-        <Pagination
-          currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
-          pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
-          onNext={pag.nextPage} onPrev={pag.prevPage}
-        />
-      )}
+      <Pagination
+        currentPage={pag.currentPage} totalPages={pag.totalPages} totalItems={pag.totalItems}
+        pageSize={pag.pageSize} hasNext={pag.hasNext} hasPrev={pag.hasPrev}
+        onNext={pag.nextPage} onPrev={pag.prevPage}
+      />
 
       <StaffForm
         open={formOpen}

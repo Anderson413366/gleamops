@@ -7,11 +7,13 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Pagination, TableSkeleton, Badge, Button, Input, Select, SlideOver, Textarea, cn,
+  EmptyState, Pagination, TableSkeleton, Badge, Button, Input, Select, SlideOver, Textarea, ViewToggle, cn,
 } from '@gleamops/ui';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { useViewPreference } from '@/hooks/use-view-preference';
 import { SupplyVendorForm } from '@/components/forms/supply-vendor-form';
+import { VendorsCardGrid, type SupplyVendorDirectoryRow } from './vendors-card-grid';
 import {
   findVendorProfileByName,
   getSupplyVendorProfiles,
@@ -27,16 +29,6 @@ interface SupplyRow {
 interface OrderRow {
   supplier: string | null;
   order_date: string;
-}
-
-interface VendorRow {
-  id: string;
-  name: string;
-  supplyCount: number;
-  categories: string[];
-  lastOrder: string | null;
-  accountStatus: 'ACTIVE' | 'INACTIVE';
-  profile: SupplyVendorProfile | null;
 }
 
 interface Props {
@@ -63,7 +55,8 @@ function statusColor(status: 'ACTIVE' | 'INACTIVE'): 'green' | 'gray' {
 
 export default function VendorsTable({ search, formOpen, onFormClose, onRefresh }: Props) {
   const router = useRouter();
-  const [rows, setRows] = useState<VendorRow[]>([]);
+  const { view, setView } = useViewPreference('vendors-directory');
+  const [rows, setRows] = useState<SupplyVendorDirectoryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [vendorFormOpen, setVendorFormOpen] = useState(false);
   const [editProfile, setEditProfile] = useState<SupplyVendorProfile | null>(null);
@@ -157,7 +150,7 @@ export default function VendorsTable({ search, formOpen, onFormClose, onRefresh 
       }
     }
 
-    const aggregated: VendorRow[] = Array.from(byKey.values())
+    const aggregated: SupplyVendorDirectoryRow[] = Array.from(byKey.values())
       .map((entry) => ({
         id: entry.id,
         name: entry.name,
@@ -199,8 +192,29 @@ export default function VendorsTable({ search, formOpen, onFormClose, onRefresh 
     'name',
     'asc',
   );
-  const sortedRows = sorted as unknown as VendorRow[];
+  const sortedRows = sorted as unknown as SupplyVendorDirectoryRow[];
   const pag = usePagination(sortedRows, 25);
+
+  const openEditProfile = (row: SupplyVendorDirectoryRow) => {
+    setEditProfile(row.profile ?? {
+      id: row.id,
+      company_name: row.name,
+      account_number: null,
+      contact_person: null,
+      phone: null,
+      email: null,
+      website: null,
+      payment_terms: null,
+      order_minimum: null,
+      delivery_schedule: null,
+      categories_supplied: row.categories,
+      account_status: row.accountStatus,
+      notes: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+    setVendorFormOpen(true);
+  };
 
   const openOrderTemplate = async (vendorName: string) => {
     setOrderVendor(vendorName);
@@ -263,7 +277,8 @@ export default function VendorsTable({ search, formOpen, onFormClose, onRefresh 
 
   return (
     <div>
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <ViewToggle view={view} onChange={setView} />
         <Button
           onClick={() => {
             setEditProfile(null);
@@ -274,84 +289,78 @@ export default function VendorsTable({ search, formOpen, onFormClose, onRefresh 
           New Supply Vendor
         </Button>
       </div>
-      <Table>
-        <TableHeader>
-          <tr>
-            <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Vendor Name</TableHead>
-            <TableHead sortable sorted={sortKey === 'supplyCount' && sortDir} onSort={() => onSort('supplyCount')}>Supplies</TableHead>
-            <TableHead>Categories</TableHead>
-            <TableHead sortable sorted={sortKey === 'lastOrder' && sortDir} onSort={() => onSort('lastOrder')}>Last Order</TableHead>
-            <TableHead sortable sorted={sortKey === 'accountStatus' && sortDir} onSort={() => onSort('accountStatus')}>Account Status</TableHead>
-            <TableHead>Actions</TableHead>
-          </tr>
-        </TableHeader>
-        <TableBody>
-          {pag.page.map((row) => (
-            <TableRow
-              key={row.id}
-              className={cn('cursor-pointer')}
-              onClick={() => router.push(`/vendors/supply-vendors/${row.id}`)}
-            >
-              <TableCell className="font-medium">{row.name}</TableCell>
-              <TableCell className="font-mono text-xs">{row.supplyCount}</TableCell>
-              <TableCell className="text-muted-foreground text-sm">
-                {row.categories.length > 0 ? row.categories.join(', ') : '—'}
-              </TableCell>
-              <TableCell className="text-muted-foreground">{formatDate(row.lastOrder)}</TableCell>
-              <TableCell>
-                <Badge color={statusColor(row.accountStatus)}>
-                  {row.accountStatus === 'ACTIVE' ? 'Active' : 'Inactive'}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      openOrderTemplate(row.name);
-                    }}
-                  >
-                    <ShoppingCart className="h-3.5 w-3.5" />
-                    Place Order
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      setEditProfile(row.profile ?? {
-                        id: row.id,
-                        company_name: row.name,
-                        account_number: null,
-                        contact_person: null,
-                        phone: null,
-                        email: null,
-                        website: null,
-                        payment_terms: null,
-                        order_minimum: null,
-                        delivery_schedule: null,
-                        categories_supplied: row.categories,
-                        account_status: row.accountStatus,
-                        notes: null,
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString(),
-                      });
-                      setVendorFormOpen(true);
-                    }}
-                  >
-                    <SquarePen className="h-3.5 w-3.5" />
-                    Edit
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      {filtered.length > 0 ? (
+        view === 'card' ? (
+          <VendorsCardGrid
+            rows={pag.page}
+            onSelect={(row) => router.push(`/vendors/supply-vendors/${row.id}`)}
+            onPlaceOrder={(row) => openOrderTemplate(row.name)}
+            onEdit={openEditProfile}
+          />
+        ) : (
+          <Table>
+            <TableHeader>
+              <tr>
+                <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Vendor Name</TableHead>
+                <TableHead sortable sorted={sortKey === 'supplyCount' && sortDir} onSort={() => onSort('supplyCount')}>Supplies</TableHead>
+                <TableHead>Categories</TableHead>
+                <TableHead sortable sorted={sortKey === 'lastOrder' && sortDir} onSort={() => onSort('lastOrder')}>Last Order</TableHead>
+                <TableHead sortable sorted={sortKey === 'accountStatus' && sortDir} onSort={() => onSort('accountStatus')}>Account Status</TableHead>
+                <TableHead>Actions</TableHead>
+              </tr>
+            </TableHeader>
+            <TableBody>
+              {pag.page.map((row) => (
+                <TableRow
+                  key={row.id}
+                  className={cn('cursor-pointer')}
+                  onClick={() => router.push(`/vendors/supply-vendors/${row.id}`)}
+                >
+                  <TableCell className="font-medium">{row.name}</TableCell>
+                  <TableCell className="font-mono text-xs">{row.supplyCount}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {row.categories.length > 0 ? row.categories.join(', ') : '—'}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{formatDate(row.lastOrder)}</TableCell>
+                  <TableCell>
+                    <Badge color={statusColor(row.accountStatus)}>
+                      {row.accountStatus === 'ACTIVE' ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          openOrderTemplate(row.name);
+                        }}
+                      >
+                        <ShoppingCart className="h-3.5 w-3.5" />
+                        Place Order
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          openEditProfile(row);
+                        }}
+                      >
+                        <SquarePen className="h-3.5 w-3.5" />
+                        Edit
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )
+      ) : null}
 
       {filtered.length === 0 && (
         <div className="mt-4">

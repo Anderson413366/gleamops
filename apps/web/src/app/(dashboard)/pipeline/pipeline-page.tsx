@@ -3,11 +3,10 @@
 import { useState, useCallback, useEffect } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Calculator, Plus, Zap } from 'lucide-react';
+import { Calculator, Plus } from 'lucide-react';
 import { Button, SearchInput } from '@gleamops/ui';
 import type { SalesProspect, SalesOpportunity } from '@gleamops/shared';
 
-import BidsTable from './bids/bids-table';
 import { BidWizard } from './bids/bid-wizard';
 import { ExpressBid } from './bids/express-bid';
 import ProposalsTable from './proposals/proposals-table';
@@ -17,6 +16,7 @@ import { UnifiedSalesPage } from './unified-sales-page';
 import LegacyPipelinePageClient from './pipeline-page-legacy';
 import { ProspectsSection } from './sections/prospects-section';
 import { OpportunitiesSection } from './sections/opportunities-section';
+import { BidsSection } from './sections/bids-section';
 import { ProspectForm } from '@/components/forms/prospect-form';
 import { OpportunityForm } from '@/components/forms/opportunity-form';
 import { useFeatureFlag } from '@/hooks/use-feature-flag';
@@ -274,32 +274,22 @@ function UnifiedPipelinePageClient() {
               />
             ),
           },
-          {
-            id: 'bids-pricing',
-            title: 'Bids & Pricing',
-            description: 'Active bids with pricing controls and estimate workflows.',
-            tone: 'green',
-            count: sectionCounts.bids,
-            content: (
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-center justify-end gap-2">
-                  <Button variant="secondary" onClick={() => setExpressOpen(true)}>
-                    <Zap className="h-4 w-4" />
-                    Express Bid
-                  </Button>
-                  <Button onClick={() => setWizardOpen(true)}>
-                    <Plus className="h-4 w-4" />
-                    New Bid
-                  </Button>
-                </div>
-                <BidsTable
-                  key={`bids-${refreshKey}`}
-                  search={search}
-                  onCreateNew={() => setWizardOpen(true)}
-                />
-              </div>
-            ),
-          },
+        {
+          id: 'bids-pricing',
+          title: 'Bids & Pricing',
+          description: 'Active bids with pricing controls and estimate workflows.',
+          tone: 'green',
+          count: sectionCounts.bids,
+          content: (
+            <BidsSection
+              key={`bids-${refreshKey}`}
+              globalSearch={search}
+              onCreateNew={() => setWizardOpen(true)}
+              onExpressBid={() => setExpressOpen(true)}
+              onCountChange={(count) => setSectionCounts((prev) => ({ ...prev, bids: count }))}
+            />
+          ),
+        },
           {
             id: 'proposals',
             title: 'Proposals',

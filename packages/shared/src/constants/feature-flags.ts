@@ -18,7 +18,9 @@ export type FeatureDomain =
   | 'financial_intel_v1'
   | 'schedule_liberation'
   | 'v2_navigation'
-  | 'planning_board';
+  | 'planning_board'
+  | 'unified_sales'
+  | 'standalone_calculator';
 
 export type FeatureFlags = Record<FeatureDomain, boolean>;
 
@@ -34,6 +36,8 @@ const DOMAIN_TO_ENV: Record<FeatureDomain, string> = {
   schedule_liberation: 'NEXT_PUBLIC_FF_SCHEDULE_LIBERATION',
   v2_navigation: 'NEXT_PUBLIC_FF_V2_NAVIGATION',
   planning_board: 'NEXT_PUBLIC_FF_PLANNING_BOARD',
+  unified_sales: 'NEXT_PUBLIC_FF_UNIFIED_SALES',
+  standalone_calculator: 'NEXT_PUBLIC_FF_STANDALONE_CALCULATOR',
 };
 
 /**
@@ -48,6 +52,8 @@ const WORKER_ENV: Record<string, string> = {
   NEXT_PUBLIC_FF_SCHEDULE_LIBERATION: 'FF_SCHEDULE_LIBERATION',
   NEXT_PUBLIC_FF_V2_NAVIGATION: 'FF_V2_NAVIGATION',
   NEXT_PUBLIC_FF_PLANNING_BOARD: 'FF_PLANNING_BOARD',
+  NEXT_PUBLIC_FF_UNIFIED_SALES: 'FF_UNIFIED_SALES',
+  NEXT_PUBLIC_FF_STANDALONE_CALCULATOR: 'FF_STANDALONE_CALCULATOR',
 };
 
 const ALL_DOMAINS: FeatureDomain[] = [
@@ -62,12 +68,15 @@ const ALL_DOMAINS: FeatureDomain[] = [
   'schedule_liberation',
   'v2_navigation',
   'planning_board',
+  'unified_sales',
+  'standalone_calculator',
 ];
 
 const DOMAIN_DEFAULTS: Partial<FeatureFlags> = {
   // v2 IA is the current default experience; flags act as rollback controls.
   schedule_liberation: true,
   v2_navigation: true,
+  unified_sales: true,
 };
 
 let _cache: FeatureFlags | null = null;

@@ -31,6 +31,8 @@ describe('feature-flags', () => {
         schedule_liberation: true,
         v2_navigation: true,
         planning_board: false,
+        unified_sales: true,
+        standalone_calculator: false,
       });
     });
 
@@ -113,9 +115,11 @@ describe('feature-flags', () => {
         'schedule_liberation',
         'v2_navigation',
         'planning_board',
+        'unified_sales',
+        'standalone_calculator',
       ];
       for (const domain of domains) {
-        const expectedDefault = domain === 'schedule_liberation' || domain === 'v2_navigation';
+        const expectedDefault = domain === 'schedule_liberation' || domain === 'v2_navigation' || domain === 'unified_sales';
         expect(isFeatureEnabled(domain)).toBe(expectedDefault);
       }
     });

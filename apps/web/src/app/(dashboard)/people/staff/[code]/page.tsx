@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 
-// Legacy route: /people/staff/[code] → canonical /workforce/staff/[code]
+// Legacy route: /people/staff/[code] → canonical /team/staff/[code]
 type SearchParams = Record<string, string | string[] | undefined>;
 
 function toQueryString(searchParams?: SearchParams) {
@@ -27,5 +27,5 @@ export default async function PeopleStaffRedirect({
 }) {
   const { code } = await params;
   const sp = searchParams ? await searchParams : undefined;
-  redirect(`/workforce/staff/${encodeURIComponent(code)}${toQueryString(sp)}`);
+  redirect(`/team/staff/${encodeURIComponent(code)}${toQueryString(sp)}`);
 }

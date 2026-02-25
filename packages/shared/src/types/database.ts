@@ -768,6 +768,7 @@ export interface Staff extends StandardColumns {
   employment_type: string | null; // Lookups "Employment Type"
   is_subcontractor: boolean;
   hire_date: string | null;
+  date_of_birth: string | null;
   termination_date: string | null;
   pay_rate: number | null;
   pay_type: string | null; // Lookups "Pay Type"

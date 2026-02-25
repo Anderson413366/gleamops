@@ -54,6 +54,7 @@ const DEFAULTS: StaffFormData = {
   first_name: null,
   last_name: null,
   preferred_name: null,
+  date_of_birth: null,
   role: '',
   staff_status: 'ACTIVE',
   employment_type: null,
@@ -106,6 +107,7 @@ export function StaffForm({ open, onClose, initialData, onSuccess, focusSection 
           first_name: initialData.first_name ?? null,
           last_name: initialData.last_name ?? null,
           preferred_name: initialData.preferred_name ?? null,
+          date_of_birth: initialData.date_of_birth ?? null,
           role: initialData.role,
           staff_status: initialData.staff_status ?? 'ACTIVE',
           employment_type: initialData.employment_type ?? null,
@@ -254,10 +256,11 @@ export function StaffForm({ open, onClose, initialData, onSuccess, focusSection 
             <FormSection title="Personal Info" icon={<UserRound className="h-4 w-4" />} description="Identity, role, status, and photo.">
             <Input label="Staff Code" value={values.staff_code} readOnly disabled />
             <Input label="Full Name" value={values.full_name} onChange={(e) => setValue('full_name', e.target.value)} onBlur={() => onBlur('full_name')} error={errors.full_name} required />
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <Input label="First Name" value={values.first_name ?? ''} onChange={(e) => setValue('first_name', e.target.value || null)} />
               <Input label="Last Name" value={values.last_name ?? ''} onChange={(e) => setValue('last_name', e.target.value || null)} />
               <Input label="Preferred Name" value={values.preferred_name ?? ''} onChange={(e) => setValue('preferred_name', e.target.value || null)} />
+              <Input label="Date of Birth" type="date" value={values.date_of_birth ?? ''} onChange={(e) => setValue('date_of_birth', e.target.value || null)} />
             </div>
             <Select label="Role" value={values.role} onChange={(e) => setValue('role', e.target.value)} options={ROLE_OPTIONS} required />
             <Select label="Status" value={values.staff_status} onChange={(e) => setValue('staff_status', e.target.value)} options={STATUS_OPTIONS} />
@@ -342,10 +345,11 @@ export function StaffForm({ open, onClose, initialData, onSuccess, focusSection 
           <FormSection title="Personal Info" icon={<UserRound className="h-4 w-4" />} description="Identity, role, status, and photo.">
             <Input label="Staff Code" value={values.staff_code} readOnly disabled hint="Auto-generated" />
             <Input label="Full Name" value={values.full_name} onChange={(e) => setValue('full_name', e.target.value)} onBlur={() => onBlur('full_name')} error={errors.full_name} required />
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <Input label="First Name" value={values.first_name ?? ''} onChange={(e) => setValue('first_name', e.target.value || null)} />
               <Input label="Last Name" value={values.last_name ?? ''} onChange={(e) => setValue('last_name', e.target.value || null)} />
               <Input label="Preferred Name" value={values.preferred_name ?? ''} onChange={(e) => setValue('preferred_name', e.target.value || null)} />
+              <Input label="Date of Birth" type="date" value={values.date_of_birth ?? ''} onChange={(e) => setValue('date_of_birth', e.target.value || null)} />
             </div>
             <Select label="Role" value={values.role} onChange={(e) => setValue('role', e.target.value)} onBlur={() => onBlur('role')} error={errors.role} options={[{ value: '', label: 'Select a role...' }, ...ROLE_OPTIONS]} required />
             <Select label="Status" value={values.staff_status} onChange={(e) => setValue('staff_status', e.target.value)} options={STATUS_OPTIONS} />

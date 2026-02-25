@@ -201,6 +201,7 @@ export const staffSchema = z.object({
   first_name: z.string().nullable().default(null),
   last_name: z.string().nullable().default(null),
   preferred_name: z.string().nullable().default(null),
+  date_of_birth: z.string().nullable().default(null),
   role: z.string().min(1, 'Role is required'),
   staff_status: z.string().default('ACTIVE'),
   // Employment

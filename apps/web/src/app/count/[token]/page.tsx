@@ -7,6 +7,11 @@ import { useParams } from 'next/navigation';
 import { ClipboardCheck, Package2, AlertTriangle, CheckCircle2, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button, Card, CardContent, Skeleton } from '@gleamops/ui';
 import { toast } from 'sonner';
+import {
+  compareSupplyCategories,
+  formatSupplyCategoryLabel,
+  normalizeSupplyCategory,
+} from '@/lib/inventory/category-order';
 
 interface CountItem {
   id: string;
@@ -52,6 +57,12 @@ interface CountPayload {
   items: CountItem[];
 }
 
+interface GroupedCountItems {
+  key: string;
+  label: string;
+  items: CountItem[];
+}
+
 function formatDate(value: string | null | undefined) {
   if (!value) return 'Not Set';
   const date = new Date(value);
@@ -91,7 +102,8 @@ export default function PublicInventoryCountPage() {
       setCountedByName(payload.count.countedByName ?? '');
       setNotes(payload.count.notes ?? '');
       setQtyByItemId(Object.fromEntries(payload.items.map((item) => [item.id, item.actualQty != null ? String(item.actualQty) : ''])));
-      const categories = Array.from(new Set(payload.items.map((item) => item.supply?.category ?? 'Uncategorized')));
+      const categories = Array.from(new Set(payload.items.map((item) => normalizeSupplyCategory(item.supply?.category))));
+      categories.sort(compareSupplyCategories);
       setExpandedCategories(categories.slice(0, 1));
       setSubmitted(['SUBMITTED', 'COMPLETED'].includes(payload.count.status.toUpperCase()));
     } catch (error) {
@@ -107,14 +119,26 @@ export default function PublicInventoryCountPage() {
   }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const grouped = useMemo(() => {
-    if (!data) return [];
+    if (!data) return [] as GroupedCountItems[];
+
     const map: Record<string, CountItem[]> = {};
     for (const item of data.items) {
-      const key = item.supply?.category ?? 'Uncategorized';
+      const key = normalizeSupplyCategory(item.supply?.category);
       if (!map[key]) map[key] = [];
       map[key].push(item);
     }
-    return Object.entries(map).sort(([a], [b]) => a.localeCompare(b));
+
+    return Object.entries(map)
+      .sort(([a], [b]) => compareSupplyCategories(a, b))
+      .map(([key, items]) => ({
+        key,
+        label: formatSupplyCategoryLabel(key),
+        items: [...items].sort((left, right) => {
+          const leftName = left.supply?.name ?? '';
+          const rightName = right.supply?.name ?? '';
+          return leftName.localeCompare(rightName);
+        }),
+      }));
   }, [data]);
 
   const completedCount = useMemo(() => {
@@ -289,17 +313,17 @@ export default function PublicInventoryCountPage() {
       </Card>
 
       <div className="space-y-4">
-        {grouped.map(([category, items]) => {
-          const expanded = expandedCategories.includes(category);
+        {grouped.map(({ key, label, items }) => {
+          const expanded = expandedCategories.includes(key);
           return (
-            <Card key={category}>
+            <Card key={key}>
               <CardContent className="p-0">
                 <button
                   type="button"
-                  onClick={() => toggleCategory(category)}
+                  onClick={() => toggleCategory(key)}
                   className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
                 >
-                  <span className="text-sm font-semibold text-foreground">{category} ({items.length})</span>
+                  <span className="text-sm font-semibold text-foreground">{label} ({items.length})</span>
                   {expanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                 </button>
                 {expanded && (

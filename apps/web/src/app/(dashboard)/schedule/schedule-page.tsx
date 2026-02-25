@@ -372,7 +372,7 @@ export default function SchedulePageClient() {
                     ? 'Search checklist templates, sections, or items...'
                   : `Search ${tab}...`
             }
-            className="w-full lg:w-80"
+            className="w-full sm:w-72 lg:w-80 lg:ml-auto"
           />
         )}
       </div>

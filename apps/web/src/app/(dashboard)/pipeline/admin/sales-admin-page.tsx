@@ -68,7 +68,7 @@ export default function SalesAdminPageClient() {
           value={search}
           onChange={setSearch}
           placeholder={`Search ${tab}...`}
-          className="w-full lg:w-80"
+          className="w-full sm:w-72 lg:w-80 lg:ml-auto"
         />
       </div>
       {tab === 'rates' && <ProductionRatesTable search={search} />}

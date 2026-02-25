@@ -217,7 +217,7 @@ export default function InventoryPageClient() {
           value={search}
           onChange={setSearch}
           placeholder={simpleView ? 'Search core inventory...' : `Search ${tab}...`}
-          className="w-full lg:w-80"
+          className="w-full sm:w-72 lg:w-80 lg:ml-auto"
         />
       </div>
 

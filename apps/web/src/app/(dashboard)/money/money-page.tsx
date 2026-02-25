@@ -511,7 +511,7 @@ export default function MoneyPageClient() {
                   ? 'Search clients or industries...'
                   : 'Search planned income rows...'
             }
-            className="w-full lg:w-80"
+            className="w-full sm:w-72 lg:w-80 lg:ml-auto"
           />
         </div>
       </div>

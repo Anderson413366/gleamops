@@ -17,12 +17,15 @@ import {
   TableHeader,
   TableRow,
   TableSkeleton,
+  ViewToggle,
 } from '@gleamops/ui';
 import { EntityLink } from '@/components/links/entity-link';
 import { usePagination } from '@/hooks/use-pagination';
 import { useTableSort } from '@/hooks/use-table-sort';
+import { useViewPreference } from '@/hooks/use-view-preference';
 import { formatDate } from '@/lib/utils/date';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { WorkOrderCardGrid } from './work-order-card-grid';
 
 interface WorkOrderTicket extends WorkTicket {
   job?: { job_code: string; job_name?: string | null } | null;
@@ -37,7 +40,7 @@ interface WorkOrderTicket extends WorkTicket {
   }> | null;
 }
 
-interface WorkOrderTableRow extends WorkOrderTicket {
+export interface WorkOrderTableRow extends WorkOrderTicket {
   site_name: string;
   assigned_crew: string;
 }
@@ -75,6 +78,7 @@ function normalizeRows(rows: WorkOrderTicket[]): WorkOrderTableRow[] {
 
 export function WorkOrderTable({ search }: WorkOrderTableProps) {
   const router = useRouter();
+  const { view, setView } = useViewPreference('schedule-work-orders');
   const [rows, setRows] = useState<WorkOrderTableRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -148,7 +152,8 @@ export function WorkOrderTable({ search }: WorkOrderTableProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-end gap-3">
+        <ViewToggle view={view} onChange={setView} />
         <ExportButton
           data={filtered as unknown as Record<string, unknown>[]}
           filename="work-orders"
@@ -163,61 +168,68 @@ export function WorkOrderTable({ search }: WorkOrderTableProps) {
         />
       </div>
 
-      <div className="w-full overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <tr>
-              <TableHead sortable sorted={sortKey === 'ticket_code' && sortDir} onSort={() => onSort('ticket_code')}>
-                Work Order
-              </TableHead>
-              <TableHead sortable sorted={sortKey === 'site_name' && sortDir} onSort={() => onSort('site_name')}>
-                Site
-              </TableHead>
-              <TableHead>Assigned Crew</TableHead>
-              <TableHead sortable sorted={sortKey === 'scheduled_date' && sortDir} onSort={() => onSort('scheduled_date')}>
-                Date
-              </TableHead>
-              <TableHead sortable sorted={sortKey === 'status' && sortDir} onSort={() => onSort('status')}>
-                Status
-              </TableHead>
-            </tr>
-          </TableHeader>
-          <TableBody>
-            {pagination.page.map((row) => {
-              const crew = crewNames(row);
-              return (
-                <TableRow
-                  key={row.id}
-                  className="cursor-pointer"
-                  onClick={() => router.push(`/operations/tickets/${encodeURIComponent(row.ticket_code)}`)}
-                >
-                  <TableCell className="font-mono text-xs">{row.ticket_code}</TableCell>
-                  <TableCell className="font-medium">
-                    {row.site?.site_code ? (
-                      <EntityLink
-                        entityType="site"
-                        code={row.site.site_code}
-                        name={row.site_name}
-                        showCode={false}
-                        stopPropagation
-                      />
-                    ) : (
-                      row.site_name
-                    )}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {crew.length ? `${crew.slice(0, 2).join(', ')}${crew.length > 2 ? ` +${crew.length - 2}` : ''}` : 'Unassigned'}
-                  </TableCell>
-                  <TableCell>{formatDate(row.scheduled_date)}</TableCell>
-                  <TableCell>
-                    <Badge color={STATUS_BADGE_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
+      {view === 'card' ? (
+        <WorkOrderCardGrid
+          rows={pagination.page}
+          onSelect={(row) => router.push(`/operations/tickets/${encodeURIComponent(row.ticket_code)}`)}
+        />
+      ) : (
+        <div className="w-full overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <tr>
+                <TableHead sortable sorted={sortKey === 'ticket_code' && sortDir} onSort={() => onSort('ticket_code')}>
+                  Work Order
+                </TableHead>
+                <TableHead sortable sorted={sortKey === 'site_name' && sortDir} onSort={() => onSort('site_name')}>
+                  Site
+                </TableHead>
+                <TableHead>Assigned Crew</TableHead>
+                <TableHead sortable sorted={sortKey === 'scheduled_date' && sortDir} onSort={() => onSort('scheduled_date')}>
+                  Date
+                </TableHead>
+                <TableHead sortable sorted={sortKey === 'status' && sortDir} onSort={() => onSort('status')}>
+                  Status
+                </TableHead>
+              </tr>
+            </TableHeader>
+            <TableBody>
+              {pagination.page.map((row) => {
+                const crew = crewNames(row);
+                return (
+                  <TableRow
+                    key={row.id}
+                    className="cursor-pointer"
+                    onClick={() => router.push(`/operations/tickets/${encodeURIComponent(row.ticket_code)}`)}
+                  >
+                    <TableCell className="font-mono text-xs">{row.ticket_code}</TableCell>
+                    <TableCell className="font-medium">
+                      {row.site?.site_code ? (
+                        <EntityLink
+                          entityType="site"
+                          code={row.site.site_code}
+                          name={row.site_name}
+                          showCode={false}
+                          stopPropagation
+                        />
+                      ) : (
+                        row.site_name
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {crew.length ? `${crew.slice(0, 2).join(', ')}${crew.length > 2 ? ` +${crew.length - 2}` : ''}` : 'Unassigned'}
+                    </TableCell>
+                    <TableCell>{formatDate(row.scheduled_date)}</TableCell>
+                    <TableCell>
+                      <Badge color={STATUS_BADGE_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
       <Pagination
         currentPage={pagination.currentPage}

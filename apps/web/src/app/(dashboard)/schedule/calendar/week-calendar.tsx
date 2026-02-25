@@ -1,22 +1,40 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Users, Clock, GripVertical } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { BriefcaseBusiness, CalendarDays, ChevronLeft, ChevronRight, Clock, GripVertical, Users } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { Button, Skeleton } from '@gleamops/ui';
+import { Button, ChipTabs, Skeleton } from '@gleamops/ui';
 import type { WorkTicket } from '@gleamops/shared';
 
 interface TicketWithRelations extends WorkTicket {
-  job?: { job_code: string } | null;
+  job?: { job_code: string; frequency?: string | null; job_type?: string | null } | null;
   site?: { site_code: string; name: string; client?: { name: string } | null } | null;
-  assignments?: { staff?: { full_name: string } | null }[];
+  assignments?: { assignment_status?: string | null; staff?: { full_name: string | null } | null }[];
 }
+
+type CalendarSource = 'all' | 'recurring' | 'work-orders';
+type TicketSource = Exclude<CalendarSource, 'all'>;
+type TicketWithSource = TicketWithRelations & { source: TicketSource };
 
 interface WeekCalendarProps {
   onSelectTicket?: (ticket: TicketWithRelations) => void;
 }
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const WORK_ORDER_FREQUENCIES = new Set(['AS_NEEDED', 'ONE_TIME', 'ON_DEMAND', 'AD_HOC']);
+
+const SOURCE_META: Record<TicketSource, { label: string; dotClass: string; chipClass: string }> = {
+  recurring: {
+    label: 'Recurring',
+    dotClass: 'bg-blue-500',
+    chipClass: 'border-blue-300 bg-blue-100 text-blue-800 dark:border-blue-800 dark:bg-blue-950/50 dark:text-blue-200',
+  },
+  'work-orders': {
+    label: 'Work Order',
+    dotClass: 'bg-amber-500',
+    chipClass: 'border-amber-300 bg-amber-100 text-amber-800 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-200',
+  },
+};
 
 function getWeekStart(date: Date): Date {
   const d = new Date(date);
@@ -56,6 +74,38 @@ function formatTime(t: string | null): string {
   return `${h12}:${m}${ampm}`;
 }
 
+function normalizeToken(value: string | null | undefined): string {
+  return (value ?? '')
+    .trim()
+    .replace(/[\s-]+/g, '_')
+    .toUpperCase();
+}
+
+function assignedNames(ticket: TicketWithRelations): string[] {
+  return (ticket.assignments ?? [])
+    .filter((assignment) => !assignment.assignment_status || assignment.assignment_status === 'ASSIGNED')
+    .map((assignment) => assignment.staff?.full_name?.trim())
+    .filter((name): name is string => Boolean(name));
+}
+
+function classifySource(ticket: TicketWithRelations): TicketSource {
+  const normalizedFrequency = normalizeToken(ticket.job?.frequency);
+  if (WORK_ORDER_FREQUENCIES.has(normalizedFrequency)) {
+    return 'work-orders';
+  }
+
+  const normalizedJobType = normalizeToken(ticket.job?.job_type);
+  if (normalizedJobType.includes('PROJECT') || normalizedJobType.includes('WORK_ORDER')) {
+    return 'work-orders';
+  }
+
+  if (ticket.position_code?.trim()) {
+    return 'recurring';
+  }
+
+  return 'recurring';
+}
+
 const STATUS_BG: Record<string, string> = {
   SCHEDULED: 'bg-primary/10 border-primary/30 hover:bg-primary/15',
   IN_PROGRESS: 'bg-warning/10 border-warning/30 hover:bg-warning/15',
@@ -74,7 +124,8 @@ const STATUS_DOT: Record<string, string> = {
 
 export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
   const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()));
-  const [tickets, setTickets] = useState<TicketWithRelations[]>([]);
+  const [sourceFilter, setSourceFilter] = useState<CalendarSource>('all');
+  const [tickets, setTickets] = useState<TicketWithSource[]>([]);
   const [loading, setLoading] = useState(true);
   const [dragTicketId, setDragTicketId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
@@ -92,20 +143,28 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
       .from('work_tickets')
       .select(`
         *,
-        job:job_id(job_code),
+        job:job_id(job_code, frequency, job_type),
         site:site_id(site_code, name, client:client_id(name)),
-        assignments:ticket_assignments(staff:staff_id(full_name))
+        assignments:ticket_assignments(assignment_status, staff:staff_id(full_name))
       `)
       .is('archived_at', null)
       .gte('scheduled_date', formatDate(weekStart))
       .lte('scheduled_date', formatDate(end))
       .order('start_time', { ascending: true });
 
-    if (!error && data) setTickets(data as unknown as TicketWithRelations[]);
+    if (!error && data) {
+      const normalized = (data as unknown as TicketWithRelations[]).map((ticket) => ({
+        ...ticket,
+        source: classifySource(ticket),
+      }));
+      setTickets(normalized);
+    }
     setLoading(false);
   }, [weekStart]);
 
-  useEffect(() => { fetchTickets(); }, [fetchTickets]);
+  useEffect(() => {
+    void fetchTickets();
+  }, [fetchTickets]);
 
   const goToPrevWeek = () => setWeekStart((prev) => { const d = new Date(prev); d.setDate(d.getDate() - 7); return d; });
   const goToNextWeek = () => setWeekStart((prev) => { const d = new Date(prev); d.setDate(d.getDate() + 7); return d; });
@@ -133,7 +192,7 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
     if (!ticketId) return;
 
     const ticket = tickets.find((t) => t.id === ticketId);
-    if (!ticket || formatDate(new Date(ticket.scheduled_date)) === dateStr) return;
+    if (!ticket || ticket.scheduled_date.split('T')[0] === dateStr) return;
 
     // Optimistic update
     setTickets((prev) => prev.map((t) => t.id === ticketId ? { ...t, scheduled_date: dateStr } : t));
@@ -145,24 +204,60 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
 
   const handleDragEnd = () => { setDragTicketId(null); setDropTarget(null); };
 
-  // Group tickets by date
-  const ticketsByDate = new Map<string, TicketWithRelations[]>();
+  const sourceCounts = useMemo(() => ({
+    recurring: tickets.filter((ticket) => ticket.source === 'recurring').length,
+    'work-orders': tickets.filter((ticket) => ticket.source === 'work-orders').length,
+  }), [tickets]);
+
+  const visibleTickets = useMemo(() => {
+    if (sourceFilter === 'all') return tickets;
+    return tickets.filter((ticket) => ticket.source === sourceFilter);
+  }, [sourceFilter, tickets]);
+
+  const sourceTabs = useMemo(() => ([
+    {
+      key: 'all',
+      label: 'All',
+      icon: <CalendarDays className="h-4 w-4" />,
+      count: tickets.length,
+    },
+    {
+      key: 'recurring',
+      label: 'Recurring',
+      icon: <Users className="h-4 w-4" />,
+      count: sourceCounts.recurring,
+    },
+    {
+      key: 'work-orders',
+      label: 'Work Orders',
+      icon: <BriefcaseBusiness className="h-4 w-4" />,
+      count: sourceCounts['work-orders'],
+    },
+  ]), [sourceCounts, tickets.length]);
+
+  const ticketsByDate = new Map<string, TicketWithSource[]>();
   for (const day of weekDays) ticketsByDate.set(formatDate(day), []);
-  for (const ticket of tickets) {
+  for (const ticket of visibleTickets) {
     const dateStr = ticket.scheduled_date.split('T')[0];
     const existing = ticketsByDate.get(dateStr);
     if (existing) existing.push(ticket);
   }
 
   // Aggregate stats
-  const totalTickets = tickets.length;
-  const completedCount = tickets.filter((t) => t.status === 'COMPLETED' || t.status === 'VERIFIED').length;
-  const unassignedCount = tickets.filter((t) => !t.assignments || t.assignments.length === 0).length;
+  const totalTickets = visibleTickets.length;
+  const completedCount = visibleTickets.filter((t) => t.status === 'COMPLETED' || t.status === 'VERIFIED').length;
+  const unassignedCount = visibleTickets.filter((t) => assignedNames(t).length === 0).length;
 
   const weekLabel = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} — ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
 
   return (
     <div className="space-y-4">
+      <ChipTabs
+        tabs={sourceTabs}
+        active={sourceFilter}
+        onChange={(value) => setSourceFilter(value as CalendarSource)}
+      />
+
       {/* Week navigation */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -192,6 +287,12 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
           <div key={status} className="flex items-center gap-1">
             <div className={`w-2 h-2 rounded-full ${dotClass}`} />
             <span className="text-muted-foreground capitalize">{status.toLowerCase().replace('_', ' ')}</span>
+          </div>
+        ))}
+        {Object.values(SOURCE_META).map((source) => (
+          <div key={source.label} className="flex items-center gap-1">
+            <div className={`w-2 h-2 rounded-full ${source.dotClass}`} />
+            <span className="text-muted-foreground">{source.label}</span>
           </div>
         ))}
       </div>
@@ -240,10 +341,9 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
                 {/* Ticket cards */}
                 <div className="space-y-1 flex-1 overflow-y-auto">
                   {dayTickets.map((ticket) => {
-                    const assignedNames = ticket.assignments
-                      ?.map((a) => a.staff?.full_name?.split(' ')[0])
-                      .filter(Boolean) ?? [];
-                    const isUnassigned = assignedNames.length === 0;
+                    const names = assignedNames(ticket);
+                    const shortNames = names.map((name) => name.split(' ')[0]);
+                    const isUnassigned = shortNames.length === 0;
 
                     return (
                       <div
@@ -267,6 +367,11 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
                           <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[ticket.status] ?? 'bg-muted-foreground'}`} />
                           <p className="font-medium truncate">{ticket.site?.name ?? ticket.ticket_code}</p>
                         </div>
+                        <div className="mt-0.5 flex items-center gap-1">
+                          <span className={`inline-flex rounded-full border px-1.5 py-0 text-[9px] font-semibold uppercase tracking-wide ${SOURCE_META[ticket.source].chipClass}`}>
+                            {SOURCE_META[ticket.source].label}
+                          </span>
+                        </div>
 
                         {/* Time */}
                         {ticket.start_time && (
@@ -277,10 +382,10 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
                         )}
 
                         {/* Staff */}
-                        {assignedNames.length > 0 ? (
+                        {shortNames.length > 0 ? (
                           <div className="flex items-center gap-0.5 text-muted-foreground mt-0.5">
                             <Users className="h-2.5 w-2.5" />
-                            <span className="truncate">{assignedNames.join(', ')}</span>
+                            <span className="truncate">{shortNames.join(', ')}</span>
                           </div>
                         ) : (
                           <p className="text-destructive text-[10px] mt-0.5 font-medium">Unassigned</p>

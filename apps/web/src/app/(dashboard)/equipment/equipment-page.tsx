@@ -126,8 +126,15 @@ export default function EquipmentPageClient() {
         </Card>
       </div>
 
-      <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
-      <SearchInput value={search} onChange={setSearch} placeholder={`Search ${tab}...`} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder={`Search ${tab}...`}
+          className="w-full sm:w-72 lg:w-80"
+        />
+      </div>
 
       {tab === 'equipment' && (
         <EquipmentTable

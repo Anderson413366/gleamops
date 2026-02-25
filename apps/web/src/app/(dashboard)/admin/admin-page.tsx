@@ -92,10 +92,17 @@ export default function AdminPageClient() {
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Status Transition Rules</p><p className="text-xl font-semibold">{kpis.transitionRules}</p></CardContent></Card>
       </div>
 
-      <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
-      {tab !== 'import' && (
-        <SearchInput value={search} onChange={setSearch} placeholder={`Search ${tab}...`} />
-      )}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
+        {tab !== 'import' && (
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder={`Search ${tab}...`}
+            className="w-full sm:w-72 lg:w-80"
+          />
+        )}
+      </div>
 
       {tab === 'lookups' && (
         <LookupsTable

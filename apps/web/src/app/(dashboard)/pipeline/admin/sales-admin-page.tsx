@@ -60,8 +60,15 @@ export default function SalesAdminPageClient() {
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Follow-ups</p><p className="text-xl font-bold text-success">{kpis.activeFollowups}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Marketing Inserts</p><p className="text-xl font-bold">{kpis.marketingInserts}</p></CardContent></Card>
       </div>
-      <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
-      <SearchInput value={search} onChange={setSearch} placeholder={`Search ${tab}...`} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder={`Search ${tab}...`}
+          className="w-full sm:w-72 lg:w-80"
+        />
+      </div>
       {tab === 'rates' && <ProductionRatesTable search={search} />}
       {tab === 'followups' && <FollowupTemplatesTable search={search} />}
       {tab === 'inserts' && <MarketingInsertsTable search={search} />}

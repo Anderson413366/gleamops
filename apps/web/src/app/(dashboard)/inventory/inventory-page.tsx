@@ -209,8 +209,15 @@ export default function InventoryPageClient() {
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Pending Counts</p><p className="text-xl font-semibold">{kpis.pendingCounts}</p></CardContent></Card>
       </div>
 
-      <ChipTabs tabs={visibleTabs} active={tab} onChange={setTab} />
-      <SearchInput value={search} onChange={setSearch} placeholder={simpleView ? 'Search core inventory...' : `Search ${tab}...`} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <ChipTabs tabs={visibleTabs} active={tab} onChange={setTab} />
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder={simpleView ? 'Search core inventory...' : `Search ${tab}...`}
+          className="w-full sm:w-72 lg:w-80"
+        />
+      </div>
 
       {tab === 'supplies' && (
         <SuppliesTable

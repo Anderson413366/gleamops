@@ -46,7 +46,7 @@ const ACTIONS: QuickAction[] = [
     label: 'Messages',
     description: 'Open team communications for supervisors and field staff.',
     icon: <MessageSquareMore className="h-4 w-4" aria-hidden="true" />,
-    href: '/workforce?tab=messages',
+    href: '/team?tab=messages',
   },
 ];
 

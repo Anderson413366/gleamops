@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { Suspense } from 'react';
 import { Skeleton } from '@gleamops/ui';
 import FinancialIntelligenceClient from './financial-intelligence-client';
@@ -21,4 +23,3 @@ export default function FinancialIntelligencePage() {
     </Suspense>
   );
 }
-

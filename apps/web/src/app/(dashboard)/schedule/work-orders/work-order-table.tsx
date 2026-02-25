@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import type { WorkTicket } from '@gleamops/shared';
 import {
   Badge,
+  Button,
   EmptyState,
   ExportButton,
   Pagination,
@@ -26,6 +27,7 @@ import { useViewPreference } from '@/hooks/use-view-preference';
 import { formatDate } from '@/lib/utils/date';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { WorkOrderCardGrid } from './work-order-card-grid';
+import { WorkOrderCompletion } from './work-order-completion';
 
 interface WorkOrderTicket extends WorkTicket {
   job?: { job_code: string; job_name?: string | null } | null;
@@ -81,6 +83,7 @@ export function WorkOrderTable({ search }: WorkOrderTableProps) {
   const { view, setView } = useViewPreference('schedule-work-orders');
   const [rows, setRows] = useState<WorkOrderTableRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [completionRow, setCompletionRow] = useState<WorkOrderTableRow | null>(null);
 
   const fetchRows = useCallback(async () => {
     setLoading(true);
@@ -191,6 +194,7 @@ export function WorkOrderTable({ search }: WorkOrderTableProps) {
                 <TableHead sortable sorted={sortKey === 'status' && sortDir} onSort={() => onSort('status')}>
                   Status
                 </TableHead>
+                <TableHead className="text-right">Action</TableHead>
               </tr>
             </TableHeader>
             <TableBody>
@@ -223,6 +227,19 @@ export function WorkOrderTable({ search }: WorkOrderTableProps) {
                     <TableCell>
                       <Badge color={STATUS_BADGE_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
                     </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setCompletionRow(row);
+                        }}
+                      >
+                        Complete
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 );
               })}
@@ -240,6 +257,15 @@ export function WorkOrderTable({ search }: WorkOrderTableProps) {
         hasPrev={pagination.hasPrev}
         onNext={pagination.nextPage}
         onPrev={pagination.prevPage}
+      />
+
+      <WorkOrderCompletion
+        open={Boolean(completionRow)}
+        row={completionRow}
+        onClose={() => setCompletionRow(null)}
+        onCompleted={() => {
+          void fetchRows();
+        }}
       />
     </div>
   );

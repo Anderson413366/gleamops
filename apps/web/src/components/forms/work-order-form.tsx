@@ -1,16 +1,18 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   BriefcaseBusiness,
   CalendarClock,
   ClipboardCheck,
   DollarSign,
   MapPin,
+  PlusSquare,
   Users,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
+  Button,
   FormSection,
   FormWizard,
   Input,
@@ -19,6 +21,8 @@ import {
   Textarea,
   useWizardSteps,
 } from '@gleamops/ui';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { CompletionTemplateForm } from './completion-template-form';
 
 type WorkOrderFormData = {
   siteId: string;
@@ -75,7 +79,7 @@ const CREW_LEAD_OPTIONS = [
   { value: 'katie-huang', label: 'Katie Huang' },
 ];
 
-const COMPLETION_TEMPLATE_OPTIONS = [
+const DEFAULT_COMPLETION_TEMPLATE_OPTIONS = [
   { value: 'standard', label: 'Standard Completion' },
   { value: 'project-heavy', label: 'Project Heavy Cleanup' },
   { value: 'client-signoff', label: 'Client Sign-off Required' },
@@ -133,10 +137,54 @@ export function WorkOrderForm({ open, onClose, onSuccess, initialValues }: WorkO
   const [values, setValues] = useState<WorkOrderFormData>(() => mergeInitialValues(initialValues));
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
+  const [templateDrawerOpen, setTemplateDrawerOpen] = useState(false);
+  const [completionTemplateOptions, setCompletionTemplateOptions] = useState(DEFAULT_COMPLETION_TEMPLATE_OPTIONS);
 
   const selectedSiteLabel = useMemo(() => SITE_OPTIONS.find((site) => site.value === values.siteId)?.label ?? 'Not selected', [values.siteId]);
   const selectedServiceLabel = useMemo(() => SERVICE_OPTIONS.find((service) => service.value === values.serviceType)?.label ?? 'Not selected', [values.serviceType]);
   const selectedCrewLeadLabel = useMemo(() => CREW_LEAD_OPTIONS.find((lead) => lead.value === values.crewLead)?.label ?? 'Not assigned', [values.crewLead]);
+  const selectedCompletionTemplateLabel = useMemo(
+    () => completionTemplateOptions.find((template) => template.value === values.completionTemplate)?.label ?? values.completionTemplate,
+    [completionTemplateOptions, values.completionTemplate],
+  );
+
+  const loadCompletionTemplates = useCallback(async () => {
+    const supabase = getSupabaseBrowserClient();
+    const { data, error } = await supabase
+      .from('checklist_templates')
+      .select('id, name, template_name, template_type')
+      .eq('template_type', 'Work Order Completion')
+      .is('archived_at', null)
+      .order('updated_at', { ascending: false });
+
+    if (error || !data) {
+      return;
+    }
+
+    const dynamicOptions = (data as Array<{
+      id: string;
+      name: string | null;
+      template_name: string | null;
+      template_type: string | null;
+    }>)
+      .filter((row) => row.template_type === 'Work Order Completion')
+      .map((row) => ({
+        value: row.id,
+        label: row.template_name ?? row.name ?? row.id,
+      }));
+
+    const merged = [...DEFAULT_COMPLETION_TEMPLATE_OPTIONS];
+    for (const option of dynamicOptions) {
+      if (!merged.some((existing) => existing.value === option.value)) {
+        merged.push(option);
+      }
+    }
+    setCompletionTemplateOptions(merged);
+  }, []);
+
+  useEffect(() => {
+    void loadCompletionTemplates();
+  }, [loadCompletionTemplates]);
 
   const setValue = (field: FieldName, value: string) => {
     setValues((prev) => ({ ...prev, [field]: value }));
@@ -396,7 +444,7 @@ export function WorkOrderForm({ open, onClose, onSuccess, initialValues }: WorkO
                   label="Completion Template"
                   value={values.completionTemplate}
                   onChange={(event) => setValue('completionTemplate', event.target.value)}
-                  options={COMPLETION_TEMPLATE_OPTIONS}
+                  options={completionTemplateOptions}
                 />
                 <Select
                   label="Photo Proof Required"
@@ -404,6 +452,13 @@ export function WorkOrderForm({ open, onClose, onSuccess, initialValues }: WorkO
                   onChange={(event) => setValue('photoProofRequired', event.target.value)}
                   options={PROOF_OPTIONS}
                 />
+              </div>
+
+              <div className="flex justify-end">
+                <Button type="button" variant="secondary" onClick={() => setTemplateDrawerOpen(true)}>
+                  <PlusSquare className="h-4 w-4" />
+                  New Completion Template
+                </Button>
               </div>
 
               <Textarea
@@ -469,13 +524,27 @@ export function WorkOrderForm({ open, onClose, onSuccess, initialValues }: WorkO
                   Completion Settings
                 </p>
                 <p className="mt-1 text-muted-foreground">
-                  Template: {values.completionTemplate} · Photo proof: {values.photoProofRequired === 'yes' ? 'Required' : 'Optional'}
+                  Template: {selectedCompletionTemplateLabel} · Photo proof: {values.photoProofRequired === 'yes' ? 'Required' : 'Optional'}
                 </p>
               </div>
             </FormSection>
           </div>
         )}
       </FormWizard>
+
+      <CompletionTemplateForm
+        open={templateDrawerOpen}
+        onClose={() => setTemplateDrawerOpen(false)}
+        onCreated={(template) => {
+          setCompletionTemplateOptions((current) => (
+            current.some((item) => item.value === template.value)
+              ? current
+              : [...current, template]
+          ));
+          setValue('completionTemplate', template.value);
+          setTemplateDrawerOpen(false);
+        }}
+      />
     </SlideOver>
   );
 }

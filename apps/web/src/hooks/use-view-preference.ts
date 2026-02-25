@@ -2,11 +2,44 @@
 
 import { useState, useEffect } from 'react';
 
-type ViewMode = 'list' | 'card';
+type BaseViewMode = 'list' | 'card';
+type CalendarViewMode = BaseViewMode | 'calendar';
 
-export function useViewPreference(entityKey: string) {
+interface BaseViewPreferenceOptions {
+  allowCalendar?: false;
+  defaultView?: BaseViewMode;
+}
+
+interface CalendarViewPreferenceOptions {
+  allowCalendar: true;
+  defaultView?: CalendarViewMode;
+}
+
+type UseViewPreferenceOptions = BaseViewPreferenceOptions | CalendarViewPreferenceOptions;
+
+interface UseViewPreferenceResult<TView extends CalendarViewMode> {
+  view: TView;
+  setView: (view: TView) => void;
+  mounted: boolean;
+  isMobile: boolean;
+}
+
+export function useViewPreference(entityKey: string): UseViewPreferenceResult<BaseViewMode>;
+export function useViewPreference(
+  entityKey: string,
+  options: BaseViewPreferenceOptions,
+): UseViewPreferenceResult<BaseViewMode>;
+export function useViewPreference(
+  entityKey: string,
+  options: CalendarViewPreferenceOptions,
+): UseViewPreferenceResult<CalendarViewMode>;
+export function useViewPreference(entityKey: string, options?: UseViewPreferenceOptions) {
+  const allowCalendar = options?.allowCalendar === true;
+  const defaultView = options?.defaultView ?? 'list';
+  const initialView: CalendarViewMode = (allowCalendar || defaultView !== 'calendar') ? defaultView : 'list';
+
   const storageKey = `gleamops-view-${entityKey}`;
-  const [view, setViewState] = useState<ViewMode>('list');
+  const [view, setViewState] = useState<CalendarViewMode>(initialView);
   const [isMobile, setIsMobile] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -16,16 +49,24 @@ export function useViewPreference(entityKey: string) {
     const apply = () => {
       const mobile = media.matches;
       setIsMobile(mobile);
+
       if (mobile) {
         setViewState('list');
         setMounted(true);
         return;
       }
+
       const stored = localStorage.getItem(storageKey);
-      if (stored === 'card' || stored === 'list') {
+      const supportsStored = (
+        stored === 'list'
+        || stored === 'card'
+        || (allowCalendar && stored === 'calendar')
+      );
+
+      if (supportsStored) {
         setViewState(stored);
       } else {
-        setViewState('list');
+        setViewState(initialView);
       }
       setMounted(true);
     };
@@ -33,16 +74,40 @@ export function useViewPreference(entityKey: string) {
     apply();
     media.addEventListener('change', apply);
     return () => media.removeEventListener('change', apply);
-  }, [storageKey]);
+  }, [allowCalendar, initialView, storageKey]);
 
-  const setView = (v: ViewMode) => {
+  const setView = (nextView: CalendarViewMode) => {
     if (isMobile) {
       setViewState('list');
       return;
     }
-    setViewState(v);
-    localStorage.setItem(storageKey, v);
+
+    if (!allowCalendar && nextView === 'calendar') {
+      setViewState('list');
+      localStorage.setItem(storageKey, 'list');
+      return;
+    }
+
+    setViewState(nextView);
+    localStorage.setItem(storageKey, nextView);
   };
 
-  return { view: isMobile ? 'list' : view, setView, mounted, isMobile };
+  const activeView = isMobile ? 'list' : view;
+  const clampedView = (!allowCalendar && activeView === 'calendar') ? 'list' : activeView;
+
+  if (allowCalendar) {
+    return {
+      view: clampedView,
+      setView: setView as (value: CalendarViewMode) => void,
+      mounted,
+      isMobile,
+    };
+  }
+
+  return {
+    view: clampedView as BaseViewMode,
+    setView: setView as (value: BaseViewMode) => void,
+    mounted,
+    isMobile,
+  };
 }

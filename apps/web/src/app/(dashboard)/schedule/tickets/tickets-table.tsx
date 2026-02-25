@@ -7,18 +7,26 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, cn,
+  EmptyState, Badge, Pagination, TableSkeleton, ExportButton, StatusDot, ViewToggle, cn,
 } from '@gleamops/ui';
 import { TICKET_STATUS_COLORS } from '@gleamops/shared';
 import type { WorkTicket } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { useViewPreference } from '@/hooks/use-view-preference';
 import { formatDate } from '@/lib/utils/date';
 import { EntityLink } from '@/components/links/entity-link';
+import { EntityAvatar } from '@/components/directory/entity-avatar';
+import { EntityCard, getEntityInitials } from '@/components/directory/entity-card';
 
 interface TicketWithRelations extends WorkTicket {
   job?: { job_code: string } | null;
-  site?: { site_code: string; name: string; client?: { name: string; client_code?: string | null } | null } | null;
+  site?: {
+    site_code: string;
+    name: string;
+    photo_url?: string | null;
+    client?: { name: string; client_code?: string | null } | null;
+  } | null;
 }
 
 interface TicketsTableProps {
@@ -27,11 +35,25 @@ interface TicketsTableProps {
 
 const STATUS_OPTIONS = ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'VERIFIED', 'CANCELED', 'all'] as const;
 
+function statusTone(status: string | null | undefined): 'green' | 'blue' | 'yellow' | 'red' | 'gray' {
+  const normalized = (status ?? '').toUpperCase();
+  if (normalized === 'COMPLETED' || normalized === 'VERIFIED') return 'green';
+  if (normalized === 'IN_PROGRESS') return 'blue';
+  if (normalized === 'SCHEDULED') return 'yellow';
+  if (normalized === 'CANCELED') return 'red';
+  return 'gray';
+}
+
+function statusLabel(status: string | null | undefined): string {
+  return (status ?? 'UNKNOWN').replace(/_/g, ' ');
+}
+
 export default function TicketsTable({ search }: TicketsTableProps) {
   const router = useRouter();
   const [rows, setRows] = useState<TicketWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('SCHEDULED');
+  const { view, setView } = useViewPreference('schedule-tickets');
 
   const handleRowClick = useCallback((row: TicketWithRelations) => {
     router.push(`/operations/tickets/${encodeURIComponent(row.ticket_code)}`);
@@ -45,7 +67,7 @@ export default function TicketsTable({ search }: TicketsTableProps) {
       .select(`
         *,
         job:job_id(job_code),
-        site:site_id(site_code, name, client:client_id(name, client_code))
+        site:site_id(site_code, name, photo_url, client:client_id(name, client_code))
       `)
       .is('archived_at', null)
       .order('scheduled_date', { ascending: true });
@@ -103,7 +125,8 @@ export default function TicketsTable({ search }: TicketsTableProps) {
 
   return (
     <div>
-      <div className="flex justify-end mb-4">
+      <div className="mb-4 flex items-center justify-end gap-3">
+        <ViewToggle view={view} onChange={setView} />
         <ExportButton
           data={filtered as unknown as Record<string, unknown>[]}
           filename="work-tickets"
@@ -138,44 +161,76 @@ export default function TicketsTable({ search }: TicketsTableProps) {
           </button>
         ))}
       </div>
-      <Table>
-        <TableHeader>
-          <tr>
-            <TableHead sortable sorted={sortKey === 'ticket_code' && sortDir} onSort={() => onSort('ticket_code')}>Ticket</TableHead>
-            <TableHead>Job</TableHead>
-            <TableHead>Site</TableHead>
-            <TableHead>Client</TableHead>
-            <TableHead sortable sorted={sortKey === 'scheduled_date' && sortDir} onSort={() => onSort('scheduled_date')}>Date</TableHead>
-            <TableHead>Status</TableHead>
-          </tr>
-        </TableHeader>
-        <TableBody>
+      {view === 'card' ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           {pag.page.map((row) => (
-            <TableRow key={row.id} onClick={() => handleRowClick(row)} className="cursor-pointer">
-              <TableCell className="font-mono text-xs">{row.ticket_code}</TableCell>
-              <TableCell className="font-mono text-xs text-muted-foreground">
-                {row.job?.job_code ? (
-                  <EntityLink entityType="job" code={row.job.job_code} name={row.job.job_code} showCode={false} stopPropagation />
-                ) : '—'}
-              </TableCell>
-              <TableCell className="font-medium">
-                {row.site?.site_code ? (
-                  <EntityLink entityType="site" code={row.site.site_code} name={row.site.name ?? row.site.site_code} showCode={false} stopPropagation />
-                ) : (row.site?.name ?? '—')}
-              </TableCell>
-              <TableCell className="text-muted-foreground">
-                {row.site?.client?.client_code ? (
-                  <EntityLink entityType="client" code={row.site.client.client_code} name={row.site.client.name ?? row.site.client.client_code} showCode={false} stopPropagation />
-                ) : (row.site?.client?.name ?? '—')}
-              </TableCell>
-              <TableCell>{formatDate(row.scheduled_date)}</TableCell>
-              <TableCell>
-                <Badge color={TICKET_STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
-              </TableCell>
-            </TableRow>
+            <EntityCard
+              key={row.id}
+              onClick={() => handleRowClick(row)}
+              initials={getEntityInitials(row.site?.name ?? row.ticket_code)}
+              initialsSeed={row.ticket_code}
+              name={row.ticket_code}
+              subtitle={row.site?.name ?? 'Unassigned site'}
+              secondaryLine={row.site?.client?.name ?? row.job?.job_code ?? 'No client'}
+              statusLabel={statusLabel(row.status)}
+              statusTone={statusTone(row.status)}
+              metricsLine={`Scheduled ${formatDate(row.scheduled_date)}`}
+              code={row.ticket_code}
+              imageUrl={row.site?.photo_url ?? null}
+            />
           ))}
-        </TableBody>
-      </Table>
+        </div>
+      ) : (
+        <Table>
+          <TableHeader>
+            <tr>
+              <TableHead sortable sorted={sortKey === 'ticket_code' && sortDir} onSort={() => onSort('ticket_code')}>Ticket</TableHead>
+              <TableHead>Job</TableHead>
+              <TableHead>Site</TableHead>
+              <TableHead>Client</TableHead>
+              <TableHead sortable sorted={sortKey === 'scheduled_date' && sortDir} onSort={() => onSort('scheduled_date')}>Date</TableHead>
+              <TableHead>Status</TableHead>
+            </tr>
+          </TableHeader>
+          <TableBody>
+            {pag.page.map((row) => (
+              <TableRow key={row.id} onClick={() => handleRowClick(row)} className="cursor-pointer">
+                <TableCell className="font-mono text-xs">
+                  <div className="flex items-center gap-2">
+                    <EntityAvatar
+                      name={row.site?.name ?? row.ticket_code}
+                      seed={row.ticket_code}
+                      imageUrl={row.site?.photo_url ?? null}
+                      size="sm"
+                    />
+                    <StatusDot status={row.status} />
+                    {row.ticket_code}
+                  </div>
+                </TableCell>
+                <TableCell className="font-mono text-xs text-muted-foreground">
+                  {row.job?.job_code ? (
+                    <EntityLink entityType="job" code={row.job.job_code} name={row.job.job_code} showCode={false} stopPropagation />
+                  ) : '—'}
+                </TableCell>
+                <TableCell className="font-medium">
+                  {row.site?.site_code ? (
+                    <EntityLink entityType="site" code={row.site.site_code} name={row.site.name ?? row.site.site_code} showCode={false} stopPropagation />
+                  ) : (row.site?.name ?? '—')}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {row.site?.client?.client_code ? (
+                    <EntityLink entityType="client" code={row.site.client.client_code} name={row.site.client.name ?? row.site.client.client_code} showCode={false} stopPropagation />
+                  ) : (row.site?.client?.name ?? '—')}
+                </TableCell>
+                <TableCell>{formatDate(row.scheduled_date)}</TableCell>
+                <TableCell>
+                  <Badge color={TICKET_STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
       {filtered.length === 0 && (
         <div className="mt-4">
           <EmptyState

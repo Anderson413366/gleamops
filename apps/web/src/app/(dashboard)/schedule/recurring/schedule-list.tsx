@@ -81,7 +81,7 @@ export function ScheduleList({ rows, search = '', loading = false, onSelect }: S
     'asc',
   );
   const sortedRows = sorted as unknown as RecurringScheduleRow[];
-  const pagination = usePagination(sortedRows, 20);
+  const pagination = usePagination(sortedRows, 25);
 
   if (loading) {
     return <TableSkeleton rows={8} cols={7} />;

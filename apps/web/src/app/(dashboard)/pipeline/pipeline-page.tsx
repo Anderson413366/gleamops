@@ -26,6 +26,8 @@ interface OpportunityWithRelations extends SalesOpportunity {
   client?: { name: string; client_code: string } | null;
 }
 
+type PipelineSectionKey = 'prospects' | 'opportunities' | 'bids' | 'proposals';
+
 function UnifiedPipelinePageClient() {
   const router = useRouter();
   const pathname = usePathname();
@@ -61,6 +63,30 @@ function UnifiedPipelinePageClient() {
     proposals: 0,
   });
   const standaloneCalculatorEnabled = useFeatureFlag('standalone_calculator');
+
+  const setSectionCount = useCallback((key: PipelineSectionKey, value: number) => {
+    setSectionCounts((prev) => {
+      if (prev[key] === value) return prev;
+      return { ...prev, [key]: value };
+    });
+  }, []);
+
+  const handleProspectsCountChange = useCallback(
+    (count: number) => setSectionCount('prospects', count),
+    [setSectionCount],
+  );
+  const handleOpportunitiesCountChange = useCallback(
+    (count: number) => setSectionCount('opportunities', count),
+    [setSectionCount],
+  );
+  const handleBidsCountChange = useCallback(
+    (count: number) => setSectionCount('bids', count),
+    [setSectionCount],
+  );
+  const handleProposalsCountChange = useCallback(
+    (count: number) => setSectionCount('proposals', count),
+    [setSectionCount],
+  );
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -142,11 +168,16 @@ function UnifiedPipelinePageClient() {
         winRate: totalProposals > 0 ? `${Math.round((wonCount / totalProposals) * 100)}%` : '0%',
       });
 
-      setSectionCounts((prev) => ({
-        ...prev,
-        bids: bidsTotalRes.count ?? 0,
-        proposals: proposalsTotalRes.count ?? 0,
-      }));
+      const nextBidCount = bidsTotalRes.count ?? 0;
+      const nextProposalCount = proposalsTotalRes.count ?? 0;
+      setSectionCounts((prev) => {
+        if (prev.bids === nextBidCount && prev.proposals === nextProposalCount) return prev;
+        return {
+          ...prev,
+          bids: nextBidCount,
+          proposals: nextProposalCount,
+        };
+      });
     };
 
     fetchStats();
@@ -262,7 +293,7 @@ function UnifiedPipelinePageClient() {
                   setEditProspect(null);
                   setProspectFormOpen(true);
                 }}
-                onCountChange={(count) => setSectionCounts((prev) => ({ ...prev, prospects: count }))}
+                onCountChange={handleProspectsCountChange}
               />
             ),
           },
@@ -280,7 +311,7 @@ function UnifiedPipelinePageClient() {
                   setEditOpportunity(null);
                   setOpportunityFormOpen(true);
                 }}
-                onCountChange={(count) => setSectionCounts((prev) => ({ ...prev, opportunities: count }))}
+                onCountChange={handleOpportunitiesCountChange}
               />
             ),
           },
@@ -296,7 +327,7 @@ function UnifiedPipelinePageClient() {
               globalSearch={search}
               onCreateNew={() => setWizardOpen(true)}
               onExpressBid={() => setExpressOpen(true)}
-              onCountChange={(count) => setSectionCounts((prev) => ({ ...prev, bids: count }))}
+              onCountChange={handleBidsCountChange}
             />
           ),
         },
@@ -312,7 +343,7 @@ function UnifiedPipelinePageClient() {
               globalSearch={search}
               onGoToBids={() => setWizardOpen(true)}
               refreshToken={refreshKey}
-              onCountChange={(count) => setSectionCounts((prev) => ({ ...prev, proposals: count }))}
+              onCountChange={handleProposalsCountChange}
             />
           ),
         },

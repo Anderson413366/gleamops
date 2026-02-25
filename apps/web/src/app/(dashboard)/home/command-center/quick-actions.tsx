@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { CalendarDays, ClipboardPlus, MessageSquareMore, Plus } from 'lucide-react';
 import {
@@ -10,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@gleamops/ui';
+import { useFeatureFlag } from '@/hooks/use-feature-flag';
 
 type QuickAction = {
   id: string;
@@ -41,17 +43,25 @@ const ACTIONS: QuickAction[] = [
     icon: <CalendarDays className="h-4 w-4" aria-hidden="true" />,
     href: '/schedule',
   },
-  {
-    id: 'messages',
-    label: 'Messages',
-    description: 'Open team communications for supervisors and field staff.',
-    icon: <MessageSquareMore className="h-4 w-4" aria-hidden="true" />,
-    href: '/team?tab=messages',
-  },
 ];
 
 export function QuickActions() {
   const router = useRouter();
+  const messagingEnabled = useFeatureFlag('messaging_v1');
+  const actions = useMemo(() => {
+    return [
+      ...ACTIONS,
+      {
+        id: 'messages',
+        label: 'Messages',
+        description: messagingEnabled
+          ? 'Open team communications for supervisors and field staff.'
+          : 'Messaging tab is disabled for this tenant. Open Team module.',
+        icon: <MessageSquareMore className="h-4 w-4" aria-hidden="true" />,
+        href: messagingEnabled ? '/team?tab=messages' : '/team?tab=staff',
+      },
+    ] satisfies QuickAction[];
+  }, [messagingEnabled]);
 
   return (
     <Card>
@@ -64,7 +74,7 @@ export function QuickActions() {
       </CardHeader>
 
       <CardContent className="grid gap-2 sm:grid-cols-2">
-        {ACTIONS.map((action) => (
+        {actions.map((action) => (
           <Button
             key={action.id}
             type="button"

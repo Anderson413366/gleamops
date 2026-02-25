@@ -7,11 +7,9 @@ import {
   ClipboardList,
   Clock3,
   MessageCircleWarning,
-  Plus,
   Users,
 } from 'lucide-react';
 import {
-  Button,
   Card,
   CardContent,
   CardDescription,
@@ -20,6 +18,7 @@ import {
   ChipTabs,
 } from '@gleamops/ui';
 import { CoverageAlerts } from './command-center/coverage-alerts';
+import { QuickActions } from './command-center/quick-actions';
 import { TodaysTasks } from './command-center/todays-tasks';
 
 type CommandCenterFilter = 'all' | 'regular-shifts' | 'projects' | 'requests';
@@ -138,21 +137,7 @@ export default function CommandCenter() {
         </Card>
 
         <div className="grid gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Plus className="h-4 w-4 text-module-accent" aria-hidden="true" />
-                Quick Actions
-              </CardTitle>
-              <CardDescription>Run high-frequency manager workflows</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-2 sm:grid-cols-2">
-              <Button type="button" variant="secondary" className="justify-start">+ New Task</Button>
-              <Button type="button" variant="secondary" className="justify-start">+ Work Order</Button>
-              <Button type="button" variant="secondary" className="justify-start">View Schedule</Button>
-              <Button type="button" variant="secondary" className="justify-start">Messages</Button>
-            </CardContent>
-          </Card>
+          <QuickActions />
 
           <Card>
             <CardHeader>

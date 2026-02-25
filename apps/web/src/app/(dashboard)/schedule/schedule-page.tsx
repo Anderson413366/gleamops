@@ -34,8 +34,8 @@ interface TicketWithRelations extends WorkTicket {
 }
 
 const TABS = [
-  { key: 'recurring', label: 'Recurring', icon: <ClipboardList className="h-4 w-4" /> },
-  { key: 'work-orders', label: 'Work Orders', icon: <Briefcase className="h-4 w-4" /> },
+  { key: 'recurring', label: 'Employee Schedule', icon: <ClipboardList className="h-4 w-4" /> },
+  { key: 'work-orders', label: 'Work Schedule', icon: <Briefcase className="h-4 w-4" /> },
   { key: 'calendar', label: 'Calendar', icon: <Calendar className="h-4 w-4" /> },
   { key: 'forms', label: 'Forms', icon: <FileText className="h-4 w-4" /> },
   { key: 'checklists', label: 'Checklists', icon: <ClipboardList className="h-4 w-4" /> },
@@ -99,7 +99,14 @@ export default function SchedulePageClient() {
   const [tab, setTab] = useSyncedTab({
     tabKeys: TABS.map((entry) => entry.key),
     defaultTab: 'recurring',
-    aliases: { planning: 'recurring', plan: 'recurring', jobs: 'work-orders' },
+    aliases: {
+      planning: 'recurring',
+      plan: 'recurring',
+      'employee-schedule': 'recurring',
+      jobs: 'work-orders',
+      'work-schedule': 'work-orders',
+      'work-orders': 'work-orders',
+    },
   });
   const [search, setSearch] = useState('');
   const [recurringView, setRecurringView] = useState<'list' | 'card' | 'grid'>('list');
@@ -338,7 +345,7 @@ export default function SchedulePageClient() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Schedule</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Recurring assignments, work orders, and calendar coordination.
+            Employee schedules, work schedules, and calendar coordination.
           </p>
         </div>
         {tab === 'recurring' && canCreateRecurringShift ? (
@@ -385,7 +392,7 @@ export default function SchedulePageClient() {
             <p className={`text-lg font-semibold sm:text-xl leading-tight ${kpis.coverageGaps > 0 ? 'text-destructive' : ''}`}>
               {kpis.coverageGaps}
             </p>
-            <p className="text-[11px] text-muted-foreground">Open Recurring</p>
+            <p className="text-[11px] text-muted-foreground">Open Employee Schedule</p>
           </CardContent>
         </Card>
         <Card
@@ -437,7 +444,7 @@ export default function SchedulePageClient() {
             onChange={setSearch}
             placeholder={
               tab === 'recurring'
-                ? 'Search recurring assignments, roles, and sites...'
+                ? 'Search employee schedule assignments, roles, and sites...'
                 : tab === 'work-orders'
                   ? 'Search work orders, services, and sites...'
                   : tab === 'checklists'

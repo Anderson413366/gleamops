@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Clock, Crosshair, LogIn, LogOut, ShieldCheck } from 'lucide-react';
@@ -47,6 +47,7 @@ interface OpenEntry {
   id: string;
   start_at: string;
   site_id: string | null;
+  clock_in_location: Record<string, unknown> | null;
 }
 
 interface VerificationLocation {
@@ -59,6 +60,19 @@ interface VerificationLocation {
 }
 
 type VerificationEventType = 'CHECK_IN' | 'CHECK_OUT';
+type ShiftTrackingStatus = 'idle' | 'active' | 'error';
+
+interface TrackingPoint {
+  lat: number;
+  lng: number;
+  accuracy_meters: number;
+  captured_at: string;
+  is_within_geofence: boolean | null;
+  distance_to_geofence_meters: number | null;
+}
+
+const SHIFT_TRACKING_INTERVAL_MS = 90_000;
+const MAX_TRACKING_POINTS = 40;
 
 function toRad(value: number): number {
   return (value * Math.PI) / 180;
@@ -84,6 +98,47 @@ function formatDurationFromStart(startAt: string): string {
   return `${hours}h ${minutes}m`;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function parseTrackingTrail(value: unknown): TrackingPoint[] {
+  if (!isRecord(value)) return [];
+  const continuous = value.continuous_tracking;
+  if (!isRecord(continuous)) return [];
+  const trail = continuous.trail;
+  if (!Array.isArray(trail)) return [];
+
+  return trail
+    .filter((point): point is Record<string, unknown> => isRecord(point))
+    .map((point) => ({
+      lat: typeof point.lat === 'number' ? point.lat : 0,
+      lng: typeof point.lng === 'number' ? point.lng : 0,
+      accuracy_meters: typeof point.accuracy_meters === 'number' ? point.accuracy_meters : 0,
+      captured_at: typeof point.captured_at === 'string' ? point.captured_at : new Date().toISOString(),
+      is_within_geofence:
+        typeof point.is_within_geofence === 'boolean'
+          ? point.is_within_geofence
+          : null,
+      distance_to_geofence_meters:
+        typeof point.distance_to_geofence_meters === 'number'
+          ? point.distance_to_geofence_meters
+          : null,
+    }))
+    .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lng));
+}
+
+function toTrackingPoint(location: VerificationLocation, capturedAt: string): TrackingPoint {
+  return {
+    lat: location.lat,
+    lng: location.lng,
+    accuracy_meters: location.accuracy,
+    captured_at: capturedAt,
+    is_within_geofence: location.isWithinGeofence,
+    distance_to_geofence_meters: location.distanceToGeofenceMeters,
+  };
+}
+
 export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTableProps) {
   const [rows, setRows] = useState<EntryWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
@@ -102,6 +157,15 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
   const [locationError, setLocationError] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
   const [submittingVerification, setSubmittingVerification] = useState(false);
+  const [shiftTrackingStatus, setShiftTrackingStatus] = useState<ShiftTrackingStatus>('idle');
+  const [shiftTrackingError, setShiftTrackingError] = useState<string | null>(null);
+  const [shiftTrackingSampleCount, setShiftTrackingSampleCount] = useState(0);
+  const [shiftTrackingLastCapturedAt, setShiftTrackingLastCapturedAt] = useState<string | null>(null);
+
+  const trackingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const trackingInFlightRef = useRef(false);
+  const trackingTrailRef = useRef<TrackingPoint[]>([]);
+  const trackingStoppedRef = useRef(false);
 
   const clearSelfiePreview = useCallback(() => {
     setVerificationSelfiePreview((prev) => {
@@ -163,7 +227,7 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
       staffContext
         ? supabase
           .from('time_entries')
-          .select('id, start_at, site_id')
+          .select('id, start_at, site_id, clock_in_location')
           .eq('staff_id', staffContext.id)
           .eq('status', 'OPEN')
           .is('archived_at', null)
@@ -210,6 +274,174 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
     () => sites.find((site) => site.id === verificationSiteId) ?? null,
     [sites, verificationSiteId]
   );
+
+  const selectedTrackingSite = useMemo(
+    () => sites.find((site) => site.id === openEntry?.site_id) ?? null,
+    [openEntry?.site_id, sites],
+  );
+
+  useEffect(() => {
+    if (!openEntry) {
+      trackingTrailRef.current = [];
+      setShiftTrackingStatus('idle');
+      setShiftTrackingError(null);
+      setShiftTrackingSampleCount(0);
+      setShiftTrackingLastCapturedAt(null);
+      return;
+    }
+
+    trackingStoppedRef.current = false;
+    const existingTrail = parseTrackingTrail(openEntry.clock_in_location);
+    trackingTrailRef.current = existingTrail;
+    setShiftTrackingSampleCount(existingTrail.length);
+    setShiftTrackingLastCapturedAt(existingTrail[existingTrail.length - 1]?.captured_at ?? null);
+    setShiftTrackingStatus('active');
+    setShiftTrackingError(null);
+  }, [openEntry]);
+
+  const captureTrackingLocation = useCallback(async (): Promise<VerificationLocation> => {
+    if (!navigator.geolocation) {
+      throw new Error('Geolocation is not available in this browser.');
+    }
+
+    const geoPosition = await new Promise<GeolocationPosition>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => resolve(position),
+        (error) => reject(new Error(error.message || 'Unable to capture shift GPS location.')),
+        {
+          enableHighAccuracy: true,
+          timeout: 12000,
+          maximumAge: 0,
+        },
+      );
+    });
+
+    let distanceToGeofenceMeters: number | null = null;
+    let isWithinGeofence: boolean | null = null;
+
+    if (
+      selectedTrackingSite
+      && selectedTrackingSite.geofence_center_lat != null
+      && selectedTrackingSite.geofence_center_lng != null
+      && selectedTrackingSite.geofence_radius_meters != null
+    ) {
+      distanceToGeofenceMeters = haversineMeters(
+        geoPosition.coords.latitude,
+        geoPosition.coords.longitude,
+        selectedTrackingSite.geofence_center_lat,
+        selectedTrackingSite.geofence_center_lng,
+      );
+      isWithinGeofence = distanceToGeofenceMeters <= selectedTrackingSite.geofence_radius_meters;
+    }
+
+    return {
+      lat: geoPosition.coords.latitude,
+      lng: geoPosition.coords.longitude,
+      accuracy: geoPosition.coords.accuracy,
+      capturedAt: new Date().toISOString(),
+      distanceToGeofenceMeters,
+      isWithinGeofence,
+    };
+  }, [selectedTrackingSite]);
+
+  const persistShiftTrackingPoint = useCallback(async (location: VerificationLocation, completeShift: boolean) => {
+    if (!openEntry) return;
+
+    const point = toTrackingPoint(location, location.capturedAt);
+    const priorClockInLocation = isRecord(openEntry.clock_in_location) ? openEntry.clock_in_location : {};
+    const priorTracking = isRecord(priorClockInLocation.continuous_tracking)
+      ? priorClockInLocation.continuous_tracking
+      : {};
+    const existingTrail = trackingTrailRef.current.length > 0
+      ? trackingTrailRef.current
+      : parseTrackingTrail(openEntry.clock_in_location);
+    const nextTrail = [...existingTrail, point].slice(-MAX_TRACKING_POINTS);
+
+    trackingTrailRef.current = nextTrail;
+
+    const updatedClockInLocation = {
+      ...priorClockInLocation,
+      check_in: priorClockInLocation.check_in ?? nextTrail[0] ?? point,
+      continuous_tracking: {
+        ...priorTracking,
+        enabled: true,
+        status: completeShift ? 'completed' : 'active',
+        started_at:
+          typeof priorTracking.started_at === 'string'
+            ? priorTracking.started_at
+            : openEntry.start_at,
+        last_captured_at: point.captured_at,
+        sample_count: nextTrail.length,
+        latest: point,
+        trail: nextTrail,
+        ...(completeShift ? { ended_at: point.captured_at } : {}),
+      },
+    };
+
+    const supabase = getSupabaseBrowserClient();
+    const updatePayload: Record<string, unknown> = {
+      clock_in_location: updatedClockInLocation,
+    };
+
+    if (completeShift) {
+      updatePayload.clock_out_location = point;
+      updatePayload.clock_out = point.captured_at;
+      updatePayload.clock_out_at = point.captured_at;
+    }
+
+    const { error } = await supabase
+      .from('time_entries')
+      .update(updatePayload)
+      .eq('id', openEntry.id);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    setShiftTrackingStatus('active');
+    setShiftTrackingError(null);
+    setShiftTrackingSampleCount(nextTrail.length);
+    setShiftTrackingLastCapturedAt(point.captured_at);
+  }, [openEntry]);
+
+  const captureAndPersistShiftTracking = useCallback(async (completeShift = false) => {
+    if (!openEntry) return;
+    if (trackingStoppedRef.current) return;
+    if (trackingInFlightRef.current) return;
+
+    trackingInFlightRef.current = true;
+    try {
+      const location = await captureTrackingLocation();
+      await persistShiftTrackingPoint(location, completeShift);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to capture shift GPS.';
+      setShiftTrackingStatus('error');
+      setShiftTrackingError(message);
+    } finally {
+      trackingInFlightRef.current = false;
+    }
+  }, [captureTrackingLocation, openEntry, persistShiftTrackingPoint]);
+
+  useEffect(() => {
+    if (trackingIntervalRef.current) {
+      clearInterval(trackingIntervalRef.current);
+      trackingIntervalRef.current = null;
+    }
+
+    if (!openEntry) return;
+
+    void captureAndPersistShiftTracking();
+    trackingIntervalRef.current = setInterval(() => {
+      void captureAndPersistShiftTracking();
+    }, SHIFT_TRACKING_INTERVAL_MS);
+
+    return () => {
+      if (trackingIntervalRef.current) {
+        clearInterval(trackingIntervalRef.current);
+        trackingIntervalRef.current = null;
+      }
+    };
+  }, [captureAndPersistShiftTracking, openEntry]);
 
   const filtered = useMemo(() => {
     if (!search) return rows;
@@ -408,6 +640,8 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
       }
 
       if (verificationType === 'CHECK_IN') {
+        const initialTrackingPoint = toTrackingPoint(verificationLocation, now);
+
         const { error: entryInsertError } = await supabase
           .from('time_entries')
           .insert({
@@ -418,16 +652,52 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
             start_at: now,
             break_minutes: 0,
             status: 'OPEN',
+            clock_in: now,
+            clock_in_at: now,
+            clock_in_location: {
+              check_in: initialTrackingPoint,
+              continuous_tracking: {
+                enabled: true,
+                status: 'active',
+                started_at: now,
+                last_captured_at: now,
+                sample_count: 1,
+                latest: initialTrackingPoint,
+                trail: [initialTrackingPoint],
+              },
+            },
           });
 
         if (entryInsertError) {
           throw new Error(entryInsertError.message);
         }
+        trackingTrailRef.current = [initialTrackingPoint];
+        setShiftTrackingSampleCount(1);
+        setShiftTrackingLastCapturedAt(now);
+        setShiftTrackingStatus('active');
+        setShiftTrackingError(null);
       } else if (openEntry) {
+        trackingStoppedRef.current = true;
+        if (trackingIntervalRef.current) {
+          clearInterval(trackingIntervalRef.current);
+          trackingIntervalRef.current = null;
+        }
+
         const durationMinutes = Math.max(
           0,
           Math.round((new Date(now).getTime() - new Date(openEntry.start_at).getTime()) / 60000)
         );
+
+        const checkoutTrackingPoint = toTrackingPoint(verificationLocation, now);
+        const priorClockInLocation = isRecord(openEntry.clock_in_location) ? openEntry.clock_in_location : {};
+        const priorTracking = isRecord(priorClockInLocation.continuous_tracking)
+          ? priorClockInLocation.continuous_tracking
+          : {};
+        const existingTrail = trackingTrailRef.current.length > 0
+          ? trackingTrailRef.current
+          : parseTrackingTrail(openEntry.clock_in_location);
+        const nextTrail = [...existingTrail, checkoutTrackingPoint].slice(-MAX_TRACKING_POINTS);
+        trackingTrailRef.current = nextTrail;
 
         const { error: entryUpdateError } = await supabase
           .from('time_entries')
@@ -436,12 +706,35 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
             end_at: now,
             duration_minutes: durationMinutes,
             status: 'CLOSED',
+            clock_out: now,
+            clock_out_at: now,
+            clock_out_location: checkoutTrackingPoint,
+            clock_in_location: {
+              ...priorClockInLocation,
+              check_in: priorClockInLocation.check_in ?? nextTrail[0] ?? checkoutTrackingPoint,
+              continuous_tracking: {
+                ...priorTracking,
+                enabled: true,
+                status: 'completed',
+                started_at:
+                  typeof priorTracking.started_at === 'string'
+                    ? priorTracking.started_at
+                    : openEntry.start_at,
+                ended_at: now,
+                last_captured_at: now,
+                sample_count: nextTrail.length,
+                latest: checkoutTrackingPoint,
+                trail: nextTrail,
+              },
+            },
           })
           .eq('id', openEntry.id);
 
         if (entryUpdateError) {
           throw new Error(entryUpdateError.message);
         }
+        setShiftTrackingStatus('idle');
+        setShiftTrackingError(null);
       }
 
       toast.success(verificationType === 'CHECK_IN' ? 'Clock in recorded.' : 'Clock out recorded.');
@@ -453,6 +746,15 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
       if (uploadedSelfiePath) {
         const supabase = getSupabaseBrowserClient();
         await supabase.storage.from('time-verification-selfies').remove([uploadedSelfiePath]);
+      }
+      if (verificationType === 'CHECK_OUT' && openEntry) {
+        trackingStoppedRef.current = false;
+        if (!trackingIntervalRef.current) {
+          trackingIntervalRef.current = setInterval(() => {
+            void captureAndPersistShiftTracking();
+          }, SHIFT_TRACKING_INTERVAL_MS);
+        }
+        void captureAndPersistShiftTracking();
       }
       const message = error instanceof Error ? error.message : 'Unable to submit verification.';
       toast.error(message);
@@ -484,6 +786,19 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
             {isClockedIn && openEntry
               ? `Currently clocked in for ${formatDurationFromStart(openEntry.start_at)}.`
               : 'Currently off the clock.'}
+          </p>
+          <p className={`mt-1 text-xs ${
+            shiftTrackingStatus === 'error'
+              ? 'text-destructive'
+              : 'text-muted-foreground'
+          }`}>
+            {isClockedIn
+              ? (
+                shiftTrackingStatus === 'error'
+                  ? `GPS tracking paused: ${shiftTrackingError ?? 'Unable to capture shift location.'}`
+                  : `GPS tracking active${shiftTrackingSampleCount > 0 ? ` · ${shiftTrackingSampleCount} sample${shiftTrackingSampleCount === 1 ? '' : 's'}` : ''}${shiftTrackingLastCapturedAt ? ` · last ping ${new Date(shiftTrackingLastCapturedAt).toLocaleTimeString()}` : ''}`
+              )
+              : 'Continuous GPS tracking starts after clock in.'}
           </p>
 
           <Button

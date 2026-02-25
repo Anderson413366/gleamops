@@ -654,7 +654,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className={`space-y-6 animate-fade-in-up ${focusMode ? 'max-w-5xl mx-auto' : ''}`}>
+    <div className="space-y-6 animate-fade-in-up">
       {/* Welcome Header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>

@@ -50,7 +50,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Header />
           </div>
         )}
-        <main id="main-content" tabIndex={-1} className="app-shell-main mx-auto w-full max-w-[1680px] px-4 py-6 sm:px-6 lg:px-8">
+        <main id="main-content" tabIndex={-1} className="app-shell-main w-full max-w-none px-4 py-6 sm:px-6 lg:px-8">
           <ErrorBoundary>{children}</ErrorBoundary>
         </main>
       </div>

@@ -50,7 +50,7 @@ import { ConsumablesStep } from './steps/consumables-step';
 import { ScopeBuilderStep } from './steps/scope-builder-step';
 import { ScheduleStep } from './steps/schedule-step';
 import type { ServiceWindow } from './steps/schedule-step';
-import { LiveEstimatePanel } from './steps/live-estimate-panel';
+import { LiveEstimatePanel } from '../calculator/live-estimate-panel';
 
 // ---------------------------------------------------------------------------
 // Form state types

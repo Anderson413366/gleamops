@@ -60,17 +60,24 @@ function toStringArray(value: unknown): string[] {
     .filter((entry) => entry.length > 0);
 }
 
-function sanitizePhotoUrls(value: unknown): string[] {
+function sanitizePhotoUrls(
+  value: unknown,
+  options?: { countId?: string; itemId?: string },
+): string[] {
   const urls = toStringArray(value);
   const base = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? '').replace(/\/$/, '');
   const allowedPrefix = base ? `${base}/storage/v1/object/public/documents/` : null;
   const documentsPathPrefix = '/storage/v1/object/public/documents/';
+  const itemPathSegment = options?.countId && options?.itemId
+    ? `/inventory-count-photos/${options.countId}/${options.itemId}/`
+    : '/inventory-count-photos/';
 
   return urls.filter((url) => {
     try {
       const parsed = new URL(url);
       if (parsed.protocol !== 'https:') return false;
       if (!parsed.pathname.startsWith(documentsPathPrefix)) return false;
+      if (!parsed.pathname.includes(itemPathSegment)) return false;
 
       if (allowedPrefix) {
         return url.startsWith(allowedPrefix);
@@ -172,7 +179,10 @@ export async function getPublicCount(token: string): Promise<GetCountResult> {
       expectedQty: row.expected_qty,
       actualQty: row.actual_qty,
       notes: row.notes,
-      photoUrls: toStringArray(row.photo_urls),
+      photoUrls: sanitizePhotoUrls(row.photo_urls, {
+        countId: String(countRow.id),
+        itemId: row.id,
+      }),
       supply: supply ?? null,
       previousCountQty: previous?.qty ?? null,
       previousCountDate: previous?.countDate ?? null,
@@ -230,7 +240,10 @@ export async function savePublicCount(token: string, payload: SavePayload): Prom
       countRow.id,
       toNullableNumber(item.quantity),
       item.notes ?? null,
-      sanitizePhotoUrls(item.photoUrls),
+      sanitizePhotoUrls(item.photoUrls, {
+        countId: countRow.id,
+        itemId: item.id,
+      }),
     ));
 
   if (updates.length > 0) {

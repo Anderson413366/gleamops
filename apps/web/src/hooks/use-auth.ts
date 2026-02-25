@@ -16,6 +16,50 @@ interface AuthState {
   loading: boolean;
 }
 
+function extractRoleCandidate(value: unknown): string | null {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      if (typeof item === 'string' && item.trim().length > 0) {
+        return item.trim();
+      }
+    }
+  }
+
+  return null;
+}
+
+function resolveRawRole(
+  claims: Record<string, unknown>,
+  user: {
+    app_metadata?: Record<string, unknown>;
+  },
+): string | null {
+  // Only trust JWT claims and app_metadata (server-set).
+  // Never read from user_metadata — it is user-editable in Supabase.
+  const candidates: unknown[] = [
+    claims.role,
+    claims.role_code,
+    claims.user_role,
+    claims.roles,
+    claims.user_roles,
+    user.app_metadata?.role,
+    user.app_metadata?.role_code,
+    user.app_metadata?.roles,
+  ];
+
+  for (const candidate of candidates) {
+    const resolved = extractRoleCandidate(candidate);
+    if (resolved) return resolved;
+  }
+
+  return null;
+}
+
 export function useAuth() {
   const router = useRouter();
   const forcedTenantId = process.env.NEXT_PUBLIC_SINGLE_TENANT_ID ?? null;
@@ -39,11 +83,12 @@ export function useAuth() {
           : {};
 
         const resolvedTenantId = (claims.tenant_id as string | undefined) ?? null;
-        const rawRole =
-          (claims.role as string | undefined) ??
-          (claims.role_code as string | undefined) ??
-          (Array.isArray(claims.roles) ? (claims.roles[0] as string | undefined) : undefined) ??
-          null;
+        const rawRole = resolveRawRole(
+          claims as Record<string, unknown>,
+          {
+            app_metadata: session.user.app_metadata as Record<string, unknown> | undefined,
+          },
+        );
 
         if (forcedTenantId && resolvedTenantId && resolvedTenantId !== forcedTenantId) {
           await supabase.auth.signOut();
@@ -77,11 +122,12 @@ export function useAuth() {
             : {};
 
           const resolvedTenantId = (claims.tenant_id as string | undefined) ?? null;
-          const rawRole =
-            (claims.role as string | undefined) ??
-            (claims.role_code as string | undefined) ??
-            (Array.isArray(claims.roles) ? (claims.roles[0] as string | undefined) : undefined) ??
-            null;
+          const rawRole = resolveRawRole(
+            claims as Record<string, unknown>,
+            {
+              app_metadata: session.user.app_metadata as Record<string, unknown> | undefined,
+            },
+          );
 
           if (forcedTenantId && resolvedTenantId && resolvedTenantId !== forcedTenantId) {
             await supabase.auth.signOut();

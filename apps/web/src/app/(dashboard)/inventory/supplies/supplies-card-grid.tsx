@@ -1,10 +1,9 @@
 'use client';
 
-/* eslint-disable @next/next/no-img-element */
-
 import { Package } from 'lucide-react';
 import { Badge } from '@gleamops/ui';
 import type { SupplyCatalog } from '@gleamops/shared';
+import { EntityAvatar } from '@/components/directory/entity-avatar';
 
 interface SuppliesCardGridProps {
   rows: SupplyCatalog[];
@@ -20,17 +19,13 @@ export function SuppliesCardGrid({ rows, onSelect }: SuppliesCardGridProps) {
           onClick={() => onSelect(item)}
           className="rounded-xl border border-border bg-card shadow-sm cursor-pointer transition-all duration-150 hover:border-module-accent/40 hover:shadow-md flex flex-col items-center p-6 text-center"
         >
-          {item.image_url ? (
-            <img
-              src={item.image_url}
-              alt={item.name}
-              className="h-20 w-20 rounded-full object-cover"
-            />
-          ) : (
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-module-accent/15 text-2xl font-bold text-module-accent">
-              <Package className="h-8 w-8" />
-            </div>
-          )}
+          <EntityAvatar
+            name={item.name}
+            seed={item.code}
+            imageUrl={item.image_url}
+            fallbackIcon={<Package className="h-8 w-8 text-white" />}
+            size="xl"
+          />
           <p className="mt-3 text-sm font-semibold text-foreground leading-tight">{item.name}</p>
           <p className="mt-1 text-xs text-muted-foreground">{item.code}</p>
           <div className="mt-3 flex flex-wrap justify-center gap-1.5">

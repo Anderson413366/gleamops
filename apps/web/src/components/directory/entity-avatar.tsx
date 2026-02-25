@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { cn } from '@gleamops/ui';
 
 interface EntityAvatarProps {
@@ -10,13 +10,14 @@ interface EntityAvatarProps {
   seed?: string;
   imageUrl?: string | null;
   fallbackIcon?: ReactNode;
-  size?: 'sm' | 'md';
+  size?: 'sm' | 'md' | 'xl';
   className?: string;
 }
 
 const SIZE_CLASS: Record<NonNullable<EntityAvatarProps['size']>, string> = {
   sm: 'h-7 w-7 text-[11px]',
   md: 'h-9 w-9 text-sm',
+  xl: 'h-20 w-20 text-2xl',
 };
 
 const INITIALS_BG_COLORS = [
@@ -58,15 +59,22 @@ export function EntityAvatar({
   size = 'sm',
   className,
 }: EntityAvatarProps) {
+  const [imageFailed, setImageFailed] = useState(false);
   const avatarSizeClass = SIZE_CLASS[size];
   const colorSeed = seed ?? name;
   const bgColor = INITIALS_BG_COLORS[hashIndex(colorSeed, INITIALS_BG_COLORS.length)];
 
-  if (imageUrl) {
+  useEffect(() => {
+    setImageFailed(false);
+  }, [imageUrl]);
+
+  if (imageUrl && !imageFailed) {
     return (
       <img
         src={imageUrl}
         alt={name}
+        loading="lazy"
+        onError={() => setImageFailed(true)}
         className={cn('shrink-0 rounded-full border border-border object-cover', avatarSizeClass, className)}
       />
     );

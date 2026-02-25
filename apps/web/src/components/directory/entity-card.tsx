@@ -2,6 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
+import { useEffect, useState } from 'react';
 import { cn } from '@gleamops/ui';
 
 type CardTone = 'green' | 'gray' | 'yellow' | 'red' | 'blue';
@@ -91,8 +92,13 @@ export function EntityCard({
   onClick,
   imageUrl,
 }: EntityCardProps) {
+  const [imageFailed, setImageFailed] = useState(false);
   const initialsColor = INITIALS_BG_COLORS[hashIndex(initialsSeed, INITIALS_BG_COLORS.length)];
   const tone = STATUS_TONE_CLASSES[statusTone];
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [imageUrl]);
 
   return (
     <button
@@ -101,10 +107,12 @@ export function EntityCard({
       className="group flex w-full cursor-pointer flex-col rounded-xl border border-border bg-card p-5 text-left shadow-sm transition-all duration-200 hover:scale-[1.02] hover:border-module-accent/40 hover:shadow-md"
     >
       <div className="flex items-start justify-between gap-3">
-        {imageUrl ? (
+        {imageUrl && !imageFailed ? (
           <img
             src={imageUrl}
             alt={name}
+            loading="lazy"
+            onError={() => setImageFailed(true)}
             className="h-20 w-20 shrink-0 rounded-full border border-border object-cover"
           />
         ) : (

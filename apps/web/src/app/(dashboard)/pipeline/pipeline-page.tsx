@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Users, Target, FileText, Send, Plus, Zap, BarChart3, Calculator } from 'lucide-react';
-import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
+import { ChipTabs, SearchInput, Button } from '@gleamops/ui';
 import type {
   SalesProspect,
   SalesOpportunity,
@@ -18,6 +18,7 @@ import { ExpressBid } from './bids/express-bid';
 import ProposalsTable from './proposals/proposals-table';
 
 import PipelineAnalytics from './analytics/pipeline-analytics';
+import { SalesKpiBar } from './sales-kpi-bar';
 import { ProspectForm } from '@/components/forms/prospect-form';
 import { OpportunityForm } from '@/components/forms/opportunity-form';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
@@ -239,15 +240,7 @@ export default function PipelinePageClient() {
         </div>
       </div>
 
-      {/* Pipeline Overview Stats */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Pipeline Value</p><p className="text-lg font-bold sm:text-xl leading-tight text-foreground">{pipelineStats.pipelineValue}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Bids</p><p className="text-lg font-bold sm:text-xl leading-tight text-foreground">{pipelineStats.activeBids}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Stale Deals (14d)</p><p className="text-lg font-bold sm:text-xl leading-tight text-warning">{pipelineStats.staleDeals}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Email Issues</p><p className="text-lg font-bold sm:text-xl leading-tight text-destructive">{pipelineStats.emailProblems}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Proposals Sent (30d)</p><p className="text-lg font-bold sm:text-xl leading-tight text-foreground">{pipelineStats.proposalsSent30d}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Win Rate</p><p className="text-lg font-bold sm:text-xl leading-tight text-success">{pipelineStats.winRate}</p></CardContent></Card>
-      </div>
+      <SalesKpiBar stats={pipelineStats} />
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0 lg:flex-1">

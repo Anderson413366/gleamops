@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from 'react';
 import {
-  AlertTriangle,
   BriefcaseBusiness,
   CalendarDays,
   ClipboardList,
@@ -20,6 +19,7 @@ import {
   CardTitle,
   ChipTabs,
 } from '@gleamops/ui';
+import { CoverageAlerts } from './command-center/coverage-alerts';
 import { TodaysTasks } from './command-center/todays-tasks';
 
 type CommandCenterFilter = 'all' | 'regular-shifts' | 'projects' | 'requests';
@@ -117,21 +117,7 @@ export default function CommandCenter() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <TodaysTasks date={selectedDate} filter={activeFilter} />
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <AlertTriangle className="h-4 w-4 text-amber-500" aria-hidden="true" />
-              Alerts & Coverage
-            </CardTitle>
-            <CardDescription>Call-outs, absences, and open shift coverage</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <div className="rounded-lg border border-border/70 bg-muted/40 px-3 py-2">Open shifts needing coverage: 4</div>
-            <div className="rounded-lg border border-border/70 bg-muted/40 px-3 py-2">Call-outs in last 24 hours: 2</div>
-            <div className="rounded-lg border border-border/70 bg-muted/40 px-3 py-2">Medical leave cases active: 1</div>
-          </CardContent>
-        </Card>
+        <CoverageAlerts filter={activeFilter} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">

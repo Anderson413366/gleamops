@@ -46,13 +46,25 @@ function toStringArray(value: unknown): string[] {
 
 function sanitizePhotoUrls(value: unknown): string[] {
   const urls = toStringArray(value);
-  const base = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
-  const allowedPrefix = base
-    ? `${base.replace(/\/$/, '')}/storage/v1/object/public/documents/`
-    : '';
+  const base = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? '').replace(/\/$/, '');
+  const allowedPrefix = base ? `${base}/storage/v1/object/public/documents/` : null;
+  const documentsPathPrefix = '/storage/v1/object/public/documents/';
 
-  if (!allowedPrefix) return [];
-  return urls.filter((url) => url.startsWith(allowedPrefix));
+  return urls.filter((url) => {
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol !== 'https:') return false;
+      if (!parsed.pathname.startsWith(documentsPathPrefix)) return false;
+
+      if (allowedPrefix) {
+        return url.startsWith(allowedPrefix);
+      }
+
+      return parsed.hostname.endsWith('.supabase.co');
+    } catch {
+      return false;
+    }
+  });
 }
 
 export function nextDueDate(fromDate: string, frequency: string | null): string {

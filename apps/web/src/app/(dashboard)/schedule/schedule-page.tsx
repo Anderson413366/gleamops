@@ -7,7 +7,7 @@ import type { WorkTicket } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
 
-import WeekCalendar from '../operations/calendar/week-calendar';
+import WeekCalendar from './calendar/week-calendar';
 import PlanningBoard from './plan/planning-board';
 import { ScheduleGrid } from './recurring/schedule-grid';
 import type { RecurringScheduleRow } from './recurring/schedule-list';

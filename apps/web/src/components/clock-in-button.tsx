@@ -2,11 +2,19 @@
 
 import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Crosshair, LogIn, LogOut } from 'lucide-react';
+import { Crosshair, LogIn, LogOut, PauseCircle, PlayCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button, Input, Select, SlideOver, Textarea } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { resolveCurrentStaff } from '@/lib/staff/resolve-current-staff';
+import {
+  diffMinutes,
+  EMPTY_BREAK_SUMMARY,
+  formatTimeEventNotes,
+  summarizeBreaks,
+  type BreakEventRow,
+  type BreakSummary,
+} from '@/lib/timekeeping/breaks';
 import { useCamera } from '@/hooks/use-camera';
 import { useGeolocation } from '@/hooks/use-geolocation';
 import { GpsLocationBadge } from './gps-location-badge';
@@ -35,9 +43,19 @@ interface OpenEntry {
   id: string;
   start_at: string;
   site_id: string | null;
+  break_minutes: number;
 }
 
 type VerificationType = 'CHECK_IN' | 'CHECK_OUT';
+
+function formatMinutes(totalMinutes: number): string {
+  const minutes = Math.max(0, Math.round(totalMinutes));
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  if (remainder === 0) return `${hours}h`;
+  return `${hours}h ${remainder}m`;
+}
 
 export function ClockInButton({ onStatusChange }: ClockInButtonProps) {
   const [loading, setLoading] = useState(true);
@@ -46,6 +64,10 @@ export function ClockInButton({ onStatusChange }: ClockInButtonProps) {
   const [staff, setStaff] = useState<StaffContext | null>(null);
   const [sites, setSites] = useState<SiteOption[]>([]);
   const [openEntry, setOpenEntry] = useState<OpenEntry | null>(null);
+  const [breakSummary, setBreakSummary] = useState<BreakSummary>(EMPTY_BREAK_SUMMARY);
+  const [breakEvents, setBreakEvents] = useState<BreakEventRow[]>([]);
+  const [breakSubmitting, setBreakSubmitting] = useState(false);
+  const [breakNow, setBreakNow] = useState(() => new Date().toISOString());
   const [siteId, setSiteId] = useState('');
   const [notes, setNotes] = useState('');
 
@@ -58,6 +80,10 @@ export function ClockInButton({ onStatusChange }: ClockInButtonProps) {
   const selectedSite = useMemo(
     () => sites.find((site) => site.id === siteId) ?? null,
     [siteId, sites],
+  );
+  const activeSite = useMemo(
+    () => sites.find((site) => site.id === openEntry?.site_id) ?? selectedSite ?? null,
+    [openEntry?.site_id, selectedSite, sites],
   );
 
   const loadContext = useCallback(async () => {
@@ -97,7 +123,7 @@ export function ClockInButton({ onStatusChange }: ClockInButtonProps) {
           .order('name', { ascending: true }),
         supabase
           .from('time_entries')
-          .select('id, start_at, site_id')
+          .select('id, start_at, site_id, break_minutes')
           .eq('staff_id', parsedStaff.id)
           .eq('status', 'OPEN')
           .is('archived_at', null)
@@ -107,7 +133,8 @@ export function ClockInButton({ onStatusChange }: ClockInButtonProps) {
       ]);
 
       setSites((sitesRes.data ?? []) as SiteOption[]);
-      setOpenEntry((openEntryRes.data as OpenEntry | null) ?? null);
+      const currentOpenEntry = (openEntryRes.data as OpenEntry | null) ?? null;
+      setOpenEntry(currentOpenEntry);
 
       if (openEntryRes.data?.site_id) {
         setSiteId(openEntryRes.data.site_id as string);
@@ -115,6 +142,36 @@ export function ClockInButton({ onStatusChange }: ClockInButtonProps) {
         setSiteId((sitesRes.data as SiteOption[])[0]?.id ?? '');
       } else {
         setSiteId('');
+      }
+
+      if (currentOpenEntry) {
+        const { data: breakRowsData, error: breakRowsError } = await supabase
+          .from('time_events')
+          .select('event_type, recorded_at')
+          .eq('staff_id', parsedStaff.id)
+          .in('event_type', ['BREAK_START', 'BREAK_END'])
+          .gte('recorded_at', currentOpenEntry.start_at)
+          .order('recorded_at', { ascending: true });
+
+        if (!breakRowsError) {
+          const parsedBreakRows = (breakRowsData ?? []) as BreakEventRow[];
+          const summary = summarizeBreaks(parsedBreakRows);
+          setBreakEvents(parsedBreakRows);
+          setBreakSummary(summary);
+          setBreakNow(new Date().toISOString());
+          if (currentOpenEntry.break_minutes !== summary.completedMinutes) {
+            await supabase
+              .from('time_entries')
+              .update({ break_minutes: summary.completedMinutes })
+              .eq('id', currentOpenEntry.id);
+          }
+        } else {
+          setBreakEvents([]);
+          setBreakSummary(EMPTY_BREAK_SUMMARY);
+        }
+      } else {
+        setBreakEvents([]);
+        setBreakSummary(EMPTY_BREAK_SUMMARY);
       }
     } finally {
       setLoading(false);
@@ -124,6 +181,24 @@ export function ClockInButton({ onStatusChange }: ClockInButtonProps) {
   useEffect(() => {
     void loadContext();
   }, [loadContext]);
+
+  useEffect(() => {
+    if (!breakSummary.onBreak) return;
+    const interval = setInterval(() => {
+      setBreakNow(new Date().toISOString());
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, [breakSummary.onBreak]);
+
+  const activeBreakMinutes = useMemo(() => {
+    if (!breakSummary.onBreak || !breakSummary.activeStartAt) return 0;
+    return diffMinutes(breakSummary.activeStartAt, breakNow);
+  }, [breakNow, breakSummary.activeStartAt, breakSummary.onBreak]);
+
+  const totalBreakMinutesLive = useMemo(
+    () => breakSummary.completedMinutes + activeBreakMinutes,
+    [activeBreakMinutes, breakSummary.completedMinutes],
+  );
 
   const openVerificationDrawer = useCallback(() => {
     const nextType: VerificationType = openEntry ? 'CHECK_OUT' : 'CHECK_IN';
@@ -199,7 +274,7 @@ export function ClockInButton({ onStatusChange }: ClockInButtonProps) {
 
     setSubmitting(true);
     let uploadedSelfiePath: string | null = null;
-    let createdEventId: string | null = null;
+    const createdEventIds: string[] = [];
 
     try {
       const fileExtension = camera.file.name.includes('.')
@@ -236,6 +311,40 @@ export function ClockInButton({ onStatusChange }: ClockInButtonProps) {
         },
       };
 
+      let checkoutBreakSummary = breakSummary;
+
+      if (verificationType === 'CHECK_OUT' && openEntry && checkoutBreakSummary.onBreak) {
+        const { data: autoBreakEndEvent, error: autoBreakEndError } = await supabase
+          .from('time_events')
+          .insert({
+            tenant_id: staff.tenant_id,
+            staff_id: staff.id,
+            site_id: targetSiteId,
+            event_type: 'BREAK_END',
+            recorded_at: now,
+            lat: geolocation.reading.lat,
+            lng: geolocation.reading.lng,
+            accuracy_meters: geolocation.reading.accuracy,
+            is_within_geofence: geolocation.reading.isWithinGeofence,
+            pin_used: false,
+            notes: formatTimeEventNotes({
+              source: 'STAFF_HOME',
+              action: 'AUTO_END_ON_CLOCK_OUT',
+            }),
+          })
+          .select('id')
+          .single();
+
+        if (autoBreakEndError || !autoBreakEndEvent) {
+          throw new Error(autoBreakEndError?.message ?? 'Unable to close active break before clock out.');
+        }
+        createdEventIds.push(autoBreakEndEvent.id);
+        const eventsWithAutoClose: BreakEventRow[] = [...breakEvents, { event_type: 'BREAK_END', recorded_at: now }];
+        checkoutBreakSummary = summarizeBreaks(eventsWithAutoClose, now);
+        setBreakEvents(eventsWithAutoClose);
+        setBreakSummary(checkoutBreakSummary);
+      }
+
       const { data: timeEvent, error: eventError } = await supabase
         .from('time_events')
         .insert({
@@ -249,7 +358,7 @@ export function ClockInButton({ onStatusChange }: ClockInButtonProps) {
           accuracy_meters: geolocation.reading.accuracy,
           is_within_geofence: geolocation.reading.isWithinGeofence,
           pin_used: false,
-          notes: notes.trim() || null,
+          notes: formatTimeEventNotes(notes),
         })
         .select('id')
         .single();
@@ -257,7 +366,7 @@ export function ClockInButton({ onStatusChange }: ClockInButtonProps) {
       if (eventError || !timeEvent) {
         throw new Error(eventError?.message ?? 'Unable to write time event.');
       }
-      createdEventId = timeEvent.id;
+      createdEventIds.push(timeEvent.id);
 
       if (verificationType === 'CHECK_IN') {
         const { error: insertError } = await supabase
@@ -281,16 +390,19 @@ export function ClockInButton({ onStatusChange }: ClockInButtonProps) {
           throw new Error(insertError.message);
         }
       } else if (openEntry) {
-        const durationMinutes = Math.max(
+        const shiftMinutes = Math.max(
           0,
           Math.round((new Date(now).getTime() - new Date(openEntry.start_at).getTime()) / 60_000),
         );
+        const totalBreakMinutesAtCheckout = checkoutBreakSummary.totalMinutes;
+        const durationMinutes = Math.max(0, shiftMinutes - totalBreakMinutesAtCheckout);
 
         const { error: updateError } = await supabase
           .from('time_entries')
           .update({
             check_out_event_id: timeEvent.id,
             end_at: now,
+            break_minutes: totalBreakMinutesAtCheckout,
             duration_minutes: durationMinutes,
             status: 'CLOSED',
             clock_out: now,
@@ -302,6 +414,8 @@ export function ClockInButton({ onStatusChange }: ClockInButtonProps) {
         if (updateError) {
           throw new Error(updateError.message);
         }
+        setBreakEvents([]);
+        setBreakSummary(EMPTY_BREAK_SUMMARY);
       }
 
       toast.success(verificationType === 'CHECK_IN' ? 'Clock in recorded.' : 'Clock out recorded.');
@@ -312,8 +426,8 @@ export function ClockInButton({ onStatusChange }: ClockInButtonProps) {
       if (uploadedSelfiePath) {
         await supabase.storage.from('time-verification-selfies').remove([uploadedSelfiePath]);
       }
-      if (createdEventId) {
-        await supabase.from('time_events').delete().eq('id', createdEventId);
+      if (createdEventIds.length) {
+        await supabase.from('time_events').delete().in('id', createdEventIds);
       }
       const message = error instanceof Error ? error.message : 'Unable to submit verification.';
       toast.error(message);
@@ -327,11 +441,111 @@ export function ClockInButton({ onStatusChange }: ClockInButtonProps) {
     loadContext,
     notes,
     onStatusChange,
+    breakEvents,
+    breakSummary,
     openEntry,
     siteId,
     staff,
     verificationType,
   ]);
+
+  const handleBreakAction = useCallback(async (action: 'START' | 'END') => {
+    if (!staff || !openEntry) {
+      toast.error('Clock in before recording breaks.');
+      return;
+    }
+
+    if (action === 'START' && breakSummary.onBreak) {
+      toast.error('A break is already active.');
+      return;
+    }
+
+    if (action === 'END' && !breakSummary.onBreak) {
+      toast.error('No active break to end.');
+      return;
+    }
+
+    setBreakSubmitting(true);
+    const supabase = getSupabaseBrowserClient();
+    const now = new Date().toISOString();
+
+    let location = null as {
+      lat: number;
+      lng: number;
+      accuracy: number;
+      isWithinGeofence: boolean | null;
+    } | null;
+
+    try {
+      const reading = await geolocation.capture({
+        geofence: activeSite
+          ? {
+            lat: activeSite.geofence_center_lat,
+            lng: activeSite.geofence_center_lng,
+            radiusMeters: activeSite.geofence_radius_meters,
+          }
+          : null,
+      });
+
+      location = {
+        lat: reading.lat,
+        lng: reading.lng,
+        accuracy: reading.accuracy,
+        isWithinGeofence: reading.isWithinGeofence,
+      };
+    } catch {
+      location = null;
+    }
+
+    try {
+      const eventType: BreakEventRow['event_type'] = action === 'START' ? 'BREAK_START' : 'BREAK_END';
+      const { error: breakEventError } = await supabase
+        .from('time_events')
+        .insert({
+          tenant_id: staff.tenant_id,
+          staff_id: staff.id,
+          site_id: openEntry.site_id,
+          event_type: eventType,
+          recorded_at: now,
+          lat: location?.lat ?? null,
+          lng: location?.lng ?? null,
+          accuracy_meters: location?.accuracy ?? null,
+          is_within_geofence: location?.isWithinGeofence ?? null,
+          pin_used: false,
+          notes: formatTimeEventNotes({
+            source: 'STAFF_HOME',
+            action,
+          }),
+        });
+
+      if (breakEventError) {
+        throw new Error(breakEventError.message);
+      }
+
+      const nextBreakEvents: BreakEventRow[] = [...breakEvents, { event_type: eventType, recorded_at: now }];
+      const nextSummary = summarizeBreaks(nextBreakEvents, now);
+      const { error: updateError } = await supabase
+        .from('time_entries')
+        .update({ break_minutes: nextSummary.completedMinutes })
+        .eq('id', openEntry.id);
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+
+      setBreakEvents(nextBreakEvents);
+      setBreakSummary(nextSummary);
+      setBreakNow(now);
+      toast.success(action === 'START' ? 'Break started.' : 'Break ended.');
+      await loadContext();
+      onStatusChange?.();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to record break event.';
+      toast.error(message);
+    } finally {
+      setBreakSubmitting(false);
+    }
+  }, [activeSite, breakEvents, breakSummary.onBreak, geolocation, loadContext, onStatusChange, openEntry, staff]);
 
   const siteOptions = useMemo(
     () => sites.map((site) => ({
@@ -345,7 +559,7 @@ export function ClockInButton({ onStatusChange }: ClockInButtonProps) {
     <>
       <Button
         onClick={openVerificationDrawer}
-        disabled={loading || !staff}
+        disabled={loading || !staff || breakSubmitting}
         className={[
           'h-16 w-full text-base font-semibold sm:text-lg',
           isClockedIn
@@ -366,6 +580,38 @@ export function ClockInButton({ onStatusChange }: ClockInButtonProps) {
               ? `Active shift started at ${new Date(openEntry?.start_at ?? '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
               : 'Ready to start your shift'}
       </p>
+
+      {isClockedIn ? (
+        <div className="mt-3 space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => void handleBreakAction('START')}
+              disabled={breakSummary.onBreak || breakSubmitting || submitting}
+            >
+              <PauseCircle className="mr-1.5 h-4 w-4" />
+              Start Break
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => void handleBreakAction('END')}
+              disabled={!breakSummary.onBreak || breakSubmitting || submitting}
+            >
+              <PlayCircle className="mr-1.5 h-4 w-4" />
+              End Break
+            </Button>
+          </div>
+          <p className="text-xs text-center text-muted-foreground">
+            {breakSummary.onBreak
+              ? `On break for ${formatMinutes(activeBreakMinutes)} · total break ${formatMinutes(totalBreakMinutesLive)}`
+              : `Total break time this shift: ${formatMinutes(totalBreakMinutesLive)}`}
+          </p>
+        </div>
+      ) : null}
 
       <SlideOver
         open={drawerOpen}

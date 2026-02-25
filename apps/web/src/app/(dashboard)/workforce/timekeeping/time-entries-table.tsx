@@ -3,10 +3,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Clock, Crosshair, LogIn, LogOut, ShieldCheck } from 'lucide-react';
+import { Clock, Crosshair, LogIn, LogOut, PauseCircle, PlayCircle, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { resolveCurrentStaff } from '@/lib/staff/resolve-current-staff';
+import {
+  diffMinutes,
+  EMPTY_BREAK_SUMMARY,
+  formatTimeEventNotes,
+  summarizeBreaks,
+  type BreakEventRow,
+  type BreakSummary,
+} from '@/lib/timekeeping/breaks';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
   EmptyState, Badge, Pagination, TableSkeleton, Button, ExportButton, SlideOver, Select,
@@ -48,6 +56,7 @@ interface OpenEntry {
   id: string;
   start_at: string;
   site_id: string | null;
+  break_minutes: number;
   clock_in_location: Record<string, unknown> | null;
 }
 
@@ -97,6 +106,15 @@ function formatDurationFromStart(startAt: string): string {
   const minutes = totalMinutes % 60;
   if (hours === 0) return `${minutes}m`;
   return `${hours}h ${minutes}m`;
+}
+
+function formatMinutes(totalMinutes: number): string {
+  const minutes = Math.max(0, Math.round(totalMinutes));
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  if (remainder === 0) return `${hours}h`;
+  return `${hours}h ${remainder}m`;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -162,6 +180,10 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
   const [shiftTrackingError, setShiftTrackingError] = useState<string | null>(null);
   const [shiftTrackingSampleCount, setShiftTrackingSampleCount] = useState(0);
   const [shiftTrackingLastCapturedAt, setShiftTrackingLastCapturedAt] = useState<string | null>(null);
+  const [breakSummary, setBreakSummary] = useState<BreakSummary>(EMPTY_BREAK_SUMMARY);
+  const [breakEventRows, setBreakEventRows] = useState<BreakEventRow[]>([]);
+  const [breakSubmitting, setBreakSubmitting] = useState(false);
+  const [breakNow, setBreakNow] = useState(() => new Date().toISOString());
 
   const trackingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const trackingInFlightRef = useRef(false);
@@ -214,7 +236,7 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
       staffContext
         ? supabase
           .from('time_entries')
-          .select('id, start_at, site_id, clock_in_location')
+          .select('id, start_at, site_id, break_minutes, clock_in_location')
           .eq('staff_id', staffContext.id)
           .eq('status', 'OPEN')
           .is('archived_at', null)
@@ -237,9 +259,47 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
     }
 
     if (openRes && !openRes.error && openRes.data) {
-      setOpenEntry(openRes.data as OpenEntry);
+      const currentOpenEntry = openRes.data as OpenEntry;
+      setOpenEntry(currentOpenEntry);
+
+      if (staffContext) {
+        const { data: breakRowsData, error: breakRowsError } = await supabase
+          .from('time_events')
+          .select('event_type, recorded_at')
+          .eq('staff_id', staffContext.id)
+          .in('event_type', ['BREAK_START', 'BREAK_END'])
+          .gte('recorded_at', currentOpenEntry.start_at)
+          .order('recorded_at', { ascending: true });
+
+        if (!breakRowsError) {
+          const parsedBreakRows = (breakRowsData ?? []) as BreakEventRow[];
+          const summary = summarizeBreaks(parsedBreakRows);
+          setBreakEventRows(parsedBreakRows);
+          setBreakSummary(summary);
+          setBreakNow(new Date().toISOString());
+
+          if (currentOpenEntry.break_minutes !== summary.completedMinutes) {
+            const { error: breakSyncError } = await supabase
+              .from('time_entries')
+              .update({ break_minutes: summary.completedMinutes })
+              .eq('id', currentOpenEntry.id);
+
+            if (!breakSyncError) {
+              setOpenEntry((previous) => (previous ? { ...previous, break_minutes: summary.completedMinutes } : previous));
+            }
+          }
+        } else {
+          setBreakEventRows([]);
+          setBreakSummary(EMPTY_BREAK_SUMMARY);
+        }
+      } else {
+        setBreakEventRows([]);
+        setBreakSummary(EMPTY_BREAK_SUMMARY);
+      }
     } else {
       setOpenEntry(null);
+      setBreakEventRows([]);
+      setBreakSummary(EMPTY_BREAK_SUMMARY);
     }
 
     setLoading(false);
@@ -274,6 +334,8 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
       setShiftTrackingError(null);
       setShiftTrackingSampleCount(0);
       setShiftTrackingLastCapturedAt(null);
+      setBreakEventRows([]);
+      setBreakSummary(EMPTY_BREAK_SUMMARY);
       return;
     }
 
@@ -285,6 +347,24 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
     setShiftTrackingStatus('active');
     setShiftTrackingError(null);
   }, [openEntry]);
+
+  useEffect(() => {
+    if (!breakSummary.onBreak) return;
+    const interval = setInterval(() => {
+      setBreakNow(new Date().toISOString());
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, [breakSummary.onBreak]);
+
+  const activeBreakMinutes = useMemo(() => {
+    if (!breakSummary.onBreak || !breakSummary.activeStartAt) return 0;
+    return diffMinutes(breakSummary.activeStartAt, breakNow);
+  }, [breakNow, breakSummary.activeStartAt, breakSummary.onBreak]);
+
+  const totalBreakMinutesLive = useMemo(
+    () => breakSummary.completedMinutes + activeBreakMinutes,
+    [activeBreakMinutes, breakSummary.completedMinutes],
+  );
 
   const captureTrackingLocation = useCallback(async (): Promise<VerificationLocation> => {
     if (!navigator.geolocation) {
@@ -510,6 +590,83 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
     );
   }, [selectedSite]);
 
+  const handleBreakAction = useCallback(async (action: 'START' | 'END') => {
+    if (!currentStaff || !openEntry) {
+      toast.error('Clock in before recording breaks.');
+      return;
+    }
+
+    if (action === 'START' && breakSummary.onBreak) {
+      toast.error('A break is already active.');
+      return;
+    }
+
+    if (action === 'END' && !breakSummary.onBreak) {
+      toast.error('No active break to end.');
+      return;
+    }
+
+    setBreakSubmitting(true);
+    const supabase = getSupabaseBrowserClient();
+    const now = new Date().toISOString();
+
+    let location: VerificationLocation | null = null;
+    try {
+      location = await captureTrackingLocation();
+    } catch {
+      location = null;
+    }
+
+    try {
+      const eventType: BreakEventRow['event_type'] = action === 'START' ? 'BREAK_START' : 'BREAK_END';
+
+      const { error: breakEventError } = await supabase
+        .from('time_events')
+        .insert({
+          tenant_id: currentStaff.tenant_id,
+          staff_id: currentStaff.id,
+          site_id: openEntry.site_id,
+          event_type: eventType,
+          recorded_at: now,
+          lat: location?.lat ?? null,
+          lng: location?.lng ?? null,
+          accuracy_meters: location?.accuracy ?? null,
+          is_within_geofence: location?.isWithinGeofence ?? null,
+          pin_used: false,
+          notes: formatTimeEventNotes({
+            source: 'TEAM_ATTENDANCE',
+            action,
+          }),
+        });
+
+      if (breakEventError) {
+        throw new Error(breakEventError.message);
+      }
+
+      const nextBreakEvents: BreakEventRow[] = [...breakEventRows, { event_type: eventType, recorded_at: now }];
+      const nextSummary = summarizeBreaks(nextBreakEvents, now);
+      const { error: updateError } = await supabase
+        .from('time_entries')
+        .update({ break_minutes: nextSummary.completedMinutes })
+        .eq('id', openEntry.id);
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+
+      setBreakEventRows(nextBreakEvents);
+      setBreakSummary(nextSummary);
+      setBreakNow(now);
+      setOpenEntry((previous) => (previous ? { ...previous, break_minutes: nextSummary.completedMinutes } : previous));
+      toast.success(action === 'START' ? 'Break started.' : 'Break ended.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to record break event.';
+      toast.error(message);
+    } finally {
+      setBreakSubmitting(false);
+    }
+  }, [breakEventRows, breakSummary.onBreak, captureTrackingLocation, currentStaff, openEntry]);
+
   const handleSelfieChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
 
@@ -560,11 +717,13 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
 
     setSubmittingVerification(true);
     let uploadedSelfiePath: string | null = null;
+    const createdEventIds: string[] = [];
 
     try {
       const supabase = getSupabaseBrowserClient();
       const now = new Date().toISOString();
       const siteId = verificationSiteId || openEntry?.site_id || null;
+      let checkoutBreakSummary = breakSummary;
 
       const selfieExt = verificationSelfie.name.includes('.')
         ? verificationSelfie.name.split('.').pop()?.toLowerCase() ?? 'jpg'
@@ -617,13 +776,46 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
           accuracy_meters: verificationLocation.accuracy,
           is_within_geofence: verificationLocation.isWithinGeofence,
           pin_used: false,
-          notes: verificationNotes,
+          notes: formatTimeEventNotes(verificationNotes),
         })
         .select('id')
         .single();
 
       if (eventError || !timeEvent) {
         throw new Error(eventError?.message ?? 'Unable to write time event.');
+      }
+      createdEventIds.push(timeEvent.id);
+
+      if (verificationType === 'CHECK_OUT' && openEntry && checkoutBreakSummary.onBreak) {
+        const { data: autoBreakEndEvent, error: autoBreakEndError } = await supabase
+          .from('time_events')
+          .insert({
+            tenant_id: currentStaff.tenant_id,
+            staff_id: currentStaff.id,
+            site_id: siteId,
+            event_type: 'BREAK_END',
+            recorded_at: now,
+            lat: verificationLocation.lat,
+            lng: verificationLocation.lng,
+            accuracy_meters: verificationLocation.accuracy,
+            is_within_geofence: verificationLocation.isWithinGeofence,
+            pin_used: false,
+            notes: formatTimeEventNotes({
+              source: 'TEAM_ATTENDANCE',
+              action: 'AUTO_END_ON_CLOCK_OUT',
+            }),
+          })
+          .select('id')
+          .single();
+
+        if (autoBreakEndError || !autoBreakEndEvent) {
+          throw new Error(autoBreakEndError?.message ?? 'Unable to close active break before clock out.');
+        }
+        createdEventIds.push(autoBreakEndEvent.id);
+        const eventsWithAutoClose: BreakEventRow[] = [...breakEventRows, { event_type: 'BREAK_END', recorded_at: now }];
+        checkoutBreakSummary = summarizeBreaks(eventsWithAutoClose, now);
+        setBreakEventRows(eventsWithAutoClose);
+        setBreakSummary(checkoutBreakSummary);
       }
 
       if (verificationType === 'CHECK_IN') {
@@ -663,6 +855,9 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
         setShiftTrackingLastCapturedAt(now);
         setShiftTrackingStatus('active');
         setShiftTrackingError(null);
+        setBreakEventRows([]);
+        setBreakSummary(EMPTY_BREAK_SUMMARY);
+        setBreakNow(now);
       } else if (openEntry) {
         trackingStoppedRef.current = true;
         if (trackingIntervalRef.current) {
@@ -670,10 +865,9 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
           trackingIntervalRef.current = null;
         }
 
-        const durationMinutes = Math.max(
-          0,
-          Math.round((new Date(now).getTime() - new Date(openEntry.start_at).getTime()) / 60000)
-        );
+        const shiftMinutes = Math.max(0, Math.round((new Date(now).getTime() - new Date(openEntry.start_at).getTime()) / 60000));
+        const totalBreakMinutesAtCheckout = checkoutBreakSummary.totalMinutes;
+        const durationMinutes = Math.max(0, shiftMinutes - totalBreakMinutesAtCheckout);
 
         const checkoutTrackingPoint = toTrackingPoint(verificationLocation, now);
         const priorClockInLocation = isRecord(openEntry.clock_in_location) ? openEntry.clock_in_location : {};
@@ -691,6 +885,7 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
           .update({
             check_out_event_id: timeEvent.id,
             end_at: now,
+            break_minutes: totalBreakMinutesAtCheckout,
             duration_minutes: durationMinutes,
             status: 'CLOSED',
             clock_out: now,
@@ -722,6 +917,8 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
         }
         setShiftTrackingStatus('idle');
         setShiftTrackingError(null);
+        setBreakEventRows([]);
+        setBreakSummary(EMPTY_BREAK_SUMMARY);
       }
 
       toast.success(verificationType === 'CHECK_IN' ? 'Clock in recorded.' : 'Clock out recorded.');
@@ -733,6 +930,10 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
       if (uploadedSelfiePath) {
         const supabase = getSupabaseBrowserClient();
         await supabase.storage.from('time-verification-selfies').remove([uploadedSelfiePath]);
+      }
+      if (createdEventIds.length > 0) {
+        const supabase = getSupabaseBrowserClient();
+        await supabase.from('time_events').delete().in('id', createdEventIds);
       }
       if (verificationType === 'CHECK_OUT' && openEntry) {
         trackingStoppedRef.current = false;
@@ -792,11 +993,43 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
             className="mt-4 h-16 w-full justify-center text-lg font-semibold sm:w-72"
             variant={isClockedIn ? 'secondary' : 'primary'}
             onClick={() => openVerification(isClockedIn ? 'CHECK_OUT' : 'CHECK_IN')}
-            disabled={!currentStaff || submittingVerification}
+            disabled={!currentStaff || submittingVerification || breakSubmitting}
           >
             {isClockedIn ? <LogOut className="mr-2 h-5 w-5" /> : <LogIn className="mr-2 h-5 w-5" />}
             {actionLabel}
           </Button>
+
+          {isClockedIn ? (
+            <div className="mt-3 space-y-2">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => void handleBreakAction('START')}
+                  disabled={breakSummary.onBreak || breakSubmitting || submittingVerification}
+                >
+                  <PauseCircle className="mr-1.5 h-4 w-4" />
+                  Start Break
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => void handleBreakAction('END')}
+                  disabled={!breakSummary.onBreak || breakSubmitting || submittingVerification}
+                >
+                  <PlayCircle className="mr-1.5 h-4 w-4" />
+                  End Break
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {breakSummary.onBreak
+                  ? `On break for ${formatMinutes(activeBreakMinutes)} · total break ${formatMinutes(totalBreakMinutesLive)}`
+                  : `Total break time this shift: ${formatMinutes(totalBreakMinutesLive)}`}
+              </p>
+            </div>
+          ) : null}
 
           <p className="mt-2 text-xs text-muted-foreground">
             Requires GPS capture and selfie verification before event submission.

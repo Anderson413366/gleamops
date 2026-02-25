@@ -59,3 +59,23 @@ test('public form submit blocks universal tokens before db operations', async ()
     }
   });
 });
+
+test('public form submit accepts new week-12 request types', async () => {
+  const requestTypes = ['bio-hazard', 'photo-upload', 'chemical-restock'];
+
+  await withTokenMap({ universal_token: { mode: 'universal' } }, async () => {
+    for (const requestType of requestTypes) {
+      const result = await submitPublicForm('universal_token', {
+        requestType,
+        urgency: 'high',
+        details: { test: true },
+      });
+
+      assert.equal(result.success, false);
+      if (!result.success) {
+        assert.equal(result.status, 403);
+        assert.equal(result.error, 'Universal tokens are temporarily disabled');
+      }
+    }
+  });
+});

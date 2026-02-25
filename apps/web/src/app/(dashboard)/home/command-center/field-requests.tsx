@@ -1,7 +1,16 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Clock3, MessageCircleWarning, Package, ShieldAlert, Wrench } from 'lucide-react';
+import {
+  Biohazard,
+  Camera,
+  Clock3,
+  FlaskConical,
+  MessageCircleWarning,
+  Package,
+  ShieldAlert,
+  Wrench,
+} from 'lucide-react';
 import {
   Badge,
   Card,
@@ -18,7 +27,15 @@ type RequestPriority = 'asap' | 'high' | 'normal';
 
 interface FieldRequestItem {
   id: string;
-  category: 'supply' | 'equipment' | 'site-issue' | 'time-off' | 'other';
+  category:
+    | 'supply'
+    | 'equipment'
+    | 'site-issue'
+    | 'time-off'
+    | 'bio-hazard'
+    | 'photo-upload'
+    | 'chemical-restock'
+    | 'other';
   title: string;
   site: string;
   submittedBy: string;
@@ -45,6 +62,9 @@ function getCategoryIcon(category: FieldRequestItem['category']) {
   if (category === 'supply') return <Package className="h-3.5 w-3.5" aria-hidden="true" />;
   if (category === 'equipment') return <Wrench className="h-3.5 w-3.5" aria-hidden="true" />;
   if (category === 'site-issue') return <ShieldAlert className="h-3.5 w-3.5" aria-hidden="true" />;
+  if (category === 'bio-hazard') return <Biohazard className="h-3.5 w-3.5" aria-hidden="true" />;
+  if (category === 'photo-upload') return <Camera className="h-3.5 w-3.5" aria-hidden="true" />;
+  if (category === 'chemical-restock') return <FlaskConical className="h-3.5 w-3.5" aria-hidden="true" />;
   return <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />;
 }
 
@@ -81,6 +101,9 @@ function normalizeCategory(value: unknown): FieldRequestItem['category'] {
   if (requestType === 'equipment') return 'equipment';
   if (requestType === 'site-issue') return 'site-issue';
   if (requestType === 'time-off') return 'time-off';
+  if (requestType === 'bio-hazard') return 'bio-hazard';
+  if (requestType === 'photo-upload') return 'photo-upload';
+  if (requestType === 'chemical-restock') return 'chemical-restock';
   return 'other';
 }
 

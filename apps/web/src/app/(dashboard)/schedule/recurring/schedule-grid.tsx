@@ -9,6 +9,7 @@ import type { RecurringScheduleRow } from './schedule-list';
 interface ScheduleGridProps {
   rows: RecurringScheduleRow[];
   search?: string;
+  onSelect?: (row: RecurringScheduleRow) => void;
 }
 
 const WEEK_DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'] as const;
@@ -25,7 +26,7 @@ function rowsForDay(rows: RecurringScheduleRow[], day: string) {
   return rows.filter((row) => row.scheduleDays.includes(day));
 }
 
-export function ScheduleGrid({ rows, search = '' }: ScheduleGridProps) {
+export function ScheduleGrid({ rows, search = '', onSelect }: ScheduleGridProps) {
   const filtered = useMemo(() => {
     if (!search.trim()) return rows;
     const query = search.toLowerCase();
@@ -76,15 +77,21 @@ export function ScheduleGrid({ rows, search = '' }: ScheduleGridProps) {
                   <div key={`${staffName}-${day}`} className="space-y-2 px-2 py-2">
                     {dayRows.length ? (
                       dayRows.map((row) => (
-                        <PositionBlock
+                        <button
                           key={`${row.id}-${day}`}
-                          positionType={row.positionType}
-                          siteName={row.siteName}
-                          startTime={row.startTime}
-                          endTime={row.endTime}
-                          staffName={row.staffName}
-                          isOpenShift={row.status === 'open'}
-                        />
+                          type="button"
+                          onClick={() => onSelect?.(row)}
+                          className="w-full text-left rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-module-accent/40"
+                        >
+                          <PositionBlock
+                            positionType={row.positionType}
+                            siteName={row.siteName}
+                            startTime={row.startTime}
+                            endTime={row.endTime}
+                            staffName={row.staffName}
+                            isOpenShift={row.status === 'open'}
+                          />
+                        </button>
                       ))
                     ) : (
                       <div className="rounded-lg border border-dashed border-border/70 px-2 py-3 text-center text-[11px] text-muted-foreground">

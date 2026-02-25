@@ -11,6 +11,7 @@ import WeekCalendar from './calendar/week-calendar';
 import PlanningBoard from './plan/planning-board';
 import { ScheduleGrid } from './recurring/schedule-grid';
 import type { RecurringScheduleRow } from './recurring/schedule-list';
+import { SiteBlueprintView } from './recurring/site-blueprint-view';
 import { FormsHub } from './forms/forms-hub';
 import { WorkOrderTable } from './work-orders/work-order-table';
 
@@ -42,7 +43,18 @@ interface RecurringTicketRow {
   end_time?: string | null;
   status?: string | null;
   position_code?: string | null;
-  site?: { name?: string | null } | null;
+  site?: {
+    name?: string | null;
+    site_code?: string | null;
+    janitorial_closet_location?: string | null;
+    supply_storage_location?: string | null;
+    water_source_location?: string | null;
+    dumpster_location?: string | null;
+    security_protocol?: string | null;
+    entry_instructions?: string | null;
+    parking_instructions?: string | null;
+    access_notes?: string | null;
+  } | null;
   assignments?: Array<{
     assignment_status?: string | null;
     staff?: { full_name?: string | null } | null;
@@ -84,6 +96,7 @@ export default function SchedulePageClient() {
   const [recurringLoading, setRecurringLoading] = useState(false);
   const [refreshKey] = useState(0);
   const [, setSelectedTicket] = useState<TicketWithRelations | null>(null);
+  const [selectedRecurringRow, setSelectedRecurringRow] = useState<RecurringScheduleRow | null>(null);
   const [kpis, setKpis] = useState({
     todayTickets: 0,
     coverageGaps: 0,
@@ -128,6 +141,12 @@ export default function SchedulePageClient() {
   }, [refreshKey]);
 
   useEffect(() => {
+    if (tab !== 'recurring' || recurringView !== 'grid') {
+      setSelectedRecurringRow(null);
+    }
+  }, [tab, recurringView]);
+
+  useEffect(() => {
     let cancelled = false;
 
     async function fetchRecurringGridRows() {
@@ -148,7 +167,18 @@ export default function SchedulePageClient() {
           end_time,
           status,
           position_code,
-          site:site_id(name),
+          site:site_id(
+            name,
+            site_code,
+            janitorial_closet_location,
+            supply_storage_location,
+            water_source_location,
+            dumpster_location,
+            security_protocol,
+            entry_instructions,
+            parking_instructions,
+            access_notes
+          ),
           assignments:ticket_assignments(assignment_status, staff:staff_id(full_name))
         `)
         .gte('scheduled_date', toDateKey(weekStart))
@@ -169,16 +199,19 @@ export default function SchedulePageClient() {
         staffName: string;
         positionType: string;
         siteName: string;
+        siteCode: string | null;
         startTime: string;
         endTime: string;
         status: RecurringScheduleRow['status'];
         scheduleDays: Set<string>;
+        blueprint: NonNullable<RecurringScheduleRow['blueprint']>;
       }>();
 
       for (const raw of data as unknown as RecurringTicketRow[]) {
         const dayCode = dayCodeFromDate(raw.scheduled_date);
         const positionType = raw.position_code?.trim() || 'General Specialist';
         const siteName = raw.site?.name?.trim() || 'Unassigned Site';
+        const siteCode = raw.site?.site_code?.trim() || null;
         const startTime = normalizeTime(raw.start_time);
         const endTime = normalizeTime(raw.end_time);
 
@@ -215,10 +248,21 @@ export default function SchedulePageClient() {
             staffName,
             positionType,
             siteName,
+            siteCode,
             startTime,
             endTime,
             status,
             scheduleDays: new Set([dayCode]),
+            blueprint: {
+              janitorialClosetLocation: raw.site?.janitorial_closet_location ?? null,
+              supplyStorageLocation: raw.site?.supply_storage_location ?? null,
+              waterSourceLocation: raw.site?.water_source_location ?? null,
+              dumpsterLocation: raw.site?.dumpster_location ?? null,
+              securityProtocol: raw.site?.security_protocol ?? null,
+              entryInstructions: raw.site?.entry_instructions ?? null,
+              parkingInstructions: raw.site?.parking_instructions ?? null,
+              accessNotes: raw.site?.access_notes ?? null,
+            },
           });
         }
       }
@@ -228,14 +272,20 @@ export default function SchedulePageClient() {
         staffName: entry.staffName,
         positionType: entry.positionType,
         siteName: entry.siteName,
+        siteCode: entry.siteCode,
         startTime: entry.startTime,
         endTime: entry.endTime,
         status: entry.status,
         scheduleDays: Array.from(entry.scheduleDays).sort((a, b) => WEEKDAY_ORDER.indexOf(a) - WEEKDAY_ORDER.indexOf(b)),
+        blueprint: entry.blueprint,
       }));
 
       if (!cancelled) {
         setRecurringRows(rows);
+        setSelectedRecurringRow((current) => {
+          if (!current) return current;
+          return rows.find((row) => row.id === current.id) ?? null;
+        });
         setRecurringLoading(false);
       }
     }
@@ -348,12 +398,16 @@ export default function SchedulePageClient() {
               </CardContent>
             </Card>
           ) : (
-            <ScheduleGrid rows={recurringRows} search={search} />
+            <ScheduleGrid rows={recurringRows} search={search} onSelect={setSelectedRecurringRow} />
           )
         ) : (
           <PlanningBoard key={`planning-${refreshKey}`} search={search} />
         )
       )}
+
+      {tab === 'recurring' && recurringView === 'grid' ? (
+        <SiteBlueprintView row={selectedRecurringRow} onClear={() => setSelectedRecurringRow(null)} />
+      ) : null}
 
       {tab === 'work-orders' && (
         <WorkOrderTable key={`work-orders-${refreshKey}`} search={search} />

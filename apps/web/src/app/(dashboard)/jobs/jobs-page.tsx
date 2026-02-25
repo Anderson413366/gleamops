@@ -46,7 +46,7 @@ interface InspectionWithRelations extends Inspection {
 
 const TABS = [
   { key: 'service-plans', label: 'Service Plans', icon: <Briefcase className="h-4 w-4" /> },
-  { key: 'tickets', label: 'Tickets', icon: <ClipboardList className="h-4 w-4" /> },
+  { key: 'tickets', label: 'Job Log', icon: <ClipboardList className="h-4 w-4" /> },
   { key: 'inspections', label: 'Inspections', icon: <ClipboardCheck className="h-4 w-4" /> },
   { key: 'time', label: 'Time', icon: <Clock className="h-4 w-4" /> },
   { key: 'routes', label: 'Routes', icon: <Route className="h-4 w-4" /> },
@@ -221,10 +221,22 @@ export default function JobsPageClient() {
             <p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.todayTickets}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card
+          role="button"
+          tabIndex={0}
+          onClick={() => setTab('tickets')}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              setTab('tickets');
+            }
+          }}
+          className="cursor-pointer hover:border-module-accent/40 hover:shadow-md"
+        >
           <CardContent className="pt-4">
             <p className="text-xs text-muted-foreground">Open Tickets</p>
             <p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.openTickets}</p>
+            <p className="text-[11px] text-muted-foreground">Open Job Log</p>
           </CardContent>
         </Card>
         <Card
@@ -242,6 +254,7 @@ export default function JobsPageClient() {
           <CardContent className="pt-4">
             <p className="text-xs text-muted-foreground">Active Service Plans</p>
             <p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.activeJobs}</p>
+            <p className="text-[11px] text-muted-foreground">Open Service Plans</p>
           </CardContent>
         </Card>
         <Card>

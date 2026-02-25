@@ -70,14 +70,14 @@ export function Pagination({
     };
   }, [showPageSizeSelector]);
 
-  if (totalItems <= 0) return null;
-  if (totalPages <= 1 && !showPageSizeSelector) return null;
+  if (totalItems <= 0 && !showPageSizeSelector) return null;
+  if (totalItems > 0 && totalPages <= 1 && !showPageSizeSelector) return null;
 
   const activePageSize = showPageSizeSelector
     ? (storedPageSize === 0 ? Math.max(totalItems, 1) : storedPageSize)
     : pageSize;
-  const start = (currentPage - 1) * activePageSize + 1;
-  const end = Math.min(currentPage * activePageSize, totalItems);
+  const start = totalItems > 0 ? (currentPage - 1) * activePageSize + 1 : 0;
+  const end = totalItems > 0 ? Math.min(currentPage * activePageSize, totalItems) : 0;
 
   // Build page numbers with ellipsis
   const pages: (number | '...')[] = [];
@@ -123,7 +123,7 @@ export function Pagination({
             </select>
           </label>
         )}
-        {totalPages > 1 && (
+        {totalItems > 0 && totalPages > 1 && (
           <div className="flex items-center gap-1">
             <button
               onClick={onPrev}

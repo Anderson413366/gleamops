@@ -6,13 +6,14 @@
  */
 
 import { useState, useMemo, useEffect } from 'react';
-import { Users, FileText, BriefcaseBusiness, DollarSign, Plus, MessageSquare, UserRoundCheck } from 'lucide-react';
+import { Users, FileText, BriefcaseBusiness, DollarSign, Plus, MessageSquare, UserRoundCheck, Clock } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import { useFeatureFlag } from '@/hooks/use-feature-flag';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
 
 import StaffTable from '../workforce/staff/staff-table';
+import TimeEntriesTable from '../workforce/timekeeping/time-entries-table';
 import TimesheetsTable from '../workforce/timesheets/timesheets-table';
 import PositionsTable from '../workforce/positions/positions-table';
 import PayrollTable from '../workforce/payroll/payroll-table';
@@ -22,6 +23,7 @@ import HrLitePanel from '../workforce/hr/hr-lite-panel';
 const BASE_TABS = [
   { key: 'staff', label: 'Staff', icon: <Users className="h-4 w-4" /> },
   { key: 'positions', label: 'Positions', icon: <BriefcaseBusiness className="h-4 w-4" /> },
+  { key: 'attendance', label: 'Attendance', icon: <Clock className="h-4 w-4" /> },
   { key: 'timesheets', label: 'Timesheets', icon: <FileText className="h-4 w-4" /> },
   { key: 'payroll', label: 'Payroll', icon: <DollarSign className="h-4 w-4" /> },
   { key: 'hr', label: 'HR', icon: <UserRoundCheck className="h-4 w-4" /> },
@@ -42,7 +44,8 @@ export default function TeamPageClient() {
     tabKeys: TABS.map((entry) => entry.key),
     defaultTab: 'staff',
     aliases: {
-      timekeeping: 'timesheets',
+      timekeeping: 'attendance',
+      attendance: 'attendance',
       exceptions: 'timesheets',
       'hr-lite': 'hr',
     },
@@ -104,8 +107,15 @@ export default function TeamPageClient() {
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Pending Timesheets</p><p className="text-xl font-semibold">{kpis.pendingTimesheets}</p></CardContent></Card>
       </div>
 
-      <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
-      <SearchInput value={search} onChange={setSearch} placeholder={`Search ${tab}...`} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder={`Search ${tab}...`}
+          className="w-full sm:w-72 lg:w-80"
+        />
+      </div>
 
       {tab === 'staff' && (
         <StaffTable
@@ -113,9 +123,11 @@ export default function TeamPageClient() {
           search={search}
           autoCreate={autoCreateStaff}
           onAutoCreateHandled={() => setAutoCreateStaff(false)}
+          showCreateButton={false}
         />
       )}
       {tab === 'positions' && <PositionsTable key={`pos-${refreshKey}`} search={search} />}
+      {tab === 'attendance' && <TimeEntriesTable key={`attendance-${refreshKey}`} search={search} />}
       {tab === 'timesheets' && <TimesheetsTable key={`ts-${refreshKey}`} search={search} />}
       {tab === 'payroll' && <PayrollTable key={`pay-${refreshKey}`} search={search} />}
       {tab === 'hr' && <HrLitePanel key={`hr-${refreshKey}`} search={search} />}

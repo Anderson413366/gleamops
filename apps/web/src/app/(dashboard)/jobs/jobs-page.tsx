@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
+  Briefcase,
   ClipboardList,
   ClipboardCheck,
   Clock,
@@ -21,9 +22,9 @@ import { TicketDetail } from '../operations/tickets/ticket-detail';
 import InspectionsTable from '../operations/inspections/inspections-table';
 import { InspectionDetail } from '../operations/inspections/inspection-detail';
 import { CreateInspectionForm } from '../operations/inspections/create-inspection-form';
+import JobsTable from '../operations/jobs/jobs-table';
 import AlertsTable from '../operations/geofence/alerts-table';
 import RoutesFleetPanel from '../operations/routes/routes-fleet-panel';
-import { JobForm } from '@/components/forms/job-form';
 
 interface TicketWithRelations extends WorkTicket {
   job?: { job_code: string; billing_amount?: number | null } | null;
@@ -44,6 +45,7 @@ interface InspectionWithRelations extends Inspection {
 }
 
 const TABS = [
+  { key: 'service-plans', label: 'Service Plans', icon: <Briefcase className="h-4 w-4" /> },
   { key: 'tickets', label: 'Tickets', icon: <ClipboardList className="h-4 w-4" /> },
   { key: 'inspections', label: 'Inspections', icon: <ClipboardCheck className="h-4 w-4" /> },
   { key: 'time', label: 'Time', icon: <Clock className="h-4 w-4" /> },
@@ -59,15 +61,15 @@ export default function JobsPageClient() {
 
   const [tab, setTab] = useSyncedTab({
     tabKeys: TABS.map((entry) => entry.key),
-    defaultTab: initialTicketId ? 'tickets' : 'tickets',
-    aliases: { alerts: 'time' },
+    defaultTab: initialTicketId ? 'tickets' : 'service-plans',
+    aliases: { alerts: 'time', jobs: 'service-plans', services: 'service-plans' },
   });
   const [search, setSearch] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedTicket, setSelectedTicket] = useState<TicketWithRelations | null>(null);
   const [selectedInspection, setSelectedInspection] = useState<InspectionWithRelations | null>(null);
   const [showCreateInspection, setShowCreateInspection] = useState(false);
-  const [showCreateJob, setShowCreateJob] = useState(false);
+  const [openServicePlanCreateToken, setOpenServicePlanCreateToken] = useState(0);
   const [focusMode, setFocusMode] = useState(false);
   const [kpis, setKpis] = useState({
     todayTickets: 0,
@@ -130,9 +132,9 @@ export default function JobsPageClient() {
   const openQuickCreate = useCallback(
     (actionName: string | null | undefined) => {
       if (actionName === 'create-job') {
-        setTab('tickets');
-        setShowCreateJob(true);
-        clearActionParam('tickets');
+        setTab('service-plans');
+        setOpenServicePlanCreateToken((token) => token + 1);
+        clearActionParam('service-plans');
         return;
       }
       if (actionName === 'create-inspection') {
@@ -201,7 +203,7 @@ export default function JobsPageClient() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={() => setShowCreateJob(true)}>
+          <Button onClick={() => { setTab('service-plans'); setOpenServicePlanCreateToken((token) => token + 1); }}>
             <Plus className="h-4 w-4" />
             New Service Plan
           </Button>
@@ -225,7 +227,18 @@ export default function JobsPageClient() {
             <p className="text-xl font-semibold">{kpis.openTickets}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card
+          role="button"
+          tabIndex={0}
+          onClick={() => setTab('service-plans')}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              setTab('service-plans');
+            }
+          }}
+          className="cursor-pointer hover:border-module-accent/40 hover:shadow-md"
+        >
           <CardContent className="pt-4">
             <p className="text-xs text-muted-foreground">Active Service Plans</p>
             <p className="text-xl font-semibold">{kpis.activeJobs}</p>
@@ -245,7 +258,9 @@ export default function JobsPageClient() {
         value={search}
         onChange={setSearch}
         placeholder={
-          tab === 'tickets'
+          tab === 'service-plans'
+            ? 'Search service plans...'
+            : tab === 'tickets'
             ? 'Search tickets...'
             : tab === 'inspections'
               ? 'Search inspections...'
@@ -257,11 +272,20 @@ export default function JobsPageClient() {
         }
       />
 
+      {tab === 'service-plans' && (
+        <JobsTable
+          key={`service-plans-${refreshKey}`}
+          search={search}
+          openCreateToken={openServicePlanCreateToken}
+          showCreateButton={false}
+        />
+      )}
+
       {tab === 'tickets' && (
         <TicketsTable
           key={`t-${refreshKey}`}
           search={search}
-          onGoToServicePlans={() => setTab('tickets')}
+          onGoToServicePlans={() => setTab('service-plans')}
         />
       )}
 
@@ -305,15 +329,6 @@ export default function JobsPageClient() {
         onClose={() => setShowCreateInspection(false)}
         onCreated={() => {
           setShowCreateInspection(false);
-          refresh();
-        }}
-      />
-
-      <JobForm
-        open={showCreateJob}
-        onClose={() => setShowCreateJob(false)}
-        onSuccess={() => {
-          setShowCreateJob(false);
           refresh();
         }}
       />

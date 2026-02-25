@@ -35,6 +35,7 @@ interface JobWithRelations extends SiteJob {
 interface JobsTableProps {
   search: string;
   openCreateToken?: number;
+  showCreateButton?: boolean;
 }
 
 function formatCurrency(n: number | null) {
@@ -59,7 +60,7 @@ function humanFrequency(value: string | null | undefined) {
   return FREQUENCY_LABELS[value] ?? value.replace(/_/g, ' ');
 }
 
-export default function JobsTable({ search, openCreateToken }: JobsTableProps) {
+export default function JobsTable({ search, openCreateToken, showCreateButton = true }: JobsTableProps) {
   const router = useRouter();
   const [rows, setRows] = useState<JobWithRelations[]>([]);
   const [taskMinutesByJob, setTaskMinutesByJob] = useState<Record<string, number>>({});
@@ -170,9 +171,13 @@ export default function JobsTable({ search, openCreateToken }: JobsTableProps) {
   return (
     <div>
       <div className="flex justify-between mb-4">
-        <Button size="sm" onClick={() => { setEditItem(null); setFormOpen(true); }}>
-          <Plus className="h-4 w-4" /> New Service Plan
-        </Button>
+        <div>
+          {showCreateButton && (
+            <Button size="sm" onClick={() => { setEditItem(null); setFormOpen(true); }}>
+              <Plus className="h-4 w-4" /> New Service Plan
+            </Button>
+          )}
+        </div>
         <div className="flex items-center gap-3">
           <ViewToggle view={view} onChange={setView} />
           <ExportButton

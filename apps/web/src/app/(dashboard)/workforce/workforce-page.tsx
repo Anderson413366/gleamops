@@ -93,14 +93,21 @@ export default function WorkforcePageClient() {
         )}
       </div>
 
-      <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Staff</p><p className="text-xl font-semibold">{kpis.activeStaff}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Supervisors</p><p className="text-xl font-semibold">{kpis.supervisors}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Open Exceptions</p><p className="text-xl font-semibold text-warning">{kpis.openExceptions}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">On Leave</p><p className="text-xl font-semibold">{kpis.onLeave}</p></CardContent></Card>
       </div>
-      <SearchInput value={search} onChange={setSearch} placeholder={`Search ${tab}...`} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder={`Search ${tab}...`}
+          className="w-full sm:w-72 lg:w-80"
+        />
+      </div>
 
       {tab === 'staff' && (
         <StaffTable
@@ -108,6 +115,7 @@ export default function WorkforcePageClient() {
           search={search}
           autoCreate={autoCreateStaff}
           onAutoCreateHandled={() => setAutoCreateStaff(false)}
+          showCreateButton={false}
         />
       )}
       {tab === 'positions' && <PositionsTable key={`pos-${refreshKey}`} search={search} />}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar, ClipboardList, Briefcase } from 'lucide-react';
+import { Calendar, ClipboardList, Briefcase, FileText } from 'lucide-react';
 import { ChipTabs, SearchInput, Card, CardContent } from '@gleamops/ui';
 import type { WorkTicket } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -11,6 +11,7 @@ import WeekCalendar from './calendar/week-calendar';
 import PlanningBoard from './plan/planning-board';
 import { ScheduleGrid } from './recurring/schedule-grid';
 import type { RecurringScheduleRow } from './recurring/schedule-list';
+import { FormsHub } from './forms/forms-hub';
 import { WorkOrderTable } from './work-orders/work-order-table';
 
 // Re-use ticket relations type
@@ -29,6 +30,7 @@ const TABS = [
   { key: 'recurring', label: 'Recurring', icon: <ClipboardList className="h-4 w-4" /> },
   { key: 'work-orders', label: 'Work Orders', icon: <Briefcase className="h-4 w-4" /> },
   { key: 'calendar', label: 'Calendar', icon: <Calendar className="h-4 w-4" /> },
+  { key: 'forms', label: 'Forms', icon: <FileText className="h-4 w-4" /> },
 ];
 
 const WEEKDAY_ORDER = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
@@ -287,7 +289,7 @@ export default function SchedulePageClient() {
 
       <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
 
-      {tab !== 'calendar' && (
+      {(tab === 'recurring' || tab === 'work-orders') && (
         <SearchInput
           value={search}
           onChange={setSearch}
@@ -355,6 +357,10 @@ export default function SchedulePageClient() {
 
       {tab === 'work-orders' && (
         <WorkOrderTable key={`work-orders-${refreshKey}`} search={search} />
+      )}
+
+      {tab === 'forms' && (
+        <FormsHub key={`forms-${refreshKey}`} search={search} />
       )}
     </div>
   );

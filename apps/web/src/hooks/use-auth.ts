@@ -54,7 +54,7 @@ function resolveRawRole(
 
   for (const candidate of candidates) {
     const resolved = extractRoleCandidate(candidate);
-    if (resolved) return resolved;
+    if (resolved && isSupportedRole(resolved)) return resolved;
   }
 
   return null;

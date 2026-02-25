@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Clock3, MessageCircleWarning, Package, ShieldAlert, Wrench } from 'lucide-react';
 import {
   Badge,
@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@gleamops/ui';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 type CommandCenterFilter = 'all' | 'regular-shifts' | 'projects' | 'requests';
 
@@ -17,7 +18,7 @@ type RequestPriority = 'asap' | 'high' | 'normal';
 
 interface FieldRequestItem {
   id: string;
-  category: 'supply' | 'equipment' | 'site-issue' | 'time-off';
+  category: 'supply' | 'equipment' | 'site-issue' | 'time-off' | 'other';
   title: string;
   site: string;
   submittedBy: string;
@@ -27,41 +28,6 @@ interface FieldRequestItem {
 interface FieldRequestsProps {
   filter: CommandCenterFilter;
 }
-
-const REQUESTS: FieldRequestItem[] = [
-  {
-    id: 'fr-1',
-    category: 'supply',
-    title: 'Restroom paper restock request',
-    site: 'Pine Medical',
-    submittedBy: 'Team Delta',
-    priority: 'high',
-  },
-  {
-    id: 'fr-2',
-    category: 'site-issue',
-    title: 'Lobby spill hazard report',
-    site: 'Midtown Plaza',
-    submittedBy: 'Night Lead - Maria L.',
-    priority: 'asap',
-  },
-  {
-    id: 'fr-3',
-    category: 'equipment',
-    title: 'Vacuum belt replacement needed',
-    site: 'Downtown Tower',
-    submittedBy: 'Jose R.',
-    priority: 'normal',
-  },
-  {
-    id: 'fr-4',
-    category: 'time-off',
-    title: 'Same-day PTO request',
-    site: 'Site 018',
-    submittedBy: 'Daniel G.',
-    priority: 'high',
-  },
-];
 
 function getPriorityTone(priority: RequestPriority): 'red' | 'yellow' | 'blue' {
   if (priority === 'asap') return 'red';
@@ -82,16 +48,92 @@ function getCategoryIcon(category: FieldRequestItem['category']) {
   return <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />;
 }
 
-function requestsForFilter(filter: CommandCenterFilter) {
+function requestsForFilter(filter: CommandCenterFilter, requests: FieldRequestItem[]) {
   if (filter === 'regular-shifts') return [];
   if (filter === 'projects') {
-    return REQUESTS.filter((request) => request.category !== 'time-off');
+    return requests.filter((request) => request.category !== 'time-off');
   }
-  return REQUESTS;
+  return requests;
+}
+
+function safeParse(body: string | null): Record<string, unknown> {
+  if (!body) return {};
+  try {
+    const parsed = JSON.parse(body);
+    return parsed && typeof parsed === 'object' ? parsed as Record<string, unknown> : {};
+  } catch {
+    return {};
+  }
+}
+
+function normalizePriority(urgency: unknown, severity: string | null): RequestPriority {
+  if (urgency === 'asap' || urgency === 'high' || urgency === 'normal') {
+    return urgency;
+  }
+  if (severity === 'CRITICAL') return 'asap';
+  if (severity === 'WARNING') return 'high';
+  return 'normal';
+}
+
+function normalizeCategory(value: unknown): FieldRequestItem['category'] {
+  const requestType = String(value ?? '').toLowerCase();
+  if (requestType === 'supply') return 'supply';
+  if (requestType === 'equipment') return 'equipment';
+  if (requestType === 'site-issue') return 'site-issue';
+  if (requestType === 'time-off') return 'time-off';
+  return 'other';
 }
 
 export function FieldRequests({ filter }: FieldRequestsProps) {
-  const requests = useMemo(() => requestsForFilter(filter), [filter]);
+  const [allRequests, setAllRequests] = useState<FieldRequestItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchRequests() {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from('alerts')
+        .select('id, title, body, severity')
+        .eq('alert_type', 'FIELD_REQUEST')
+        .is('dismissed_at', null)
+        .order('created_at', { ascending: false })
+        .limit(12);
+
+      if (cancelled) return;
+
+      if (error || !data) {
+        setAllRequests([]);
+        setLoading(false);
+        return;
+      }
+
+      const mapped = (data as Array<{ id: string; title: string; body: string | null; severity: string | null }>)
+        .map((row) => {
+          const parsed = safeParse(row.body);
+          return {
+            id: row.id,
+            category: normalizeCategory(parsed.request_type),
+            title: row.title,
+            site: String(parsed.site_name ?? 'Unknown Site'),
+            submittedBy: String(parsed.submitted_by ?? 'Field Staff'),
+            priority: normalizePriority(parsed.urgency, row.severity),
+          };
+        });
+
+      setAllRequests(mapped);
+      setLoading(false);
+    }
+
+    void fetchRequests();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const requests = useMemo(() => requestsForFilter(filter, allRequests), [allRequests, filter]);
   const asapCount = useMemo(
     () => requests.filter((request) => request.priority === 'asap').length,
     [requests],
@@ -108,7 +150,13 @@ export function FieldRequests({ filter }: FieldRequestsProps) {
         <CardDescription>Pending specialist requests and escalations</CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
-        {!requests.length ? (
+        {loading ? (
+          <p className="text-sm text-muted-foreground">
+            Loading field requests...
+          </p>
+        ) : null}
+
+        {!loading && !requests.length ? (
           <p className="text-sm text-muted-foreground">
             No field requests for this filter. Specialist submissions will appear here.
           </p>

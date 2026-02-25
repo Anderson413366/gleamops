@@ -44,17 +44,24 @@ function toStringArray(value: unknown): string[] {
     .filter((entry) => entry.length > 0);
 }
 
-function sanitizePhotoUrls(value: unknown): string[] {
+function sanitizePhotoUrls(
+  value: unknown,
+  options?: { countId?: string; itemId?: string },
+): string[] {
   const urls = toStringArray(value);
   const base = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? '').replace(/\/$/, '');
   const allowedPrefix = base ? `${base}/storage/v1/object/public/documents/` : null;
   const documentsPathPrefix = '/storage/v1/object/public/documents/';
+  const itemPathSegment = options?.countId && options?.itemId
+    ? `/inventory-count-photos/${options.countId}/${options.itemId}/`
+    : '/inventory-count-photos/';
 
   return urls.filter((url) => {
     try {
       const parsed = new URL(url);
       if (parsed.protocol !== 'https:') return false;
       if (!parsed.pathname.startsWith(documentsPathPrefix)) return false;
+      if (!parsed.pathname.includes(itemPathSegment)) return false;
 
       if (allowedPrefix) {
         return url.startsWith(allowedPrefix);
@@ -138,7 +145,10 @@ export async function submitCount(
       countRow!.id,
       toNullableNumber(item.quantity),
       item.notes ?? null,
-      sanitizePhotoUrls(item.photoUrls),
+      sanitizePhotoUrls(item.photoUrls, {
+        countId: countRow!.id,
+        itemId: item.id,
+      }),
     ));
 
   if (updates.length > 0) {
@@ -153,7 +163,10 @@ export async function submitCount(
 
   const normalizedFinalRows = (finalRows ?? []) as Array<{ id: string; actual_qty: number | null; photo_urls: string[] | null }>;
   const missing = normalizedFinalRows.filter((row) => row.actual_qty == null);
-  const missingPhotos = normalizedFinalRows.filter((row) => sanitizePhotoUrls(row.photo_urls).length === 0);
+  const missingPhotos = normalizedFinalRows.filter((row) => sanitizePhotoUrls(row.photo_urls, {
+    countId: countRow.id,
+    itemId: row.id,
+  }).length === 0);
   if (missing.length > 0 || missingPhotos.length > 0) {
     return {
       success: false,

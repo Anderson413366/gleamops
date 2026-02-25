@@ -18,6 +18,7 @@ import { FinancialBreakdown } from './financial-breakdown';
 import { PricingStrategySelector, type PricingMethod } from './pricing-strategy-selector';
 import { getServiceTypeConfig, ServiceTypeSelector } from './service-type-selector';
 import { WinProbabilityGauge } from './win-probability-gauge';
+import { useFeatureFlag } from '@/hooks/use-feature-flag';
 
 interface NumericChangeEvent {
   target: {
@@ -145,6 +146,7 @@ function buildSpecialization(serviceType: BidTypeCode): BidSpecialization | unde
 
 export default function CalculatorPage() {
   const router = useRouter();
+  const standaloneCalculatorEnabled = useFeatureFlag('standalone_calculator');
   const [serviceType, setServiceType] = useState<BidTypeCode>('JANITORIAL');
   const [buildingTypeCode, setBuildingTypeCode] = useState('OFFICE');
   const [pricingMethod, setPricingMethod] = useState<PricingMethod>('TARGET_MARGIN');
@@ -261,6 +263,24 @@ export default function CalculatorPage() {
       };
     }
   }, [snapshot]);
+
+  if (!standaloneCalculatorEnabled) {
+    return (
+      <Card className="max-w-2xl">
+        <CardHeader>
+          <CardTitle>Standalone Calculator Unavailable</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 text-sm text-muted-foreground">
+          <p>
+            The standalone calculator feature flag is currently disabled for this environment.
+          </p>
+          <Button onClick={() => router.push('/pipeline')} variant="secondary">
+            Back to Pipeline
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">

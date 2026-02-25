@@ -77,6 +77,7 @@ const DOMAIN_DEFAULTS: Partial<FeatureFlags> = {
   schedule_liberation: true,
   v2_navigation: true,
   unified_sales: true,
+  standalone_calculator: true,
 };
 
 let _cache: FeatureFlags | null = null;

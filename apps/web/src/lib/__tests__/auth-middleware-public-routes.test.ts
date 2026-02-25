@@ -1,0 +1,18 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { isPublicRoutePath } from '@/lib/supabase/middleware';
+
+test('proposal public routes bypass auth redirect', () => {
+  assert.equal(isPublicRoutePath('/proposal/invalid-token'), true);
+  assert.equal(isPublicRoutePath('/api/public/proposals/invalid-token'), true);
+});
+
+test('pwa assets bypass auth redirect', () => {
+  assert.equal(isPublicRoutePath('/manifest.webmanifest'), true);
+  assert.equal(isPublicRoutePath('/sw.js'), true);
+});
+
+test('protected dashboard routes still require auth', () => {
+  assert.equal(isPublicRoutePath('/schedule'), false);
+  assert.equal(isPublicRoutePath('/home'), false);
+});

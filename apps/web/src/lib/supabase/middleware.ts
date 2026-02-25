@@ -1,6 +1,28 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+const PUBLIC_ROUTE_PREFIXES = [
+  '/login',
+  '/offline',
+  '/auth/callback',
+  '/api/webhooks',
+  '/count',
+  '/public/forms',
+  '/public/work-orders',
+  '/proposal',
+  '/api/public/counts',
+  '/api/public/forms',
+  '/api/public/work-orders',
+  '/api/public/proposals',
+  '/api/cron',
+  '/manifest.webmanifest',
+  '/sw.js',
+] as const;
+
+export function isPublicRoutePath(pathname: string): boolean {
+  return PUBLIC_ROUTE_PREFIXES.some((route) => pathname.startsWith(route));
+}
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -35,21 +57,7 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const forcedTenantId = process.env.SINGLE_TENANT_ID ?? process.env.NEXT_PUBLIC_SINGLE_TENANT_ID ?? '';
 
-  // Public routes that don't need auth
-  const publicRoutes = [
-    '/login',
-    '/offline',
-    '/auth/callback',
-    '/api/webhooks',
-    '/count',
-    '/public/forms',
-    '/public/work-orders',
-    '/api/public/counts',
-    '/api/public/forms',
-    '/api/public/work-orders',
-    '/api/cron',
-  ];
-  const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
+  const isPublicRoute = isPublicRoutePath(pathname);
 
   if (!user && !isPublicRoute) {
     // Not authenticated → redirect to login

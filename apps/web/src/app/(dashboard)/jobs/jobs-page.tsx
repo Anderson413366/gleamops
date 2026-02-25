@@ -252,25 +252,28 @@ export default function JobsPageClient() {
         </Card>
       </div>
 
-      <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
 
-      <SearchInput
-        value={search}
-        onChange={setSearch}
-        placeholder={
-          tab === 'service-plans'
-            ? 'Search service plans...'
-            : tab === 'tickets'
-            ? 'Search tickets...'
-            : tab === 'inspections'
-              ? 'Search inspections...'
-              : tab === 'time'
-                ? 'Search time alerts and exceptions...'
-                : tab === 'routes'
-                  ? 'Search routes and owners...'
-                  : `Search ${tab}...`
-        }
-      />
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder={
+            tab === 'service-plans'
+              ? 'Search service plans...'
+              : tab === 'tickets'
+                ? 'Search tickets...'
+                : tab === 'inspections'
+                  ? 'Search inspections...'
+                  : tab === 'time'
+                    ? 'Search time alerts and exceptions...'
+                    : tab === 'routes'
+                      ? 'Search routes and owners...'
+                      : `Search ${tab}...`
+          }
+          className="w-full sm:w-72 lg:w-80"
+        />
+      </div>
 
       {tab === 'service-plans' && (
         <JobsTable

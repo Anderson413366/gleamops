@@ -130,10 +130,17 @@ export default function SafetyPageClient() {
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Completions Expiring (30d)</p><p className="text-xl font-semibold">{kpis.completionsExpiring30d}</p></CardContent></Card>
       </div>
 
-      <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
-      {tab !== 'calendar' && (
-        <SearchInput value={search} onChange={setSearch} placeholder={`Search ${tab}...`} />
-      )}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
+        {tab !== 'calendar' && (
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder={`Search ${tab}...`}
+            className="w-full sm:w-72 lg:w-80"
+          />
+        )}
+      </div>
 
       {tab === 'certifications' && (
         <CertificationsTable

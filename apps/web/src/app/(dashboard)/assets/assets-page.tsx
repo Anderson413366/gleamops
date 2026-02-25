@@ -101,8 +101,15 @@ export default function AssetsPageClient() {
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Maintenance Due in 30 Days</p><p className="text-xl font-semibold text-warning">{kpis.maintenanceDueSoon}</p></CardContent></Card>
       </div>
 
-      <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
-      <SearchInput value={search} onChange={setSearch} placeholder={`Search ${tab}...`} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder={`Search ${tab}...`}
+          className="w-full sm:w-72 lg:w-80"
+        />
+      </div>
 
       {tab === 'equipment' && (
         <EquipmentTable

@@ -249,8 +249,15 @@ export default function PipelinePageClient() {
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Win Rate</p><p className="text-xl font-bold text-success">{pipelineStats.winRate}</p></CardContent></Card>
       </div>
 
-      <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
-      <SearchInput value={search} onChange={setSearch} placeholder={`Search ${tab}...`} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder={`Search ${tab}...`}
+          className="w-full sm:w-72 lg:w-80"
+        />
+      </div>
 
       {tab === 'prospects' && (
         <ProspectsTable

@@ -20,6 +20,7 @@ import {
   CardTitle,
   ChipTabs,
 } from '@gleamops/ui';
+import { TodaysTasks } from './command-center/todays-tasks';
 
 type CommandCenterFilter = 'all' | 'regular-shifts' | 'projects' | 'requests';
 
@@ -73,20 +74,6 @@ export default function CommandCenter() {
     }
   }, [activeFilter]);
 
-  const todaysTaskItems = useMemo(() => {
-    if (activeFilter === 'projects') {
-      return ['Window touch-up crew at Midtown Plaza', 'Carpet extraction at Harbor Health'];
-    }
-    if (activeFilter === 'requests') {
-      return ['Urgent: restroom restock follow-up at Site 018'];
-    }
-    return [
-      'Opening crew coverage check at Pine Medical',
-      'Floor specialist reassignment for Route B',
-      'Close-out verification for Downtown Tower',
-    ];
-  }, [activeFilter]);
-
   const weeklyProjectItems = useMemo(() => {
     if (activeFilter === 'regular-shifts') {
       return [];
@@ -129,21 +116,7 @@ export default function CommandCenter() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <ClipboardList className="h-4 w-4 text-module-accent" aria-hidden="true" />
-              Today&apos;s Tasks
-            </CardTitle>
-            <CardDescription>Assignments and priorities for {selectedDate}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <PlaceholderList
-              items={todaysTaskItems}
-              emptyLabel="No tasks in this filter yet. Upcoming tasks appear here once scheduled."
-            />
-          </CardContent>
-        </Card>
+        <TodaysTasks date={selectedDate} filter={activeFilter} />
 
         <Card>
           <CardHeader>

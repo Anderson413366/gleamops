@@ -9,14 +9,14 @@ import type { SalesProspect, SalesOpportunity } from '@gleamops/shared';
 
 import { BidWizard } from './bids/bid-wizard';
 import { ExpressBid } from './bids/express-bid';
-import ProposalsTable from './proposals/proposals-table';
-import PipelineAnalytics from './analytics/pipeline-analytics';
 import { SalesKpiBar } from './sales-kpi-bar';
 import { UnifiedSalesPage } from './unified-sales-page';
 import LegacyPipelinePageClient from './pipeline-page-legacy';
 import { ProspectsSection } from './sections/prospects-section';
 import { OpportunitiesSection } from './sections/opportunities-section';
 import { BidsSection } from './sections/bids-section';
+import { ProposalsSection } from './sections/proposals-section';
+import { AnalyticsSection } from './sections/analytics-section';
 import { ProspectForm } from '@/components/forms/prospect-form';
 import { OpportunityForm } from '@/components/forms/opportunity-form';
 import { useFeatureFlag } from '@/hooks/use-feature-flag';
@@ -290,29 +290,31 @@ function UnifiedPipelinePageClient() {
             />
           ),
         },
-          {
-            id: 'proposals',
-            title: 'Proposals',
-            description: 'Proposal delivery, tracking, and close outcomes.',
-            tone: 'pink',
-            count: sectionCounts.proposals,
-            content: (
-              <ProposalsTable
-                key={`proposals-${refreshKey}`}
-                search={search}
-                onGoToBids={() => setWizardOpen(true)}
-              />
-            ),
-          },
-          {
-            id: 'analytics',
-            title: 'Analytics',
-            description: 'Win-rate, revenue, and conversion visibility.',
-            tone: 'neutral',
-            content: <PipelineAnalytics key={`analytics-${refreshKey}`} />,
-          },
-        ]}
-      />
+        {
+          id: 'proposals',
+          title: 'Proposals',
+          description: 'Proposal delivery, tracking, and close outcomes.',
+          tone: 'pink',
+          count: sectionCounts.proposals,
+          content: (
+            <ProposalsSection
+              key={`proposals-${refreshKey}`}
+              globalSearch={search}
+              onGoToBids={() => setWizardOpen(true)}
+              refreshToken={refreshKey}
+              onCountChange={(count) => setSectionCounts((prev) => ({ ...prev, proposals: count }))}
+            />
+          ),
+        },
+        {
+          id: 'analytics',
+          title: 'Analytics',
+          description: 'Win-rate, revenue, and conversion visibility.',
+          tone: 'neutral',
+          content: <AnalyticsSection refreshToken={refreshKey} />,
+        },
+      ]}
+    />
 
       <BidWizard
         open={wizardOpen}

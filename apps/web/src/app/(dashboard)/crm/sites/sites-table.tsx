@@ -15,6 +15,7 @@ import { usePagination } from '@/hooks/use-pagination';
 import { useViewPreference } from '@/hooks/use-view-preference';
 import { SitesCardGrid, type SiteCardMeta } from './sites-card-grid';
 import { SiteForm } from '@/components/forms/site-form';
+import { EntityAvatar } from '@/components/directory/entity-avatar';
 import { EntityLink } from '@/components/links/entity-link';
 
 const PRIORITY_COLORS: Record<string, 'red' | 'blue' | 'orange' | 'gray'> = {
@@ -292,6 +293,12 @@ export default function SitesTable({ search }: SitesTableProps) {
                     </TableCell>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
+                        <EntityAvatar
+                          name={row.name}
+                          seed={row.site_code}
+                          imageUrl={row.photo_url}
+                          size="sm"
+                        />
                         <StatusDot status={row.status} />
                         <span className="inline-block max-w-[240px] truncate" title={row.name}>{row.name}</span>
                       </div>

@@ -14,6 +14,7 @@ import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 import { useViewPreference } from '@/hooks/use-view-preference';
 import { StaffForm } from '@/components/forms/staff-form';
+import { EntityAvatar } from '@/components/directory/entity-avatar';
 import { StaffCardGrid } from './staff-card-grid';
 
 const ROLE_COLORS: Record<string, 'purple' | 'blue' | 'green' | 'orange' | 'yellow' | 'gray'> = {
@@ -306,6 +307,12 @@ export default function StaffTable({
                     </TableCell>
                     <TableCell className={cn('font-medium', isTerminated && 'line-through decoration-muted-foreground/70')}>
                       <div className="flex items-center gap-2">
+                        <EntityAvatar
+                          name={row.full_name}
+                          seed={row.staff_code}
+                          imageUrl={row.photo_url}
+                          size="sm"
+                        />
                         <StatusDot status={rowStatus} />
                         <span className="inline-block max-w-[220px] truncate" title={row.full_name}>{row.full_name}</span>
                       </div>

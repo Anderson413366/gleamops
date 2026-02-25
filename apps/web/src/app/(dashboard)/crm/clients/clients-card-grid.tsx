@@ -3,9 +3,13 @@
 import type { Client } from '@gleamops/shared';
 import { EntityCard, getEntityInitials } from '@/components/directory/entity-card';
 
+interface ClientRow extends Client {
+  photo_url?: string | null;
+}
+
 interface ClientsCardGridProps {
-  rows: Client[];
-  onSelect: (item: Client) => void;
+  rows: ClientRow[];
+  onSelect: (item: ClientRow) => void;
   metaByClientId?: Record<string, ClientCardMeta>;
 }
 
@@ -51,6 +55,7 @@ export function ClientsCardGrid({ rows, onSelect, metaByClientId }: ClientsCardG
           statusTone={statusVisual(item.status).tone}
           metricsLine={`${metaByClientId?.[item.id]?.activeSites ?? 0} site${(metaByClientId?.[item.id]?.activeSites ?? 0) === 1 ? '' : 's'} · ${formatCurrencyPerMonth(metaByClientId?.[item.id]?.monthlyRevenue ?? 0)}`}
           code={item.client_code}
+          imageUrl={item.photo_url}
         />
       ))}
     </div>

@@ -17,6 +17,7 @@ import { usePagination } from '@/hooks/use-pagination';
 import { useViewPreference } from '@/hooks/use-view-preference';
 import { EquipmentCardGrid } from './equipment-card-grid';
 import { EquipmentForm } from '@/components/forms/equipment-form';
+import { EntityAvatar } from '@/components/directory/entity-avatar';
 import { EntityLink } from '@/components/links/entity-link';
 
 interface EquipmentRow extends Equipment {
@@ -247,6 +248,13 @@ export default function EquipmentTable({ search, onSelect, formOpen, onFormClose
                 </TableCell>
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-2">
+                    <EntityAvatar
+                      name={row.name}
+                      seed={row.equipment_code}
+                      imageUrl={row.photo_url}
+                      fallbackIcon={<Wrench className="h-3.5 w-3.5" />}
+                      size="sm"
+                    />
                     <StatusDot color={(EQUIPMENT_CONDITION_COLORS[row.condition ?? ''] as StatusColor) ?? 'gray'} />
                     <span className="inline-block max-w-[220px] truncate" title={row.name}>{row.name}</span>
                   </div>

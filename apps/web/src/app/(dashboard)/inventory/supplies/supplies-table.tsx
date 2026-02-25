@@ -32,6 +32,7 @@ import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 import { useViewPreference } from '@/hooks/use-view-preference';
 import { SuppliesCardGrid } from './supplies-card-grid';
+import { EntityAvatar } from '@/components/directory/entity-avatar';
 
 const UNIT_OPTIONS = [
   { value: 'EA', label: 'Each (EA)' },
@@ -419,7 +420,18 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
                         <span>{row.code}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium">{row.name}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <EntityAvatar
+                          name={row.name}
+                          seed={row.code}
+                          imageUrl={row.image_url}
+                          fallbackIcon={<Package className="h-3.5 w-3.5" />}
+                          size="sm"
+                        />
+                        <span className="inline-block max-w-[220px] truncate" title={row.name}>{row.name}</span>
+                      </div>
+                    </TableCell>
                     <TableCell className="text-muted-foreground">{row.category ?? '—'}</TableCell>
                     <TableCell className="text-muted-foreground">{row.brand ?? '—'}</TableCell>
                     <TableCell>{row.unit}</TableCell>

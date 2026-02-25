@@ -15,6 +15,7 @@ import { usePagination } from '@/hooks/use-pagination';
 import { useViewPreference } from '@/hooks/use-view-preference';
 import { ClientsCardGrid, type ClientCardMeta } from './clients-card-grid';
 import { ClientForm } from '@/components/forms/client-form';
+import { EntityAvatar } from '@/components/directory/entity-avatar';
 
 // UX requirement: default to Active, show Active first, and move All to the end.
 const STATUS_OPTIONS = ['ACTIVE', 'INACTIVE', 'PROSPECT', 'ON_HOLD', 'CANCELED', 'all'] as const;
@@ -43,6 +44,10 @@ interface ContactLite {
   is_primary: boolean | null;
 }
 
+interface ClientRow extends Client {
+  photo_url?: string | null;
+}
+
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -65,7 +70,7 @@ function isFilled(value: unknown): boolean {
   return false;
 }
 
-function clientProfilePercent(client: Client): number {
+function clientProfilePercent(client: ClientRow): number {
   const trackedFields: unknown[] = [
     client.name,
     client.status,
@@ -89,7 +94,7 @@ function clientProfilePercent(client: Client): number {
 
 export default function ClientsTable({ search }: ClientsTableProps) {
   const router = useRouter();
-  const [rows, setRows] = useState<Client[]>([]);
+  const [rows, setRows] = useState<ClientRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('ACTIVE');
@@ -112,7 +117,7 @@ export default function ClientsTable({ search }: ClientsTableProps) {
       return;
     }
 
-    const clients = data as unknown as Client[];
+    const clients = data as unknown as ClientRow[];
     setRows(clients);
 
     if (clients.length === 0) {
@@ -235,7 +240,7 @@ export default function ClientsTable({ search }: ClientsTableProps) {
   const { sorted, sortKey, sortDir, onSort } = useTableSort(
     filtered as unknown as Record<string, unknown>[], 'name', 'asc'
   );
-  const sortedRows = sorted as unknown as Client[];
+  const sortedRows = sorted as unknown as ClientRow[];
   const pag = usePagination(sortedRows, 25);
 
   if (loading) return <TableSkeleton rows={8} cols={6} />;
@@ -361,6 +366,12 @@ export default function ClientsTable({ search }: ClientsTableProps) {
                     </TableCell>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
+                        <EntityAvatar
+                          name={row.name}
+                          seed={row.client_code}
+                          imageUrl={row.photo_url}
+                          size="sm"
+                        />
                         <StatusDot status={row.status} />
                         <span className="max-w-[240px] truncate" title={row.name}>{row.name}</span>
                       </div>

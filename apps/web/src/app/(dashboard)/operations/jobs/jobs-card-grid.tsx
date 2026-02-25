@@ -1,10 +1,12 @@
 'use client';
 
+/* eslint-disable @next/next/no-img-element */
+
 import { Briefcase } from 'lucide-react';
 import type { SiteJob } from '@gleamops/shared';
 
 interface JobWithRelations extends SiteJob {
-  site?: { site_code: string; name: string; client?: { name: string } | null } | null;
+  site?: { site_code: string; name: string; photo_url?: string | null; client?: { name: string } | null } | null;
 }
 
 interface JobsCardGridProps {
@@ -26,9 +28,17 @@ export function JobsCardGrid({ rows, onSelect }: JobsCardGridProps) {
           onClick={() => onSelect(item)}
           className="rounded-xl border border-border bg-card shadow-sm cursor-pointer transition-all duration-150 hover:border-module-accent/40 hover:shadow-md flex flex-col items-center p-6 text-center"
         >
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-module-accent/15 text-2xl font-bold text-module-accent">
-            <Briefcase className="h-8 w-8" />
-          </div>
+          {item.site?.photo_url ? (
+            <img
+              src={item.site.photo_url}
+              alt={item.job_name ?? item.job_code}
+              className="h-20 w-20 rounded-full object-cover"
+            />
+          ) : (
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-module-accent/15 text-2xl font-bold text-module-accent">
+              <Briefcase className="h-8 w-8" />
+            </div>
+          )}
           <p className="mt-3 text-sm font-semibold text-foreground leading-tight">{item.job_name ?? item.job_code}</p>
           <p className="mt-1 text-xs text-muted-foreground">{item.job_code}</p>
           <div className="mt-3 flex flex-wrap justify-center gap-1.5">

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Package, ExternalLink, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { isExternalHttpUrl } from '@/lib/url';
 import {
   Table,
   TableHeader,
@@ -427,7 +428,7 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
                     </TableCell>
                     <TableCell className="text-muted-foreground">{row.preferred_vendor ?? '—'}</TableCell>
                     <TableCell>
-                      {row.sds_url ? (
+                      {isExternalHttpUrl(row.sds_url) ? (
                         <a
                           href={row.sds_url}
                           target="_blank"
@@ -438,6 +439,8 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
                           <ExternalLink className="h-3.5 w-3.5" />
                           View
                         </a>
+                      ) : row.sds_url ? (
+                        <span className="text-muted-foreground" title={row.sds_url}>On File</span>
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}

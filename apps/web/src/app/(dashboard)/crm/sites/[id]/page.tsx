@@ -23,6 +23,7 @@ import {
   Package,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { isExternalHttpUrl } from '@/lib/url';
 import { Badge, Skeleton } from '@gleamops/ui';
 import type { Site, Contact, Staff, KeyInventory } from '@gleamops/shared';
 import { SITE_STATUS_COLORS } from '@gleamops/shared';
@@ -1345,10 +1346,12 @@ export default function SiteDetailPage() {
                             {matchedSupply?.preferred_vendor ?? 'Not Set'}
                           </td>
                           <td className="py-2 pr-3">
-                            {supply.sds_url ? (
+                            {isExternalHttpUrl(supply.sds_url) ? (
                               <a href={supply.sds_url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline dark:text-blue-400">
                                 View SDS
                               </a>
+                            ) : supply.sds_url ? (
+                              <span className="text-muted-foreground" title={supply.sds_url}>On File</span>
                             ) : (
                               <span className="text-muted-foreground">Not Set</span>
                             )}

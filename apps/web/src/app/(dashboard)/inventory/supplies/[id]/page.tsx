@@ -24,6 +24,7 @@ import {
   Upload,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { isExternalHttpUrl } from '@/lib/url';
 import { Badge, Skeleton } from '@gleamops/ui';
 import type { SupplyCatalog } from '@gleamops/shared';
 import { SupplyForm } from '@/components/forms/supply-form';
@@ -513,7 +514,7 @@ export default function SupplyDetailPage() {
             <div className="flex justify-between items-center">
               <dt className="text-muted-foreground">Safety Data Sheet</dt>
               <dd className="font-medium">
-                {supply.sds_url ? (
+                {isExternalHttpUrl(supply.sds_url) ? (
                   <a
                     href={supply.sds_url}
                     target="_blank"
@@ -523,6 +524,8 @@ export default function SupplyDetailPage() {
                     <ExternalLink className="h-3.5 w-3.5" />
                     View SDS
                   </a>
+                ) : supply.sds_url ? (
+                  <span className="text-muted-foreground" title={supply.sds_url}>On File</span>
                 ) : (
                   '\u2014'
                 )}

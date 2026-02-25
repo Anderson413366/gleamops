@@ -43,8 +43,10 @@ export async function updateSession(request: NextRequest) {
     '/api/webhooks',
     '/count',
     '/public/forms',
+    '/public/work-orders',
     '/api/public/counts',
     '/api/public/forms',
+    '/api/public/work-orders',
     '/api/cron',
   ];
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));

@@ -5,6 +5,7 @@ import { useRole } from '@/hooks/use-role';
 
 import CommandCenter from './command-center';
 import DashboardHome from './dashboard-home';
+import SupervisorRouteView from '../schedule/supervisor/supervisor-route-view';
 
 function HomeLoadingState() {
   return (
@@ -22,7 +23,7 @@ function HomeLoadingState() {
 }
 
 export default function HomePage() {
-  const { loading, isAtLeast } = useRole();
+  const { loading, isAtLeast, role } = useRole();
 
   if (loading) {
     return <HomeLoadingState />;
@@ -30,6 +31,10 @@ export default function HomePage() {
 
   if (isAtLeast('MANAGER')) {
     return <CommandCenter />;
+  }
+
+  if (role === 'SUPERVISOR') {
+    return <SupervisorRouteView />;
   }
 
   return <DashboardHome />;

@@ -33,6 +33,12 @@ const INITIALS_BG_COLORS = [
   '#84cc16',
 ];
 
+function buildInitialsAvatarDataUri(initials: string, bgColor: string): string {
+  const safeInitials = initials.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect width="96" height="96" rx="48" fill="${bgColor}"/><text x="50%" y="50%" fill="#ffffff" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="700" text-anchor="middle" dominant-baseline="central">${safeInitials}</text></svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
 function hashIndex(seed: string, size: number): number {
   let hash = 0;
   for (let i = 0; i < seed.length; i += 1) {
@@ -74,6 +80,7 @@ export function EntityAvatar({
   const avatarSizeClass = SIZE_CLASS[size];
   const colorSeed = seed ?? name;
   const bgColor = INITIALS_BG_COLORS[hashIndex(colorSeed, INITIALS_BG_COLORS.length)];
+  const initials = getInitials(name);
   const resolvedImageUrl = sanitizeImageUrl(imageUrl);
 
   useEffect(() => {
@@ -92,6 +99,17 @@ export function EntityAvatar({
     );
   }
 
+  if (!fallbackIcon) {
+    return (
+      <img
+        src={buildInitialsAvatarDataUri(initials, bgColor)}
+        alt={name}
+        loading="lazy"
+        className={cn('shrink-0 rounded-full border border-border object-cover', avatarSizeClass, className)}
+      />
+    );
+  }
+
   return (
     <div
       className={cn(
@@ -102,7 +120,7 @@ export function EntityAvatar({
       style={{ backgroundColor: bgColor }}
       aria-label={name}
     >
-      {fallbackIcon ?? getInitials(name)}
+      {fallbackIcon ?? initials}
     </div>
   );
 }

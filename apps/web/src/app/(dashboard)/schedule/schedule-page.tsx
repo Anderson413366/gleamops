@@ -9,7 +9,7 @@ import { useSyncedTab } from '@/hooks/use-synced-tab';
 
 import WeekCalendar from '../operations/calendar/week-calendar';
 import PlanningBoard from './plan/planning-board';
-import JobsTable from './jobs/jobs-table';
+import { WorkOrderTable } from './work-orders/work-order-table';
 
 // Re-use ticket relations type
 interface TicketWithRelations extends WorkTicket {
@@ -149,7 +149,7 @@ export default function SchedulePageClient() {
       )}
 
       {tab === 'work-orders' && (
-        <JobsTable key={`work-orders-${refreshKey}`} search={search} />
+        <WorkOrderTable key={`work-orders-${refreshKey}`} search={search} />
       )}
     </div>
   );

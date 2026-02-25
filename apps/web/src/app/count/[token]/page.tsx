@@ -2,9 +2,10 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { ClipboardCheck, Package2, AlertTriangle, CheckCircle2, ChevronDown, ChevronRight } from 'lucide-react';
+import { LOCALE_LABELS, SUPPORTED_LOCALES } from '@gleamops/shared';
 import { Button, Card, CardContent, Skeleton } from '@gleamops/ui';
 import { toast } from 'sonner';
 import {
@@ -12,6 +13,8 @@ import {
   formatSupplyCategoryLabel,
   normalizeSupplyCategory,
 } from '@/lib/inventory/category-order';
+import { useLocale } from '@/hooks/use-locale';
+import { getIntlLocale } from '@/lib/locale';
 
 interface CountItem {
   id: string;
@@ -63,20 +66,10 @@ interface GroupedCountItems {
   items: CountItem[];
 }
 
-function formatDate(value: string | null | undefined) {
-  if (!value) return 'Not Set';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Not Set';
-  return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-}
-
-function unitLabel(unit: string | null | undefined) {
-  if (!unit) return 'units';
-  return unit.toLowerCase();
-}
-
 export default function PublicInventoryCountPage() {
   const { token } = useParams<{ token: string }>();
+  const { locale, setLocale, t } = useLocale();
+
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -88,14 +81,36 @@ export default function PublicInventoryCountPage() {
   const [touchedSubmit, setTouchedSubmit] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
+  const formatDate = useCallback((value: string | null | undefined) => {
+    const notSet = t('count.value.notSet');
+    if (!value) return notSet;
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return notSet;
+
+    return new Intl.DateTimeFormat(getIntlLocale(locale), {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(date);
+  }, [locale, t]);
+
+  const unitLabel = useCallback((unit: string | null | undefined) => {
+    if (!unit) return t('count.value.units');
+    return unit.toLowerCase();
+  }, [t]);
+
   const fetchData = async () => {
     if (!token) return;
+
+    const loadErrorMessage = t('count.toast.loadError');
+
     setLoading(true);
     try {
       const response = await fetch(`/api/public/counts/${encodeURIComponent(token)}`);
       const payload = (await response.json()) as CountPayload | { error?: string };
       if (!response.ok || !('count' in payload)) {
-        throw new Error((payload as { error?: string }).error ?? 'Unable to load count form.');
+        throw new Error((payload as { error?: string }).error ?? loadErrorMessage);
       }
 
       setData(payload);
@@ -107,7 +122,7 @@ export default function PublicInventoryCountPage() {
       setExpandedCategories(categories.slice(0, 1));
       setSubmitted(['SUBMITTED', 'COMPLETED'].includes(payload.count.status.toUpperCase()));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to load count form.');
+      toast.error(error instanceof Error ? error.message : loadErrorMessage);
       setData(null);
     } finally {
       setLoading(false);
@@ -182,10 +197,10 @@ export default function PublicInventoryCountPage() {
         }),
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? 'Unable to save draft.');
-      toast.success('Draft saved');
+      if (!response.ok) throw new Error(payload.error ?? t('count.toast.saveError'));
+      toast.success(t('count.toast.saved'));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to save draft.');
+      toast.error(error instanceof Error ? error.message : t('count.toast.saveError'));
     } finally {
       setSaving(false);
     }
@@ -195,7 +210,7 @@ export default function PublicInventoryCountPage() {
     if (!data || isLocked) return;
     setTouchedSubmit(true);
     if (missingIds.length > 0) {
-      toast.error(`Please complete all quantities. ${missingIds.length} item(s) still missing.`);
+      toast.error(t('count.toast.submitMissing', { missing: missingIds.length }));
       return;
     }
     setSubmitting(true);
@@ -210,12 +225,12 @@ export default function PublicInventoryCountPage() {
         }),
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? 'Unable to submit count.');
+      if (!response.ok) throw new Error(payload.error ?? t('count.toast.submitError'));
       setSubmitted(true);
-      toast.success('Count submitted successfully');
+      toast.success(t('count.toast.submitted'));
       await fetchData();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to submit count.');
+      toast.error(error instanceof Error ? error.message : t('count.toast.submitError'));
     } finally {
       setSubmitting(false);
     }
@@ -235,9 +250,9 @@ export default function PublicInventoryCountPage() {
     return (
       <div className="mx-auto max-w-2xl px-4 py-14 text-center">
         <AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground" />
-        <h1 className="mt-4 text-xl font-semibold text-foreground">Count form unavailable</h1>
+        <h1 className="mt-4 text-xl font-semibold text-foreground">{t('count.status.unavailableTitle')}</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          This link may be expired or invalid. Request a new count URL from your site manager.
+          {t('count.status.unavailableDescription')}
         </p>
       </div>
     );
@@ -255,9 +270,12 @@ export default function PublicInventoryCountPage() {
         <Card className="border-success/30 bg-success/5">
           <CardContent className="p-8 text-center">
             <CheckCircle2 className="mx-auto h-14 w-14 text-success" />
-            <h1 className="mt-4 text-2xl font-bold text-foreground">Count submitted successfully</h1>
+            <h1 className="mt-4 text-2xl font-bold text-foreground">{t('count.status.submittedTitle')}</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Thank you. Inventory Count {data.count.code} has been submitted for {data.count.site?.name ?? 'this site'}.
+              {t('count.status.submittedDescription', {
+                code: data.count.code,
+                site: data.count.site?.name ?? t('count.value.siteDefault'),
+              })}
             </p>
           </CardContent>
         </Card>
@@ -268,44 +286,68 @@ export default function PublicInventoryCountPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6 px-4 py-8 sm:px-6">
       <header className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-        <div className="flex items-start gap-3">
-          <div className="mt-0.5 rounded-lg bg-module-accent/15 p-2 text-module-accent">
-            <ClipboardCheck className="h-5 w-5" />
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 rounded-lg bg-module-accent/15 p-2 text-module-accent">
+              <ClipboardCheck className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-2xl font-bold text-foreground">
+                {t('count.title', { site: data.count.site?.name ?? t('count.value.siteDefault') })}
+              </h1>
+              <p className="mt-1 text-sm text-muted-foreground">{t('count.code')}: {data.count.code}</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {t('count.date', { date: formatDate(data.count.date) })}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {t('count.site', {
+                  site: data.count.site?.name ?? t('count.value.notSet'),
+                })} {data.count.site?.site_code ? `(${data.count.site.site_code})` : ''}
+              </p>
+              {addressLine ? <p className="mt-1 text-sm text-muted-foreground">{addressLine}</p> : null}
+              <p className="mt-2 text-xs text-muted-foreground">{t('count.instructions.enterAll')}</p>
+            </div>
           </div>
-          <div className="min-w-0 flex-1">
-            <h1 className="text-2xl font-bold text-foreground">Inventory Count — {data.count.site?.name ?? 'Site'}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">{data.count.code}</p>
-            <p className="mt-2 text-sm text-muted-foreground">Date: {formatDate(data.count.date)}</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Site: {data.count.site?.name ?? 'Not Set'} {data.count.site?.site_code ? `(${data.count.site.site_code})` : ''}
-            </p>
-            {addressLine ? <p className="mt-1 text-sm text-muted-foreground">{addressLine}</p> : null}
-            <p className="mt-2 text-xs text-muted-foreground">Enter the quantity for every item. `0` means out of stock.</p>
-          </div>
+          <label className="w-full space-y-1.5 sm:w-52">
+            <span className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              {t('count.locale.label')}
+            </span>
+            <select
+              value={locale}
+              onChange={(event) => setLocale(event.target.value as typeof locale)}
+              className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm"
+            >
+              {SUPPORTED_LOCALES.map((supportedLocale) => (
+                <option key={supportedLocale} value={supportedLocale}>
+                  {LOCALE_LABELS[supportedLocale]}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
       </header>
 
       <Card>
         <CardContent className="grid gap-4 p-6 sm:grid-cols-2">
           <label className="space-y-1.5">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Counted By</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('count.field.countedBy')}</span>
             <input
               type="text"
               value={countedByName}
               onChange={(event) => setCountedByName(event.target.value)}
               disabled={isLocked}
-              placeholder="Enter name"
+              placeholder={t('count.field.countedByPlaceholder')}
               className="h-12 w-full rounded-lg border border-border bg-background px-3 text-base"
             />
           </label>
           <label className="space-y-1.5 sm:col-span-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Notes</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('count.field.notes')}</span>
             <textarea
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
               disabled={isLocked}
               rows={3}
-              placeholder="Optional notes for this count..."
+              placeholder={t('count.field.notesPlaceholder')}
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
             />
           </label>
@@ -342,20 +384,20 @@ export default function PublicInventoryCountPage() {
                               )}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <p className="text-sm font-semibold text-foreground">{item.supply?.name ?? 'Unknown Supply'}</p>
+                              <p className="text-sm font-semibold text-foreground">{item.supply?.name ?? t('count.item.unknownSupply')}</p>
                               <p className="mt-1 text-xs text-muted-foreground">
-                                Unit: {unitLabel(item.supply?.unit)}
+                                {t('count.item.unit')}: {unitLabel(item.supply?.unit)}
                                 {' · '}
-                                Brand: {item.supply?.brand ?? 'Not Set'}
+                                {t('count.item.brand')}: {item.supply?.brand ?? t('count.value.notSet')}
                                 {' · '}
-                                Vendor: {item.supply?.preferred_vendor ?? 'Not Set'}
+                                {t('count.item.vendor')}: {item.supply?.preferred_vendor ?? t('count.value.notSet')}
                               </p>
                               <p className="mt-1 text-xs text-muted-foreground">
-                                Last Count: {item.previousCountQty != null ? `${item.previousCountQty} ${unitLabel(item.supply?.unit)}` : 'Not available'}
+                                {t('count.item.lastCount')}: {item.previousCountQty != null ? `${item.previousCountQty} ${unitLabel(item.supply?.unit)}` : t('count.item.lastCountUnavailable')}
                                 {item.previousCountDate ? ` (${formatDate(item.previousCountDate)})` : ''}
                               </p>
                               <label className="mt-3 block">
-                                <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Quantity</span>
+                                <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('count.item.quantity')}</span>
                                 <input
                                   type="number"
                                   min={0}
@@ -368,7 +410,7 @@ export default function PublicInventoryCountPage() {
                                 />
                               </label>
                               {showError ? (
-                                <p className="mt-1 text-xs text-red-600">⚠ This field is required</p>
+                                <p className="mt-1 text-xs text-red-600">⚠ {t('count.item.required')}</p>
                               ) : null}
                             </div>
                           </div>
@@ -386,7 +428,9 @@ export default function PublicInventoryCountPage() {
       <Card className="sticky bottom-3 border-module-accent/30 shadow-lg">
         <CardContent className="space-y-3 p-4">
           <div className="flex items-center justify-between gap-3 text-sm">
-            <p className="font-medium text-foreground">Progress: {completedCount} of {totalCount} items entered</p>
+            <p className="font-medium text-foreground">
+              {t('count.progress', { completed: completedCount, total: totalCount })}
+            </p>
             <p className="text-xs text-muted-foreground">{Math.round((completedCount / Math.max(totalCount, 1)) * 100)}%</p>
           </div>
           <div className="h-2 rounded-full bg-muted">
@@ -397,10 +441,10 @@ export default function PublicInventoryCountPage() {
           </div>
           <div className="flex flex-wrap justify-end gap-2">
             <Button variant="secondary" onClick={handleSaveDraft} loading={saving} disabled={isLocked || submitting}>
-              Save Draft
+              {t('count.button.saveDraft')}
             </Button>
             <Button onClick={handleSubmit} loading={submitting} disabled={isLocked || saving}>
-              Submit Count
+              {t('count.button.submit')}
             </Button>
           </div>
         </CardContent>

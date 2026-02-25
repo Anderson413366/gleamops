@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import { Calendar, ClipboardList, Briefcase, FileText } from 'lucide-react';
 import { ChipTabs, SearchInput, Card, CardContent } from '@gleamops/ui';
-import type { WorkTicket } from '@gleamops/shared';
+import { normalizeRoleCode, type WorkTicket } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
+import { useRole } from '@/hooks/use-role';
 
 import WeekCalendar from './calendar/week-calendar';
 import PlanningBoard from './plan/planning-board';
@@ -14,6 +15,8 @@ import type { RecurringScheduleRow } from './recurring/schedule-list';
 import { SiteBlueprintView } from './recurring/site-blueprint-view';
 import { FormsHub } from './forms/forms-hub';
 import { WorkOrderTable } from './work-orders/work-order-table';
+import { ChecklistAdmin } from './checklist-admin';
+import { ShiftChecklist } from './shift-checklist';
 
 // Re-use ticket relations type
 interface TicketWithRelations extends WorkTicket {
@@ -32,6 +35,7 @@ const TABS = [
   { key: 'work-orders', label: 'Work Orders', icon: <Briefcase className="h-4 w-4" /> },
   { key: 'calendar', label: 'Calendar', icon: <Calendar className="h-4 w-4" /> },
   { key: 'forms', label: 'Forms', icon: <FileText className="h-4 w-4" /> },
+  { key: 'checklists', label: 'Checklists', icon: <ClipboardList className="h-4 w-4" /> },
 ];
 
 const WEEKDAY_ORDER = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
@@ -85,6 +89,7 @@ function normalizeTime(value: string | null | undefined) {
 }
 
 export default function SchedulePageClient() {
+  const { role } = useRole();
   const [tab, setTab] = useSyncedTab({
     tabKeys: TABS.map((entry) => entry.key),
     defaultTab: 'recurring',
@@ -97,6 +102,9 @@ export default function SchedulePageClient() {
   const [refreshKey] = useState(0);
   const [, setSelectedTicket] = useState<TicketWithRelations | null>(null);
   const [selectedRecurringRow, setSelectedRecurringRow] = useState<RecurringScheduleRow | null>(null);
+  const normalizedRole = normalizeRoleCode(role);
+  const showChecklistAdmin = normalizedRole === 'OWNER_ADMIN' || normalizedRole === 'MANAGER' || normalizedRole === 'SUPERVISOR';
+  const showShiftChecklist = normalizedRole === 'SUPERVISOR' || normalizedRole === 'CLEANER' || normalizedRole === 'INSPECTOR';
   const [kpis, setKpis] = useState({
     todayTickets: 0,
     coverageGaps: 0,
@@ -339,7 +347,7 @@ export default function SchedulePageClient() {
 
       <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
 
-      {(tab === 'recurring' || tab === 'work-orders') && (
+      {(tab === 'recurring' || tab === 'work-orders' || tab === 'checklists') && (
         <SearchInput
           value={search}
           onChange={setSearch}
@@ -348,6 +356,8 @@ export default function SchedulePageClient() {
               ? 'Search recurring assignments, roles, and sites...'
               : tab === 'work-orders'
                 ? 'Search work orders, services, and sites...'
+                : tab === 'checklists'
+                  ? 'Search checklist templates, sections, or items...'
                 : `Search ${tab}...`
           }
         />
@@ -415,6 +425,20 @@ export default function SchedulePageClient() {
 
       {tab === 'forms' && (
         <FormsHub key={`forms-${refreshKey}`} search={search} />
+      )}
+
+      {tab === 'checklists' && (
+        <div className="space-y-4">
+          {showChecklistAdmin ? <ChecklistAdmin search={search} /> : null}
+          {showShiftChecklist ? <ShiftChecklist search={search} /> : null}
+          {!showChecklistAdmin && !showShiftChecklist ? (
+            <Card>
+              <CardContent className="py-10 text-center text-sm text-muted-foreground">
+                Checklist access is not enabled for your role.
+              </CardContent>
+            </Card>
+          ) : null}
+        </div>
       )}
     </div>
   );

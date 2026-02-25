@@ -27,6 +27,7 @@ import { useViewPreference } from '@/hooks/use-view-preference';
 import { formatDate } from '@/lib/utils/date';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { WorkOrderCardGrid } from './work-order-card-grid';
+import { WorkOrderCalendar } from './work-order-calendar';
 import { WorkOrderCompletion } from './work-order-completion';
 
 interface WorkOrderTicket extends WorkTicket {
@@ -80,7 +81,7 @@ function normalizeRows(rows: WorkOrderTicket[]): WorkOrderTableRow[] {
 
 export function WorkOrderTable({ search }: WorkOrderTableProps) {
   const router = useRouter();
-  const { view, setView } = useViewPreference('schedule-work-orders');
+  const { view, setView } = useViewPreference('schedule-work-orders', { allowCalendar: true });
   const [rows, setRows] = useState<WorkOrderTableRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [completionRow, setCompletionRow] = useState<WorkOrderTableRow | null>(null);
@@ -156,7 +157,7 @@ export function WorkOrderTable({ search }: WorkOrderTableProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-end gap-3">
-        <ViewToggle view={view} onChange={setView} />
+        <ViewToggle view={view} onChange={setView} allowCalendar />
         <ExportButton
           data={filtered as unknown as Record<string, unknown>[]}
           filename="work-orders"
@@ -171,10 +172,15 @@ export function WorkOrderTable({ search }: WorkOrderTableProps) {
         />
       </div>
 
-      {view === 'card' ? (
+      {view === 'calendar' ? (
+        <WorkOrderCalendar
+          rows={filtered}
+          onSelect={(row) => router.push(`/schedule/work-orders/work-order-detail?ticket=${encodeURIComponent(row.ticket_code)}`)}
+        />
+      ) : view === 'card' ? (
         <WorkOrderCardGrid
           rows={pagination.page}
-          onSelect={(row) => router.push(`/operations/tickets/${encodeURIComponent(row.ticket_code)}`)}
+          onSelect={(row) => router.push(`/schedule/work-orders/work-order-detail?ticket=${encodeURIComponent(row.ticket_code)}`)}
         />
       ) : (
         <div className="w-full overflow-x-auto">
@@ -204,7 +210,7 @@ export function WorkOrderTable({ search }: WorkOrderTableProps) {
                   <TableRow
                     key={row.id}
                     className="cursor-pointer"
-                    onClick={() => router.push(`/operations/tickets/${encodeURIComponent(row.ticket_code)}`)}
+                    onClick={() => router.push(`/schedule/work-orders/work-order-detail?ticket=${encodeURIComponent(row.ticket_code)}`)}
                   >
                     <TableCell className="font-mono text-xs">{row.ticket_code}</TableCell>
                     <TableCell className="font-medium">
@@ -248,16 +254,18 @@ export function WorkOrderTable({ search }: WorkOrderTableProps) {
         </div>
       )}
 
-      <Pagination
-        currentPage={pagination.currentPage}
-        totalPages={pagination.totalPages}
-        totalItems={pagination.totalItems}
-        pageSize={pagination.pageSize}
-        hasNext={pagination.hasNext}
-        hasPrev={pagination.hasPrev}
-        onNext={pagination.nextPage}
-        onPrev={pagination.prevPage}
-      />
+      {view !== 'calendar' ? (
+        <Pagination
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.totalItems}
+          pageSize={pagination.pageSize}
+          hasNext={pagination.hasNext}
+          hasPrev={pagination.hasPrev}
+          onNext={pagination.nextPage}
+          onPrev={pagination.prevPage}
+        />
+      ) : null}
 
       <WorkOrderCompletion
         open={Boolean(completionRow)}

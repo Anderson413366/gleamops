@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar, ClipboardList, Briefcase, FileText } from 'lucide-react';
-import { ChipTabs, SearchInput, Card, CardContent } from '@gleamops/ui';
+import { Calendar, ClipboardList, Briefcase, FileText, Plus } from 'lucide-react';
+import { ChipTabs, SearchInput, Card, CardContent, Button } from '@gleamops/ui';
 import { normalizeRoleCode, type WorkTicket } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
@@ -13,6 +13,7 @@ import PlanningBoard from './plan/planning-board';
 import { ScheduleGrid } from './recurring/schedule-grid';
 import type { RecurringScheduleRow } from './recurring/schedule-list';
 import { SiteBlueprintView } from './recurring/site-blueprint-view';
+import { ShiftForm } from './recurring/shift-form';
 import { FormsHub } from './forms/forms-hub';
 import { WorkOrderTable } from './work-orders/work-order-table';
 import { ChecklistAdmin } from './checklist-admin';
@@ -97,14 +98,16 @@ export default function SchedulePageClient() {
   });
   const [search, setSearch] = useState('');
   const [recurringView, setRecurringView] = useState<'board' | 'grid'>('board');
+  const [shiftFormOpen, setShiftFormOpen] = useState(false);
   const [recurringRows, setRecurringRows] = useState<RecurringScheduleRow[]>([]);
   const [recurringLoading, setRecurringLoading] = useState(false);
-  const [refreshKey] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [, setSelectedTicket] = useState<TicketWithRelations | null>(null);
   const [selectedRecurringRow, setSelectedRecurringRow] = useState<RecurringScheduleRow | null>(null);
   const normalizedRole = normalizeRoleCode(role);
   const showChecklistAdmin = normalizedRole === 'OWNER_ADMIN' || normalizedRole === 'MANAGER' || normalizedRole === 'SUPERVISOR';
   const showShiftChecklist = normalizedRole === 'SUPERVISOR' || normalizedRole === 'CLEANER' || normalizedRole === 'INSPECTOR';
+  const canCreateRecurringShift = normalizedRole === 'OWNER_ADMIN' || normalizedRole === 'MANAGER' || normalizedRole === 'SUPERVISOR';
   const [kpis, setKpis] = useState({
     todayTickets: 0,
     coverageGaps: 0,
@@ -314,6 +317,12 @@ export default function SchedulePageClient() {
             Recurring assignments, work orders, and calendar coordination.
           </p>
         </div>
+        {tab === 'recurring' && canCreateRecurringShift ? (
+          <Button onClick={() => setShiftFormOpen(true)}>
+            <Plus className="h-4 w-4" />
+            New Shift
+          </Button>
+        ) : null}
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
@@ -445,6 +454,12 @@ export default function SchedulePageClient() {
           ) : null}
         </div>
       )}
+
+      <ShiftForm
+        open={shiftFormOpen}
+        onClose={() => setShiftFormOpen(false)}
+        onCreated={() => setRefreshKey((current) => current + 1)}
+      />
     </div>
   );
 }

@@ -65,8 +65,13 @@ function sanitizePhotoUrls(
   options?: { countId?: string; itemId?: string },
 ): string[] {
   const urls = toStringArray(value);
-  const base = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? '').replace(/\/$/, '');
-  const allowedPrefix = base ? `${base}/storage/v1/object/public/documents/` : null;
+  const explicitPrefix = (process.env.SUPABASE_STORAGE_PUBLIC_URL_PREFIX ?? '')
+    .trim()
+    .replace(/\/$/, '');
+  const inferredBase = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? '')
+    .trim()
+    .replace(/\/$/, '');
+  const allowedPrefix = explicitPrefix || (inferredBase ? `${inferredBase}/storage/v1/object/public/documents` : '');
   const documentsPathPrefix = '/storage/v1/object/public/documents/';
   const itemPathSegment = options?.countId && options?.itemId
     ? `/inventory-count-photos/${options.countId}/${options.itemId}/`
@@ -79,11 +84,8 @@ function sanitizePhotoUrls(
       if (!parsed.pathname.startsWith(documentsPathPrefix)) return false;
       if (!parsed.pathname.includes(itemPathSegment)) return false;
 
-      if (allowedPrefix) {
-        return url.startsWith(allowedPrefix);
-      }
-
-      return parsed.hostname.endsWith('.supabase.co');
+      if (!allowedPrefix) return false;
+      return url.startsWith(allowedPrefix);
     } catch {
       return false;
     }

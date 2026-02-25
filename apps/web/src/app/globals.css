@@ -509,6 +509,5 @@ html[data-focus-mode="true"] .app-shell-focus-fab {
 }
 
 html[data-focus-mode="true"] .app-shell-main {
-  max-width: 72rem; /* ~max-w-5xl */
   padding-top: 1.25rem;
 }

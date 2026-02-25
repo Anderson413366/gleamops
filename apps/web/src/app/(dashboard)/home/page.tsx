@@ -1,10 +1,12 @@
 'use client';
 
 import { Skeleton } from '@gleamops/ui';
+import { normalizeRoleCode } from '@gleamops/shared';
 import { useRole } from '@/hooks/use-role';
 
 import CommandCenter from './command-center';
 import DashboardHome from './dashboard-home';
+import StaffHome from './staff-home';
 import SupervisorRouteView from '../schedule/supervisor/supervisor-route-view';
 
 function HomeLoadingState() {
@@ -24,6 +26,7 @@ function HomeLoadingState() {
 
 export default function HomePage() {
   const { loading, isAtLeast, role } = useRole();
+  const normalizedRole = normalizeRoleCode(role);
 
   if (loading) {
     return <HomeLoadingState />;
@@ -33,8 +36,12 @@ export default function HomePage() {
     return <CommandCenter />;
   }
 
-  if (role === 'SUPERVISOR') {
+  if (normalizedRole === 'SUPERVISOR') {
     return <SupervisorRouteView />;
+  }
+
+  if (normalizedRole === 'CLEANER' || normalizedRole === 'INSPECTOR') {
+    return <StaffHome />;
   }
 
   return <DashboardHome />;

@@ -53,6 +53,28 @@ function statusColor(status: 'ACTIVE' | 'INACTIVE'): 'green' | 'gray' {
   return status === 'ACTIVE' ? 'green' : 'gray';
 }
 
+async function requestOrderCode(): Promise<string | null> {
+  const supabase = getSupabaseBrowserClient();
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) return null;
+
+  const response = await fetch('/api/codes/next', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ prefix: 'ORD' }),
+  });
+
+  if (!response.ok) return null;
+  const payload = await response.json() as { data?: unknown };
+  if (typeof payload.data !== 'string') return null;
+  const trimmed = payload.data.trim();
+  return trimmed || null;
+}
+
 export default function VendorsTable({ search, formOpen, onFormClose, onRefresh }: Props) {
   const router = useRouter();
   const { view, setView } = useViewPreference('vendors-directory');
@@ -226,10 +248,13 @@ export default function VendorsTable({ search, formOpen, onFormClose, onRefresh 
     setOrderError(null);
     setOrderOpen(true);
 
-    const supabase = getSupabaseBrowserClient();
-    const generated = await supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'ORD' });
-    const fallback = `ORD-${new Date().getFullYear()}${String(Math.floor(Math.random() * 1_000_000)).padStart(6, '0')}`;
-    setOrderCode((generated.data as string) || fallback);
+    const generated = await requestOrderCode();
+    if (!generated) {
+      setOrderError('Unable to generate order code. Please retry.');
+      setOrderCode('');
+      return;
+    }
+    setOrderCode(generated);
   };
 
   const submitOrderTemplate = async (event: React.FormEvent<HTMLFormElement>) => {

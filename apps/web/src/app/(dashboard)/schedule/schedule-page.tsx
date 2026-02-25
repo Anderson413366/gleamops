@@ -9,7 +9,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
 import { useRole } from '@/hooks/use-role';
 
-import WeekCalendar from './calendar/week-calendar';
+import { CombinedCalendar } from './calendar/combined-calendar';
 import { ScheduleGrid } from './recurring/schedule-grid';
 import { ScheduleList } from './recurring/schedule-list';
 import { ScheduleCardGrid } from './recurring/schedule-card-grid';
@@ -470,7 +470,7 @@ export default function SchedulePageClient() {
       )}
 
       {tab === 'calendar' && (
-        <WeekCalendar
+        <CombinedCalendar
           key={`cal-${refreshKey}`}
           onSelectTicket={(t) => setSelectedTicket(t as TicketWithRelations)}
           onCreatedTicket={() => setRefreshKey((current) => current + 1)}

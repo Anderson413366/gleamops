@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Calendar, ClipboardList, Briefcase, FileText, Plus } from 'lucide-react';
+import { Calendar, ClipboardList, Briefcase, FileText, ListTodo, Plus } from 'lucide-react';
 import { ChipTabs, SearchInput, Card, CardContent, Button } from '@gleamops/ui';
 import { normalizeRoleCode, type WorkTicket } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -17,6 +17,7 @@ import type { RecurringScheduleRow } from './recurring/schedule-list';
 import { SiteBlueprintView } from './recurring/site-blueprint-view';
 import { ShiftForm } from './recurring/shift-form';
 import { FormsHub } from './forms/forms-hub';
+import PlanningBoard from './plan/planning-board';
 import { WorkOrderTable } from './work-orders/work-order-table';
 import { ChecklistAdmin } from './checklist-admin';
 import { ShiftChecklist } from './shift-checklist';
@@ -37,6 +38,7 @@ const TABS = [
   { key: 'recurring', label: 'Employee Schedule', icon: <ClipboardList className="h-4 w-4" /> },
   { key: 'work-orders', label: 'Work Schedule', icon: <Briefcase className="h-4 w-4" /> },
   { key: 'calendar', label: 'Calendar', icon: <Calendar className="h-4 w-4" /> },
+  { key: 'planning', label: 'Planning Board', icon: <ListTodo className="h-4 w-4" /> },
   { key: 'forms', label: 'Forms', icon: <FileText className="h-4 w-4" /> },
   { key: 'checklists', label: 'Checklists', icon: <ClipboardList className="h-4 w-4" /> },
 ];
@@ -100,8 +102,11 @@ export default function SchedulePageClient() {
     tabKeys: TABS.map((entry) => entry.key),
     defaultTab: 'recurring',
     aliases: {
-      planning: 'recurring',
-      plan: 'recurring',
+      plan: 'planning',
+      board: 'planning',
+      monday: 'planning',
+      'planning-board': 'planning',
+      'daily-planning': 'planning',
       'employee-schedule': 'recurring',
       jobs: 'work-orders',
       'work-schedule': 'work-orders',
@@ -438,7 +443,7 @@ export default function SchedulePageClient() {
           <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
         </div>
 
-        {(tab === 'recurring' || tab === 'work-orders' || tab === 'checklists') && (
+        {(tab === 'recurring' || tab === 'work-orders' || tab === 'planning' || tab === 'checklists') && (
           <SearchInput
             value={search}
             onChange={setSearch}
@@ -447,6 +452,8 @@ export default function SchedulePageClient() {
                 ? 'Search employee schedule assignments, roles, and sites...'
                 : tab === 'work-orders'
                   ? 'Search work orders, services, and sites...'
+                  : tab === 'planning'
+                    ? 'Search planning tickets, sites, positions, or codes...'
                   : tab === 'checklists'
                     ? 'Search checklist templates, sections, or items...'
                   : `Search ${tab}...`
@@ -532,6 +539,10 @@ export default function SchedulePageClient() {
           search={search}
           openCreateToken={openWorkOrderCreateToken}
         />
+      )}
+
+      {tab === 'planning' && (
+        <PlanningBoard key={`planning-${refreshKey}`} search={search} />
       )}
 
       {tab === 'forms' && (

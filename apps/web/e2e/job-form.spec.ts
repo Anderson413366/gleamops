@@ -1,16 +1,9 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Job form wizard', () => {
-  test('Operations > Service Plans > New Job opens 3-step wizard', async ({ page }) => {
-    await page.goto('/operations');
+  test('Jobs quick-create opens 3-step service plan wizard', async ({ page }) => {
+    await page.goto('/jobs?tab=tickets&action=create-job');
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 10_000 });
-
-    const jobsTab = page.locator('button, [role="tab"]').filter({ hasText: /Service Plans/i });
-    if (await jobsTab.count()) {
-      await jobsTab.first().click();
-    }
-
-    await page.getByRole('button', { name: /New (Job|Service Plan)/i }).first().click();
 
     await expect(page.getByRole('heading', { name: /^New (Job|Service Plan)$/i, level: 2 })).toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole('button', { name: /Step 1: Assignment/i })).toBeVisible();

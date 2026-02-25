@@ -51,6 +51,17 @@ function getInitials(name: string): string {
   return (chunks[0] ?? '?').slice(0, 2).toUpperCase();
 }
 
+function sanitizeImageUrl(imageUrl: string | null | undefined): string | null {
+  if (!imageUrl) return null;
+  const normalized = imageUrl.trim().toLowerCase();
+  if (!normalized) return null;
+  // Known placeholder hosts frequently fail DNS resolution in runtime environments.
+  if (normalized.includes('via.placeholder.com') || normalized.includes('placehold.co')) {
+    return null;
+  }
+  return imageUrl;
+}
+
 export function EntityAvatar({
   name,
   seed,
@@ -63,15 +74,16 @@ export function EntityAvatar({
   const avatarSizeClass = SIZE_CLASS[size];
   const colorSeed = seed ?? name;
   const bgColor = INITIALS_BG_COLORS[hashIndex(colorSeed, INITIALS_BG_COLORS.length)];
+  const resolvedImageUrl = sanitizeImageUrl(imageUrl);
 
   useEffect(() => {
     setImageFailed(false);
-  }, [imageUrl]);
+  }, [resolvedImageUrl]);
 
-  if (imageUrl && !imageFailed) {
+  if (resolvedImageUrl && !imageFailed) {
     return (
       <img
-        src={imageUrl}
+        src={resolvedImageUrl}
         alt={name}
         loading="lazy"
         onError={() => setImageFailed(true)}

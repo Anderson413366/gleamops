@@ -65,6 +65,16 @@ function hashIndex(seed: string, size: number): number {
   return hash % size;
 }
 
+function sanitizeImageUrl(imageUrl: string | null | undefined): string | null {
+  if (!imageUrl) return null;
+  const normalized = imageUrl.trim().toLowerCase();
+  if (!normalized) return null;
+  if (normalized.includes('via.placeholder.com') || normalized.includes('placehold.co')) {
+    return null;
+  }
+  return imageUrl;
+}
+
 export function getEntityInitials(name: string): string {
   const stopWords = new Set(['&', 'and', 'of', 'the', 'for', 'to', 'at', 'a', 'an']);
   const words = name
@@ -95,10 +105,11 @@ export function EntityCard({
   const [imageFailed, setImageFailed] = useState(false);
   const initialsColor = INITIALS_BG_COLORS[hashIndex(initialsSeed, INITIALS_BG_COLORS.length)];
   const tone = STATUS_TONE_CLASSES[statusTone];
+  const resolvedImageUrl = sanitizeImageUrl(imageUrl);
 
   useEffect(() => {
     setImageFailed(false);
-  }, [imageUrl]);
+  }, [resolvedImageUrl]);
 
   return (
     <button
@@ -107,9 +118,9 @@ export function EntityCard({
       className="group flex w-full cursor-pointer flex-col rounded-xl border border-border bg-card p-5 text-left shadow-sm transition-all duration-200 hover:scale-[1.02] hover:border-module-accent/40 hover:shadow-md"
     >
       <div className="flex items-start justify-between gap-3">
-        {imageUrl && !imageFailed ? (
+        {resolvedImageUrl && !imageFailed ? (
           <img
-            src={imageUrl}
+            src={resolvedImageUrl}
             alt={name}
             loading="lazy"
             onError={() => setImageFailed(true)}

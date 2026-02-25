@@ -5,6 +5,7 @@ import { ClipboardList, ShieldAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge, Card, CardContent, CardHeader, CardTitle, Select } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { resolveCurrentStaff } from '@/lib/staff/resolve-current-staff';
 import { ChecklistSection, type ShiftChecklistItemView } from './checklist-section';
 
 interface ShiftChecklistProps {
@@ -175,9 +176,10 @@ export function ShiftChecklist({ search = '' }: ShiftChecklistProps) {
   const load = useCallback(async () => {
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { user, staff: staffRow } = await resolveCurrentStaff<StaffContext>(
+      supabase,
+      'id, tenant_id, full_name, staff_code',
+    );
 
     if (!user) {
       setStaff(null);
@@ -187,13 +189,6 @@ export function ShiftChecklist({ search = '' }: ShiftChecklistProps) {
       setLoading(false);
       return;
     }
-
-    const { data: staffRow } = await supabase
-      .from('staff')
-      .select('id, tenant_id, full_name, staff_code')
-      .eq('user_id', user.id)
-      .is('archived_at', null)
-      .maybeSingle();
 
     if (!staffRow) {
       setStaff(null);

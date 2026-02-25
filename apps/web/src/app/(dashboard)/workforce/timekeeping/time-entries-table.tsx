@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Clock, Crosshair, LogIn, LogOut, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { resolveCurrentStaff } from '@/lib/staff/resolve-current-staff';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
   EmptyState, Badge, Pagination, TableSkeleton, Button, ExportButton, SlideOver, Select,
@@ -185,25 +186,11 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
   const fetchData = useCallback(async () => {
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    let staffContext: StaffContext | null = null;
-
-    if (user) {
-      const { data: staffRow } = await supabase
-        .from('staff')
-        .select('id, tenant_id, full_name, staff_code')
-        .eq('user_id', user.id)
-        .is('archived_at', null)
-        .maybeSingle();
-
-      if (staffRow) {
-        staffContext = staffRow as StaffContext;
-      }
-    }
+    const { staff: staffRow } = await resolveCurrentStaff<StaffContext>(
+      supabase,
+      'id, tenant_id, full_name, staff_code',
+    );
+    const staffContext = staffRow ?? null;
 
     setCurrentStaff(staffContext);
 

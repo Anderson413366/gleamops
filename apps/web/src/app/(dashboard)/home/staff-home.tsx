@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CalendarDays, ClipboardList, FileText, ShieldAlert, Timer } from 'lucide-react';
 import { Badge, Card, CardContent, CardHeader, CardTitle } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { resolveCurrentStaff } from '@/lib/staff/resolve-current-staff';
 import { ClockInButton } from '@/components/clock-in-button';
 
 interface StaffContext {
@@ -99,9 +100,10 @@ export default function StaffHome() {
   const load = useCallback(async () => {
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { user, staff: staffRow } = await resolveCurrentStaff<StaffContext>(
+      supabase,
+      'id, full_name, staff_code',
+    );
 
     if (!user) {
       setStaff(null);
@@ -110,13 +112,6 @@ export default function StaffHome() {
       setLoading(false);
       return;
     }
-
-    const { data: staffRow } = await supabase
-      .from('staff')
-      .select('id, full_name, staff_code')
-      .eq('user_id', user.id)
-      .is('archived_at', null)
-      .maybeSingle();
 
     if (!staffRow) {
       setStaff(null);

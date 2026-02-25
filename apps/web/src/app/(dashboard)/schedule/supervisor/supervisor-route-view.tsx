@@ -5,6 +5,7 @@ import { CalendarDays, Route, ShieldAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge, Card, CardContent, CardHeader, CardTitle, Select } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { resolveCurrentStaff } from '@/lib/staff/resolve-current-staff';
 import { MiniCommandCenter } from './mini-command-center';
 import { SiteVisitCard } from './site-visit-card';
 import type { SupervisorStopView } from './types';
@@ -163,9 +164,10 @@ export default function SupervisorRouteView() {
   const load = useCallback(async () => {
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { user, staff: staffRow } = await resolveCurrentStaff<StaffContext>(
+      supabase,
+      'id, tenant_id, full_name, staff_code',
+    );
 
     if (!user) {
       setStaff(null);
@@ -175,14 +177,7 @@ export default function SupervisorRouteView() {
       return;
     }
 
-    const { data: staffRow, error: staffError } = await supabase
-      .from('staff')
-      .select('id, tenant_id, full_name, staff_code')
-      .eq('user_id', user.id)
-      .is('archived_at', null)
-      .maybeSingle();
-
-    if (staffError || !staffRow) {
+    if (!staffRow) {
       setStaff(null);
       setRoutes([]);
       setStops([]);

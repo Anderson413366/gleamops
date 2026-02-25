@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Building2, MapPin, Users, Handshake, Plus } from 'lucide-react';
+import { Building2, MapPin, Users, Handshake, Plus, MessageSquareWarning } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import type { Contact } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -19,11 +19,13 @@ import { ContactForm } from '@/components/forms/contact-form';
 import SubcontractorsTable from '../vendors/subcontractors/subcontractors-table';
 import { SubcontractorForm } from '@/components/forms/subcontractor-form';
 import VendorsTable from '../vendors/vendor-directory/vendors-table';
+import ChangeRequestsTable from './change-requests/change-requests-table';
 
 const TABS = [
   { key: 'clients', label: 'Clients', icon: <Building2 className="h-4 w-4" /> },
   { key: 'sites', label: 'Sites', icon: <MapPin className="h-4 w-4" /> },
   { key: 'contacts', label: 'Contacts', icon: <Users className="h-4 w-4" /> },
+  { key: 'requests', label: 'Requests', icon: <MessageSquareWarning className="h-4 w-4" /> },
   { key: 'partners', label: 'Partners', icon: <Handshake className="h-4 w-4" /> },
 ];
 
@@ -51,6 +53,7 @@ export default function ClientsPageClient() {
     sites: 0,
     activeSites: 0,
     contacts: 0,
+    pendingRequests: 0,
   });
 
   // Form state
@@ -67,13 +70,29 @@ export default function ClientsPageClient() {
 
   const fetchKpis = useCallback(async () => {
     const supabase = getSupabaseBrowserClient();
-    const [clientsRes, activeClientsRes, sitesRes, activeSitesRes, contactsRes] = await Promise.all([
+    const [clientsRes, activeClientsRes, sitesRes, activeSitesRes, contactsRes, requestsRes] = await Promise.all([
       supabase.from('clients').select('id', { count: 'exact', head: true }).is('archived_at', null),
       supabase.from('clients').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'ACTIVE'),
       supabase.from('sites').select('id', { count: 'exact', head: true }).is('archived_at', null),
       supabase.from('sites').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'ACTIVE'),
       supabase.from('contacts').select('id', { count: 'exact', head: true }).is('archived_at', null),
+      supabase
+        .from('alerts')
+        .select('id, body')
+        .eq('alert_type', 'CLIENT_CHANGE_REQUEST')
+        .is('dismissed_at', null),
     ]);
+
+    const pendingRequests = ((requestsRes.data ?? []) as Array<{ body: string | null }>).filter((row) => {
+      if (!row.body) return true;
+      try {
+        const parsed = JSON.parse(row.body) as { manager_decision?: string };
+        const decision = String(parsed.manager_decision ?? 'PENDING').toUpperCase();
+        return decision !== 'APPROVED' && decision !== 'REJECTED';
+      } catch {
+        return true;
+      }
+    }).length;
 
     setKpis({
       clients: clientsRes.count ?? 0,
@@ -81,6 +100,7 @@ export default function ClientsPageClient() {
       sites: sitesRes.count ?? 0,
       activeSites: activeSitesRes.count ?? 0,
       contacts: contactsRes.count ?? 0,
+      pendingRequests,
     });
   }, []);
 
@@ -152,8 +172,10 @@ export default function ClientsPageClient() {
       ? 'Add Client'
       : tab === 'sites'
         ? 'Add Site'
-        : tab === 'contacts'
+      : tab === 'contacts'
           ? 'Add Contact'
+          : tab === 'requests'
+            ? ''
           : tab === 'partners'
             ? partnerFilter === 'vendors'
               ? 'Add Vendor'
@@ -177,7 +199,7 @@ export default function ClientsPageClient() {
         )}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
         <Card>
           <CardContent className="pt-4">
             <p className="text-xl font-semibold tabular-nums sm:text-2xl leading-tight">{kpis.clients}</p>
@@ -208,6 +230,12 @@ export default function ClientsPageClient() {
             <p className="text-xs text-muted-foreground">Contacts</p>
           </CardContent>
         </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <p className="text-xl font-semibold tabular-nums sm:text-2xl leading-tight">{kpis.pendingRequests}</p>
+            <p className="text-xs text-muted-foreground">Pending Requests</p>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -230,6 +258,9 @@ export default function ClientsPageClient() {
       )}
       {tab === 'contacts' && (
         <ContactsTable key={`contacts-${refreshKey}`} search={search} />
+      )}
+      {tab === 'requests' && (
+        <ChangeRequestsTable key={`requests-${refreshKey}`} search={search} />
       )}
       {tab === 'partners' && (
         <div className="space-y-4">

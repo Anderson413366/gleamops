@@ -1,32 +1,21 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { BookOpen, Hash, GitBranch, Upload, ClipboardList, Layers, Link2, Plus, Database, FileCog, FileText, MapPin } from 'lucide-react';
+import { BookOpen, Hash, GitBranch, Upload, Database, FileCog, FileText, MapPin, Plus } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
 
-// Existing admin tabs
 import LookupsTable from './lookups/lookups-table';
 import SequencesTable from './sequences/sequences-table';
 import StatusRulesTable from './rules/status-rules-table';
 import ImportPage from './import/import-page';
-
-// Imported from /services/ subdirectories
-import TasksTable from '../services/tasks/tasks-table';
-import ServiceConfig from '../services/services/service-config';
-import ServiceTaskMapping from '../services/mapping/service-task-mapping';
 import DataHubPanel from './data-hub/data-hub-panel';
-
-// Absorbed from Operations (Epic 1.6)
 import CustomFormsBuilder from '../operations/custom-forms/custom-forms-builder';
 import TemplatesTable from '../operations/inspections/templates-table';
 import GeofenceTable from '../operations/geofence/geofence-table';
 
 const TABS = [
-  { key: 'tasks', label: 'Tasks', icon: <ClipboardList className="h-4 w-4" /> },
-  { key: 'services', label: 'Services', icon: <Layers className="h-4 w-4" /> },
-  { key: 'mapping', label: 'Mapping', icon: <Link2 className="h-4 w-4" /> },
   { key: 'lookups', label: 'Lookups', icon: <BookOpen className="h-4 w-4" /> },
   { key: 'forms', label: 'Forms', icon: <FileCog className="h-4 w-4" /> },
   { key: 'templates', label: 'Templates', icon: <FileText className="h-4 w-4" /> },
@@ -40,16 +29,15 @@ const TABS = [
 export default function AdminPageClient() {
   const [tab, setTab] = useSyncedTab({
     tabKeys: TABS.map((entry) => entry.key),
-    defaultTab: 'tasks',
-    aliases: { 'task-catalog': 'tasks' },
+    defaultTab: 'lookups',
   });
   const [search, setSearch] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
   const [autoCreate, setAutoCreate] = useState(false);
   const [kpis, setKpis] = useState({
-    activeTasks: 0,
-    activeServices: 0,
     lookupRows: 0,
+    geofences: 0,
+    templates: 0,
     transitionRules: 0,
   });
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
@@ -58,28 +46,22 @@ export default function AdminPageClient() {
     setAutoCreate(true);
   };
 
-  const addLabel =
-    tab === 'tasks' ? 'New Task'
-    : tab === 'services' ? 'New Service'
-    : tab === 'lookups' ? 'New Lookup'
-    : '';
+  const addLabel = tab === 'lookups' ? 'New Lookup' : '';
 
   useEffect(() => {
     async function fetchKpis() {
       const supabase = getSupabaseBrowserClient();
-      const [tasksRes, servicesRes, lookupsRes, rulesRes] = await Promise.all([
-        supabase.from('tasks').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('is_active', true),
-        // services table has no is_active column; archived_at is the soft-delete flag
-        supabase.from('services').select('id', { count: 'exact', head: true }).is('archived_at', null),
+      const [lookupsRes, geofencesRes, templatesRes, rulesRes] = await Promise.all([
         supabase.from('lookups').select('id', { count: 'exact', head: true }).eq('is_active', true),
-        // status_transitions does not have archived_at in the live schema
+        supabase.from('geofences').select('id', { count: 'exact', head: true }).is('archived_at', null),
+        supabase.from('inspection_templates').select('id', { count: 'exact', head: true }).is('archived_at', null),
         supabase.from('status_transitions').select('id', { count: 'exact', head: true }),
       ]);
 
       setKpis({
-        activeTasks: tasksRes.count ?? 0,
-        activeServices: servicesRes.count ?? 0,
         lookupRows: lookupsRes.count ?? 0,
+        geofences: geofencesRes.count ?? 0,
+        templates: templatesRes.count ?? 0,
         transitionRules: rulesRes.count ?? 0,
       });
     }
@@ -91,7 +73,9 @@ export default function AdminPageClient() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Admin</h1>
-          <p className="text-sm text-muted-foreground mt-1">Services, tasks, lookups, data hub, and system configuration</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            System configuration and controls. Services and Tasks now live in the dedicated Services module.
+          </p>
         </div>
         {addLabel && (
           <Button onClick={handleAdd}>
@@ -102,9 +86,9 @@ export default function AdminPageClient() {
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Tasks</p><p className="text-xl font-semibold">{kpis.activeTasks}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Services</p><p className="text-xl font-semibold">{kpis.activeServices}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Lookup Values</p><p className="text-xl font-semibold">{kpis.lookupRows}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Geofences</p><p className="text-xl font-semibold">{kpis.geofences}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Templates</p><p className="text-xl font-semibold">{kpis.templates}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Status Transition Rules</p><p className="text-xl font-semibold">{kpis.transitionRules}</p></CardContent></Card>
       </div>
 
@@ -113,27 +97,6 @@ export default function AdminPageClient() {
         <SearchInput value={search} onChange={setSearch} placeholder={`Search ${tab}...`} />
       )}
 
-      {tab === 'tasks' && (
-        <TasksTable
-          key={`tasks-${refreshKey}`}
-          search={search}
-          autoCreate={autoCreate}
-          onAutoCreateHandled={() => setAutoCreate(false)}
-          onRefresh={refresh}
-        />
-      )}
-      {tab === 'services' && (
-        <ServiceConfig
-          key={`services-${refreshKey}`}
-          search={search}
-          autoCreate={autoCreate}
-          onAutoCreateHandled={() => setAutoCreate(false)}
-          onRefresh={refresh}
-        />
-      )}
-      {tab === 'mapping' && (
-        <ServiceTaskMapping key={`mapping-${refreshKey}`} search={search} />
-      )}
       {tab === 'lookups' && (
         <LookupsTable
           key={`lookups-${refreshKey}`}

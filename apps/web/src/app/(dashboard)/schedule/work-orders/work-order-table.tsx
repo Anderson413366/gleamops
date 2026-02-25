@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { BriefcaseBusiness } from 'lucide-react';
+import { BriefcaseBusiness, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import type { WorkTicket } from '@gleamops/shared';
 import {
@@ -26,6 +26,7 @@ import { useTableSort } from '@/hooks/use-table-sort';
 import { useViewPreference } from '@/hooks/use-view-preference';
 import { formatDate } from '@/lib/utils/date';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { WorkOrderForm, type WorkOrderCreateResult } from '@/components/forms/work-order-form';
 import { WorkOrderCardGrid } from './work-order-card-grid';
 import { WorkOrderCalendar } from './work-order-calendar';
 import { WorkOrderCompletion } from './work-order-completion';
@@ -50,6 +51,7 @@ export interface WorkOrderTableRow extends WorkOrderTicket {
 
 interface WorkOrderTableProps {
   search: string;
+  openCreateToken?: number;
 }
 
 const STATUS_BADGE_COLORS: Record<string, 'green' | 'blue' | 'yellow' | 'gray' | 'red'> = {
@@ -79,12 +81,13 @@ function normalizeRows(rows: WorkOrderTicket[]): WorkOrderTableRow[] {
   }));
 }
 
-export function WorkOrderTable({ search }: WorkOrderTableProps) {
+export function WorkOrderTable({ search, openCreateToken = 0 }: WorkOrderTableProps) {
   const router = useRouter();
   const { view, setView } = useViewPreference('schedule-work-orders', { allowCalendar: true });
   const [rows, setRows] = useState<WorkOrderTableRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [completionRow, setCompletionRow] = useState<WorkOrderTableRow | null>(null);
+  const [workOrderFormOpen, setWorkOrderFormOpen] = useState(false);
 
   const fetchRows = useCallback(async () => {
     setLoading(true);
@@ -116,6 +119,12 @@ export function WorkOrderTable({ search }: WorkOrderTableProps) {
     void fetchRows();
   }, [fetchRows]);
 
+  useEffect(() => {
+    if (openCreateToken > 0) {
+      setWorkOrderFormOpen(true);
+    }
+  }, [openCreateToken]);
+
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return rows;
@@ -146,17 +155,37 @@ export function WorkOrderTable({ search }: WorkOrderTableProps) {
 
   if (!filtered.length) {
     return (
-      <EmptyState
-        icon={<BriefcaseBusiness className="h-12 w-12" />}
-        title="No work orders found"
-        description={search ? 'Try a different search term.' : 'Create and schedule your first project work order.'}
-      />
+      <div className="space-y-4">
+        <div className="flex items-center justify-end">
+          <Button type="button" onClick={() => setWorkOrderFormOpen(true)}>
+            <Plus className="h-4 w-4" />
+            New Work Order
+          </Button>
+        </div>
+        <EmptyState
+          icon={<BriefcaseBusiness className="h-12 w-12" />}
+          title="No work orders found"
+          description={search ? 'Try a different search term.' : 'Create and schedule your first project work order.'}
+        />
+        <WorkOrderForm
+          open={workOrderFormOpen}
+          onClose={() => setWorkOrderFormOpen(false)}
+          onSuccess={(created: WorkOrderCreateResult) => {
+            void fetchRows();
+            router.push(`/schedule/work-orders/work-order-detail?ticket=${encodeURIComponent(created.ticketCode)}`);
+          }}
+        />
+      </div>
     );
   }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-end gap-3">
+        <Button type="button" onClick={() => setWorkOrderFormOpen(true)}>
+          <Plus className="h-4 w-4" />
+          New Work Order
+        </Button>
         <ViewToggle view={view} onChange={setView} allowCalendar />
         <ExportButton
           data={filtered as unknown as Record<string, unknown>[]}
@@ -273,6 +302,15 @@ export function WorkOrderTable({ search }: WorkOrderTableProps) {
         onClose={() => setCompletionRow(null)}
         onCompleted={() => {
           void fetchRows();
+        }}
+      />
+
+      <WorkOrderForm
+        open={workOrderFormOpen}
+        onClose={() => setWorkOrderFormOpen(false)}
+        onSuccess={(created: WorkOrderCreateResult) => {
+          void fetchRows();
+          router.push(`/schedule/work-orders/work-order-detail?ticket=${encodeURIComponent(created.ticketCode)}`);
         }}
       />
     </div>

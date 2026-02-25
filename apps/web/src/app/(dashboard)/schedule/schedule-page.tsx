@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Calendar, ClipboardList, Briefcase, FileText, Plus } from 'lucide-react';
 import { ChipTabs, SearchInput, Card, CardContent, Button } from '@gleamops/ui';
 import { normalizeRoleCode, type WorkTicket } from '@gleamops/shared';
@@ -93,6 +93,8 @@ function normalizeTime(value: string | null | undefined) {
 
 export default function SchedulePageClient() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { role } = useRole();
   const [tab, setTab] = useSyncedTab({
     tabKeys: TABS.map((entry) => entry.key),
@@ -102,6 +104,7 @@ export default function SchedulePageClient() {
   const [search, setSearch] = useState('');
   const [recurringView, setRecurringView] = useState<'list' | 'card' | 'grid'>('list');
   const [shiftFormOpen, setShiftFormOpen] = useState(false);
+  const [openWorkOrderCreateToken, setOpenWorkOrderCreateToken] = useState(0);
   const [recurringRows, setRecurringRows] = useState<RecurringScheduleRow[]>([]);
   const [recurringLoading, setRecurringLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -117,6 +120,23 @@ export default function SchedulePageClient() {
     openWorkOrders: 0,
     activeServicePlans: 0,
   });
+  const action = searchParams.get('action');
+
+  const clearActionParam = useCallback(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (!params.has('action')) return;
+    params.delete('action');
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }, [pathname, router, searchParams]);
+
+  useEffect(() => {
+    if (action === 'create-work-order') {
+      setTab('work-orders');
+      setOpenWorkOrderCreateToken((token) => token + 1);
+      clearActionParam();
+    }
+  }, [action, clearActionParam, setTab]);
 
   useEffect(() => {
     async function fetchKpis() {
@@ -500,7 +520,11 @@ export default function SchedulePageClient() {
       ) : null}
 
       {tab === 'work-orders' && (
-        <WorkOrderTable key={`work-orders-${refreshKey}`} search={search} />
+        <WorkOrderTable
+          key={`work-orders-${refreshKey}`}
+          search={search}
+          openCreateToken={openWorkOrderCreateToken}
+        />
       )}
 
       {tab === 'forms' && (

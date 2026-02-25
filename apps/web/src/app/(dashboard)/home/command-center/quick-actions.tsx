@@ -34,7 +34,7 @@ const ACTIONS: QuickAction[] = [
     label: '+ Work Order',
     description: 'Create project cleaning work triggered by field needs.',
     icon: <ClipboardPlus className="h-4 w-4" aria-hidden="true" />,
-    href: '/schedule?tab=work-orders',
+    href: '/schedule?tab=work-orders&action=create-work-order',
   },
   {
     id: 'view-schedule',

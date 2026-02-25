@@ -7,18 +7,12 @@ import {
   ClipboardList,
   MessageCircleWarning,
 } from 'lucide-react';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  ChipTabs,
-} from '@gleamops/ui';
+import { ChipTabs } from '@gleamops/ui';
 import { CoverageAlerts } from './command-center/coverage-alerts';
 import { FieldRequests } from './command-center/field-requests';
 import { QuickActions } from './command-center/quick-actions';
 import { TodaysTasks } from './command-center/todays-tasks';
+import { WeeklyProjects } from './command-center/weekly-projects';
 
 type CommandCenterFilter = 'all' | 'regular-shifts' | 'projects' | 'requests';
 
@@ -32,27 +26,6 @@ const FILTER_TABS = [
 function toDateInputValue(date: Date) {
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
   return local.toISOString().split('T')[0];
-}
-
-interface PlaceholderListProps {
-  items: string[];
-  emptyLabel: string;
-}
-
-function PlaceholderList({ items, emptyLabel }: PlaceholderListProps) {
-  if (!items.length) {
-    return <p className="text-sm text-muted-foreground">{emptyLabel}</p>;
-  }
-
-  return (
-    <ul className="space-y-2 text-sm">
-      {items.map((item) => (
-        <li key={item} className="rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-foreground">
-          {item}
-        </li>
-      ))}
-    </ul>
-  );
 }
 
 export default function CommandCenter() {
@@ -70,17 +43,6 @@ export default function CommandCenter() {
       default:
         return 'Showing all shifts, projects, and field requests.';
     }
-  }, [activeFilter]);
-
-  const weeklyProjectItems = useMemo(() => {
-    if (activeFilter === 'regular-shifts') {
-      return [];
-    }
-    return [
-      'Strip and wax - Horizon Mall (Thu)',
-      'Post-construction cleanup - 9th Ave Clinic (Fri)',
-      'Lobby deep-clean - Atlas Financial (Sat)',
-    ];
   }, [activeFilter]);
 
   return (
@@ -119,21 +81,7 @@ export default function CommandCenter() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <BriefcaseBusiness className="h-4 w-4 text-module-accent" aria-hidden="true" />
-              This Week&apos;s Projects
-            </CardTitle>
-            <CardDescription>Work orders and project cleaning commitments</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <PlaceholderList
-              items={weeklyProjectItems}
-              emptyLabel="No projects for this filter. Project work orders will appear here."
-            />
-          </CardContent>
-        </Card>
+        <WeeklyProjects filter={activeFilter} />
 
         <div className="grid gap-4">
           <QuickActions />

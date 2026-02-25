@@ -12,6 +12,7 @@ import {
   type BidVersionSnapshot,
 } from '@gleamops/cleanflow';
 import { LiveEstimatePanel } from './live-estimate-panel';
+import { PricingStrategySelector, type PricingMethod } from './pricing-strategy-selector';
 import { getServiceTypeConfig, ServiceTypeSelector } from './service-type-selector';
 
 interface NumericChangeEvent {
@@ -46,15 +47,6 @@ const BUILDING_TYPE_OPTIONS = [
   { value: 'RESTAURANT_FOOD', label: 'Restaurant / Food' },
   { value: 'GYM_FITNESS', label: 'Gym / Fitness' },
 ];
-
-const PRICING_METHOD_OPTIONS = [
-  { value: 'COST_PLUS', label: 'Cost Plus' },
-  { value: 'TARGET_MARGIN', label: 'Target Margin' },
-  { value: 'MARKET_RATE', label: 'Market Rate' },
-  { value: 'HYBRID', label: 'Hybrid' },
-] as const;
-
-type PricingMethod = (typeof PRICING_METHOD_OPTIONS)[number]['value'];
 
 function parseNumber(value: string, fallback: number): number {
   const numeric = Number(value);
@@ -326,6 +318,21 @@ export default function CalculatorPage() {
       </Card>
 
       <Card>
+        <CardContent className="pt-6">
+          <PricingStrategySelector
+            method={pricingMethod}
+            targetMarginPct={targetMarginPct}
+            costPlusPct={costPlusPct}
+            marketPriceMonthly={marketPriceMonthly}
+            onMethodChange={setPricingMethod}
+            onTargetMarginChange={setTargetMarginPct}
+            onCostPlusChange={setCostPlusPct}
+            onMarketPriceMonthlyChange={setMarketPriceMonthly}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader>
           <CardTitle>Calculator Inputs</CardTitle>
         </CardHeader>
@@ -336,14 +343,6 @@ export default function CalculatorPage() {
               value={buildingTypeCode}
               onChange={(event: SelectChangeEvent) => setBuildingTypeCode(event.target.value)}
               options={BUILDING_TYPE_OPTIONS}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <p className="text-xs font-medium text-muted-foreground">Pricing Method</p>
-            <Select
-              value={pricingMethod}
-              onChange={(event: SelectChangeEvent) => setPricingMethod(event.target.value as PricingMethod)}
-              options={PRICING_METHOD_OPTIONS.map((option) => ({ ...option }))}
             />
           </div>
           <div className="space-y-1.5">
@@ -373,36 +372,6 @@ export default function CalculatorPage() {
               onChange={(event: NumericChangeEvent) => setHoursPerShift(parseNumber(event.target.value, 4))}
               min={1}
               max={12}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <p className="text-xs font-medium text-muted-foreground">Target Margin %</p>
-            <Input
-              type="number"
-              value={String(targetMarginPct)}
-              onChange={(event: NumericChangeEvent) => setTargetMarginPct(parseNumber(event.target.value, 24))}
-              min={0}
-              max={75}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <p className="text-xs font-medium text-muted-foreground">Cost Plus %</p>
-            <Input
-              type="number"
-              value={String(costPlusPct)}
-              onChange={(event: NumericChangeEvent) => setCostPlusPct(parseNumber(event.target.value, 28))}
-              min={0}
-              max={100}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <p className="text-xs font-medium text-muted-foreground">Market Monthly Price</p>
-            <Input
-              type="number"
-              value={String(marketPriceMonthly)}
-              onChange={(event: NumericChangeEvent) => setMarketPriceMonthly(parseNumber(event.target.value, 0))}
-              min={0}
-              step={100}
             />
           </div>
           <div className="space-y-1.5">
@@ -444,15 +413,7 @@ export default function CalculatorPage() {
         />
       )}
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="border-dashed">
-          <CardHeader>
-            <CardTitle className="text-base">Pricing Strategy Selector</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Strategy guidance and scenario hints are added in task 6.12.
-          </CardContent>
-        </Card>
+      <div className="grid gap-4">
         <Card className="border-dashed">
           <CardHeader>
             <CardTitle className="text-base">Area Template Picker</CardTitle>

@@ -5,9 +5,7 @@ import {
   BriefcaseBusiness,
   CalendarDays,
   ClipboardList,
-  Clock3,
   MessageCircleWarning,
-  Users,
 } from 'lucide-react';
 import {
   Card,
@@ -18,6 +16,7 @@ import {
   ChipTabs,
 } from '@gleamops/ui';
 import { CoverageAlerts } from './command-center/coverage-alerts';
+import { FieldRequests } from './command-center/field-requests';
 import { QuickActions } from './command-center/quick-actions';
 import { TodaysTasks } from './command-center/todays-tasks';
 
@@ -139,24 +138,7 @@ export default function CommandCenter() {
         <div className="grid gap-4">
           <QuickActions />
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Users className="h-4 w-4 text-module-accent" aria-hidden="true" />
-                Field Requests
-              </CardTitle>
-              <CardDescription>Pending specialist requests and escalations</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <div className="rounded-lg border border-border/70 bg-muted/40 px-3 py-2">Supply requests pending: 3</div>
-              <div className="rounded-lg border border-border/70 bg-muted/40 px-3 py-2">ASAP service requests: 1</div>
-              <div className="rounded-lg border border-border/70 bg-muted/40 px-3 py-2">Awaiting supervisor review: 2</div>
-              <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
-                Last refreshed moments ago
-              </p>
-            </CardContent>
-          </Card>
+          <FieldRequests filter={activeFilter} />
         </div>
       </div>
     </div>

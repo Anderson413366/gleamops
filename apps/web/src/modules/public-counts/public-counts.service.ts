@@ -13,10 +13,13 @@ import {
   findPreviousCount,
   findPreviousCountDetails,
   findDetailIds,
+  findDetailById,
   updateDetail,
   updateCountHeader,
   updateCountHeaderFallback,
   findRefreshedDetails,
+  uploadCountPhoto,
+  getCountPhotoPublicUrl,
 } from './public-counts.repository';
 
 type GetCountResult =
@@ -27,6 +30,10 @@ type SaveCountResult =
   | { success: true; data: { ok: true; progress: { completed: number; total: number } } }
   | { success: false; error: string; status: number };
 
+type UploadCountPhotoResult =
+  | { success: true; data: { url: string } }
+  | { success: false; error: string; status: number };
+
 interface SavePayload {
   countedByName?: string | null;
   notes?: string | null;
@@ -34,6 +41,7 @@ interface SavePayload {
     id: string;
     quantity: number | string | null;
     notes?: string | null;
+    photoUrls?: string[] | null;
   }>;
 }
 
@@ -42,6 +50,25 @@ function toNullableNumber(value: number | string | null | undefined): number | n
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed < 0) return null;
   return parsed;
+}
+
+function toStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((entry): entry is string => typeof entry === 'string')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+}
+
+function sanitizePhotoUrls(value: unknown): string[] {
+  const urls = toStringArray(value);
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
+  const allowedPrefix = base
+    ? `${base.replace(/\/$/, '')}/storage/v1/object/public/documents/`
+    : '';
+
+  if (!allowedPrefix) return [];
+  return urls.filter((url) => url.startsWith(allowedPrefix));
 }
 
 export async function getPublicCount(token: string): Promise<GetCountResult> {
@@ -73,6 +100,7 @@ export async function getPublicCount(token: string): Promise<GetCountResult> {
     expected_qty: number | null;
     actual_qty: number | null;
     notes: string | null;
+    photo_urls: string[] | null;
   }>;
 
   // Fetch supply catalog entries
@@ -132,6 +160,7 @@ export async function getPublicCount(token: string): Promise<GetCountResult> {
       expectedQty: row.expected_qty,
       actualQty: row.actual_qty,
       notes: row.notes,
+      photoUrls: toStringArray(row.photo_urls),
       supply: supply ?? null,
       previousCountQty: previous?.qty ?? null,
       previousCountDate: previous?.countDate ?? null,
@@ -160,12 +189,12 @@ export async function savePublicCount(token: string, payload: SavePayload): Prom
   const db = createDb();
 
   const { data: tokenCountRow, error: tokenCountError } = await findCountByTokenMinimal(db, token);
-  let countRow = tokenCountRow as { id: string; status: string } | null;
+  let countRow = tokenCountRow as { id: string; status: string; tenant_id?: string | null } | null;
   let countError = tokenCountError as { message: string } | null;
 
   if (countError?.message?.toLowerCase().includes('public_token')) {
     const { data: fallbackRow, error: fallbackError } = await findCountByTokenMinimalFallback(db, token);
-    countRow = fallbackRow as { id: string; status: string } | null;
+    countRow = fallbackRow as { id: string; status: string; tenant_id?: string | null } | null;
     countError = fallbackError as { message: string } | null;
   }
 
@@ -189,6 +218,7 @@ export async function savePublicCount(token: string, payload: SavePayload): Prom
       countRow.id,
       toNullableNumber(item.quantity),
       item.notes ?? null,
+      sanitizePhotoUrls(item.photoUrls),
     ));
 
   if (updates.length > 0) {
@@ -221,4 +251,46 @@ export async function savePublicCount(token: string, payload: SavePayload): Prom
     success: true,
     data: { ok: true, progress: { completed, total } },
   };
+}
+
+export async function uploadPublicCountPhoto(
+  token: string,
+  itemId: string,
+  file: File,
+): Promise<UploadCountPhotoResult> {
+  const db = createDb();
+
+  const { data: tokenCountRow, error: tokenCountError } = await findCountByTokenMinimal(db, token);
+  let countRow = tokenCountRow as { id: string; status: string; tenant_id?: string | null } | null;
+  let countError = tokenCountError as { message: string } | null;
+
+  if (countError?.message?.toLowerCase().includes('public_token')) {
+    const { data: fallbackRow, error: fallbackError } = await findCountByTokenMinimalFallback(db, token);
+    countRow = fallbackRow as { id: string; status: string; tenant_id?: string | null } | null;
+    countError = fallbackError as { message: string } | null;
+  }
+
+  if (countError) return { success: false, error: countError.message, status: 500 };
+  if (!countRow) return { success: false, error: 'Count form not found.', status: 404 };
+  if (['SUBMITTED', 'COMPLETED', 'CANCELLED'].includes(String(countRow.status).toUpperCase())) {
+    return { success: false, error: 'This count is already closed.', status: 409 };
+  }
+
+  const { data: detailRow, error: detailError } = await findDetailById(db, countRow.id, itemId);
+  if (detailError) return { success: false, error: detailError.message, status: 500 };
+  if (!detailRow) return { success: false, error: 'Count item not found.', status: 404 };
+
+  const tenantId = countRow.tenant_id ?? 'public';
+  const extension = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+  const safeExtension = extension.replace(/[^a-z0-9]/g, '') || 'jpg';
+  const storagePath = `${tenantId}/inventory-count-photos/${countRow.id}/${itemId}/${crypto.randomUUID()}.${safeExtension}`;
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const { error: uploadError } = await uploadCountPhoto(db, storagePath, buffer, file.type || 'application/octet-stream');
+  if (uploadError) return { success: false, error: uploadError.message, status: 500 };
+
+  const { data: urlData } = getCountPhotoPublicUrl(db, storagePath);
+  const url = urlData?.publicUrl ?? storagePath;
+
+  return { success: true, data: { url } };
 }

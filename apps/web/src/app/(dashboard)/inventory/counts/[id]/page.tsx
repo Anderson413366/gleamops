@@ -26,6 +26,7 @@ interface CountDetailRow {
   actual_qty: number | null;
   variance: number | null;
   notes: string | null;
+  photo_urls: string[] | null;
 }
 
 interface SupplyLookup {
@@ -78,7 +79,7 @@ export default function InventoryCountDetailPage() {
 
       const { data: detailRows } = await supabase
         .from('inventory_count_details')
-        .select('id, supply_id, expected_qty, actual_qty, variance, notes')
+        .select('id, supply_id, expected_qty, actual_qty, variance, notes, photo_urls')
         .eq('count_id', typedCount.id)
         .is('archived_at', null)
         .order('created_at');
@@ -211,6 +212,7 @@ export default function InventoryCountDetailPage() {
                 <th className="py-2 pr-3 font-medium">Qty Counted</th>
                 <th className="py-2 pr-3 font-medium">Estimated Value</th>
                 <th className="py-2 font-medium">Notes</th>
+                <th className="py-2 font-medium">Photo Proof</th>
               </tr>
             </thead>
             <tbody>
@@ -218,6 +220,7 @@ export default function InventoryCountDetailPage() {
                 const supply = supplyById[row.supply_id];
                 const qty = Number(row.actual_qty ?? 0);
                 const estValue = qty * Number(supply?.unit_cost ?? 0);
+                const photoUrls = Array.isArray(row.photo_urls) ? row.photo_urls : [];
                 return (
                   <tr key={row.id} className="border-b border-border/50">
                     <td className="py-2 pr-3">
@@ -246,12 +249,31 @@ export default function InventoryCountDetailPage() {
                     <td className="py-2 pr-3 tabular-nums">{qty}</td>
                     <td className="py-2 pr-3 tabular-nums">{formatCurrency(estValue)}</td>
                     <td className="py-2 text-muted-foreground">{row.notes ?? 'Not Set'}</td>
+                    <td className="py-2 text-muted-foreground">
+                      {photoUrls.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {photoUrls.map((photoUrl, index) => (
+                            <Link
+                              key={`${photoUrl}-${index}`}
+                              href={photoUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline dark:text-blue-400"
+                            >
+                              Photo {index + 1}
+                            </Link>
+                          ))}
+                        </div>
+                      ) : (
+                        'Not Set'
+                      )}
+                    </td>
                   </tr>
                 );
               })}
               {details.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="py-6 text-center text-sm text-muted-foreground">
+                  <td colSpan={8} className="py-6 text-center text-sm text-muted-foreground">
                     No line items found for this count.
                   </td>
                 </tr>

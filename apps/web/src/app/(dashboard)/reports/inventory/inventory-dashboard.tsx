@@ -240,7 +240,7 @@ export default function InventoryDashboard(props: { rangeDays: number; refreshKe
           ) : (
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-xl font-semibold tabular-nums sm:text-2xl leading-tight">{formatCurrency(orderStats.spend)}</p>
+                <p className="text-[clamp(1rem,3vw,1.5rem)] font-semibold tabular-nums leading-tight [overflow-wrap:anywhere]">{formatCurrency(orderStats.spend)}</p>
                 <p className="text-xs text-muted-foreground">Total spend in range</p>
               </div>
               <MiniBars values={orderSpendSeries} barClassName="fill-success/60" ariaLabel="Supply order spend per day" />

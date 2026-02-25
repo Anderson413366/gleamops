@@ -246,7 +246,7 @@ export default function SalesDashboard(props: { rangeDays: number; refreshKey: n
           ) : (
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-xl font-semibold tabular-nums sm:text-2xl leading-tight">{proposalSendSeries.reduce((a, b) => a + b, 0)}</p>
+                <p className="text-[clamp(1rem,3vw,1.5rem)] font-semibold tabular-nums leading-tight [overflow-wrap:anywhere]">{proposalSendSeries.reduce((a, b) => a + b, 0)}</p>
                 <p className="text-xs text-muted-foreground">Total sends in range</p>
               </div>
               <MiniBars values={proposalSendSeries} barClassName="fill-accent/60" ariaLabel="Proposal sends per day" />

@@ -12,22 +12,46 @@ export async function findPortalContextByToken(db: SupabaseClient, token: string
       id,
       tenant_id,
       public_token,
+      proposal_id,
       recipient_name,
       recipient_email,
       status,
-      sent_at,
-      proposal:proposal_id(
-        id,
-        proposal_code,
-        status,
-        updated_at,
-        bid:bid_id(
-          id,
-          client:client_id(id, name, client_code)
-        )
-      )
+      sent_at
     `)
     .eq('public_token', token)
+    .single();
+}
+
+export async function findProposalById(db: SupabaseClient, proposalId: string) {
+  return db
+    .from('sales_proposals')
+    .select('id, proposal_code, status, updated_at, bid_version_id')
+    .eq('id', proposalId)
+    .single();
+}
+
+export async function findBidVersionById(db: SupabaseClient, bidVersionId: string) {
+  return db
+    .from('sales_bid_versions')
+    .select('id, bid_id')
+    .eq('id', bidVersionId)
+    .single();
+}
+
+export async function findBidById(db: SupabaseClient, bidId: string) {
+  return db
+    .from('sales_bids')
+    .select('id, client_id')
+    .eq('id', bidId)
+    .single();
+}
+
+export async function findClientById(db: SupabaseClient, clientId: string) {
+  return db
+    .from('clients')
+    .select('id, name, client_code')
+    .eq('id', clientId)
+    .is('archived_at', null)
     .single();
 }
 

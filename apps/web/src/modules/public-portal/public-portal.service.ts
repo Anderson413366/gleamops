@@ -1,6 +1,10 @@
 import {
   createDb,
   findPortalContextByToken,
+  findProposalById,
+  findBidVersionById,
+  findBidById,
+  findClientById,
   findClientSites,
   findUpcomingTickets,
   findRecentInspections,
@@ -10,8 +14,6 @@ import {
   findChemicalCatalog,
   insertPortalChangeAlert,
 } from './public-portal.repository';
-
-type Relation<T> = T | T[] | null | undefined;
 
 interface PortalClient {
   id: string;
@@ -23,24 +25,19 @@ interface PortalContext {
   id: string;
   tenant_id: string;
   public_token: string | null;
+  proposal_id: string;
   recipient_name: string | null;
   recipient_email: string;
   status: string;
   sent_at: string | null;
-  proposal:
-    | {
-        id: string;
-        proposal_code: string;
-        status: string;
-        updated_at: string;
-        bid:
-          | {
-              id: string;
-              client: Relation<PortalClient>;
-            }
-          | null;
-      }
-    | null;
+}
+
+interface PortalProposal {
+  id: string;
+  proposal_code: string;
+  status: string;
+  updated_at: string;
+  bid_version_id: string;
 }
 
 interface PortalSite {
@@ -66,6 +63,8 @@ type PublicPortalResult =
 type SubmitChangeRequestResult =
   | { success: true; data: Record<string, unknown> }
   | { success: false; error: string; status: number };
+
+type Relation<T> = T | T[] | null | undefined;
 
 function relationOne<T>(value: Relation<T>): T | null {
   if (Array.isArray(value)) return value[0] ?? null;
@@ -94,7 +93,7 @@ function classifySeverity(priority: string | null | undefined): 'INFO' | 'WARNIN
 }
 
 async function resolvePortalContext(token: string): Promise<
-  | { success: true; context: PortalContext; client: PortalClient }
+  | { success: true; context: PortalContext; client: PortalClient; proposal: PortalProposal }
   | { success: false; error: string; status: number }
 > {
   const normalizedToken = normalizeToken(token);
@@ -111,19 +110,36 @@ async function resolvePortalContext(token: string): Promise<
     return { success: false, error: 'Invalid or expired portal link', status: 404 };
   }
 
-  const client = relationOne(context.proposal?.bid?.client);
+  const { data: proposalData, error: proposalError } = await findProposalById(db, context.proposal_id);
+  if (proposalError) return { success: false, error: proposalError.message, status: 500 };
+  if (!proposalData) return { success: false, error: 'Proposal not found for this portal token', status: 404 };
+  const proposal = proposalData as PortalProposal;
+
+  const { data: bidVersionData, error: bidVersionError } = await findBidVersionById(db, proposal.bid_version_id);
+  if (bidVersionError) return { success: false, error: bidVersionError.message, status: 500 };
+  if (!bidVersionData) return { success: false, error: 'Bid version not found for this portal token', status: 404 };
+
+  const bidVersion = bidVersionData as { id: string; bid_id: string };
+  const { data: bidData, error: bidError } = await findBidById(db, bidVersion.bid_id);
+  if (bidError) return { success: false, error: bidError.message, status: 500 };
+  if (!bidData) return { success: false, error: 'Bid not found for this portal token', status: 404 };
+
+  const bid = bidData as { id: string; client_id: string };
+  const { data: clientData, error: clientError } = await findClientById(db, bid.client_id);
+  if (clientError) return { success: false, error: clientError.message, status: 500 };
+  const client = (clientData ?? null) as PortalClient | null;
   if (!client) {
     return { success: false, error: 'Client context not found for this portal token', status: 404 };
   }
 
-  return { success: true, context, client };
+  return { success: true, context, client, proposal };
 }
 
 export async function getPublicPortal(token: string): Promise<PublicPortalResult> {
   const resolved = await resolvePortalContext(token);
   if (!resolved.success) return resolved;
 
-  const { context, client } = resolved;
+  const { context, client, proposal } = resolved;
   const db = createDb();
 
   const siteRows = await safeQuery<PortalSite>(findClientSites(db, client.id));
@@ -227,8 +243,8 @@ export async function getPublicPortal(token: string): Promise<PublicPortalResult
         clientCode: client.client_code,
         recipientName: context.recipient_name,
         recipientEmail: context.recipient_email,
-        proposalCode: context.proposal?.proposal_code ?? null,
-        proposalStatus: context.proposal?.status ?? null,
+        proposalCode: proposal.proposal_code,
+        proposalStatus: proposal.status,
         sendStatus: context.status,
         sentAt: context.sent_at,
       },

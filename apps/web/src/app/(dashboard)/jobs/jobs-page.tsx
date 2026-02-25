@@ -9,6 +9,7 @@ import {
   Route,
   Eye,
   EyeOff,
+  Plus,
 } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import type { WorkTicket, Inspection } from '@gleamops/shared';
@@ -22,6 +23,7 @@ import { InspectionDetail } from '../operations/inspections/inspection-detail';
 import { CreateInspectionForm } from '../operations/inspections/create-inspection-form';
 import AlertsTable from '../operations/geofence/alerts-table';
 import RoutesFleetPanel from '../operations/routes/routes-fleet-panel';
+import { JobForm } from '@/components/forms/job-form';
 
 interface TicketWithRelations extends WorkTicket {
   job?: { job_code: string; billing_amount?: number | null } | null;
@@ -65,6 +67,7 @@ export default function JobsPageClient() {
   const [selectedTicket, setSelectedTicket] = useState<TicketWithRelations | null>(null);
   const [selectedInspection, setSelectedInspection] = useState<InspectionWithRelations | null>(null);
   const [showCreateInspection, setShowCreateInspection] = useState(false);
+  const [showCreateJob, setShowCreateJob] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [kpis, setKpis] = useState({
     todayTickets: 0,
@@ -128,6 +131,7 @@ export default function JobsPageClient() {
     (actionName: string | null | undefined) => {
       if (actionName === 'create-job') {
         setTab('tickets');
+        setShowCreateJob(true);
         clearActionParam('tickets');
         return;
       }
@@ -196,10 +200,16 @@ export default function JobsPageClient() {
             Active work: tickets, inspections, time tracking, and routes.
           </p>
         </div>
-        <Button variant="secondary" onClick={() => setFocusMode((prev) => !prev)}>
-          {focusMode ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          {focusMode ? 'Exit Focus' : 'Focus Mode'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setShowCreateJob(true)}>
+            <Plus className="h-4 w-4" />
+            New Service Plan
+          </Button>
+          <Button variant="secondary" onClick={() => setFocusMode((prev) => !prev)}>
+            {focusMode ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {focusMode ? 'Exit Focus' : 'Focus Mode'}
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -295,6 +305,15 @@ export default function JobsPageClient() {
         onClose={() => setShowCreateInspection(false)}
         onCreated={() => {
           setShowCreateInspection(false);
+          refresh();
+        }}
+      />
+
+      <JobForm
+        open={showCreateJob}
+        onClose={() => setShowCreateJob(false)}
+        onSuccess={() => {
+          setShowCreateJob(false);
           refresh();
         }}
       />

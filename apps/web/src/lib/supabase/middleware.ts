@@ -36,7 +36,17 @@ export async function updateSession(request: NextRequest) {
   const forcedTenantId = process.env.SINGLE_TENANT_ID ?? process.env.NEXT_PUBLIC_SINGLE_TENANT_ID ?? '';
 
   // Public routes that don't need auth
-  const publicRoutes = ['/login', '/offline', '/auth/callback', '/api/webhooks', '/count', '/api/public/counts', '/api/cron'];
+  const publicRoutes = [
+    '/login',
+    '/offline',
+    '/auth/callback',
+    '/api/webhooks',
+    '/count',
+    '/public/forms',
+    '/api/public/counts',
+    '/api/public/forms',
+    '/api/cron',
+  ];
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
 
   if (!user && !isPublicRoute) {

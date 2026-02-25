@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type DragEvent } from 'react';
 import { BriefcaseBusiness, CalendarDays, ChevronLeft, ChevronRight, Clock, GripVertical, Users } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Button, ChipTabs, Skeleton } from '@gleamops/ui';
@@ -14,6 +14,7 @@ interface TicketWithRelations extends WorkTicket {
 
 type CalendarSource = 'all' | 'recurring' | 'work-orders';
 type TicketSource = Exclude<CalendarSource, 'all'>;
+type CalendarViewMode = 'day' | 'week' | 'month' | 'custom';
 type TicketWithSource = TicketWithRelations & { source: TicketSource };
 
 interface WeekCalendarProps {
@@ -22,6 +23,12 @@ interface WeekCalendarProps {
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const WORK_ORDER_FREQUENCIES = new Set(['AS_NEEDED', 'ONE_TIME', 'ON_DEMAND', 'AD_HOC']);
+const CALENDAR_VIEW_OPTIONS: Array<{ value: CalendarViewMode; label: string }> = [
+  { value: 'day', label: 'Day' },
+  { value: 'week', label: 'Week' },
+  { value: 'month', label: 'Month' },
+  { value: 'custom', label: 'Custom' },
+];
 
 const SOURCE_META: Record<TicketSource, { label: string; dotClass: string; chipClass: string }> = {
   recurring: {
@@ -36,11 +43,32 @@ const SOURCE_META: Record<TicketSource, { label: string; dotClass: string; chipC
   },
 };
 
+function parseDateInput(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return null;
+  const parsed = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  parsed.setHours(0, 0, 0, 0);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function toDateInput(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function startOfDay(date: Date): Date {
+  const clone = new Date(date);
+  clone.setHours(0, 0, 0, 0);
+  return clone;
+}
+
 function getWeekStart(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay(); // 0=Sun
-  d.setDate(d.getDate() - day + 1); // Monday
-  d.setHours(0, 0, 0, 0);
+  const d = startOfDay(date);
+  const day = d.getDay();
+  d.setDate(d.getDate() - day + 1);
   return d;
 }
 
@@ -52,26 +80,57 @@ function getWeekDays(weekStart: Date): Date[] {
   });
 }
 
-function formatDate(d: Date): string {
-  return d.toISOString().split('T')[0];
+function getMonthDays(anchor: Date): Date[] {
+  const first = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
+  const last = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0);
+  const days: Date[] = [];
+  for (let day = 1; day <= last.getDate(); day += 1) {
+    days.push(new Date(first.getFullYear(), first.getMonth(), day));
+  }
+  return days;
+}
+
+function addDays(date: Date, days: number): Date {
+  const clone = new Date(date);
+  clone.setDate(clone.getDate() + days);
+  return startOfDay(clone);
+}
+
+function buildDateRange(start: Date, end: Date): Date[] {
+  const from = startOfDay(start);
+  const to = startOfDay(end);
+  if (from > to) return [from];
+  const dates: Date[] = [];
+  const cursor = new Date(from);
+  while (cursor <= to) {
+    dates.push(new Date(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return dates;
 }
 
 function isToday(d: Date): boolean {
   const today = new Date();
-  return d.getFullYear() === today.getFullYear() &&
-    d.getMonth() === today.getMonth() &&
-    d.getDate() === today.getDate();
+  return d.getFullYear() === today.getFullYear()
+    && d.getMonth() === today.getMonth()
+    && d.getDate() === today.getDate();
 }
 
 function formatTime(t: string | null): string {
   if (!t) return '';
-  // Handle HH:MM:SS or HH:MM
   const parts = t.split(':');
   const h = parseInt(parts[0], 10);
   const m = parts[1];
   const ampm = h >= 12 ? 'pm' : 'am';
   const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
   return `${h12}:${m}${ampm}`;
+}
+
+function formatRangeLabel(start: Date, end: Date): string {
+  if (toDateInput(start) === toDateInput(end)) {
+    return start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  }
+  return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
 }
 
 function normalizeToken(value: string | null | undefined): string {
@@ -122,23 +181,137 @@ const STATUS_DOT: Record<string, string> = {
   CANCELED: 'bg-muted-foreground',
 };
 
+function TicketCard({
+  ticket,
+  onSelectTicket,
+  dragTicketId,
+  onDragStart,
+  onDragEnd,
+}: {
+  ticket: TicketWithSource;
+  onSelectTicket?: (ticket: TicketWithRelations) => void;
+  dragTicketId: string | null;
+  onDragStart: (event: DragEvent, ticketId: string) => void;
+  onDragEnd: () => void;
+}) {
+  const names = assignedNames(ticket);
+  const shortNames = names.map((name) => name.split(' ')[0]);
+  const isUnassigned = shortNames.length === 0;
+
+  return (
+    <div
+      key={ticket.id}
+      draggable
+      onDragStart={(event) => onDragStart(event, ticket.id)}
+      onDragEnd={onDragEnd}
+      onClick={() => onSelectTicket?.(ticket)}
+      className={`
+        p-1.5 rounded border text-xs cursor-grab active:cursor-grabbing transition-all relative group
+        ${STATUS_BG[ticket.status] ?? 'bg-muted border-border'}
+        ${dragTicketId === ticket.id ? 'opacity-40 scale-95' : 'opacity-100'}
+        ${isUnassigned ? 'ring-1 ring-destructive/30' : ''}
+      `}
+    >
+      <GripVertical className="h-3 w-3 text-muted-foreground absolute top-1 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+      <div className="flex items-center gap-1">
+        <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[ticket.status] ?? 'bg-muted-foreground'}`} />
+        <p className="font-medium truncate">{ticket.site?.name ?? ticket.ticket_code}</p>
+      </div>
+      <div className="mt-0.5 flex items-center gap-1">
+        <span className={`inline-flex rounded-full border px-1.5 py-0 text-[9px] font-semibold uppercase tracking-wide ${SOURCE_META[ticket.source].chipClass}`}>
+          {SOURCE_META[ticket.source].label}
+        </span>
+      </div>
+
+      {ticket.start_time && (
+        <div className="flex items-center gap-0.5 text-muted-foreground mt-0.5">
+          <Clock className="h-2.5 w-2.5" />
+          <span>{formatTime(ticket.start_time)}{ticket.end_time ? `-${formatTime(ticket.end_time)}` : ''}</span>
+        </div>
+      )}
+
+      {shortNames.length > 0 ? (
+        <div className="flex items-center gap-0.5 text-muted-foreground mt-0.5">
+          <Users className="h-2.5 w-2.5" />
+          <span className="truncate">{shortNames.join(', ')}</span>
+        </div>
+      ) : (
+        <p className="text-destructive text-[10px] mt-0.5 font-medium">Unassigned</p>
+      )}
+    </div>
+  );
+}
+
 export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
-  const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()));
+  const [anchorDate, setAnchorDate] = useState(() => startOfDay(new Date()));
+  const [viewMode, setViewMode] = useState<CalendarViewMode>('week');
   const [sourceFilter, setSourceFilter] = useState<CalendarSource>('all');
   const [tickets, setTickets] = useState<TicketWithSource[]>([]);
   const [loading, setLoading] = useState(true);
   const [dragTicketId, setDragTicketId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
+  const [customStart, setCustomStart] = useState(() => toDateInput(getWeekStart(new Date())));
+  const [customEnd, setCustomEnd] = useState(() => toDateInput(addDays(getWeekStart(new Date()), 6)));
 
-  const weekDays = getWeekDays(weekStart);
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekEnd.getDate() + 6);
+  const { rangeStart, rangeEnd, daysInRange, label, monthDays, monthLeadingEmptySlots } = useMemo(() => {
+    if (viewMode === 'day') {
+      const day = startOfDay(anchorDate);
+      return {
+        rangeStart: day,
+        rangeEnd: day,
+        daysInRange: [day],
+        label: day.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }),
+        monthDays: [] as Date[],
+        monthLeadingEmptySlots: 0,
+      };
+    }
+
+    if (viewMode === 'week') {
+      const weekStart = getWeekStart(anchorDate);
+      const weekDays = getWeekDays(weekStart);
+      return {
+        rangeStart: weekDays[0],
+        rangeEnd: weekDays[6],
+        daysInRange: weekDays,
+        label: formatRangeLabel(weekDays[0], weekDays[6]),
+        monthDays: [] as Date[],
+        monthLeadingEmptySlots: 0,
+      };
+    }
+
+    if (viewMode === 'month') {
+      const days = getMonthDays(anchorDate);
+      const first = days[0];
+      const last = days[days.length - 1];
+      return {
+        rangeStart: first,
+        rangeEnd: last,
+        daysInRange: days,
+        label: anchorDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+        monthDays: days,
+        monthLeadingEmptySlots: first.getDay(),
+      };
+    }
+
+    const parsedStart = parseDateInput(customStart) ?? startOfDay(anchorDate);
+    const parsedEnd = parseDateInput(customEnd) ?? parsedStart;
+    const start = parsedStart <= parsedEnd ? parsedStart : parsedEnd;
+    const end = parsedStart <= parsedEnd ? parsedEnd : parsedStart;
+    const days = buildDateRange(start, end);
+    return {
+      rangeStart: start,
+      rangeEnd: end,
+      daysInRange: days,
+      label: formatRangeLabel(start, end),
+      monthDays: [] as Date[],
+      monthLeadingEmptySlots: 0,
+    };
+  }, [anchorDate, customEnd, customStart, viewMode]);
 
   const fetchTickets = useCallback(async () => {
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
-    const end = new Date(weekStart);
-    end.setDate(end.getDate() + 6);
     const { data, error } = await supabase
       .from('work_tickets')
       .select(`
@@ -148,8 +321,9 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
         assignments:ticket_assignments(assignment_status, staff:staff_id(full_name))
       `)
       .is('archived_at', null)
-      .gte('scheduled_date', formatDate(weekStart))
-      .lte('scheduled_date', formatDate(end))
+      .gte('scheduled_date', toDateInput(rangeStart))
+      .lte('scheduled_date', toDateInput(rangeEnd))
+      .order('scheduled_date', { ascending: true })
       .order('start_time', { ascending: true });
 
     if (!error && data) {
@@ -160,49 +334,111 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
       setTickets(normalized);
     }
     setLoading(false);
-  }, [weekStart]);
+  }, [rangeEnd, rangeStart]);
 
   useEffect(() => {
     void fetchTickets();
   }, [fetchTickets]);
 
-  const goToPrevWeek = () => setWeekStart((prev) => { const d = new Date(prev); d.setDate(d.getDate() - 7); return d; });
-  const goToNextWeek = () => setWeekStart((prev) => { const d = new Date(prev); d.setDate(d.getDate() + 7); return d; });
-  const goToThisWeek = () => setWeekStart(getWeekStart(new Date()));
+  const goToPrevWindow = () => {
+    if (viewMode === 'day') {
+      setAnchorDate((prev) => addDays(prev, -1));
+      return;
+    }
 
-  // Drag handlers
-  const handleDragStart = (e: React.DragEvent, ticketId: string) => {
-    setDragTicketId(ticketId);
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', ticketId);
+    if (viewMode === 'week') {
+      setAnchorDate((prev) => addDays(prev, -7));
+      return;
+    }
+
+    if (viewMode === 'month') {
+      setAnchorDate((prev) => {
+        const next = new Date(prev);
+        next.setMonth(next.getMonth() - 1);
+        return startOfDay(next);
+      });
+      return;
+    }
+
+    const span = Math.max(1, daysInRange.length);
+    const nextStart = addDays(rangeStart, -span);
+    const nextEnd = addDays(rangeEnd, -span);
+    setCustomStart(toDateInput(nextStart));
+    setCustomEnd(toDateInput(nextEnd));
+    setAnchorDate(nextStart);
   };
 
-  const handleDragOver = (e: React.DragEvent, dateStr: string) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+  const goToNextWindow = () => {
+    if (viewMode === 'day') {
+      setAnchorDate((prev) => addDays(prev, 1));
+      return;
+    }
+
+    if (viewMode === 'week') {
+      setAnchorDate((prev) => addDays(prev, 7));
+      return;
+    }
+
+    if (viewMode === 'month') {
+      setAnchorDate((prev) => {
+        const next = new Date(prev);
+        next.setMonth(next.getMonth() + 1);
+        return startOfDay(next);
+      });
+      return;
+    }
+
+    const span = Math.max(1, daysInRange.length);
+    const nextStart = addDays(rangeStart, span);
+    const nextEnd = addDays(rangeEnd, span);
+    setCustomStart(toDateInput(nextStart));
+    setCustomEnd(toDateInput(nextEnd));
+    setAnchorDate(nextStart);
+  };
+
+  const goToToday = () => {
+    const today = startOfDay(new Date());
+    setAnchorDate(today);
+    if (viewMode === 'custom') {
+      setCustomStart(toDateInput(today));
+      setCustomEnd(toDateInput(today));
+    }
+  };
+
+  const handleDragStart = (event: DragEvent, ticketId: string) => {
+    setDragTicketId(ticketId);
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', ticketId);
+  };
+
+  const handleDragOver = (event: DragEvent, dateStr: string) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
     setDropTarget(dateStr);
   };
 
   const handleDragLeave = () => setDropTarget(null);
 
-  const handleDrop = async (e: React.DragEvent, dateStr: string) => {
-    e.preventDefault();
+  const handleDrop = async (event: DragEvent, dateStr: string) => {
+    event.preventDefault();
     setDropTarget(null);
-    const ticketId = e.dataTransfer.getData('text/plain') || dragTicketId;
+    const ticketId = event.dataTransfer.getData('text/plain') || dragTicketId;
     if (!ticketId) return;
 
-    const ticket = tickets.find((t) => t.id === ticketId);
+    const ticket = tickets.find((row) => row.id === ticketId);
     if (!ticket || ticket.scheduled_date.split('T')[0] === dateStr) return;
 
-    // Optimistic update
-    setTickets((prev) => prev.map((t) => t.id === ticketId ? { ...t, scheduled_date: dateStr } : t));
+    setTickets((prev) => prev.map((row) => (row.id === ticketId ? { ...row, scheduled_date: dateStr } : row)));
 
     const supabase = getSupabaseBrowserClient();
     await supabase.from('work_tickets').update({ scheduled_date: dateStr }).eq('id', ticketId);
     setDragTicketId(null);
   };
 
-  const handleDragEnd = () => { setDragTicketId(null); setDropTarget(null); };
+  const handleDragEnd = () => {
+    setDragTicketId(null);
+    setDropTarget(null);
+  };
 
   const sourceCounts = useMemo(() => ({
     recurring: tickets.filter((ticket) => ticket.source === 'recurring').length,
@@ -235,20 +471,82 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
     },
   ]), [sourceCounts, tickets.length]);
 
-  const ticketsByDate = new Map<string, TicketWithSource[]>();
-  for (const day of weekDays) ticketsByDate.set(formatDate(day), []);
-  for (const ticket of visibleTickets) {
-    const dateStr = ticket.scheduled_date.split('T')[0];
-    const existing = ticketsByDate.get(dateStr);
-    if (existing) existing.push(ticket);
-  }
+  const ticketsByDate = useMemo(() => {
+    const map = new Map<string, TicketWithSource[]>();
+    for (const day of daysInRange) {
+      map.set(toDateInput(day), []);
+    }
+    for (const ticket of visibleTickets) {
+      const dateStr = ticket.scheduled_date.split('T')[0];
+      const current = map.get(dateStr);
+      if (current) {
+        current.push(ticket);
+      }
+    }
+    return map;
+  }, [daysInRange, visibleTickets]);
 
-  // Aggregate stats
   const totalTickets = visibleTickets.length;
-  const completedCount = visibleTickets.filter((t) => t.status === 'COMPLETED' || t.status === 'VERIFIED').length;
-  const unassignedCount = visibleTickets.filter((t) => assignedNames(t).length === 0).length;
+  const completedCount = visibleTickets.filter((ticket) => ticket.status === 'COMPLETED' || ticket.status === 'VERIFIED').length;
+  const unassignedCount = visibleTickets.filter((ticket) => assignedNames(ticket).length === 0).length;
 
-  const weekLabel = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} — ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+  const renderDayColumn = (day: Date) => {
+    const dateStr = toDateInput(day);
+    const dayTickets = ticketsByDate.get(dateStr) ?? [];
+    const today = isToday(day);
+    const isDropping = dropTarget === dateStr;
+    const isPast = day < startOfDay(new Date()) && !today;
+
+    return (
+      <div
+        key={dateStr}
+        className={[
+          'rounded-lg border p-2 transition-colors min-h-[140px] flex flex-col',
+          today ? 'border-brand-400 bg-brand-50/30 ring-1 ring-brand-200' : 'border-border',
+          isDropping ? 'border-brand-500 bg-brand-50 border-dashed border-2' : '',
+          isPast ? 'bg-muted/50' : '',
+        ].join(' ')}
+        onDragOver={(event) => handleDragOver(event, dateStr)}
+        onDragLeave={handleDragLeave}
+        onDrop={(event) => handleDrop(event, dateStr)}
+      >
+        <div className="text-center mb-2 pb-1 border-b border-border/50">
+          <p className={`text-xs font-medium ${today ? 'text-brand-600' : 'text-muted-foreground'}`}>
+            {DAY_NAMES[day.getDay()]}
+          </p>
+          <p className={`text-lg font-bold leading-tight ${today ? 'text-brand-600' : 'text-foreground'}`}>
+            {day.getDate()}
+          </p>
+          {dayTickets.length > 0 && (
+            <p className="text-[10px] text-muted-foreground">{dayTickets.length} ticket{dayTickets.length > 1 ? 's' : ''}</p>
+          )}
+        </div>
+
+        <div className="space-y-1 flex-1 overflow-y-auto">
+          {dayTickets.map((ticket) => (
+            <TicketCard
+              key={ticket.id}
+              ticket={ticket}
+              onSelectTicket={onSelectTicket}
+              dragTicketId={dragTicketId}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const monthCells = useMemo(() => {
+    if (viewMode !== 'month') return [] as Array<Date | null>;
+    return [
+      ...Array.from({ length: monthLeadingEmptySlots }, () => null),
+      ...monthDays,
+    ];
+  }, [monthDays, monthLeadingEmptySlots, viewMode]);
+
+  const showCustomAsList = viewMode === 'custom' && daysInRange.length > 14;
 
   return (
     <div className="space-y-4">
@@ -258,20 +556,67 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
         onChange={(value) => setSourceFilter(value as CalendarSource)}
       />
 
-      {/* Week navigation */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="inline-flex items-center rounded-lg border border-border bg-muted p-0.5">
+          {CALENDAR_VIEW_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setViewMode(option.value)}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                viewMode === option.value
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={goToPrevWeek}>
+          <Button variant="secondary" size="sm" onClick={goToPrevWindow}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button variant="secondary" size="sm" onClick={goToThisWeek}>
+          <Button variant="secondary" size="sm" onClick={goToToday}>
             Today
           </Button>
-          <Button variant="secondary" size="sm" onClick={goToNextWeek}>
+          <Button variant="secondary" size="sm" onClick={goToNextWindow}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        <h3 className="text-sm font-semibold text-foreground">{weekLabel}</h3>
+      </div>
+
+      {viewMode === 'custom' && (
+        <div className="grid gap-3 sm:grid-cols-[180px_180px_auto] sm:items-end">
+          <label className="grid gap-1 text-xs text-muted-foreground">
+            <span>Start date</span>
+            <input
+              type="date"
+              value={customStart}
+              onChange={(event) => {
+                setCustomStart(event.target.value);
+                const parsed = parseDateInput(event.target.value);
+                if (parsed) setAnchorDate(parsed);
+              }}
+              className="h-9 rounded-md border border-border bg-background px-2 text-sm text-foreground"
+            />
+          </label>
+          <label className="grid gap-1 text-xs text-muted-foreground">
+            <span>End date</span>
+            <input
+              type="date"
+              value={customEnd}
+              onChange={(event) => setCustomEnd(event.target.value)}
+              className="h-9 rounded-md border border-border bg-background px-2 text-sm text-foreground"
+            />
+          </label>
+          <p className="text-xs text-muted-foreground">Drag tickets to reschedule within the selected range.</p>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-foreground">{label}</h3>
         <div className="flex items-center gap-4 text-xs text-muted-foreground">
           <span>{totalTickets} tickets</span>
           <span className="text-success">{completedCount} done</span>
@@ -281,8 +626,7 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
         </div>
       </div>
 
-      {/* Status legend */}
-      <div className="flex items-center gap-4 text-xs">
+      <div className="flex flex-wrap items-center gap-4 text-xs">
         {Object.entries(STATUS_DOT).map(([status, dotClass]) => (
           <div key={status} className="flex items-center gap-1">
             <div className={`w-2 h-2 rounded-full ${dotClass}`} />
@@ -298,105 +642,112 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-7 gap-2">
-          {Array.from({ length: 7 }).map((_, i) => (
-            <Skeleton key={i} className="h-48 w-full" />
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Skeleton key={index} className="h-48 w-full" />
           ))}
         </div>
-      ) : (
-        <div className="grid grid-cols-7 gap-1 min-h-[500px]">
-          {weekDays.map((day) => {
-            const dateStr = formatDate(day);
-            const dayTickets = ticketsByDate.get(dateStr) ?? [];
-            const today = isToday(day);
-            const isDropping = dropTarget === dateStr;
-            const isPast = day < new Date(new Date().setHours(0, 0, 0, 0)) && !today;
+      ) : viewMode === 'month' ? (
+        <div className="space-y-2">
+          <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-muted-foreground">
+            {DAY_NAMES.map((dayName) => (
+              <div key={dayName} className="py-1">{dayName}</div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-1">
+            {monthCells.map((day, index) => {
+              if (!day) {
+                return <div key={`empty-${index}`} className="min-h-[120px] rounded-lg border border-transparent" />;
+              }
 
-            return (
-              <div
-                key={dateStr}
-                className={`
-                  rounded-lg border p-2 transition-colors min-h-[120px] flex flex-col
-                  ${today ? 'border-brand-400 bg-brand-50/30 ring-1 ring-brand-200' : 'border-border'}
-                  ${isDropping ? 'border-brand-500 bg-brand-50 border-dashed border-2' : ''}
-                  ${isPast ? 'bg-muted/50' : ''}
-                `}
-                onDragOver={(e) => handleDragOver(e, dateStr)}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, dateStr)}
-              >
-                {/* Day header */}
-                <div className="text-center mb-2 pb-1 border-b border-border/50">
-                  <p className={`text-xs font-medium ${today ? 'text-brand-600' : 'text-muted-foreground'}`}>
-                    {DAY_NAMES[day.getDay()]}
-                  </p>
-                  <p className={`text-lg font-bold leading-tight ${today ? 'text-brand-600' : 'text-foreground'}`}>
-                    {day.getDate()}
-                  </p>
-                  {dayTickets.length > 0 && (
-                    <p className="text-[10px] text-muted-foreground">{dayTickets.length} ticket{dayTickets.length > 1 ? 's' : ''}</p>
-                  )}
-                </div>
+              const dateStr = toDateInput(day);
+              const dayTickets = ticketsByDate.get(dateStr) ?? [];
+              const today = isToday(day);
+              const isDropping = dropTarget === dateStr;
+              const isPast = day < startOfDay(new Date()) && !today;
 
-                {/* Ticket cards */}
-                <div className="space-y-1 flex-1 overflow-y-auto">
-                  {dayTickets.map((ticket) => {
-                    const names = assignedNames(ticket);
-                    const shortNames = names.map((name) => name.split(' ')[0]);
-                    const isUnassigned = shortNames.length === 0;
-
-                    return (
-                      <div
+              return (
+                <div
+                  key={dateStr}
+                  className={[
+                    'min-h-[120px] rounded-lg border p-2 transition-colors',
+                    today ? 'border-brand-400 bg-brand-50/30 ring-1 ring-brand-200' : 'border-border',
+                    isDropping ? 'border-brand-500 bg-brand-50 border-dashed border-2' : '',
+                    isPast ? 'bg-muted/50' : '',
+                  ].join(' ')}
+                  onDragOver={(event) => handleDragOver(event, dateStr)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(event) => handleDrop(event, dateStr)}
+                >
+                  <div className="mb-1 flex items-center justify-between">
+                    <span className={`text-xs font-semibold ${today ? 'text-brand-600' : 'text-foreground'}`}>{day.getDate()}</span>
+                    {dayTickets.length > 0 ? (
+                      <span className="text-[10px] text-muted-foreground">{dayTickets.length}</span>
+                    ) : null}
+                  </div>
+                  <div className="space-y-1">
+                    {dayTickets.slice(0, 3).map((ticket) => (
+                      <TicketCard
                         key={ticket.id}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, ticket.id)}
+                        ticket={ticket}
+                        onSelectTicket={onSelectTicket}
+                        dragTicketId={dragTicketId}
+                        onDragStart={handleDragStart}
                         onDragEnd={handleDragEnd}
-                        onClick={() => onSelectTicket?.(ticket)}
-                        className={`
-                          p-1.5 rounded border text-xs cursor-grab active:cursor-grabbing transition-all relative group
-                          ${STATUS_BG[ticket.status] ?? 'bg-muted border-border'}
-                          ${dragTicketId === ticket.id ? 'opacity-40 scale-95' : 'opacity-100'}
-                          ${isUnassigned ? 'ring-1 ring-destructive/30' : ''}
-                        `}
-                      >
-                        {/* Drag handle */}
-                        <GripVertical className="h-3 w-3 text-muted-foreground absolute top-1 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-
-                        {/* Status dot + site name */}
-                        <div className="flex items-center gap-1">
-                          <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[ticket.status] ?? 'bg-muted-foreground'}`} />
-                          <p className="font-medium truncate">{ticket.site?.name ?? ticket.ticket_code}</p>
-                        </div>
-                        <div className="mt-0.5 flex items-center gap-1">
-                          <span className={`inline-flex rounded-full border px-1.5 py-0 text-[9px] font-semibold uppercase tracking-wide ${SOURCE_META[ticket.source].chipClass}`}>
-                            {SOURCE_META[ticket.source].label}
-                          </span>
-                        </div>
-
-                        {/* Time */}
-                        {ticket.start_time && (
-                          <div className="flex items-center gap-0.5 text-muted-foreground mt-0.5">
-                            <Clock className="h-2.5 w-2.5" />
-                            <span>{formatTime(ticket.start_time)}{ticket.end_time ? `–${formatTime(ticket.end_time)}` : ''}</span>
-                          </div>
-                        )}
-
-                        {/* Staff */}
-                        {shortNames.length > 0 ? (
-                          <div className="flex items-center gap-0.5 text-muted-foreground mt-0.5">
-                            <Users className="h-2.5 w-2.5" />
-                            <span className="truncate">{shortNames.join(', ')}</span>
-                          </div>
-                        ) : (
-                          <p className="text-destructive text-[10px] mt-0.5 font-medium">Unassigned</p>
-                        )}
-                      </div>
-                    );
-                  })}
+                      />
+                    ))}
+                    {dayTickets.length > 3 ? (
+                      <p className="text-[10px] text-muted-foreground">+{dayTickets.length - 3} more</p>
+                    ) : null}
+                  </div>
                 </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : showCustomAsList ? (
+        <div className="space-y-3">
+          {daysInRange.map((day) => {
+            const dateStr = toDateInput(day);
+            const dayTickets = ticketsByDate.get(dateStr) ?? [];
+            return (
+              <div key={dateStr} className="rounded-lg border border-border p-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-sm font-semibold text-foreground">
+                    {day.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{dayTickets.length} tickets</p>
+                </div>
+                {dayTickets.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No tickets</p>
+                ) : (
+                  <div className="space-y-1">
+                    {dayTickets.map((ticket) => (
+                      <TicketCard
+                        key={ticket.id}
+                        ticket={ticket}
+                        onSelectTicket={onSelectTicket}
+                        dragTicketId={dragTicketId}
+                        onDragStart={handleDragStart}
+                        onDragEnd={handleDragEnd}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <div
+            className="grid gap-2 min-h-[460px]"
+            style={{
+              gridTemplateColumns: `repeat(${Math.max(daysInRange.length, 1)}, minmax(190px, 1fr))`,
+            }}
+          >
+            {daysInRange.map((day) => renderDayColumn(day))}
+          </div>
         </div>
       )}
     </div>

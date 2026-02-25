@@ -14,6 +14,7 @@ import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 import { useViewPreference } from '@/hooks/use-view-preference';
 import { JobForm } from '@/components/forms/job-form';
+import { EntityAvatar } from '@/components/directory/entity-avatar';
 import { JobsCardGrid } from './jobs-card-grid';
 import { EntityLink } from '@/components/links/entity-link';
 
@@ -29,7 +30,12 @@ const PRIORITY_COLORS: Record<string, 'red' | 'blue' | 'orange' | 'gray'> = {
 const STATUS_OPTIONS = ['ACTIVE', 'ON_HOLD', 'COMPLETED', 'CANCELED', 'all'] as const;
 
 interface JobWithRelations extends SiteJob {
-  site?: { site_code: string; name: string; client?: { name: string; client_code?: string | null } | null } | null;
+  site?: {
+    site_code: string;
+    name: string;
+    photo_url?: string | null;
+    client?: { name: string; client_code?: string | null } | null;
+  } | null;
 }
 
 interface JobsTableProps {
@@ -77,7 +83,7 @@ export default function JobsTable({ search, openCreateToken, showCreateButton = 
       .from('site_jobs')
       .select(`
         *,
-        site:site_id(site_code, name, client:client_id(name, client_code))
+        site:site_id(site_code, name, photo_url, client:client_id(name, client_code))
       `)
       .is('archived_at', null)
       .order('created_at', { ascending: false });
@@ -278,6 +284,13 @@ export default function JobsTable({ search, openCreateToken, showCreateButton = 
                     </TableCell>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
+                        <EntityAvatar
+                          name={row.job_name ?? row.job_code}
+                          seed={row.job_code}
+                          imageUrl={row.site?.photo_url ?? null}
+                          fallbackIcon={<Briefcase className="h-3.5 w-3.5" />}
+                          size="sm"
+                        />
                         <StatusDot status={row.status} />
                         <span className="inline-block max-w-[220px] truncate" title={row.job_name ?? 'Not Set'}>
                           {row.job_name ?? 'Not Set'}

@@ -16,6 +16,7 @@ import { usePagination } from '@/hooks/use-pagination';
 import { useViewPreference } from '@/hooks/use-view-preference';
 import { VehiclesCardGrid } from './vehicles-card-grid';
 import { VehicleForm } from '@/components/forms/vehicle-form';
+import { EntityAvatar } from '@/components/directory/entity-avatar';
 import { EntityLink } from '@/components/links/entity-link';
 
 interface VehicleWithAssigned extends Vehicle {
@@ -205,7 +206,20 @@ export default function VehiclesTable({ search, formOpen, onFormClose, onRefresh
                         <span>{row.vehicle_code}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium">{row.name ?? '—'}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <EntityAvatar
+                          name={row.name ?? row.vehicle_code}
+                          seed={row.vehicle_code}
+                          imageUrl={row.photo_url}
+                          fallbackIcon={<Truck className="h-3.5 w-3.5" />}
+                          size="sm"
+                        />
+                        <span className="inline-block max-w-[220px] truncate" title={row.name ?? row.vehicle_code}>
+                          {row.name ?? '—'}
+                        </span>
+                      </div>
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {[row.make, row.model].filter(Boolean).join(' ') || '—'}
                     </TableCell>

@@ -200,6 +200,7 @@ function statusBadgeColor(status: string | null | undefined): 'green' | 'yellow'
 
 const TABS = [
   { key: 'overview', label: 'Overview', icon: <User className="h-4 w-4" /> },
+  { key: 'schedule', label: 'Schedule', icon: <CalendarDays className="h-4 w-4" /> },
   { key: 'jobs', label: 'Assigned Jobs', icon: <Briefcase className="h-4 w-4" /> },
   { key: 'equipment', label: 'Equipment', icon: <Wrench className="h-4 w-4" /> },
 ];
@@ -781,6 +782,94 @@ export default function StaffDetailPage() {
                     </div>
                   </dl>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Schedule Tab */}
+      {tab === 'schedule' && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <Card>
+            <CardHeader><CardTitle>Employee Schedule</CardTitle></CardHeader>
+            <CardContent>
+              <dl className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <dt className="text-muted-foreground">Schedule Type</dt>
+                  <dd className="font-medium">{staff.schedule_type ?? <span className="text-muted-foreground">Not set</span>}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-muted-foreground">Employment Type</dt>
+                  <dd className="font-medium">{staff.employment_type ?? <span className="text-muted-foreground">Not set</span>}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-muted-foreground">Role</dt>
+                  <dd className="font-medium">{staff.role}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-muted-foreground">Availability Pattern</dt>
+                  <dd className="font-medium text-right">
+                    {typicalDays.length ? typicalDays.join(', ') : <span className="text-muted-foreground">No preferred days saved</span>}
+                  </dd>
+                </div>
+              </dl>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle>Work Schedule</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <dl className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <dt className="text-muted-foreground">Active Service Plans</dt>
+                  <dd className="font-medium">{activeJobCount}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-muted-foreground">Open Work Tickets</dt>
+                  <dd className="font-medium">{openTickets.length}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-muted-foreground">Next Ticket</dt>
+                  <dd className="font-medium">
+                    {nextTicket
+                      ? nextTicket.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                      : <span className="text-muted-foreground">None scheduled</span>}
+                  </dd>
+                </div>
+              </dl>
+
+              <div className="border-t border-border pt-4">
+                <p className="text-xs font-medium text-muted-foreground">Upcoming Work Schedule</p>
+                {openTickets.length === 0 ? (
+                  <p className="mt-2 text-sm text-muted-foreground">No open tickets scheduled.</p>
+                ) : (
+                  <ul className="mt-2 space-y-2">
+                    {openTickets
+                      .filter((assignment) => assignment.ticket?.ticket_code)
+                      .sort((a, b) => {
+                        const left = new Date(a.ticket?.scheduled_date ?? '').getTime();
+                        const right = new Date(b.ticket?.scheduled_date ?? '').getTime();
+                        return left - right;
+                      })
+                      .slice(0, 8)
+                      .map((assignment) => (
+                        <li key={assignment.id} className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
+                          <span className="font-medium">
+                            <EntityLink
+                              entityType="ticket"
+                              code={assignment.ticket?.ticket_code ?? ''}
+                              name={assignment.ticket?.ticket_code ?? 'Ticket'}
+                              showCode={false}
+                            />
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDate(assignment.ticket?.scheduled_date ?? null)}
+                          </span>
+                        </li>
+                      ))}
+                  </ul>
+                )}
               </div>
             </CardContent>
           </Card>

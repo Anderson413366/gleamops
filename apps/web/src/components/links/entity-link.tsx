@@ -6,6 +6,7 @@ type EntityType =
   | 'client'
   | 'site'
   | 'job'
+  | 'ticket'
   | 'staff'
   | 'equipment'
   | 'vehicle'
@@ -29,6 +30,7 @@ const ROUTE_PREFIX: Record<EntityType, string> = {
   client: '/clients',
   site: '/clients/sites',
   job: '/operations/jobs',
+  ticket: '/operations/tickets',
   staff: '/team/staff',
   equipment: '/assets/equipment',
   vehicle: '/equipment/vehicles',

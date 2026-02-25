@@ -89,6 +89,15 @@ interface JobTaskWithCatalogRow {
   task?: TaskCatalogRow | null;
 }
 
+interface JobLogRow {
+  id: string;
+  log_date: string | null;
+  event_type: string | null;
+  severity: string | null;
+  message: string | null;
+  status: string | null;
+}
+
 interface AssignedTaskDraft {
   tempId: string;
   taskId: string | null;
@@ -112,6 +121,19 @@ const FREQUENCY_COLORS: Record<string, 'green' | 'blue' | 'yellow' | 'gray' | 'p
   QUARTERLY: 'gray',
   ANNUALLY: 'purple',
   ONE_TIME: 'purple',
+};
+
+const LOG_SEVERITY_COLORS: Record<string, 'red' | 'orange' | 'yellow' | 'gray'> = {
+  CRITICAL: 'red',
+  MAJOR: 'orange',
+  MINOR: 'yellow',
+};
+
+const LOG_STATUS_COLORS: Record<string, 'red' | 'yellow' | 'green' | 'gray'> = {
+  OPEN: 'red',
+  IN_PROGRESS: 'yellow',
+  RESOLVED: 'green',
+  CLOSED: 'gray',
 };
 
 const FREQUENCY_LABELS: Record<string, string> = {
@@ -217,6 +239,7 @@ export default function JobDetailPage() {
   const [taskDraft, setTaskDraft] = useState<AssignedTaskDraft[]>([]);
   const [financials, setFinancials] = useState<JobFinancialResult | null>(null);
   const [assignments, setAssignments] = useState<JobStaffAssignmentRow[]>([]);
+  const [jobLogs, setJobLogs] = useState<JobLogRow[]>([]);
   const [staffOptions, setStaffOptions] = useState<StaffOption[]>([]);
   const [assignStaffId, setAssignStaffId] = useState('');
   const [assignRole, setAssignRole] = useState('');
@@ -253,6 +276,25 @@ export default function JobDetailPage() {
       return;
     }
     setTaskCatalog((data as TaskCatalogRow[]) ?? []);
+  };
+
+  const fetchJobLogs = async (jobId: string) => {
+    const supabase = getSupabaseBrowserClient();
+    const { data, error } = await supabase
+      .from('job_logs')
+      .select('id, log_date, event_type, severity, message, status')
+      .eq('job_id', jobId)
+      .is('archived_at', null)
+      .order('log_date', { ascending: false })
+      .limit(30);
+
+    if (error) {
+      toast.error(error.message);
+      setJobLogs([]);
+      return;
+    }
+
+    setJobLogs((data as JobLogRow[]) ?? []);
   };
 
   const fetchJobTasks = async (jobId: string) => {
@@ -314,7 +356,7 @@ export default function JobDetailPage() {
     if (data) {
       const j = data as unknown as JobWithRelations;
       setJob(j);
-      await Promise.all([fetchJobTasks(j.id), fetchTaskCatalog()]);
+      await Promise.all([fetchJobTasks(j.id), fetchTaskCatalog(), fetchJobLogs(j.id)]);
 
       // Fetch assignments + available staff in parallel.
       const [assignmentRes, staffRes] = await Promise.all([
@@ -963,6 +1005,42 @@ export default function JobDetailPage() {
             <span>·</span>
             <span>Est. Hours / Service: {formatHoursFromMinutes(totalTaskMinutes)}</span>
           </div>
+        </div>
+
+        {/* Job Log */}
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm lg:col-span-2">
+          <h3 className="mb-4 text-sm font-semibold text-foreground">
+            <span className="inline-flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+              Job Log ({jobLogs.length})
+            </span>
+          </h3>
+
+          {jobLogs.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No job log entries recorded yet.</p>
+          ) : (
+            <ul className="divide-y divide-border">
+              {jobLogs.map((log) => (
+                <li key={log.id} className="py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">{log.event_type ?? 'Log Entry'}</p>
+                      {log.message ? <p className="mt-0.5 text-xs text-muted-foreground">{log.message}</p> : null}
+                      <p className="mt-1 text-xs text-muted-foreground">{formatDateText(log.log_date) ?? 'Unknown date'}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge color={LOG_SEVERITY_COLORS[(log.severity ?? '').toUpperCase()] ?? 'gray'}>
+                        {log.severity ?? 'n/a'}
+                      </Badge>
+                      <Badge color={LOG_STATUS_COLORS[(log.status ?? '').toUpperCase()] ?? 'gray'}>
+                        {log.status ?? 'n/a'}
+                      </Badge>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         {/* Staff Assignments */}

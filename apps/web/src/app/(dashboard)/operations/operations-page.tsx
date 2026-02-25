@@ -210,24 +210,27 @@ export default function OperationsPageClient() {
         </div>
       )}
 
-      <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
-      <SearchInput
-        value={search}
-        onChange={setSearch}
-        placeholder={
-          tab === 'jobs'
-            ? 'Search jobs...'
-            : tab === 'tickets'
-              ? 'Search tickets...'
-              : tab === 'inspections'
-                ? 'Search inspections...'
-                : tab === 'routes'
-                  ? 'Search routes and owners...'
-                  : tab === 'alerts'
-                    ? 'Search alerts...'
-                    : `Search ${tab}...`
-        }
-      />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder={
+            tab === 'jobs'
+              ? 'Search jobs...'
+              : tab === 'tickets'
+                ? 'Search tickets...'
+                : tab === 'inspections'
+                  ? 'Search inspections...'
+                  : tab === 'routes'
+                    ? 'Search routes and owners...'
+                    : tab === 'alerts'
+                      ? 'Search alerts...'
+                      : `Search ${tab}...`
+          }
+          className="w-full sm:w-72 lg:w-80"
+        />
+      </div>
 
       {tab === 'jobs' && (
         <JobsTable

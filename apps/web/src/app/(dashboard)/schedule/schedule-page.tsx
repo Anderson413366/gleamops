@@ -345,23 +345,26 @@ export default function SchedulePageClient() {
         </Card>
       </div>
 
-      <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
 
-      {(tab === 'recurring' || tab === 'work-orders' || tab === 'checklists') && (
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder={
-            tab === 'recurring'
-              ? 'Search recurring assignments, roles, and sites...'
-              : tab === 'work-orders'
-                ? 'Search work orders, services, and sites...'
-                : tab === 'checklists'
-                  ? 'Search checklist templates, sections, or items...'
-                : `Search ${tab}...`
-          }
-        />
-      )}
+        {(tab === 'recurring' || tab === 'work-orders' || tab === 'checklists') && (
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder={
+              tab === 'recurring'
+                ? 'Search recurring assignments, roles, and sites...'
+                : tab === 'work-orders'
+                  ? 'Search work orders, services, and sites...'
+                  : tab === 'checklists'
+                    ? 'Search checklist templates, sections, or items...'
+                  : `Search ${tab}...`
+            }
+            className="w-full sm:w-72 lg:w-80"
+          />
+        )}
+      </div>
 
       {tab === 'recurring' && (
         <div className="flex justify-end">

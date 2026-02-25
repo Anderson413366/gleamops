@@ -17,7 +17,8 @@ export async function POST(
   });
 
   if (!result.success) {
-    return NextResponse.json({ error: result.error }, { status: result.status });
+    const safeError = result.status >= 500 ? 'Request could not be submitted right now' : result.error;
+    return NextResponse.json({ error: safeError }, { status: result.status });
   }
 
   return NextResponse.json(result.data, { status: 201 });

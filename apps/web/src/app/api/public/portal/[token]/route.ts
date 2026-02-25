@@ -12,7 +12,8 @@ export async function GET(
 
   const result = await getPublicPortal(token);
   if (!result.success) {
-    return NextResponse.json({ error: result.error }, { status: result.status });
+    const safeError = result.status >= 500 ? 'Portal is temporarily unavailable' : result.error;
+    return NextResponse.json({ error: safeError }, { status: result.status });
   }
 
   return NextResponse.json(result.data);

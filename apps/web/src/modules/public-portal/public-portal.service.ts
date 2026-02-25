@@ -85,6 +85,10 @@ function normalizeToken(token: string): string {
   return token.trim();
 }
 
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
 function classifySeverity(priority: string | null | undefined): 'INFO' | 'WARNING' | 'CRITICAL' {
   const normalized = (priority ?? '').toUpperCase();
   if (normalized === 'HIGH' || normalized === 'URGENT' || normalized === 'CRITICAL') return 'CRITICAL';
@@ -98,6 +102,7 @@ async function resolvePortalContext(token: string): Promise<
 > {
   const normalizedToken = normalizeToken(token);
   if (!normalizedToken) return { success: false, error: 'Token required', status: 400 };
+  if (!isUuid(normalizedToken)) return { success: false, error: 'Invalid or expired portal link', status: 404 };
 
   const db = createDb();
   const { data, error } = await findPortalContextByToken(db, normalizedToken);

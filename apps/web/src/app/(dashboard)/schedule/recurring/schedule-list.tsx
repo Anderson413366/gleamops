@@ -23,10 +23,21 @@ export interface RecurringScheduleRow {
   staffName: string;
   positionType: string;
   siteName: string;
+  siteCode?: string | null;
   startTime: string;
   endTime: string;
   scheduleDays: string[];
   status: 'assigned' | 'open' | 'pending';
+  blueprint?: {
+    janitorialClosetLocation?: string | null;
+    supplyStorageLocation?: string | null;
+    waterSourceLocation?: string | null;
+    dumpsterLocation?: string | null;
+    securityProtocol?: string | null;
+    entryInstructions?: string | null;
+    parkingInstructions?: string | null;
+    accessNotes?: string | null;
+  } | null;
 }
 
 interface ScheduleListProps {

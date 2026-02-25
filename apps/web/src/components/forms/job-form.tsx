@@ -148,8 +148,18 @@ interface JobFormProps {
 
 interface SiteOption {
   value: string;
+  siteName: string;
   label: string;
   clientId: string | null;
+  siteCode: string | null;
+  janitorialClosetLocation: string | null;
+  supplyStorageLocation: string | null;
+  waterSourceLocation: string | null;
+  dumpsterLocation: string | null;
+  entryInstructions: string | null;
+  securityProtocol: string | null;
+  parkingInstructions: string | null;
+  accessNotes: string | null;
 }
 
 interface TaskCatalogRow {
@@ -340,7 +350,24 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
 
     Promise.all([
       supabase.from('clients').select('id, name, client_code').is('archived_at', null).order('name'),
-      supabase.from('sites').select('id, name, site_code, client_id').is('archived_at', null).order('name'),
+      supabase
+        .from('sites')
+        .select(`
+          id,
+          name,
+          site_code,
+          client_id,
+          janitorial_closet_location,
+          supply_storage_location,
+          water_source_location,
+          dumpster_location,
+          entry_instructions,
+          security_protocol,
+          parking_instructions,
+          access_notes
+        `)
+        .is('archived_at', null)
+        .order('name'),
       supabase.from('services').select('id, name, service_code').is('archived_at', null).order('name'),
       supabase
         .from('staff')
@@ -368,8 +395,18 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
         setSites(
           sitesRes.data.map((s) => ({
             value: s.id,
+            siteName: s.name,
             label: `${s.name} (${s.site_code})`,
             clientId: (s as { client_id: string | null }).client_id,
+            siteCode: (s as { site_code: string | null }).site_code,
+            janitorialClosetLocation: (s as { janitorial_closet_location: string | null }).janitorial_closet_location,
+            supplyStorageLocation: (s as { supply_storage_location: string | null }).supply_storage_location,
+            waterSourceLocation: (s as { water_source_location: string | null }).water_source_location,
+            dumpsterLocation: (s as { dumpster_location: string | null }).dumpster_location,
+            entryInstructions: (s as { entry_instructions: string | null }).entry_instructions,
+            securityProtocol: (s as { security_protocol: string | null }).security_protocol,
+            parkingInstructions: (s as { parking_instructions: string | null }).parking_instructions,
+            accessNotes: (s as { access_notes: string | null }).access_notes,
           }))
         );
       }
@@ -454,6 +491,11 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
     if (!selectedClientId) return [];
     return sites.filter((s) => s.clientId === selectedClientId);
   }, [sites, selectedClientId]);
+
+  const selectedSiteBlueprint = useMemo(
+    () => sites.find((site) => site.value === values.site_id) ?? null,
+    [sites, values.site_id],
+  );
 
   const selectedDayCodes = useMemo(() => parseDayCodes(values.schedule_days), [values.schedule_days]);
 
@@ -710,6 +752,55 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
               onChange={(e) => setValue('service_id', e.target.value || null)}
               options={[{ value: '', label: 'None' }, ...services]}
             />
+            {selectedSiteBlueprint ? (
+              <Card className="border-dashed border-module-accent/30 bg-muted/20">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Site Blueprint (Read-only)</CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-2 text-sm sm:grid-cols-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Site</p>
+                    <p className="font-medium">
+                      {selectedSiteBlueprint.siteCode
+                        ? `${selectedSiteBlueprint.siteCode} - ${selectedSiteBlueprint.siteName}`
+                        : selectedSiteBlueprint.siteName}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Security Protocol</p>
+                    <p className="font-medium">{selectedSiteBlueprint.securityProtocol || 'Not Set'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Janitorial Closet</p>
+                    <p className="font-medium">{selectedSiteBlueprint.janitorialClosetLocation || 'Not Set'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Supply Storage</p>
+                    <p className="font-medium">{selectedSiteBlueprint.supplyStorageLocation || 'Not Set'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Water Source</p>
+                    <p className="font-medium">{selectedSiteBlueprint.waterSourceLocation || 'Not Set'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Dumpster</p>
+                    <p className="font-medium">{selectedSiteBlueprint.dumpsterLocation || 'Not Set'}</p>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <p className="text-xs text-muted-foreground">Entry Instructions</p>
+                    <p className="font-medium whitespace-pre-wrap">{selectedSiteBlueprint.entryInstructions || 'Not Set'}</p>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <p className="text-xs text-muted-foreground">Parking Instructions</p>
+                    <p className="font-medium whitespace-pre-wrap">{selectedSiteBlueprint.parkingInstructions || 'Not Set'}</p>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <p className="text-xs text-muted-foreground">Access Notes</p>
+                    <p className="font-medium whitespace-pre-wrap">{selectedSiteBlueprint.accessNotes || 'Not Set'}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : null}
             <Textarea label="Special Requirements" value={values.special_requirements ?? ''} onChange={(e) => setValue('special_requirements', e.target.value || null)} />
             <Textarea label="Specifications" value={values.specifications ?? ''} onChange={(e) => setValue('specifications', e.target.value || null)} />
             <Textarea label="Notes" value={values.notes ?? ''} onChange={(e) => setValue('notes', e.target.value || null)} />
@@ -1007,6 +1098,56 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
                     ))}
                   </ul>
                 )}
+
+                {selectedSiteBlueprint ? (
+                  <Card className="border-dashed border-module-accent/30 bg-muted/20">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm">Site Blueprint (Read-only)</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid gap-2 text-sm sm:grid-cols-2">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Site</p>
+                        <p className="font-medium">
+                          {selectedSiteBlueprint.siteCode
+                            ? `${selectedSiteBlueprint.siteCode} - ${selectedSiteBlueprint.siteName}`
+                            : selectedSiteBlueprint.siteName}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Security Protocol</p>
+                        <p className="font-medium">{selectedSiteBlueprint.securityProtocol || 'Not Set'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Janitorial Closet</p>
+                        <p className="font-medium">{selectedSiteBlueprint.janitorialClosetLocation || 'Not Set'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Supply Storage</p>
+                        <p className="font-medium">{selectedSiteBlueprint.supplyStorageLocation || 'Not Set'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Water Source</p>
+                        <p className="font-medium">{selectedSiteBlueprint.waterSourceLocation || 'Not Set'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Dumpster</p>
+                        <p className="font-medium">{selectedSiteBlueprint.dumpsterLocation || 'Not Set'}</p>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <p className="text-xs text-muted-foreground">Entry Instructions</p>
+                        <p className="font-medium whitespace-pre-wrap">{selectedSiteBlueprint.entryInstructions || 'Not Set'}</p>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <p className="text-xs text-muted-foreground">Parking Instructions</p>
+                        <p className="font-medium whitespace-pre-wrap">{selectedSiteBlueprint.parkingInstructions || 'Not Set'}</p>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <p className="text-xs text-muted-foreground">Access Notes</p>
+                        <p className="font-medium whitespace-pre-wrap">{selectedSiteBlueprint.accessNotes || 'Not Set'}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : null}
 
                 <Textarea
                   label="Special Requirements"

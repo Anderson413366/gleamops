@@ -11,6 +11,7 @@ import { ChipTabs } from '@gleamops/ui';
 import { CoverageAlerts } from './command-center/coverage-alerts';
 import { FieldRequests } from './command-center/field-requests';
 import { QuickActions } from './command-center/quick-actions';
+import { SiteBlueprintReview } from './command-center/site-blueprint-review';
 import { TodaysTasks } from './command-center/todays-tasks';
 import { WeeklyProjects } from './command-center/weekly-projects';
 
@@ -87,6 +88,8 @@ export default function CommandCenter() {
           <QuickActions />
 
           <FieldRequests filter={activeFilter} />
+
+          <SiteBlueprintReview filter={activeFilter} />
         </div>
       </div>
     </div>

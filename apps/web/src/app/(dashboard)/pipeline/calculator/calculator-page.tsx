@@ -13,6 +13,7 @@ import {
 } from '@gleamops/cleanflow';
 import { LiveEstimatePanel } from './live-estimate-panel';
 import { AreaTemplatePicker, buildAreasFromTemplates } from './area-template-picker';
+import { EstimateExport } from './estimate-export';
 import { FinancialBreakdown } from './financial-breakdown';
 import { PricingStrategySelector, type PricingMethod } from './pricing-strategy-selector';
 import { getServiceTypeConfig, ServiceTypeSelector } from './service-type-selector';
@@ -410,6 +411,20 @@ export default function CalculatorPage() {
         workload={workload}
         targetMarginPct={targetMarginPct}
         serviceType={serviceType}
+      />
+
+      <EstimateExport
+        serviceType={serviceType}
+        buildingTypeCode={buildingTypeCode}
+        pricingMethod={pricingMethod}
+        targetMarginPct={targetMarginPct}
+        areas={calculatedAreas.map((area) => ({
+          name: area.name,
+          sqft: area.sqft,
+          floorTypeCode: area.floorTypeCode,
+        }))}
+        pricing={pricing}
+        workload={workload}
       />
 
     </div>

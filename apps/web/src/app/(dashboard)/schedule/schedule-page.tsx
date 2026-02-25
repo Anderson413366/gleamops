@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar, ClipboardList, Clock, ArrowLeftRight } from 'lucide-react';
+import { Calendar, ClipboardList, Briefcase } from 'lucide-react';
 import { ChipTabs, SearchInput, Card, CardContent } from '@gleamops/ui';
 import type { WorkTicket } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -9,6 +9,7 @@ import { useSyncedTab } from '@/hooks/use-synced-tab';
 
 import WeekCalendar from '../operations/calendar/week-calendar';
 import PlanningBoard from './plan/planning-board';
+import JobsTable from './jobs/jobs-table';
 
 // Re-use ticket relations type
 interface TicketWithRelations extends WorkTicket {
@@ -23,17 +24,16 @@ interface TicketWithRelations extends WorkTicket {
 }
 
 const TABS = [
+  { key: 'recurring', label: 'Recurring', icon: <ClipboardList className="h-4 w-4" /> },
+  { key: 'work-orders', label: 'Work Orders', icon: <Briefcase className="h-4 w-4" /> },
   { key: 'calendar', label: 'Calendar', icon: <Calendar className="h-4 w-4" /> },
-  { key: 'plan', label: 'Plan', icon: <ClipboardList className="h-4 w-4" /> },
-  { key: 'availability', label: 'Availability', icon: <Clock className="h-4 w-4" /> },
-  { key: 'trades', label: 'Trades', icon: <ArrowLeftRight className="h-4 w-4" /> },
 ];
 
 export default function SchedulePageClient() {
   const [tab, setTab] = useSyncedTab({
     tabKeys: TABS.map((entry) => entry.key),
-    defaultTab: 'calendar',
-    aliases: { planning: 'plan' },
+    defaultTab: 'recurring',
+    aliases: { planning: 'recurring', plan: 'recurring', jobs: 'work-orders' },
   });
   const [search, setSearch] = useState('');
   const [refreshKey] = useState(0);
@@ -41,15 +41,15 @@ export default function SchedulePageClient() {
   const [kpis, setKpis] = useState({
     todayTickets: 0,
     coverageGaps: 0,
+    activeWorkOrders: 0,
     publishedPeriods: 0,
-    pendingTrades: 0,
   });
 
   useEffect(() => {
     async function fetchKpis() {
       const supabase = getSupabaseBrowserClient();
       const today = new Date().toISOString().slice(0, 10);
-      const [todayRes, gapsRes, periodsRes, tradesRes] = await Promise.all([
+      const [todayRes, gapsRes, workOrdersRes, periodsRes] = await Promise.all([
         supabase
           .from('work_tickets')
           .select('id', { count: 'exact', head: true })
@@ -61,20 +61,21 @@ export default function SchedulePageClient() {
           .eq('conflict_type', 'COVERAGE_GAP')
           .eq('is_blocking', true),
         supabase
+          .from('site_jobs')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'ACTIVE')
+          .is('archived_at', null),
+        supabase
           .from('schedule_periods')
           .select('id', { count: 'exact', head: true })
           .eq('status', 'PUBLISHED'),
-        supabase
-          .from('shift_trade_requests')
-          .select('id', { count: 'exact', head: true })
-          .eq('status', 'PENDING'),
       ]);
 
       setKpis({
         todayTickets: todayRes.count ?? 0,
         coverageGaps: gapsRes.count ?? 0,
+        activeWorkOrders: workOrdersRes.count ?? 0,
         publishedPeriods: periodsRes.count ?? 0,
-        pendingTrades: tradesRes.count ?? 0,
       });
     }
     fetchKpis();
@@ -86,7 +87,7 @@ export default function SchedulePageClient() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Schedule</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Who goes where, when?
+            Recurring assignments, work orders, and calendar coordination.
           </p>
         </div>
       </div>
@@ -108,16 +109,14 @@ export default function SchedulePageClient() {
         </Card>
         <Card>
           <CardContent className="pt-4">
-            <p className="text-xs text-muted-foreground">Published Periods</p>
-            <p className="text-xl font-semibold">{kpis.publishedPeriods}</p>
+            <p className="text-xs text-muted-foreground">Active Work Orders</p>
+            <p className="text-xl font-semibold">{kpis.activeWorkOrders}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
-            <p className="text-xs text-muted-foreground">Pending Trades</p>
-            <p className={`text-xl font-semibold ${kpis.pendingTrades > 0 ? 'text-warning' : ''}`}>
-              {kpis.pendingTrades}
-            </p>
+            <p className="text-xs text-muted-foreground">Published Periods</p>
+            <p className="text-xl font-semibold">{kpis.publishedPeriods}</p>
           </CardContent>
         </Card>
       </div>
@@ -129,13 +128,11 @@ export default function SchedulePageClient() {
           value={search}
           onChange={setSearch}
           placeholder={
-            tab === 'plan'
-              ? 'Search planning tickets, roles, and sites...'
-              : tab === 'availability'
-                ? 'Search staff availability...'
-                : tab === 'trades'
-                  ? 'Search trade requests...'
-                  : `Search ${tab}...`
+            tab === 'recurring'
+              ? 'Search recurring assignments, roles, and sites...'
+              : tab === 'work-orders'
+                ? 'Search work orders, services, and sites...'
+                : `Search ${tab}...`
           }
         />
       )}
@@ -147,33 +144,12 @@ export default function SchedulePageClient() {
         />
       )}
 
-      {tab === 'plan' && (
+      {tab === 'recurring' && (
         <PlanningBoard key={`planning-${refreshKey}`} search={search} />
       )}
 
-      {tab === 'availability' && (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Clock className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">Staff Availability</h3>
-            <p className="text-sm text-muted-foreground max-w-md mx-auto">
-              View and manage staff availability rules, PTO calendar, and one-off exceptions.
-              This view is coming soon.
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {tab === 'trades' && (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <ArrowLeftRight className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">Shift Trades</h3>
-            <p className="text-sm text-muted-foreground max-w-md mx-auto">
-              No shift trade requests. Staff can request trades from their schedule view.
-            </p>
-          </CardContent>
-        </Card>
+      {tab === 'work-orders' && (
+        <JobsTable key={`work-orders-${refreshKey}`} search={search} />
       )}
     </div>
   );

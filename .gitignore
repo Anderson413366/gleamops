@@ -50,6 +50,19 @@ blob-report/
 
 # Claude worktrees
 .claude/worktrees/
+.claire/
+.claude/settings.local.json
+
+# Local operator notes and helper scripts (not product code)
+/BOOTSTRAP.md
+/HEARTBEAT.md
+/IDENTITY.md
+/SOUL.md
+/TOOLS.md
+/USER.md
+/scripts/claude-with-log.sh
+/scripts/install-openclaw-precommit-hook.sh
+/scripts/openclaw-approve.sh
 
 # OpenClaw local runtime/watch artifacts
 .openclaw/

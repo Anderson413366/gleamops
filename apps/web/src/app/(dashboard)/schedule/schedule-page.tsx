@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Calendar, ClipboardList, Briefcase, FileText, Plus } from 'lucide-react';
 import { ChipTabs, SearchInput, Card, CardContent, Button } from '@gleamops/ui';
 import { normalizeRoleCode, type WorkTicket } from '@gleamops/shared';
@@ -90,6 +91,7 @@ function normalizeTime(value: string | null | undefined) {
 }
 
 export default function SchedulePageClient() {
+  const router = useRouter();
   const { role } = useRole();
   const [tab, setTab] = useSyncedTab({
     tabKeys: TABS.map((entry) => entry.key),
@@ -111,15 +113,15 @@ export default function SchedulePageClient() {
   const [kpis, setKpis] = useState({
     todayTickets: 0,
     coverageGaps: 0,
-    activeWorkOrders: 0,
-    publishedPeriods: 0,
+    openWorkOrders: 0,
+    activeServicePlans: 0,
   });
 
   useEffect(() => {
     async function fetchKpis() {
       const supabase = getSupabaseBrowserClient();
       const today = new Date().toISOString().slice(0, 10);
-      const [todayRes, gapsRes, workOrdersRes, periodsRes] = await Promise.all([
+      const [todayRes, gapsRes, openWorkOrdersRes, servicePlansRes] = await Promise.all([
         supabase
           .from('work_tickets')
           .select('id', { count: 'exact', head: true })
@@ -131,21 +133,22 @@ export default function SchedulePageClient() {
           .eq('conflict_type', 'COVERAGE_GAP')
           .eq('is_blocking', true),
         supabase
+          .from('work_tickets')
+          .select('id', { count: 'exact', head: true })
+          .in('status', ['SCHEDULED', 'IN_PROGRESS'])
+          .is('archived_at', null),
+        supabase
           .from('site_jobs')
           .select('id', { count: 'exact', head: true })
           .eq('status', 'ACTIVE')
           .is('archived_at', null),
-        supabase
-          .from('schedule_periods')
-          .select('id', { count: 'exact', head: true })
-          .eq('status', 'PUBLISHED'),
       ]);
 
       setKpis({
         todayTickets: todayRes.count ?? 0,
         coverageGaps: gapsRes.count ?? 0,
-        activeWorkOrders: workOrdersRes.count ?? 0,
-        publishedPeriods: periodsRes.count ?? 0,
+        openWorkOrders: openWorkOrdersRes.count ?? 0,
+        activeServicePlans: servicePlansRes.count ?? 0,
       });
     }
     fetchKpis();
@@ -326,30 +329,78 @@ export default function SchedulePageClient() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <Card>
+        <Card
+          role="button"
+          tabIndex={0}
+          onClick={() => setTab('calendar')}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              setTab('calendar');
+            }
+          }}
+          className="cursor-pointer hover:border-module-accent/40 hover:shadow-md"
+        >
           <CardContent className="pt-4">
             <p className="text-xs text-muted-foreground">Tickets Today</p>
             <p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.todayTickets}</p>
+            <p className="text-[11px] text-muted-foreground">Open Calendar</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card
+          role="button"
+          tabIndex={0}
+          onClick={() => setTab('recurring')}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              setTab('recurring');
+            }
+          }}
+          className="cursor-pointer hover:border-module-accent/40 hover:shadow-md"
+        >
           <CardContent className="pt-4">
             <p className="text-xs text-muted-foreground">Coverage Gaps</p>
             <p className={`text-lg font-semibold sm:text-xl leading-tight ${kpis.coverageGaps > 0 ? 'text-destructive' : ''}`}>
               {kpis.coverageGaps}
             </p>
+            <p className="text-[11px] text-muted-foreground">Open Recurring</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card
+          role="button"
+          tabIndex={0}
+          onClick={() => setTab('work-orders')}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              setTab('work-orders');
+            }
+          }}
+          className="cursor-pointer hover:border-module-accent/40 hover:shadow-md"
+        >
           <CardContent className="pt-4">
-            <p className="text-xs text-muted-foreground">Active Work Orders</p>
-            <p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.activeWorkOrders}</p>
+            <p className="text-xs text-muted-foreground">Open Work Orders</p>
+            <p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.openWorkOrders}</p>
+            <p className="text-[11px] text-muted-foreground">Open Work Orders</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card
+          role="button"
+          tabIndex={0}
+          onClick={() => router.push('/jobs?tab=service-plans')}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              router.push('/jobs?tab=service-plans');
+            }
+          }}
+          className="cursor-pointer hover:border-module-accent/40 hover:shadow-md"
+        >
           <CardContent className="pt-4">
-            <p className="text-xs text-muted-foreground">Published Periods</p>
-            <p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.publishedPeriods}</p>
+            <p className="text-xs text-muted-foreground">Active Service Plans</p>
+            <p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.activeServicePlans}</p>
+            <p className="text-[11px] text-muted-foreground">Open Service Plans</p>
           </CardContent>
         </Card>
       </div>
@@ -410,6 +461,7 @@ export default function SchedulePageClient() {
         <WeekCalendar
           key={`cal-${refreshKey}`}
           onSelectTicket={(t) => setSelectedTicket(t as TicketWithRelations)}
+          onCreatedTicket={() => setRefreshKey((current) => current + 1)}
         />
       )}
 

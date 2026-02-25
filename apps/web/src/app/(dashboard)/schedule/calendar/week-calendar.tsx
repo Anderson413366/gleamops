@@ -1,15 +1,25 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState, type DragEvent } from 'react';
-import { BriefcaseBusiness, CalendarDays, ChevronLeft, ChevronRight, Clock, GripVertical, Users } from 'lucide-react';
+import { BriefcaseBusiness, CalendarDays, ChevronLeft, ChevronRight, Clock, GripVertical, Plus, Sparkles, Users } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { Button, ChipTabs, Skeleton } from '@gleamops/ui';
+import { Button, ChipTabs, Input, Select, Skeleton, SlideOver } from '@gleamops/ui';
 import type { WorkTicket } from '@gleamops/shared';
 
 interface TicketWithRelations extends WorkTicket {
   job?: { job_code: string; frequency?: string | null; job_type?: string | null } | null;
   site?: { site_code: string; name: string; client?: { name: string } | null } | null;
   assignments?: { assignment_status?: string | null; staff?: { full_name: string | null } | null }[];
+}
+
+interface ActiveJob {
+  id: string;
+  job_code: string;
+  job_name?: string | null;
+  site_id: string;
+  start_time?: string | null;
+  end_time?: string | null;
+  site?: { name: string; site_code: string; client?: { name: string } | null } | null;
 }
 
 type CalendarSource = 'all' | 'recurring' | 'work-orders';
@@ -19,6 +29,7 @@ type TicketWithSource = TicketWithRelations & { source: TicketSource };
 
 interface WeekCalendarProps {
   onSelectTicket?: (ticket: TicketWithRelations) => void;
+  onCreatedTicket?: () => void;
 }
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -204,7 +215,10 @@ function TicketCard({
       draggable
       onDragStart={(event) => onDragStart(event, ticket.id)}
       onDragEnd={onDragEnd}
-      onClick={() => onSelectTicket?.(ticket)}
+      onClick={(event) => {
+        event.stopPropagation();
+        onSelectTicket?.(ticket);
+      }}
       className={`
         p-1.5 rounded border text-xs cursor-grab active:cursor-grabbing transition-all relative group
         ${STATUS_BG[ticket.status] ?? 'bg-muted border-border'}
@@ -243,7 +257,7 @@ function TicketCard({
   );
 }
 
-export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
+export default function WeekCalendar({ onSelectTicket, onCreatedTicket }: WeekCalendarProps) {
   const [anchorDate, setAnchorDate] = useState(() => startOfDay(new Date()));
   const [viewMode, setViewMode] = useState<CalendarViewMode>('week');
   const [sourceFilter, setSourceFilter] = useState<CalendarSource>('all');
@@ -253,6 +267,15 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [customStart, setCustomStart] = useState(() => toDateInput(getWeekStart(new Date())));
   const [customEnd, setCustomEnd] = useState(() => toDateInput(addDays(getWeekStart(new Date()), 6)));
+  const [createOpen, setCreateOpen] = useState(false);
+  const [jobs, setJobs] = useState<ActiveJob[]>([]);
+  const [jobsLoading, setJobsLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [createDate, setCreateDate] = useState('');
+  const [createStartTime, setCreateStartTime] = useState('');
+  const [createEndTime, setCreateEndTime] = useState('');
+  const [createJobId, setCreateJobId] = useState('');
 
   const { rangeStart, rangeEnd, daysInRange, label, monthDays, monthLeadingEmptySlots } = useMemo(() => {
     if (viewMode === 'day') {
@@ -339,6 +362,125 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
   useEffect(() => {
     void fetchTickets();
   }, [fetchTickets]);
+
+  const fetchJobs = useCallback(async () => {
+    setJobsLoading(true);
+    const supabase = getSupabaseBrowserClient();
+    const { data, error } = await supabase
+      .from('site_jobs')
+      .select('id, job_code, job_name, site_id, start_time, end_time, site:site_id(name, site_code, client:client_id(name))')
+      .is('archived_at', null)
+      .eq('status', 'ACTIVE')
+      .order('job_code', { ascending: true });
+
+    if (!error && data) {
+      setJobs(data as unknown as ActiveJob[]);
+    } else {
+      setJobs([]);
+    }
+    setJobsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (!createOpen) return;
+    if (jobs.length === 0) {
+      void fetchJobs();
+    }
+  }, [createOpen, fetchJobs, jobs.length]);
+
+  useEffect(() => {
+    if (!createOpen) return;
+    if (!createJobId && jobs.length > 0) {
+      setCreateJobId(jobs[0].id);
+    }
+  }, [createOpen, createJobId, jobs]);
+
+  const openCreateTicket = useCallback((prefill: { date: string; startTime?: string | null; endTime?: string | null }) => {
+    setCreateError(null);
+    setCreateDate(prefill.date);
+    setCreateStartTime(prefill.startTime?.slice(0, 5) ?? '');
+    setCreateEndTime(prefill.endTime?.slice(0, 5) ?? '');
+    setCreateOpen(true);
+  }, []);
+
+  const closeCreateTicket = useCallback(() => {
+    setCreateOpen(false);
+    setCreateError(null);
+    setCreateDate('');
+    setCreateStartTime('');
+    setCreateEndTime('');
+  }, []);
+
+  const selectedJob = useMemo(() => jobs.find((job) => job.id === createJobId) ?? null, [createJobId, jobs]);
+
+  const handleCreateTicket = useCallback(async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (!createJobId) {
+      setCreateError('Select a service plan.');
+      return;
+    }
+    if (!createDate) {
+      setCreateError('Select a scheduled date.');
+      return;
+    }
+
+    if (createStartTime && createEndTime && createEndTime <= createStartTime) {
+      setCreateError('End time must be after start time.');
+      return;
+    }
+
+    const siteId = selectedJob?.site_id;
+    if (!siteId) {
+      setCreateError('Selected service plan is missing a site.');
+      return;
+    }
+
+    setCreating(true);
+    setCreateError(null);
+
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { data: auth } = await supabase.auth.getUser();
+      const tenantId = auth.user?.app_metadata?.tenant_id ?? null;
+
+      let ticketCode = `TKT-${Date.now()}`;
+      const nextCodeRes = await supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'TKT' });
+      if (nextCodeRes.data) {
+        ticketCode = nextCodeRes.data as string;
+      }
+
+      const { error } = await supabase.from('work_tickets').insert({
+        tenant_id: tenantId,
+        ticket_code: ticketCode,
+        job_id: createJobId,
+        site_id: siteId,
+        scheduled_date: createDate,
+        start_time: createStartTime ? `${createStartTime}:00` : null,
+        end_time: createEndTime ? `${createEndTime}:00` : null,
+        status: 'SCHEDULED',
+      });
+
+      if (error) throw error;
+
+      closeCreateTicket();
+      await fetchTickets();
+      onCreatedTicket?.();
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : 'Failed to create ticket.');
+    } finally {
+      setCreating(false);
+    }
+  }, [
+    closeCreateTicket,
+    createDate,
+    createEndTime,
+    createJobId,
+    createStartTime,
+    fetchTickets,
+    onCreatedTicket,
+    selectedJob?.site_id,
+  ]);
 
   const goToPrevWindow = () => {
     if (viewMode === 'day') {
@@ -510,7 +652,11 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
         onDragLeave={handleDragLeave}
         onDrop={(event) => handleDrop(event, dateStr)}
       >
-        <div className="text-center mb-2 pb-1 border-b border-border/50">
+        <button
+          type="button"
+          onClick={() => openCreateTicket({ date: dateStr })}
+          className="mb-2 w-full border-b border-border/50 pb-1 text-center transition-colors hover:bg-muted/40 rounded-sm"
+        >
           <p className={`text-xs font-medium ${today ? 'text-brand-600' : 'text-muted-foreground'}`}>
             {DAY_NAMES[day.getDay()]}
           </p>
@@ -520,7 +666,7 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
           {dayTickets.length > 0 && (
             <p className="text-[10px] text-muted-foreground">{dayTickets.length} ticket{dayTickets.length > 1 ? 's' : ''}</p>
           )}
-        </div>
+        </button>
 
         <div className="space-y-1 flex-1 overflow-y-auto">
           {dayTickets.map((ticket) => (
@@ -575,6 +721,10 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button variant="secondary" size="sm" onClick={() => openCreateTicket({ date: toDateInput(anchorDate) })}>
+            <Plus className="h-4 w-4" />
+            New Ticket
+          </Button>
           <Button variant="secondary" size="sm" onClick={goToPrevWindow}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -675,6 +825,7 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
                     isDropping ? 'border-brand-500 bg-brand-50 border-dashed border-2' : '',
                     isPast ? 'bg-muted/50' : '',
                   ].join(' ')}
+                  onClick={() => openCreateTicket({ date: dateStr })}
                   onDragOver={(event) => handleDragOver(event, dateStr)}
                   onDragLeave={handleDragLeave}
                   onDrop={(event) => handleDrop(event, dateStr)}
@@ -713,9 +864,13 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
             return (
               <div key={dateStr} className="rounded-lg border border-border p-3">
                 <div className="mb-2 flex items-center justify-between">
-                  <p className="text-sm font-semibold text-foreground">
+                  <button
+                    type="button"
+                    onClick={() => openCreateTicket({ date: dateStr })}
+                    className="text-sm font-semibold text-foreground hover:text-module-accent"
+                  >
                     {day.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                  </p>
+                  </button>
                   <p className="text-xs text-muted-foreground">{dayTickets.length} tickets</p>
                 </div>
                 {dayTickets.length === 0 ? (
@@ -750,6 +905,85 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
           </div>
         </div>
       )}
+
+      <SlideOver
+        open={createOpen}
+        onClose={closeCreateTicket}
+        title="New Ticket"
+        subtitle="Create a ticket from the calendar"
+      >
+        <form className="space-y-4" onSubmit={handleCreateTicket}>
+          <Select
+            label="Service Plan"
+            value={createJobId}
+            onChange={(event) => setCreateJobId(event.target.value)}
+            options={[
+              {
+                value: '',
+                label: jobsLoading
+                  ? 'Loading service plans...'
+                  : jobs.length === 0
+                    ? 'No active service plans found'
+                    : 'Select a service plan...',
+              },
+              ...jobs.map((job) => ({
+                value: job.id,
+                label: `${job.job_code}${job.job_name ? ` - ${job.job_name}` : ''}${job.site?.name ? ` (${job.site.name})` : ''}`,
+              })),
+            ]}
+            disabled={jobsLoading || jobs.length === 0}
+            required
+          />
+
+          <Input
+            label="Scheduled Date"
+            type="date"
+            value={createDate}
+            onChange={(event) => setCreateDate(event.target.value)}
+            required
+          />
+
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Start Time"
+              type="time"
+              value={createStartTime}
+              onChange={(event) => setCreateStartTime(event.target.value)}
+            />
+            <Input
+              label="End Time"
+              type="time"
+              value={createEndTime}
+              onChange={(event) => setCreateEndTime(event.target.value)}
+            />
+          </div>
+
+          {selectedJob?.site ? (
+            <div className="rounded-lg border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
+              <p><span className="font-semibold text-foreground">Site:</span> {selectedJob.site.name} ({selectedJob.site.site_code})</p>
+              <p><span className="font-semibold text-foreground">Client:</span> {selectedJob.site.client?.name ?? 'N/A'}</p>
+            </div>
+          ) : null}
+
+          {createError ? (
+            <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
+              {createError}
+            </div>
+          ) : null}
+
+          <div className="rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-xs text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300">
+            <div className="inline-flex items-center gap-1">
+              <Sparkles className="h-3.5 w-3.5" />
+              <span>Tip: click a day in the calendar to prefill date and create quickly.</span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <Button type="button" variant="secondary" onClick={closeCreateTicket} disabled={creating}>Cancel</Button>
+            <Button type="submit" loading={creating}>Create Ticket</Button>
+          </div>
+        </form>
+      </SlideOver>
     </div>
   );
 }

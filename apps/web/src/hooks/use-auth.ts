@@ -60,6 +60,53 @@ function resolveRawRole(
   return null;
 }
 
+function normalizeStaffRole(roleValue: string | null | undefined): string | null {
+  if (!roleValue) return null;
+  const normalized = roleValue.trim().toUpperCase();
+  if (!normalized) return null;
+  if (normalized.includes('OWNER') || normalized.includes('ADMIN')) return 'OWNER_ADMIN';
+  if (normalized.includes('MANAGER') || normalized.includes('OPERATIONS')) return 'MANAGER';
+  if (normalized.includes('SUPERVISOR')) return 'SUPERVISOR';
+  if (normalized.includes('INSPECTOR')) return 'INSPECTOR';
+  if (normalized.includes('SALES')) return 'SALES';
+  if (normalized.includes('CLEANER') || normalized.includes('TECHNICIAN')) return 'CLEANER';
+  return normalized;
+}
+
+async function resolveRoleFromStaffProfile(
+  userId: string,
+  email: string | null,
+): Promise<string | null> {
+  const supabase = getSupabaseBrowserClient();
+  const profileByUser = await supabase
+    .from('staff')
+    .select('role')
+    .eq('user_id', userId)
+    .is('archived_at', null)
+    .limit(1)
+    .maybeSingle<{ role: string | null }>();
+
+  if (!profileByUser.error && profileByUser.data?.role) {
+    return normalizeStaffRole(profileByUser.data.role);
+  }
+
+  if (!email) return null;
+
+  const profileByEmail = await supabase
+    .from('staff')
+    .select('role')
+    .eq('email', email)
+    .is('archived_at', null)
+    .limit(1)
+    .maybeSingle<{ role: string | null }>();
+
+  if (!profileByEmail.error && profileByEmail.data?.role) {
+    return normalizeStaffRole(profileByEmail.data.role);
+  }
+
+  return null;
+}
+
 export function useAuth() {
   const router = useRouter();
   const forcedTenantId = process.env.NEXT_PUBLIC_SINGLE_TENANT_ID ?? null;
@@ -83,12 +130,15 @@ export function useAuth() {
           : {};
 
         const resolvedTenantId = (claims.tenant_id as string | undefined) ?? null;
-        const rawRole = resolveRawRole(
+        let rawRole = resolveRawRole(
           claims as Record<string, unknown>,
           {
             app_metadata: session.user.app_metadata as Record<string, unknown> | undefined,
           },
         );
+        if (!rawRole) {
+          rawRole = await resolveRoleFromStaffProfile(session.user.id, session.user.email ?? null);
+        }
 
         if (forcedTenantId && resolvedTenantId && resolvedTenantId !== forcedTenantId) {
           await supabase.auth.signOut();
@@ -122,12 +172,15 @@ export function useAuth() {
             : {};
 
           const resolvedTenantId = (claims.tenant_id as string | undefined) ?? null;
-          const rawRole = resolveRawRole(
+          let rawRole = resolveRawRole(
             claims as Record<string, unknown>,
             {
               app_metadata: session.user.app_metadata as Record<string, unknown> | undefined,
             },
           );
+          if (!rawRole) {
+            rawRole = await resolveRoleFromStaffProfile(session.user.id, session.user.email ?? null);
+          }
 
           if (forcedTenantId && resolvedTenantId && resolvedTenantId !== forcedTenantId) {
             await supabase.auth.signOut();

@@ -13,6 +13,7 @@ import {
 } from '@gleamops/cleanflow';
 import { LiveEstimatePanel } from './live-estimate-panel';
 import { AreaTemplatePicker, buildAreasFromTemplates } from './area-template-picker';
+import { FinancialBreakdown } from './financial-breakdown';
 import { PricingStrategySelector, type PricingMethod } from './pricing-strategy-selector';
 import { getServiceTypeConfig, ServiceTypeSelector } from './service-type-selector';
 
@@ -400,6 +401,8 @@ export default function CalculatorPage() {
           contractTerms={snapshot.contract_terms}
         />
       )}
+
+      <FinancialBreakdown pricing={pricing} />
 
     </div>
   );

@@ -375,10 +375,37 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
       const { data: auth } = await supabase.auth.getUser();
       const tenantId = auth.user?.app_metadata?.tenant_id ?? null;
 
-      let ticketCode = `TKT-${Date.now()}`;
-      const nextCodeRes = await supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'TKT' });
-      if (nextCodeRes.data) {
-        ticketCode = nextCodeRes.data as string;
+      let ticketCode: string;
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData.session?.access_token;
+        if (!accessToken) {
+          throw new Error('Missing session token for ticket code generation.');
+        }
+
+        const response = await fetch('/api/codes/next', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ prefix: 'TKT' }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Unable to generate ticket code.');
+        }
+
+        const payload = await response.json() as { data?: unknown };
+        if (typeof payload.data !== 'string' || !payload.data.trim()) {
+          throw new Error('Invalid ticket code response.');
+        }
+
+        ticketCode = payload.data.trim();
+      } catch (err) {
+        setCreateError(err instanceof Error ? err.message : 'Unable to generate ticket code.');
+        setCreating(false);
+        return;
       }
 
       const start = createStartTime ? `${createStartTime}:00` : null;

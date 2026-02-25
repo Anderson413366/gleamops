@@ -6,7 +6,13 @@ import {
 } from './self-service.repository';
 
 type FormTokenMode = 'universal' | 'site';
-type RequestType = 'supply' | 'time-off' | 'equipment';
+type RequestType =
+  | 'supply'
+  | 'time-off'
+  | 'equipment'
+  | 'bio-hazard'
+  | 'photo-upload'
+  | 'chemical-restock';
 type RequestUrgency = 'normal' | 'high' | 'asap';
 
 interface PublicFormPayload {
@@ -61,7 +67,14 @@ function normalizeUrgency(value: string | null | undefined): RequestUrgency {
 }
 
 function normalizeRequestType(value: string | null | undefined): RequestType | null {
-  if (value === 'supply' || value === 'time-off' || value === 'equipment') return value;
+  if (
+    value === 'supply'
+    || value === 'time-off'
+    || value === 'equipment'
+    || value === 'bio-hazard'
+    || value === 'photo-upload'
+    || value === 'chemical-restock'
+  ) return value;
   return null;
 }
 
@@ -74,7 +87,10 @@ function urgencyToSeverity(urgency: RequestUrgency): 'INFO' | 'WARNING' | 'CRITI
 function defaultTitle(type: RequestType): string {
   if (type === 'supply') return 'Supply Request';
   if (type === 'time-off') return 'Time Off Request';
-  return 'Equipment Issue';
+  if (type === 'equipment') return 'Equipment Issue';
+  if (type === 'bio-hazard') return 'Bio-Hazard Report';
+  if (type === 'photo-upload') return 'Photo Upload';
+  return 'Chemical Restock Request';
 }
 
 async function resolveSiteFromCode(siteCode: string | null | undefined): Promise<SiteRow | null> {

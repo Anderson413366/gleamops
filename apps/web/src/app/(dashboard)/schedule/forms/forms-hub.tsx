@@ -1,7 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Clock3, Package, Wrench } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from 'react';
+import {
+  AlertTriangle,
+  Biohazard,
+  Camera,
+  Clock3,
+  FlaskConical,
+  Package,
+  Wrench,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Badge,
@@ -19,7 +27,13 @@ import {
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 
-type SelfServiceType = 'supply' | 'time-off' | 'equipment';
+type SelfServiceType =
+  | 'supply'
+  | 'time-off'
+  | 'equipment'
+  | 'bio-hazard'
+  | 'photo-upload'
+  | 'chemical-restock';
 type RequestUrgency = 'asap' | 'high' | 'normal';
 
 interface FormsHubProps {
@@ -45,6 +59,9 @@ const FORM_TABS = [
   { key: 'supply', label: 'Supply Request', icon: <Package className="h-4 w-4" /> },
   { key: 'time-off', label: 'Time Off Request', icon: <Clock3 className="h-4 w-4" /> },
   { key: 'equipment', label: 'Equipment Issue', icon: <Wrench className="h-4 w-4" /> },
+  { key: 'bio-hazard', label: 'Bio-Hazard', icon: <Biohazard className="h-4 w-4" /> },
+  { key: 'photo-upload', label: 'Photo Upload', icon: <Camera className="h-4 w-4" /> },
+  { key: 'chemical-restock', label: 'Chemical Restock', icon: <FlaskConical className="h-4 w-4" /> },
 ] as const;
 
 const URGENCY_OPTIONS = [
@@ -57,6 +74,33 @@ const TIME_OFF_TYPE_OPTIONS = [
   { value: 'PTO', label: 'PTO' },
   { value: 'SICK', label: 'Sick' },
   { value: 'PERSONAL', label: 'Personal' },
+];
+
+const HAZARD_TYPE_OPTIONS = [
+  { value: 'blood', label: 'Blood' },
+  { value: 'bodily_fluid', label: 'Bodily Fluid' },
+  { value: 'sharps', label: 'Sharps' },
+  { value: 'unknown', label: 'Unknown' },
+];
+
+const HAZARD_EXPOSURE_OPTIONS = [
+  { value: 'low', label: 'Low' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'high', label: 'High' },
+];
+
+const PHOTO_CATEGORY_OPTIONS = [
+  { value: 'site-condition', label: 'Site Condition' },
+  { value: 'safety', label: 'Safety' },
+  { value: 'equipment', label: 'Equipment' },
+  { value: 'other', label: 'Other' },
+];
+
+const CHEMICAL_UNIT_OPTIONS = [
+  { value: 'bottle', label: 'Bottle' },
+  { value: 'gallon', label: 'Gallon' },
+  { value: 'case', label: 'Case' },
+  { value: 'bag', label: 'Bag' },
 ];
 
 function urgencyToSeverity(urgency: RequestUrgency): 'INFO' | 'WARNING' | 'CRITICAL' {
@@ -81,6 +125,13 @@ function parseRequestBody(body: string | null): Record<string, unknown> {
   }
 }
 
+function sanitizeFileBaseName(fileName: string): string {
+  const withoutExtension = fileName.replace(/\.[^/.]+$/, '');
+  const cleaned = withoutExtension.replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  if (!cleaned) return 'photo-upload';
+  return cleaned.slice(0, 32);
+}
+
 export function FormsHub({ search }: FormsHubProps) {
   const { tenantId, user } = useAuth();
   const [activeForm, setActiveForm] = useState<SelfServiceType>('supply');
@@ -102,6 +153,22 @@ export function FormsHub({ search }: FormsHubProps) {
   const [equipmentName, setEquipmentName] = useState('');
   const [equipmentSeverity, setEquipmentSeverity] = useState('high');
   const [equipmentDescription, setEquipmentDescription] = useState('');
+
+  const [hazardLocation, setHazardLocation] = useState('');
+  const [hazardType, setHazardType] = useState('blood');
+  const [hazardExposure, setHazardExposure] = useState('high');
+  const [hazardActions, setHazardActions] = useState('');
+
+  const [photoSubject, setPhotoSubject] = useState('');
+  const [photoCategory, setPhotoCategory] = useState('site-condition');
+  const [photoNotes, setPhotoNotes] = useState('');
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoInputKey, setPhotoInputKey] = useState(0);
+
+  const [chemicalName, setChemicalName] = useState('');
+  const [chemicalQuantity, setChemicalQuantity] = useState('1');
+  const [chemicalUnit, setChemicalUnit] = useState('bottle');
+  const [chemicalReason, setChemicalReason] = useState('');
 
   const [urgency, setUrgency] = useState<RequestUrgency>('normal');
   const [recentRequests, setRecentRequests] = useState<RecentRequest[]>([]);
@@ -175,6 +242,53 @@ export function FormsHub({ search }: FormsHubProps) {
     ));
   }, [recentRequests, search]);
 
+  const uploadPhotoToStorage = useCallback(async (file: File, siteCode: string): Promise<{ path: string }> => {
+    if (!tenantId) {
+      throw new Error('Tenant context is required for upload.');
+    }
+
+    const extension = file.name.includes('.')
+      ? file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
+      : 'jpg';
+    const path = `${tenantId}/field-requests/${siteCode}/${Date.now()}-${sanitizeFileBaseName(file.name)}.${extension}`;
+
+    const { error: uploadError } = await supabase
+      .storage
+      .from('documents')
+      .upload(path, file, {
+        contentType: file.type || 'image/jpeg',
+        upsert: false,
+      });
+
+    if (uploadError) {
+      throw new Error(`Photo upload failed: ${uploadError.message}`);
+    }
+
+    return { path };
+  }, [supabase, tenantId]);
+
+  const handlePhotoFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    if (!file) {
+      setPhotoFile(null);
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Photo evidence must be an image file.');
+      event.target.value = '';
+      return;
+    }
+
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error('Photo evidence must be under 8MB.');
+      event.target.value = '';
+      return;
+    }
+
+    setPhotoFile(file);
+  };
+
   const handleSubmit = async () => {
     if (!tenantId) {
       toast.error('Tenant context is required to submit a request.');
@@ -239,7 +353,68 @@ export function FormsHub({ search }: FormsHubProps) {
       };
     }
 
+    if (activeForm === 'bio-hazard') {
+      if (!hazardLocation.trim() || !hazardActions.trim()) {
+        toast.error('Bio-hazard report needs location and containment details.');
+        return;
+      }
+      title = `Bio-Hazard Report - ${hazardLocation.trim()}`;
+      details = {
+        location: hazardLocation.trim(),
+        hazard_type: hazardType,
+        exposure_risk: hazardExposure,
+        immediate_actions: hazardActions.trim(),
+      };
+    }
+
+    if (activeForm === 'photo-upload') {
+      if (!photoSubject.trim()) {
+        toast.error('Photo upload needs a subject.');
+        return;
+      }
+      if (!photoFile) {
+        toast.error('Attach a photo before submitting.');
+        return;
+      }
+      let uploadedPhotoPath: string | null = null;
+      try {
+        const uploaded = await uploadPhotoToStorage(photoFile, selectedSite.site_code);
+        uploadedPhotoPath = uploaded.path;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Photo upload failed.';
+        toast.error(message);
+        return;
+      }
+      title = `Photo Upload - ${photoSubject.trim()}`;
+      details = {
+        subject: photoSubject.trim(),
+        category: photoCategory,
+        notes: photoNotes.trim() || null,
+        photo_storage_path: uploadedPhotoPath,
+      };
+    }
+
+    if (activeForm === 'chemical-restock') {
+      const quantity = Number(chemicalQuantity);
+      if (!chemicalName.trim() || !Number.isFinite(quantity) || quantity <= 0) {
+        toast.error('Chemical restock needs chemical name and quantity.');
+        return;
+      }
+      title = `Chemical Restock - ${chemicalName.trim()}`;
+      details = {
+        chemical_name: chemicalName.trim(),
+        quantity,
+        unit: chemicalUnit,
+        reason: chemicalReason.trim() || null,
+      };
+    }
+
     setSubmitting(true);
+
+    let uploadedPhotoPathForCleanup: string | null = null;
+    if (activeForm === 'photo-upload' && details && 'photo_storage_path' in details) {
+      uploadedPhotoPathForCleanup = details.photo_storage_path as string;
+    }
 
     const body = {
       request_type: activeForm,
@@ -252,35 +427,55 @@ export function FormsHub({ search }: FormsHubProps) {
       details,
     };
 
-    const { error } = await supabase
-      .from('alerts')
-      .insert({
-        tenant_id: tenantId,
-        alert_type: 'FIELD_REQUEST',
-        severity: urgencyToSeverity(urgency),
-        title,
-        body: JSON.stringify(body),
-        entity_type: 'site',
-        entity_id: selectedSite.id,
-      });
+    try {
+      const { error } = await supabase
+        .from('alerts')
+        .insert({
+          tenant_id: tenantId,
+          alert_type: 'FIELD_REQUEST',
+          severity: urgencyToSeverity(urgency),
+          title,
+          body: JSON.stringify(body),
+          entity_type: 'site',
+          entity_id: selectedSite.id,
+        });
 
-    setSubmitting(false);
+      if (error) {
+        throw new Error(error.message);
+      }
 
-    if (error) {
-      toast.error(error.message);
-      return;
+      toast.success('Field request submitted.');
+
+      setSupplyItem('');
+      setSupplyQuantity('1');
+      setSupplyNotes('');
+      setTimeOffReason('');
+      setEquipmentName('');
+      setEquipmentDescription('');
+      setHazardLocation('');
+      setHazardType('blood');
+      setHazardExposure('high');
+      setHazardActions('');
+      setPhotoSubject('');
+      setPhotoCategory('site-condition');
+      setPhotoNotes('');
+      setPhotoFile(null);
+      setPhotoInputKey((value) => value + 1);
+      setChemicalName('');
+      setChemicalQuantity('1');
+      setChemicalUnit('bottle');
+      setChemicalReason('');
+
+      await loadData();
+    } catch (error) {
+      if (uploadedPhotoPathForCleanup) {
+        await supabase.storage.from('documents').remove([uploadedPhotoPathForCleanup]);
+      }
+      const message = error instanceof Error ? error.message : 'Unable to submit request.';
+      toast.error(message);
+    } finally {
+      setSubmitting(false);
     }
-
-    toast.success('Field request submitted.');
-
-    setSupplyItem('');
-    setSupplyQuantity('1');
-    setSupplyNotes('');
-    setTimeOffReason('');
-    setEquipmentName('');
-    setEquipmentDescription('');
-
-    await loadData();
   };
 
   return (
@@ -402,6 +597,114 @@ export function FormsHub({ search }: FormsHubProps) {
                     onChange={(event) => setEquipmentDescription(event.target.value)}
                     placeholder="Describe the issue and impact on shift"
                     rows={4}
+                  />
+                </div>
+              )}
+
+              {activeForm === 'bio-hazard' && (
+                <div className="space-y-3">
+                  <Input
+                    label="Location"
+                    value={hazardLocation}
+                    onChange={(event) => setHazardLocation(event.target.value)}
+                    placeholder="e.g., 2nd floor restroom"
+                  />
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <Select
+                      label="Hazard Type"
+                      value={hazardType}
+                      onChange={(event) => setHazardType(event.target.value)}
+                      options={HAZARD_TYPE_OPTIONS}
+                    />
+                    <Select
+                      label="Exposure Risk"
+                      value={hazardExposure}
+                      onChange={(event) => setHazardExposure(event.target.value)}
+                      options={HAZARD_EXPOSURE_OPTIONS}
+                    />
+                  </div>
+                  <Textarea
+                    label="Immediate Actions Taken"
+                    value={hazardActions}
+                    onChange={(event) => setHazardActions(event.target.value)}
+                    placeholder="Containment, PPE used, and escalation actions"
+                    rows={4}
+                  />
+                </div>
+              )}
+
+              {activeForm === 'photo-upload' && (
+                <div className="space-y-3">
+                  <Input
+                    label="Photo Subject"
+                    value={photoSubject}
+                    onChange={(event) => setPhotoSubject(event.target.value)}
+                    placeholder="e.g., Damaged floor tile near lobby"
+                  />
+                  <Select
+                    label="Photo Category"
+                    value={photoCategory}
+                    onChange={(event) => setPhotoCategory(event.target.value)}
+                    options={PHOTO_CATEGORY_OPTIONS}
+                  />
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-foreground" htmlFor="photo-upload-input">
+                      Upload Photo
+                    </label>
+                    <input
+                      key={photoInputKey}
+                      id="photo-upload-input"
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handlePhotoFileChange}
+                      className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-2 file:text-sm file:font-medium"
+                    />
+                    {photoFile ? (
+                      <p className="text-xs text-muted-foreground">Attached: {photoFile.name}</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">No file attached yet.</p>
+                    )}
+                  </div>
+                  <Textarea
+                    label="Notes"
+                    value={photoNotes}
+                    onChange={(event) => setPhotoNotes(event.target.value)}
+                    placeholder="Add context for the uploaded photo"
+                    rows={3}
+                  />
+                </div>
+              )}
+
+              {activeForm === 'chemical-restock' && (
+                <div className="space-y-3">
+                  <Input
+                    label="Chemical Name"
+                    value={chemicalName}
+                    onChange={(event) => setChemicalName(event.target.value)}
+                    placeholder="e.g., Neutral floor cleaner"
+                  />
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <Input
+                      label="Quantity Needed"
+                      type="number"
+                      min={1}
+                      value={chemicalQuantity}
+                      onChange={(event) => setChemicalQuantity(event.target.value)}
+                    />
+                    <Select
+                      label="Unit"
+                      value={chemicalUnit}
+                      onChange={(event) => setChemicalUnit(event.target.value)}
+                      options={CHEMICAL_UNIT_OPTIONS}
+                    />
+                  </div>
+                  <Textarea
+                    label="Reason"
+                    value={chemicalReason}
+                    onChange={(event) => setChemicalReason(event.target.value)}
+                    placeholder="Why this restock is needed"
+                    rows={3}
                   />
                 </div>
               )}

@@ -12,6 +12,7 @@ import {
   type BidVersionSnapshot,
 } from '@gleamops/cleanflow';
 import { LiveEstimatePanel } from './live-estimate-panel';
+import { AreaTemplatePicker, buildAreasFromTemplates } from './area-template-picker';
 import { PricingStrategySelector, type PricingMethod } from './pricing-strategy-selector';
 import { getServiceTypeConfig, ServiceTypeSelector } from './service-type-selector';
 
@@ -25,16 +26,6 @@ interface SelectChangeEvent {
   target: {
     value: string;
   };
-}
-
-interface CalculatorArea {
-  id: string;
-  name: string;
-  areaTypeCode: string;
-  floorTypeCode: string;
-  sqft: number;
-  quantity: number;
-  minutesPer1000: number;
 }
 
 const BUILDING_TYPE_OPTIONS = [
@@ -155,6 +146,11 @@ export default function CalculatorPage() {
   const [buildingTypeCode, setBuildingTypeCode] = useState('OFFICE');
   const [pricingMethod, setPricingMethod] = useState<PricingMethod>('TARGET_MARGIN');
   const [totalSqft, setTotalSqft] = useState(12000);
+  const [selectedTemplateCodes, setSelectedTemplateCodes] = useState<string[]>([
+    'OFFICE_OPEN',
+    'RESTROOM',
+    'LOBBY_RECEPTION',
+  ]);
   const [daysPerWeek, setDaysPerWeek] = useState(5);
   const [hoursPerShift, setHoursPerShift] = useState(4);
   const [targetMarginPct, setTargetMarginPct] = useState(24);
@@ -164,28 +160,10 @@ export default function CalculatorPage() {
   const [supplyAllowanceSqft, setSupplyAllowanceSqft] = useState(0.01);
   const serviceConfig = useMemo(() => getServiceTypeConfig(serviceType), [serviceType]);
 
-  const [areas] = useState<CalculatorArea[]>([
-    {
-      id: 'template-main',
-      name: 'Primary Service Zone',
-      areaTypeCode: 'OFFICE_OPEN',
-      floorTypeCode: 'CARPET',
-      sqft: 12000,
-      quantity: 1,
-      minutesPer1000: 24,
-    },
-  ]);
-
-  const normalizedAreas = useMemo(() => {
-    const baseSqft = Math.max(100, totalSqft);
-    return areas.map((area, index) => {
-      const sqftForArea = index === 0 ? baseSqft : Math.max(100, area.sqft);
-      return {
-        ...area,
-        sqft: sqftForArea,
-      };
-    });
-  }, [areas, totalSqft]);
+  const calculatedAreas = useMemo(
+    () => buildAreasFromTemplates(selectedTemplateCodes, totalSqft),
+    [selectedTemplateCodes, totalSqft],
+  );
 
   const snapshot = useMemo<BidVersionSnapshot>(() => ({
     bid_version_id: 'standalone-preview',
@@ -216,7 +194,7 @@ export default function CalculatorPage() {
       consumables_monthly: 120,
     },
     equipment: [],
-    areas: normalizedAreas.map((area) => ({
+    areas: calculatedAreas.map((area) => ({
       area_id: area.id,
       name: area.name,
       area_type_code: area.areaTypeCode,
@@ -259,7 +237,7 @@ export default function CalculatorPage() {
     hoursPerShift,
     marketPriceMonthly,
     monthlyOverhead,
-    normalizedAreas,
+    calculatedAreas,
     pricingMethod,
     serviceConfig.minutesPer1000,
     serviceType,
@@ -328,6 +306,16 @@ export default function CalculatorPage() {
             onTargetMarginChange={setTargetMarginPct}
             onCostPlusChange={setCostPlusPct}
             onMarketPriceMonthlyChange={setMarketPriceMonthly}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="pt-6">
+          <AreaTemplatePicker
+            selectedCodes={selectedTemplateCodes}
+            totalSqft={totalSqft}
+            onChange={setSelectedTemplateCodes}
           />
         </CardContent>
       </Card>
@@ -413,16 +401,6 @@ export default function CalculatorPage() {
         />
       )}
 
-      <div className="grid gap-4">
-        <Card className="border-dashed">
-          <CardHeader>
-            <CardTitle className="text-base">Area Template Picker</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Office/Restroom/etc. template controls are added in task 6.13.
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }

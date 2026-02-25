@@ -32,6 +32,7 @@ interface StaffTableProps {
   search: string;
   autoCreate?: boolean;
   onAutoCreateHandled?: () => void;
+  showCreateButton?: boolean;
 }
 
 interface AssignmentLite {
@@ -78,7 +79,12 @@ function profilePercent(staff: Staff): number {
   return Math.round((complete / tracked.length) * 100);
 }
 
-export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: StaffTableProps) {
+export default function StaffTable({
+  search,
+  autoCreate,
+  onAutoCreateHandled,
+  showCreateButton = true,
+}: StaffTableProps) {
   const router = useRouter();
   const [rows, setRows] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
@@ -190,9 +196,13 @@ export default function StaffTable({ search, autoCreate, onAutoCreateHandled }: 
   return (
     <div>
       <div className="mb-4 flex items-center justify-between gap-3">
-        <Button size="sm" onClick={handleAdd}>
-          <Plus className="h-4 w-4" /> New Staff
-        </Button>
+        <div>
+          {showCreateButton && (
+            <Button size="sm" onClick={handleAdd}>
+              <Plus className="h-4 w-4" /> New Staff
+            </Button>
+          )}
+        </div>
         <div className="flex items-center gap-3">
           <ViewToggle view={view} onChange={setView} />
           <ExportButton

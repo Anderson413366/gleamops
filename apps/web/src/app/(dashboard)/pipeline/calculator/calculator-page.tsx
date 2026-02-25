@@ -16,6 +16,7 @@ import { AreaTemplatePicker, buildAreasFromTemplates } from './area-template-pic
 import { FinancialBreakdown } from './financial-breakdown';
 import { PricingStrategySelector, type PricingMethod } from './pricing-strategy-selector';
 import { getServiceTypeConfig, ServiceTypeSelector } from './service-type-selector';
+import { WinProbabilityGauge } from './win-probability-gauge';
 
 interface NumericChangeEvent {
   target: {
@@ -403,6 +404,13 @@ export default function CalculatorPage() {
       )}
 
       <FinancialBreakdown pricing={pricing} />
+
+      <WinProbabilityGauge
+        pricing={pricing}
+        workload={workload}
+        targetMarginPct={targetMarginPct}
+        serviceType={serviceType}
+      />
 
     </div>
   );

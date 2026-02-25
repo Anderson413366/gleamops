@@ -29,7 +29,7 @@ const ROUTE_PREFIX: Record<EntityType, string> = {
   client: '/clients',
   site: '/clients/sites',
   job: '/operations/jobs',
-  staff: '/workforce/staff',
+  staff: '/team/staff',
   equipment: '/assets/equipment',
   vehicle: '/equipment/vehicles',
   subcontractor: '/vendors/subcontractors',

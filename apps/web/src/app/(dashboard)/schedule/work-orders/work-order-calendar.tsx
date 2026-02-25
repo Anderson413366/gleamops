@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { Badge, Button, Card, CardContent, EmptyState } from '@gleamops/ui';
 import type { WorkOrderTableRow } from './work-order-table';
 import { formatDate } from '@/lib/utils/date';
@@ -11,6 +11,7 @@ type CalendarViewMode = 'day' | 'week' | 'month' | 'custom';
 interface WorkOrderCalendarProps {
   rows: WorkOrderTableRow[];
   onSelect: (row: WorkOrderTableRow) => void;
+  onCreateAtDate?: (date: string) => void;
 }
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -73,7 +74,7 @@ function statusColor(status: string): 'green' | 'blue' | 'yellow' | 'gray' | 're
   return 'gray';
 }
 
-export function WorkOrderCalendar({ rows, onSelect }: WorkOrderCalendarProps) {
+export function WorkOrderCalendar({ rows, onSelect, onCreateAtDate }: WorkOrderCalendarProps) {
   const [viewMode, setViewMode] = useState<CalendarViewMode>('week');
   const [anchorDate, setAnchorDate] = useState(() => normalizeDate(new Date()));
   const [customStart, setCustomStart] = useState(() => toDateKey(getWeekStart(new Date())));
@@ -266,8 +267,24 @@ export function WorkOrderCalendar({ rows, onSelect }: WorkOrderCalendarProps) {
                 <Card key={key} className="min-h-[120px] border-border/80">
                   <CardContent className="space-y-1 p-2">
                     <div className="flex items-center justify-between">
-                      <p className="text-xs font-semibold text-foreground">{day.getDate()}</p>
-                      <p className="text-[10px] text-muted-foreground">{dayRows.length}</p>
+                      <button
+                        type="button"
+                        onClick={() => onCreateAtDate?.(key)}
+                        className="rounded px-1 py-0.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted"
+                      >
+                        {day.getDate()}
+                      </button>
+                      <div className="flex items-center gap-1">
+                        <p className="text-[10px] text-muted-foreground">{dayRows.length}</p>
+                        <button
+                          type="button"
+                          onClick={() => onCreateAtDate?.(key)}
+                          className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                          aria-label={`Create work order for ${formatDate(key)}`}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </button>
+                      </div>
                     </div>
                     {dayRows.slice(0, 3).map((row) => (
                       <button
@@ -281,6 +298,15 @@ export function WorkOrderCalendar({ rows, onSelect }: WorkOrderCalendarProps) {
                       </button>
                     ))}
                     {dayRows.length > 3 ? <p className="text-[10px] text-muted-foreground">+{dayRows.length - 3} more</p> : null}
+                    {dayRows.length === 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => onCreateAtDate?.(key)}
+                        className="text-[10px] text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        New work order
+                      </button>
+                    ) : null}
                   </CardContent>
                 </Card>
               );
@@ -299,9 +325,24 @@ export function WorkOrderCalendar({ rows, onSelect }: WorkOrderCalendarProps) {
               return (
                 <Card key={key} className="border-border/80">
                   <CardContent className="space-y-2 p-3">
-                    <div className="border-b border-border pb-2">
-                      <p className="text-xs text-muted-foreground">{DAY_NAMES[day.getDay()]}</p>
-                      <p className="text-sm font-semibold text-foreground">{formatDate(key)}</p>
+                    <div className="flex items-start justify-between gap-2 border-b border-border pb-2">
+                      <button
+                        type="button"
+                        onClick={() => onCreateAtDate?.(key)}
+                        className="rounded px-1 py-0.5 text-left transition-colors hover:bg-muted"
+                      >
+                        <p className="text-xs text-muted-foreground">{DAY_NAMES[day.getDay()]}</p>
+                        <p className="text-sm font-semibold text-foreground">{formatDate(key)}</p>
+                      </button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        type="button"
+                        onClick={() => onCreateAtDate?.(key)}
+                        className="h-7 px-2"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
                     {dayRows.length ? dayRows.map((row) => (
                       <button
@@ -317,7 +358,13 @@ export function WorkOrderCalendar({ rows, onSelect }: WorkOrderCalendarProps) {
                         <p className="mt-1 truncate text-xs text-muted-foreground">{row.site_name}</p>
                       </button>
                     )) : (
-                      <p className="text-xs text-muted-foreground">No work orders</p>
+                      <button
+                        type="button"
+                        onClick={() => onCreateAtDate?.(key)}
+                        className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        No work orders. Create one
+                      </button>
                     )}
                   </CardContent>
                 </Card>

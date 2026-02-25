@@ -88,6 +88,17 @@ export function WorkOrderTable({ search, openCreateToken = 0 }: WorkOrderTablePr
   const [loading, setLoading] = useState(true);
   const [completionRow, setCompletionRow] = useState<WorkOrderTableRow | null>(null);
   const [workOrderFormOpen, setWorkOrderFormOpen] = useState(false);
+  const [workOrderFormInitialValues, setWorkOrderFormInitialValues] = useState<{ scheduledDate?: string }>({});
+
+  const openWorkOrderForm = useCallback((initialValues?: { scheduledDate?: string }) => {
+    setWorkOrderFormInitialValues(initialValues ?? {});
+    setWorkOrderFormOpen(true);
+  }, []);
+
+  const closeWorkOrderForm = useCallback(() => {
+    setWorkOrderFormOpen(false);
+    setWorkOrderFormInitialValues({});
+  }, []);
 
   const fetchRows = useCallback(async () => {
     setLoading(true);
@@ -121,9 +132,9 @@ export function WorkOrderTable({ search, openCreateToken = 0 }: WorkOrderTablePr
 
   useEffect(() => {
     if (openCreateToken > 0) {
-      setWorkOrderFormOpen(true);
+      openWorkOrderForm();
     }
-  }, [openCreateToken]);
+  }, [openCreateToken, openWorkOrderForm]);
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -157,7 +168,7 @@ export function WorkOrderTable({ search, openCreateToken = 0 }: WorkOrderTablePr
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-end">
-          <Button type="button" onClick={() => setWorkOrderFormOpen(true)}>
+          <Button type="button" onClick={() => openWorkOrderForm()}>
             <Plus className="h-4 w-4" />
             New Work Order
           </Button>
@@ -169,7 +180,8 @@ export function WorkOrderTable({ search, openCreateToken = 0 }: WorkOrderTablePr
         />
         <WorkOrderForm
           open={workOrderFormOpen}
-          onClose={() => setWorkOrderFormOpen(false)}
+          onClose={closeWorkOrderForm}
+          initialValues={workOrderFormInitialValues}
           onSuccess={(created: WorkOrderCreateResult) => {
             void fetchRows();
             router.push(`/schedule/work-orders/work-order-detail?ticket=${encodeURIComponent(created.ticketCode)}`);
@@ -182,7 +194,7 @@ export function WorkOrderTable({ search, openCreateToken = 0 }: WorkOrderTablePr
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-end gap-3">
-        <Button type="button" onClick={() => setWorkOrderFormOpen(true)}>
+        <Button type="button" onClick={() => openWorkOrderForm()}>
           <Plus className="h-4 w-4" />
           New Work Order
         </Button>
@@ -205,6 +217,7 @@ export function WorkOrderTable({ search, openCreateToken = 0 }: WorkOrderTablePr
         <WorkOrderCalendar
           rows={filtered}
           onSelect={(row) => router.push(`/schedule/work-orders/work-order-detail?ticket=${encodeURIComponent(row.ticket_code)}`)}
+          onCreateAtDate={(date) => openWorkOrderForm({ scheduledDate: date })}
         />
       ) : view === 'card' ? (
         <WorkOrderCardGrid
@@ -307,7 +320,8 @@ export function WorkOrderTable({ search, openCreateToken = 0 }: WorkOrderTablePr
 
       <WorkOrderForm
         open={workOrderFormOpen}
-        onClose={() => setWorkOrderFormOpen(false)}
+        onClose={closeWorkOrderForm}
+        initialValues={workOrderFormInitialValues}
         onSuccess={(created: WorkOrderCreateResult) => {
           void fetchRows();
           router.push(`/schedule/work-orders/work-order-detail?ticket=${encodeURIComponent(created.ticketCode)}`);

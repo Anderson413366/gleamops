@@ -36,8 +36,8 @@ type StaffRow = {
 type SiteJobRow = {
   id: string;
   job_code: string;
-  job_name: string;
-  service_date: string;
+  start_date: string | null;
+  status: string;
   site_id: string;
 };
 
@@ -200,15 +200,14 @@ export default function RoutesFleetPanel({ search }: Props) {
       supabase
         .from('staff')
         .select('id, staff_code, full_name')
-        .eq('status', 'ACTIVE')
+        .eq('staff_status', 'ACTIVE')
         .is('archived_at', null)
         .order('full_name', { ascending: true }),
       supabase
         .from('site_jobs')
-        .select('id, job_code, job_name, service_date, site_id')
+        .select('id, job_code, start_date, status, site_id')
         .is('archived_at', null)
-        .in('status', ['ACTIVE', 'SCHEDULED', 'IN_PROGRESS'])
-        .order('service_date', { ascending: false })
+        .order('start_date', { ascending: false })
         .limit(400),
       supabase
         .from('sites')
@@ -791,7 +790,7 @@ export default function RoutesFleetPanel({ search }: Props) {
                       const site = siteById.get(job.site_id);
                       return (
                         <option key={job.id} value={job.id}>
-                          {job.job_name} ({job.job_code}) · {site?.name ?? 'Unknown Site'}
+                          {job.job_code} · {site?.name ?? 'Unknown Site'}
                         </option>
                       );
                     })}
@@ -835,7 +834,7 @@ export default function RoutesFleetPanel({ search }: Props) {
                               <EntityLink
                                 entityType="job"
                                 code={job.job_code}
-                                name={job.job_name}
+                                name={job.job_code}
                                 showCode
                               />
                             ) : (
@@ -850,7 +849,7 @@ export default function RoutesFleetPanel({ search }: Props) {
                             </span>
                             <span className="inline-flex items-center gap-1"><Clock3 className="h-3.5 w-3.5" />{stop.estimated_travel_minutes ?? 0} min travel</span>
                             <span>{stop.is_locked ? 'Locked' : 'Editable'}</span>
-                            <span>{job?.service_date ? new Date(`${job.service_date}T00:00:00`).toLocaleDateString() : 'No date'}</span>
+                            <span>{job?.start_date ? new Date(`${job.start_date}T00:00:00`).toLocaleDateString() : 'No date'}</span>
                           </div>
                         </div>
                       );

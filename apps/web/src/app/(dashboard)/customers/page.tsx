@@ -19,5 +19,5 @@ function toQueryString(searchParams?: SearchParams) {
 
 export default async function CustomersRedirect({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const sp = searchParams ? await searchParams : undefined;
-  redirect(`/crm${toQueryString(sp)}`);
+  redirect(`/clients${toQueryString(sp)}`);
 }

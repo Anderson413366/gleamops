@@ -218,7 +218,7 @@ test.describe('Direct tab URL sync', () => {
     { url: '/jobs?tab=inspections', expectedSearchPlaceholder: 'Search inspections...', canonicalTab: 'inspections' },
     { url: '/schedule?tab=plan', expectedSearchPlaceholder: 'Search planning tickets, roles, and sites...', canonicalTab: 'plan' },
     { url: '/clients?tab=partners', expectedSearchPlaceholder: 'Search partners...', canonicalTab: 'partners' },
-    { url: '/safety?tab=training-courses', expectedSearchPlaceholder: 'Search courses...', canonicalTab: 'courses' },
+    { url: '/safety?tab=training-courses', expectedSearchPlaceholder: 'Search training...', canonicalTab: 'training' },
   ] as const;
 
   for (const c of CASES) {

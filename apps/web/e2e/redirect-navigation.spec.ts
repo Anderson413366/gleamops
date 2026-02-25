@@ -7,7 +7,11 @@ const REDIRECT_CASES = [
   { from: '/workforce', to: '/team' },
   { from: '/operations', to: '/jobs' },
   { from: '/subcontractors', to: '/clients' },
-  { from: '/admin/services', to: '/services' },
+  { from: '/admin/services', to: '/settings' },
+  { from: '/services', to: '/settings' },
+  { from: '/financial', to: '/reports' },
+  { from: '/money', to: '/reports' },
+  { from: '/financial-intelligence', to: '/reports' },
 ];
 
 test.describe('Redirect navigation hygiene', () => {

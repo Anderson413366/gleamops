@@ -23,6 +23,21 @@ const COLUMNS: { key: PlanningStatus; label: string }[] = [
   { key: 'READY', label: 'Ready' },
 ];
 
+const TICKET_SELECT_V2 = `
+  id, ticket_code, scheduled_date, start_time, end_time, status,
+  planning_status, required_staff_count, position_code,
+  site:site_id(id, name, site_code),
+  assignments:ticket_assignments(id, assignment_status, staff_id, staff:staff_id(full_name))
+`;
+
+const TICKET_SELECT_LEGACY = `
+  id, ticket_code, scheduled_date, start_time, end_time, status,
+  position_code,
+  site:site_id(id, name, site_code),
+  assignments:ticket_assignments(id, assignment_status, staff_id, staff:staff_id(full_name))
+`;
+const PLANNING_V2_ENABLED = process.env.NEXT_PUBLIC_ENABLE_PLANNING_V2 === 'true';
+
 function tomorrow(): string {
   const d = new Date();
   d.setDate(d.getDate() + 1);
@@ -44,6 +59,31 @@ function formatDateLabel(date: string): string {
   });
 }
 
+function isPlanningSchemaMissing(message: string | undefined): boolean {
+  const normalized = (message ?? '').toLowerCase();
+  if (!normalized) return false;
+  return normalized.includes('planning_status')
+    || normalized.includes('required_staff_count')
+    || (normalized.includes('column') && normalized.includes('work_tickets'));
+}
+
+function normalizeTicket(row: Partial<PlanningTicket>): PlanningTicket {
+  return {
+    id: row.id ?? '',
+    ticket_code: row.ticket_code ?? '',
+    scheduled_date: row.scheduled_date ?? '',
+    start_time: row.start_time ?? null,
+    end_time: row.end_time ?? null,
+    status: row.status ?? 'SCHEDULED',
+    planning_status: (row.planning_status ?? 'NOT_STARTED') as PlanningStatus,
+    required_staff_count: row.required_staff_count ?? 1,
+    position_code: row.position_code ?? null,
+    site: row.site ?? null,
+    assignments: row.assignments ?? [],
+    notes: row.notes ?? null,
+  };
+}
+
 interface PlanningBoardProps {
   search?: string;
 }
@@ -52,6 +92,9 @@ export default function PlanningBoard({ search = '' }: PlanningBoardProps) {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const [selectedDate, setSelectedDate] = useState(tomorrow);
   const [tickets, setTickets] = useState<PlanningTicket[]>([]);
+  const [planningSchemaMode, setPlanningSchemaMode] = useState<'v2' | 'legacy'>(
+    PLANNING_V2_ENABLED ? 'v2' : 'legacy'
+  );
   const [staff, setStaff] = useState<StaffOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -61,23 +104,48 @@ export default function PlanningBoard({ search = '' }: PlanningBoardProps) {
 
   // ----- data fetching -----
   const loadTickets = useCallback(async () => {
-    const { data, error } = await supabase
+    const loadLegacyTickets = async () => {
+      const legacy = await supabase
+        .from('work_tickets')
+        .select(TICKET_SELECT_LEGACY)
+        .eq('scheduled_date', selectedDate)
+        .is('archived_at', null)
+        .order('start_time', { ascending: true });
+
+      if (legacy.error) {
+        toast.error(legacy.error.message);
+        return;
+      }
+
+      setPlanningSchemaMode('legacy');
+      setTickets((legacy.data ?? []).map((row) => normalizeTicket(row as Partial<PlanningTicket>)));
+    };
+
+    if (!PLANNING_V2_ENABLED) {
+      await loadLegacyTickets();
+      return;
+    }
+
+    const primary = await supabase
       .from('work_tickets')
-      .select(`
-        id, ticket_code, scheduled_date, start_time, end_time, status,
-        planning_status, required_staff_count, position_code,
-        site:site_id(id, name, site_code),
-        assignments:ticket_assignments(id, assignment_status, staff_id, staff:staff_id(full_name))
-      `)
+      .select(TICKET_SELECT_V2)
       .eq('scheduled_date', selectedDate)
       .is('archived_at', null)
       .order('start_time', { ascending: true });
 
-    if (error) {
-      toast.error(error.message);
+    if (!primary.error) {
+      setPlanningSchemaMode('v2');
+      setTickets((primary.data ?? []).map((row) => normalizeTicket(row as Partial<PlanningTicket>)));
       return;
     }
-    setTickets((data ?? []) as unknown as PlanningTicket[]);
+
+    if (!isPlanningSchemaMissing(primary.error?.message)) {
+      toast.error(primary.error.message);
+      return;
+    }
+
+    await loadLegacyTickets();
+    toast.info('Planning status column not available in this environment. Showing compatibility view.');
   }, [supabase, selectedDate]);
 
   const loadStaff = useCallback(async () => {
@@ -134,6 +202,14 @@ export default function PlanningBoard({ search = '' }: PlanningBoardProps) {
   // ----- mutations -----
   const updatePlanningStatus = useCallback(
     async (ticketId: string, status: PlanningStatus) => {
+      if (planningSchemaMode === 'legacy') {
+        setTickets((prev) =>
+          prev.map((t) => (t.id === ticketId ? { ...t, planning_status: status } : t))
+        );
+        toast.info('Planning status is running in compatibility mode and is not persisted yet.');
+        return;
+      }
+
       setBusy(true);
       const { error } = await supabase
         .from('work_tickets')
@@ -141,6 +217,15 @@ export default function PlanningBoard({ search = '' }: PlanningBoardProps) {
         .eq('id', ticketId);
 
       if (error) {
+        if (isPlanningSchemaMissing(error.message)) {
+          setPlanningSchemaMode('legacy');
+          setTickets((prev) =>
+            prev.map((t) => (t.id === ticketId ? { ...t, planning_status: status } : t))
+          );
+          toast.info('Planning status is running in compatibility mode and is not persisted yet.');
+          setBusy(false);
+          return;
+        }
         toast.error("Status didn't save. Tap to retry.");
         setBusy(false);
         return;
@@ -152,7 +237,7 @@ export default function PlanningBoard({ search = '' }: PlanningBoardProps) {
       );
       setBusy(false);
     },
-    [supabase]
+    [planningSchemaMode, supabase]
   );
 
   const handleMarkReady = useCallback(

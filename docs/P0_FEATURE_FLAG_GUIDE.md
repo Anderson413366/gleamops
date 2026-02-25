@@ -17,7 +17,7 @@ useFeatureFlag(domain)      ← React hook (web)
 ```
 
 - **Read-once, cached**: Flags are read from `process.env` on first call and cached in memory. Restart the process to pick up changes.
-- **Default: disabled**: All flags default to `false` if the env var is missing or set to anything other than `enabled`, `true`, or `1`.
+- **Default behavior**: Most flags default to `false`. `schedule_liberation` and `v2_navigation` default to `true` as rollback controls for the current IA.
 - **No runtime toggle**: Flags cannot be changed at runtime. This keeps the system simple and deterministic.
 
 ### Domains
@@ -30,6 +30,11 @@ useFeatureFlag(domain)      ← React hook (web)
 | `ops_geofence_auto` | `NEXT_PUBLIC_FF_OPS_GEOFENCE_AUTO` | — | Auto geofence clock-in/out |
 | `messaging_v1` | `NEXT_PUBLIC_FF_MESSAGING_V1` | — | In-app messaging system |
 | `mobile_inspections` | `NEXT_PUBLIC_FF_MOBILE_INSPECTIONS` | — | Mobile inspection workflows |
+| `qbo_timesheet_sync` | `NEXT_PUBLIC_FF_QBO_TIMESHEET_SYNC` | `FF_QBO_TIMESHEET_SYNC` | QuickBooks timesheet sync integration |
+| `financial_intel_v1` | `NEXT_PUBLIC_FF_FINANCIAL_INTEL_V1` | `FF_FINANCIAL_INTEL_V1` | Financial intelligence dashboards |
+| `schedule_liberation` | `NEXT_PUBLIC_FF_SCHEDULE_LIBERATION` | `FF_SCHEDULE_LIBERATION` | Route split between legacy Operations and new Schedule/Jobs |
+| `v2_navigation` | `NEXT_PUBLIC_FF_V2_NAVIGATION` | `FF_V2_NAVIGATION` | New sidebar naming and navigation tour |
+| `planning_board` | `NEXT_PUBLIC_FF_PLANNING_BOARD` | `FF_PLANNING_BOARD` | Evening planning board experiences |
 
 ## Usage
 

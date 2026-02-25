@@ -10,8 +10,9 @@ import { useSyncedTab } from '@/hooks/use-synced-tab';
 import { useRole } from '@/hooks/use-role';
 
 import WeekCalendar from './calendar/week-calendar';
-import PlanningBoard from './plan/planning-board';
 import { ScheduleGrid } from './recurring/schedule-grid';
+import { ScheduleList } from './recurring/schedule-list';
+import { ScheduleCardGrid } from './recurring/schedule-card-grid';
 import type { RecurringScheduleRow } from './recurring/schedule-list';
 import { SiteBlueprintView } from './recurring/site-blueprint-view';
 import { ShiftForm } from './recurring/shift-form';
@@ -99,7 +100,7 @@ export default function SchedulePageClient() {
     aliases: { planning: 'recurring', plan: 'recurring', jobs: 'work-orders' },
   });
   const [search, setSearch] = useState('');
-  const [recurringView, setRecurringView] = useState<'board' | 'grid'>('board');
+  const [recurringView, setRecurringView] = useState<'list' | 'card' | 'grid'>('list');
   const [shiftFormOpen, setShiftFormOpen] = useState(false);
   const [recurringRows, setRecurringRows] = useState<RecurringScheduleRow[]>([]);
   const [recurringLoading, setRecurringLoading] = useState(false);
@@ -164,7 +165,7 @@ export default function SchedulePageClient() {
     let cancelled = false;
 
     async function fetchRecurringGridRows() {
-      if (tab !== 'recurring' || recurringView !== 'grid') return;
+      if (tab !== 'recurring') return;
 
       setRecurringLoading(true);
       const supabase = getSupabaseBrowserClient();
@@ -433,14 +434,25 @@ export default function SchedulePageClient() {
           <div className="inline-flex items-center rounded-lg border border-border bg-muted p-0.5">
             <button
               type="button"
-              onClick={() => setRecurringView('board')}
+              onClick={() => setRecurringView('list')}
               className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                recurringView === 'board'
+                recurringView === 'list'
                   ? 'bg-card text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              Board
+              List
+            </button>
+            <button
+              type="button"
+              onClick={() => setRecurringView('card')}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                recurringView === 'card'
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Card
             </button>
             <button
               type="button"
@@ -466,22 +478,24 @@ export default function SchedulePageClient() {
       )}
 
       {tab === 'recurring' && (
-        recurringView === 'grid' ? (
-          recurringLoading ? (
-            <Card>
-              <CardContent className="py-12 text-center text-sm text-muted-foreground">
-                Loading recurring schedule grid...
-              </CardContent>
-            </Card>
+        recurringLoading ? (
+          <Card>
+            <CardContent className="py-12 text-center text-sm text-muted-foreground">
+              Loading recurring schedule...
+            </CardContent>
+          </Card>
+        ) : (
+          recurringView === 'list' ? (
+            <ScheduleList rows={recurringRows} search={search} onSelect={setSelectedRecurringRow} />
+          ) : recurringView === 'card' ? (
+            <ScheduleCardGrid rows={recurringRows} search={search} onSelect={setSelectedRecurringRow} />
           ) : (
             <ScheduleGrid rows={recurringRows} search={search} onSelect={setSelectedRecurringRow} />
           )
-        ) : (
-          <PlanningBoard key={`planning-${refreshKey}`} search={search} />
         )
       )}
 
-      {tab === 'recurring' && recurringView === 'grid' ? (
+      {tab === 'recurring' ? (
         <SiteBlueprintView row={selectedRecurringRow} onClear={() => setSelectedRecurringRow(null)} />
       ) : null}
 

@@ -25,6 +25,7 @@ import type {
   SiteSupply, SiteAssetRequirement, TicketAssetCheckout,
 } from '@gleamops/shared';
 import { formatDate, formatDateLong } from '@/lib/utils/date';
+import { isExternalHttpUrl } from '@/lib/url';
 import { ComposeMessage } from '../../workforce/messages/compose-message';
 
 // ---------------------------------------------------------------------------
@@ -869,7 +870,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                       {supply.category && <p className="text-xs text-muted-foreground">{supply.category}</p>}
                       {supply.notes && <p className="text-xs text-muted-foreground italic mt-0.5">{supply.notes}</p>}
                     </div>
-                    {supply.sds_url ? (
+                    {isExternalHttpUrl(supply.sds_url) ? (
                       <a
                         href={supply.sds_url}
                         target="_blank"
@@ -879,6 +880,8 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                         <ExternalLink className="h-3 w-3" />
                         View SDS
                       </a>
+                    ) : supply.sds_url ? (
+                      <span className="text-xs text-muted-foreground shrink-0" title={supply.sds_url}>SDS On File</span>
                     ) : (
                       <span className="text-xs text-muted-foreground shrink-0">No SDS</span>
                     )}

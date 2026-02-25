@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { AlertTriangle, CalendarClock, MapPin, Package2, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { isExternalHttpUrl } from '@/lib/url';
 import { EntityLink } from '@/components/links/entity-link';
 import type { SiteSupply } from '@gleamops/shared';
 import {
@@ -513,7 +514,7 @@ export default function SiteAssignmentsTable({ search }: Props) {
                 </TableCell>
                 <TableCell className="text-muted-foreground">{formatDateLabel(row.created_at)}</TableCell>
                 <TableCell>
-                  {sdsUrl ? (
+                  {isExternalHttpUrl(sdsUrl) ? (
                     <a
                       href={sdsUrl}
                       target="_blank"
@@ -522,6 +523,8 @@ export default function SiteAssignmentsTable({ search }: Props) {
                     >
                       View SDS
                     </a>
+                  ) : sdsUrl ? (
+                    <span className="text-muted-foreground" title={sdsUrl}>On File</span>
                   ) : (
                     <span className="text-muted-foreground">Not Set</span>
                   )}

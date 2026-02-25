@@ -252,8 +252,10 @@ export default function JobsPageClient() {
         </Card>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0 lg:flex-1">
+          <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
+        </div>
 
         <SearchInput
           value={search}
@@ -271,7 +273,7 @@ export default function JobsPageClient() {
                       ? 'Search routes and owners...'
                       : `Search ${tab}...`
           }
-          className="w-full sm:w-72 lg:w-80"
+          className="w-full lg:w-80"
         />
       </div>
 

@@ -32,7 +32,7 @@ export async function findCountByCode(db: ReturnType<typeof createDb>, code: str
 export async function findCountDetails(db: ReturnType<typeof createDb>, countId: string) {
   return db
     .from('inventory_count_details')
-    .select('id, actual_qty')
+    .select('id, actual_qty, photo_urls')
     .eq('count_id', countId)
     .is('archived_at', null);
 }
@@ -43,10 +43,11 @@ export async function updateCountDetail(
   countId: string,
   actualQty: number | null,
   notes: string | null,
+  photoUrls: string[] | null,
 ) {
   return db
     .from('inventory_count_details')
-    .update({ actual_qty: actualQty, notes })
+    .update({ actual_qty: actualQty, notes, photo_urls: photoUrls })
     .eq('id', detailId)
     .eq('count_id', countId)
     .is('archived_at', null);

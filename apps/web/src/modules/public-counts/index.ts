@@ -1,1 +1,1 @@
-export { getPublicCount, savePublicCount } from './public-counts.service';
+export { getPublicCount, savePublicCount, uploadPublicCountPhoto } from './public-counts.service';

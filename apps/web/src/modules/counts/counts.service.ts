@@ -21,6 +21,7 @@ interface SubmitPayload {
     id: string;
     quantity: number | string | null;
     notes?: string | null;
+    photoUrls?: string[] | null;
   }>;
 }
 
@@ -33,6 +34,25 @@ function toNullableNumber(value: number | string | null | undefined): number | n
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed < 0) return null;
   return parsed;
+}
+
+function toStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((entry): entry is string => typeof entry === 'string')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+}
+
+function sanitizePhotoUrls(value: unknown): string[] {
+  const urls = toStringArray(value);
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
+  const allowedPrefix = base
+    ? `${base.replace(/\/$/, '')}/storage/v1/object/public/documents/`
+    : '';
+
+  if (!allowedPrefix) return [];
+  return urls.filter((url) => url.startsWith(allowedPrefix));
 }
 
 export function nextDueDate(fromDate: string, frequency: string | null): string {
@@ -94,13 +114,20 @@ export async function submitCount(
   const { data: detailRows, error: detailError } = await findCountDetails(db, countRow.id);
   if (detailError) return { success: false, error: detailError.message, status: 500 };
 
-  const detailList = (detailRows ?? []) as Array<{ id: string; actual_qty: number | null }>;
+  const detailList = (detailRows ?? []) as Array<{ id: string; actual_qty: number | null; photo_urls: string[] | null }>;
   const validIds = new Set(detailList.map((row) => row.id));
 
   // Update detail quantities
   const updates = (payload.items ?? [])
     .filter((item) => validIds.has(item.id))
-    .map((item) => updateCountDetail(db, item.id, countRow!.id, toNullableNumber(item.quantity), item.notes ?? null));
+    .map((item) => updateCountDetail(
+      db,
+      item.id,
+      countRow!.id,
+      toNullableNumber(item.quantity),
+      item.notes ?? null,
+      sanitizePhotoUrls(item.photoUrls),
+    ));
 
   if (updates.length > 0) {
     const updateResults = await Promise.all(updates);
@@ -112,13 +139,18 @@ export async function submitCount(
   const { data: finalRows, error: finalError } = await findCountDetails(db, countRow.id);
   if (finalError) return { success: false, error: finalError.message, status: 500 };
 
-  const missing = ((finalRows ?? []) as Array<{ id: string; actual_qty: number | null }>).filter((row) => row.actual_qty == null);
-  if (missing.length > 0) {
+  const normalizedFinalRows = (finalRows ?? []) as Array<{ id: string; actual_qty: number | null; photo_urls: string[] | null }>;
+  const missing = normalizedFinalRows.filter((row) => row.actual_qty == null);
+  const missingPhotos = normalizedFinalRows.filter((row) => sanitizePhotoUrls(row.photo_urls).length === 0);
+  if (missing.length > 0 || missingPhotos.length > 0) {
     return {
       success: false,
-      error: 'All quantity fields are required.',
+      error: 'All quantities and photo proof are required.',
       status: 422,
-      extra: { missingItemIds: missing.map((row) => row.id) },
+      extra: {
+        missingItemIds: missing.map((row) => row.id),
+        missingPhotoItemIds: missingPhotos.map((row) => row.id),
+      },
     };
   }
 

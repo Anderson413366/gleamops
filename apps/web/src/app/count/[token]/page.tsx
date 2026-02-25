@@ -4,7 +4,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { ClipboardCheck, Package2, AlertTriangle, CheckCircle2, ChevronDown, ChevronRight } from 'lucide-react';
+import { ClipboardCheck, Package2, AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Camera, Upload, X } from 'lucide-react';
 import { LOCALE_LABELS, SUPPORTED_LOCALES } from '@gleamops/shared';
 import { Button, Card, CardContent, Skeleton } from '@gleamops/ui';
 import { toast } from 'sonner';
@@ -22,6 +22,7 @@ interface CountItem {
   expectedQty: number | null;
   actualQty: number | null;
   notes: string | null;
+  photoUrls?: string[];
   supply: {
     id: string;
     code: string;
@@ -77,6 +78,8 @@ export default function PublicInventoryCountPage() {
   const [countedByName, setCountedByName] = useState('');
   const [notes, setNotes] = useState('');
   const [qtyByItemId, setQtyByItemId] = useState<Record<string, string>>({});
+  const [photoUrlsByItemId, setPhotoUrlsByItemId] = useState<Record<string, string[]>>({});
+  const [uploadingPhotoByItemId, setUploadingPhotoByItemId] = useState<Record<string, boolean>>({});
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
   const [touchedSubmit, setTouchedSubmit] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -117,6 +120,8 @@ export default function PublicInventoryCountPage() {
       setCountedByName(payload.count.countedByName ?? '');
       setNotes(payload.count.notes ?? '');
       setQtyByItemId(Object.fromEntries(payload.items.map((item) => [item.id, item.actualQty != null ? String(item.actualQty) : ''])));
+      setPhotoUrlsByItemId(Object.fromEntries(payload.items.map((item) => [item.id, item.photoUrls ?? []])));
+      setUploadingPhotoByItemId({});
       const categories = Array.from(new Set(payload.items.map((item) => normalizeSupplyCategory(item.supply?.category))));
       categories.sort(compareSupplyCategories);
       setExpandedCategories(categories.slice(0, 1));
@@ -166,6 +171,10 @@ export default function PublicInventoryCountPage() {
     () => (data?.items ?? []).filter((item) => qtyByItemId[item.id] === '').map((item) => item.id),
     [data, qtyByItemId]
   );
+  const missingPhotoIds = useMemo(
+    () => (data?.items ?? []).filter((item) => (photoUrlsByItemId[item.id] ?? []).length === 0).map((item) => item.id),
+    [data, photoUrlsByItemId],
+  );
 
   const isLocked = submitted || !data || ['SUBMITTED', 'COMPLETED'].includes(data.count.status.toUpperCase());
 
@@ -181,7 +190,58 @@ export default function PublicInventoryCountPage() {
     id: item.id,
     quantity: qtyByItemId[item.id] === '' ? null : Number(qtyByItemId[item.id]),
     notes: item.notes ?? null,
+    photoUrls: photoUrlsByItemId[item.id] ?? [],
   }));
+
+  const removePhoto = (itemId: string, index: number) => {
+    setPhotoUrlsByItemId((prev) => {
+      const next = [...(prev[itemId] ?? [])];
+      next.splice(index, 1);
+      return { ...prev, [itemId]: next };
+    });
+  };
+
+  const uploadPhoto = async (itemId: string, file: File) => {
+    if (!token || isLocked) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error(t('count.toast.photoTypeError'));
+      return;
+    }
+
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error(t('count.toast.photoSizeError'));
+      return;
+    }
+
+    setUploadingPhotoByItemId((prev) => ({ ...prev, [itemId]: true }));
+    try {
+      const formData = new FormData();
+      formData.append('itemId', itemId);
+      formData.append('file', file);
+
+      const response = await fetch(`/api/public/counts/${encodeURIComponent(token)}/photos`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const payload = (await response.json()) as { url?: string; error?: string };
+      if (!response.ok || !payload.url) {
+        throw new Error(payload.error ?? t('count.toast.photoUploadError'));
+      }
+      const uploadedUrl = payload.url;
+
+      setPhotoUrlsByItemId((prev) => ({
+        ...prev,
+        [itemId]: [...(prev[itemId] ?? []), uploadedUrl],
+      }));
+      toast.success(t('count.toast.photoUploaded'));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('count.toast.photoUploadError'));
+    } finally {
+      setUploadingPhotoByItemId((prev) => ({ ...prev, [itemId]: false }));
+    }
+  };
 
   const handleSaveDraft = async () => {
     if (!data || isLocked) return;
@@ -211,6 +271,10 @@ export default function PublicInventoryCountPage() {
     setTouchedSubmit(true);
     if (missingIds.length > 0) {
       toast.error(t('count.toast.submitMissing', { missing: missingIds.length }));
+      return;
+    }
+    if (missingPhotoIds.length > 0) {
+      toast.error(t('count.toast.submitMissingPhoto', { missing: missingPhotoIds.length }));
       return;
     }
     setSubmitting(true);
@@ -373,8 +437,11 @@ export default function PublicInventoryCountPage() {
                     {items.map((item) => {
                       const qtyValue = qtyByItemId[item.id] ?? '';
                       const showError = touchedSubmit && qtyValue === '';
+                      const photoUrls = photoUrlsByItemId[item.id] ?? [];
+                      const showPhotoError = touchedSubmit && photoUrls.length === 0;
+                      const isUploadingPhoto = uploadingPhotoByItemId[item.id] === true;
                       return (
-                        <div key={item.id} className={`rounded-xl border bg-card p-4 ${showError ? 'border-red-400' : 'border-border'}`}>
+                        <div key={item.id} className={`rounded-xl border bg-card p-4 ${showError || showPhotoError ? 'border-red-400' : 'border-border'}`}>
                           <div className="flex items-start gap-4">
                             <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted/30">
                               {item.supply?.image_url ? (
@@ -412,6 +479,55 @@ export default function PublicInventoryCountPage() {
                               {showError ? (
                                 <p className="mt-1 text-xs text-red-600">⚠ {t('count.item.required')}</p>
                               ) : null}
+                              <div className="mt-3 rounded-lg border border-border/80 bg-muted/20 p-3">
+                                <div className="mb-2 flex items-center justify-between gap-2">
+                                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                    <Camera className="h-3.5 w-3.5" />
+                                    {t('count.photo.label')}
+                                  </span>
+                                  <label className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium text-foreground hover:bg-muted">
+                                    <Upload className="h-3.5 w-3.5" />
+                                    {isUploadingPhoto ? t('count.photo.uploading') : t('count.photo.upload')}
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      multiple
+                                      disabled={isLocked || isUploadingPhoto}
+                                      className="hidden"
+                                      onChange={async (event) => {
+                                        const files = Array.from(event.target.files ?? []);
+                                        for (const file of files) {
+                                          await uploadPhoto(item.id, file);
+                                        }
+                                        event.target.value = '';
+                                      }}
+                                    />
+                                  </label>
+                                </div>
+                                <p className="text-[11px] text-muted-foreground">{t('count.photo.hint')}</p>
+                                {photoUrls.length > 0 ? (
+                                  <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                                    {photoUrls.map((photoUrl, index) => (
+                                      <div key={`${photoUrl}-${index}`} className="relative overflow-hidden rounded-md border border-border bg-card">
+                                        <img src={photoUrl} alt={t('count.photo.previewAlt')} className="h-20 w-full object-cover" />
+                                        {!isLocked ? (
+                                          <button
+                                            type="button"
+                                            onClick={() => removePhoto(item.id, index)}
+                                            className="absolute right-1 top-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-background/90 text-foreground shadow"
+                                            aria-label={t('count.photo.remove')}
+                                          >
+                                            <X className="h-3.5 w-3.5" />
+                                          </button>
+                                        ) : null}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : null}
+                                {showPhotoError ? (
+                                  <p className="mt-2 text-xs text-red-600">⚠ {t('count.photo.required')}</p>
+                                ) : null}
+                              </div>
                             </div>
                           </div>
                         </div>

@@ -55,7 +55,7 @@ export async function findCountByTokenFallback(db: SupabaseClient, token: string
 export async function findCountByTokenMinimal(db: SupabaseClient, token: string) {
   return db
     .from('inventory_counts')
-    .select('id, status')
+    .select('id, tenant_id, status')
     .eq('public_token', token)
     .is('archived_at', null)
     .maybeSingle();
@@ -64,7 +64,7 @@ export async function findCountByTokenMinimal(db: SupabaseClient, token: string)
 export async function findCountByTokenMinimalFallback(db: SupabaseClient, token: string) {
   return db
     .from('inventory_counts')
-    .select('id, status')
+    .select('id, tenant_id, status')
     .eq('count_code', token)
     .is('archived_at', null)
     .maybeSingle();
@@ -73,7 +73,7 @@ export async function findCountByTokenMinimalFallback(db: SupabaseClient, token:
 export async function findCountDetails(db: SupabaseClient, countId: string) {
   return db
     .from('inventory_count_details')
-    .select('id, supply_id, expected_qty, actual_qty, notes, created_at')
+    .select('id, supply_id, expected_qty, actual_qty, notes, photo_urls, created_at')
     .eq('count_id', countId)
     .is('archived_at', null)
     .order('created_at');
@@ -115,16 +115,27 @@ export async function findDetailIds(db: SupabaseClient, countId: string) {
     .is('archived_at', null);
 }
 
+export async function findDetailById(db: SupabaseClient, countId: string, detailId: string) {
+  return db
+    .from('inventory_count_details')
+    .select('id, photo_urls')
+    .eq('count_id', countId)
+    .eq('id', detailId)
+    .is('archived_at', null)
+    .maybeSingle();
+}
+
 export async function updateDetail(
   db: SupabaseClient,
   detailId: string,
   countId: string,
   actualQty: number | null,
   notes: string | null,
+  photoUrls: string[] | null,
 ) {
   return db
     .from('inventory_count_details')
-    .update({ actual_qty: actualQty, notes })
+    .update({ actual_qty: actualQty, notes, photo_urls: photoUrls })
     .eq('id', detailId)
     .eq('count_id', countId)
     .is('archived_at', null);
@@ -163,7 +174,22 @@ export async function updateCountHeaderFallback(
 export async function findRefreshedDetails(db: SupabaseClient, countId: string) {
   return db
     .from('inventory_count_details')
-    .select('id, actual_qty')
+    .select('id, actual_qty, photo_urls')
     .eq('count_id', countId)
     .is('archived_at', null);
+}
+
+export async function uploadCountPhoto(
+  db: SupabaseClient,
+  storagePath: string,
+  buffer: Buffer,
+  contentType: string,
+) {
+  return db.storage
+    .from('documents')
+    .upload(storagePath, buffer, { contentType, upsert: false });
+}
+
+export function getCountPhotoPublicUrl(db: SupabaseClient, storagePath: string) {
+  return db.storage.from('documents').getPublicUrl(storagePath);
 }

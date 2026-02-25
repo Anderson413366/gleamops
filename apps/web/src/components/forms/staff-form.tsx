@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Briefcase, FileText, MapPin, Phone, Siren, UserRound } from 'lucide-react';
+import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { staffSchema, type StaffFormData } from '@gleamops/shared';
@@ -82,6 +83,34 @@ const WIZARD_STEPS: WizardStep[] = [
   { id: 'employment', title: 'Employment' },
   { id: 'emergency', title: 'Emergency & Notes' },
 ];
+
+async function requestStaffCode() {
+  const supabase = getSupabaseBrowserClient();
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) {
+    throw new Error('Missing session token for code generation.');
+  }
+
+  const response = await fetch('/api/codes/next', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ prefix: 'STF' }),
+  });
+  if (!response.ok) {
+    throw new Error('Unable to generate staff code.');
+  }
+
+  const payload = await response.json() as { data?: unknown };
+  if (typeof payload.data !== 'string' || !payload.data.trim()) {
+    throw new Error('Invalid staff code response.');
+  }
+
+  return payload.data.trim();
+}
 
 interface StaffFormProps {
   open: boolean;
@@ -215,14 +244,29 @@ export function StaffForm({ open, onClose, initialData, onSuccess, focusSection 
     }
   }, [open, supabase]);
 
-  // Generate next code on create
+  // Generate next code on create.
   useEffect(() => {
-    if (open && !isEdit && !values.staff_code) {
-      supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'STF' }).then(({ data }) => {
-        if (data) setValue('staff_code', data);
-      });
+    if (!open || isEdit || values.staff_code) return;
+
+    let cancelled = false;
+
+    async function generateCode() {
+      try {
+        const generated = await requestStaffCode();
+        if (!cancelled && generated) setValue('staff_code', generated);
+      } catch (error) {
+        if (!cancelled) {
+          const message = error instanceof Error ? error.message : 'Unable to generate staff code.';
+          toast.error(message);
+        }
+      }
     }
-  }, [open, isEdit]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    void generateCode();
+    return () => {
+      cancelled = true;
+    };
+  }, [isEdit, open, setValue, values.staff_code]);
 
   useEffect(() => {
     if (!open || !focusSection) return;

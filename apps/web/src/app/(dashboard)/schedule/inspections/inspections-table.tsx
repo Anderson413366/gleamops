@@ -6,17 +6,20 @@ import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, Button, ExportButton, cn,
+  EmptyState, Badge, Pagination, TableSkeleton, Button, ExportButton, StatusDot, ViewToggle, cn,
 } from '@gleamops/ui';
 import { INSPECTION_STATUS_COLORS } from '@gleamops/shared';
 import type { Inspection } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { useViewPreference } from '@/hooks/use-view-preference';
 import { formatDate } from '@/lib/utils/date';
 import { EntityLink } from '@/components/links/entity-link';
+import { EntityAvatar } from '@/components/directory/entity-avatar';
+import { EntityCard, getEntityInitials } from '@/components/directory/entity-card';
 
 interface InspectionWithRelations extends Inspection {
-  site?: { name: string; site_code: string } | null;
+  site?: { name: string; site_code: string; photo_url?: string | null } | null;
   inspector?: { full_name: string; staff_code: string } | null;
   template?: { name: string } | null;
   ticket?: { ticket_code: string } | null;
@@ -30,10 +33,23 @@ interface InspectionsTableProps {
 
 const STATUS_OPTIONS = ['DRAFT', 'IN_PROGRESS', 'COMPLETED', 'SUBMITTED', 'all'] as const;
 
+function statusTone(status: string | null | undefined): 'green' | 'blue' | 'yellow' | 'red' | 'gray' {
+  const normalized = (status ?? '').toUpperCase();
+  if (normalized === 'COMPLETED' || normalized === 'SUBMITTED') return 'green';
+  if (normalized === 'IN_PROGRESS') return 'blue';
+  if (normalized === 'DRAFT') return 'yellow';
+  return 'gray';
+}
+
+function statusLabel(status: string | null | undefined): string {
+  return (status ?? 'UNKNOWN').replace(/_/g, ' ');
+}
+
 export default function InspectionsTable({ search, onSelect, onCreateNew }: InspectionsTableProps) {
   const [rows, setRows] = useState<InspectionWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('DRAFT');
+  const { view, setView } = useViewPreference('schedule-inspections');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -42,7 +58,7 @@ export default function InspectionsTable({ search, onSelect, onCreateNew }: Insp
       .from('inspections')
       .select(`
         *,
-        site:site_id(name, site_code),
+        site:site_id(name, site_code, photo_url),
         inspector:inspector_id(full_name, staff_code),
         template:template_id(name),
         ticket:ticket_id(ticket_code)
@@ -105,6 +121,7 @@ export default function InspectionsTable({ search, onSelect, onCreateNew }: Insp
   return (
     <div>
       <div className="flex items-center justify-end gap-3 mb-4">
+        <ViewToggle view={view} onChange={setView} />
         <ExportButton
           data={filtered as unknown as Record<string, unknown>[]}
           filename="inspections"
@@ -145,68 +162,100 @@ export default function InspectionsTable({ search, onSelect, onCreateNew }: Insp
         ))}
       </div>
 
-      <div className="w-full overflow-x-auto">
-        <Table className="w-full min-w-full">
-          <TableHeader>
-            <tr>
-              <TableHead sortable sorted={sortKey === 'inspection_code' && sortDir} onSort={() => onSort('inspection_code')}>Code</TableHead>
-              <TableHead>Template</TableHead>
-              <TableHead>Site</TableHead>
-              <TableHead>Inspector</TableHead>
-              <TableHead>Score</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead sortable sorted={sortKey === 'created_at' && sortDir} onSort={() => onSort('created_at')}>Date</TableHead>
-            </tr>
-          </TableHeader>
-          <TableBody>
-            {pag.page.map((row) => (
-              <TableRow key={row.id} onClick={() => onSelect?.(row)}>
-                <TableCell className="font-mono text-xs">{row.inspection_code}</TableCell>
-                <TableCell className="text-sm">{row.template?.name ?? '—'}</TableCell>
-                <TableCell className="font-medium">
-                  {row.site?.site_code ? (
-                    <EntityLink
-                      entityType="site"
-                      code={row.site.site_code}
-                      name={row.site.name ?? row.site.site_code}
-                      showCode={false}
-                      stopPropagation
-                    />
-                  ) : (
-                    row.site?.name ?? '—'
-                  )}
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {row.inspector?.staff_code ? (
-                    <EntityLink
-                      entityType="staff"
-                      code={row.inspector.staff_code}
-                      name={row.inspector.full_name ?? row.inspector.staff_code}
-                      showCode={false}
-                      stopPropagation
-                    />
-                  ) : (
-                    row.inspector?.full_name ?? '—'
-                  )}
-                </TableCell>
-                <TableCell>
-                  {row.score_pct != null ? (
-                    <span className={`text-sm font-medium ${Number(row.score_pct) >= 80 ? 'text-success' : Number(row.score_pct) >= 60 ? 'text-warning' : 'text-destructive'}`}>
-                      {Number(row.score_pct).toFixed(0)}%
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">—</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <Badge color={INSPECTION_STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
-                </TableCell>
-                <TableCell>{formatDate(row.created_at)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      {view === 'card' ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {pag.page.map((row) => (
+            <EntityCard
+              key={row.id}
+              onClick={() => onSelect?.(row)}
+              initials={getEntityInitials(row.site?.name ?? row.inspection_code)}
+              initialsSeed={row.inspection_code}
+              name={row.inspection_code}
+              subtitle={row.template?.name ?? 'No template'}
+              secondaryLine={row.site?.name ?? 'No site'}
+              statusLabel={statusLabel(row.status)}
+              statusTone={statusTone(row.status)}
+              metricsLine={`${row.score_pct != null ? `${Number(row.score_pct).toFixed(0)}% score` : 'No score'} · ${formatDate(row.created_at)}`}
+              code={row.inspection_code}
+              imageUrl={row.site?.photo_url ?? null}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="w-full overflow-x-auto">
+          <Table className="w-full min-w-full">
+            <TableHeader>
+              <tr>
+                <TableHead sortable sorted={sortKey === 'inspection_code' && sortDir} onSort={() => onSort('inspection_code')}>Code</TableHead>
+                <TableHead>Template</TableHead>
+                <TableHead>Site</TableHead>
+                <TableHead>Inspector</TableHead>
+                <TableHead>Score</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead sortable sorted={sortKey === 'created_at' && sortDir} onSort={() => onSort('created_at')}>Date</TableHead>
+              </tr>
+            </TableHeader>
+            <TableBody>
+              {pag.page.map((row) => (
+                <TableRow key={row.id} onClick={() => onSelect?.(row)}>
+                  <TableCell className="font-mono text-xs">
+                    <div className="flex items-center gap-2">
+                      <EntityAvatar
+                        name={row.site?.name ?? row.inspection_code}
+                        seed={row.inspection_code}
+                        imageUrl={row.site?.photo_url ?? null}
+                        size="sm"
+                      />
+                      <StatusDot status={row.status} />
+                      {row.inspection_code}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-sm">{row.template?.name ?? '—'}</TableCell>
+                  <TableCell className="font-medium">
+                    {row.site?.site_code ? (
+                      <EntityLink
+                        entityType="site"
+                        code={row.site.site_code}
+                        name={row.site.name ?? row.site.site_code}
+                        showCode={false}
+                        stopPropagation
+                      />
+                    ) : (
+                      row.site?.name ?? '—'
+                    )}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {row.inspector?.staff_code ? (
+                      <EntityLink
+                        entityType="staff"
+                        code={row.inspector.staff_code}
+                        name={row.inspector.full_name ?? row.inspector.staff_code}
+                        showCode={false}
+                        stopPropagation
+                      />
+                    ) : (
+                      row.inspector?.full_name ?? '—'
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {row.score_pct != null ? (
+                      <span className={`text-sm font-medium ${Number(row.score_pct) >= 80 ? 'text-success' : Number(row.score_pct) >= 60 ? 'text-warning' : 'text-destructive'}`}>
+                        {Number(row.score_pct).toFixed(0)}%
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge color={INSPECTION_STATUS_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
+                  </TableCell>
+                  <TableCell>{formatDate(row.created_at)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
       {filtered.length === 0 && (
         <div className="mt-4">
           <EmptyState

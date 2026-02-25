@@ -231,14 +231,14 @@ export default function QualityDashboard(props: { rangeDays: number; refreshKey:
               <div className="flex items-center justify-between gap-4">
                 <div className="min-w-0">
                   <p className="text-xs text-muted-foreground">Avg Score</p>
-                  <p className="text-2xl font-semibold tabular-nums">{quality.avgScore}</p>
+                  <p className="text-xl font-semibold tabular-nums sm:text-2xl leading-tight">{quality.avgScore}</p>
                 </div>
                 <MiniBars values={scoreSeries} ariaLabel="Average inspection score trend" />
               </div>
               <div className="flex items-center justify-between gap-4 pt-3 border-t border-border">
                 <div className="min-w-0">
                   <p className="text-xs text-muted-foreground">Pass Rate</p>
-                  <p className="text-2xl font-semibold tabular-nums">{quality.passRate}%</p>
+                  <p className="text-xl font-semibold tabular-nums sm:text-2xl leading-tight">{quality.passRate}%</p>
                 </div>
                 <MiniBars values={passSeries} barClassName="fill-success/60" ariaLabel="Inspection pass rate trend" />
               </div>

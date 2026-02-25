@@ -27,16 +27,18 @@ export function MetricCard(props: {
 
   return (
     <Card>
-      <CardContent className="p-5">
-        <div className="flex items-center gap-3">
-          <div className={`p-2 rounded-lg ${styles.wrap}`}>
+      <CardContent className="p-4 sm:p-5">
+        <div className="flex items-start gap-2 sm:gap-3">
+          <div className={`shrink-0 rounded-lg p-2 ${styles.wrap}`}>
             <div className={styles.icon}>{props.icon}</div>
           </div>
           <div className="min-w-0">
-            <p className="text-xs text-muted-foreground">{props.label}</p>
-            <p className="text-2xl font-bold truncate">{props.value}</p>
-            {props.sublabel && <p className="text-xs text-muted-foreground">{props.sublabel}</p>}
-            {props.helper && <p className="text-xs text-muted-foreground">{props.helper}</p>}
+            <p className="text-[11px] text-muted-foreground sm:text-xs">{props.label}</p>
+            <p className="text-[clamp(1rem,3vw,1.5rem)] font-bold leading-tight tabular-nums [overflow-wrap:anywhere]">
+              {props.value}
+            </p>
+            {props.sublabel && <p className="text-[11px] text-muted-foreground sm:text-xs">{props.sublabel}</p>}
+            {props.helper && <p className="text-[11px] text-muted-foreground sm:text-xs">{props.helper}</p>}
           </div>
         </div>
       </CardContent>

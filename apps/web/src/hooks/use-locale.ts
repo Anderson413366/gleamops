@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { t, type Locale, DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@gleamops/shared';
+import { t, type Locale, DEFAULT_LOCALE } from '@gleamops/shared';
+import { resolvePreferredLocale, toSupportedLocale } from '@/lib/locale';
 
 const STORAGE_KEY = 'gleamops-locale';
 
@@ -16,22 +17,21 @@ export function useLocale() {
 
   useEffect(() => {
     // Check localStorage first
-    const stored = localStorage.getItem(STORAGE_KEY) as Locale | null;
-    if (stored && SUPPORTED_LOCALES.includes(stored)) {
+    const stored = toSupportedLocale(localStorage.getItem(STORAGE_KEY));
+    if (stored) {
       setLocaleState(stored);
     } else {
-      // Fall back to browser language
-      const browserLang = navigator.language.split('-')[0] as Locale;
-      if (SUPPORTED_LOCALES.includes(browserLang)) {
-        setLocaleState(browserLang);
-      }
+      // Fall back to browser language preferences
+      const browserLocales = [...(navigator.languages ?? []), navigator.language];
+      setLocaleState(resolvePreferredLocale(browserLocales));
     }
     setMounted(true);
   }, []);
 
   const setLocale = useCallback((newLocale: Locale) => {
-    setLocaleState(newLocale);
-    localStorage.setItem(STORAGE_KEY, newLocale);
+    const resolved = toSupportedLocale(newLocale) ?? DEFAULT_LOCALE;
+    setLocaleState(resolved);
+    localStorage.setItem(STORAGE_KEY, resolved);
   }, []);
 
   const translate = useCallback(

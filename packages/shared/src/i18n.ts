@@ -1,7 +1,7 @@
 /**
  * i18n — Lightweight translation layer for GleamOps.
  *
- * Supports EN, ES, FR for ticket/checklist/inspection labels.
+ * Supports EN, ES, FR, PT-BR, RO for UI labels.
  * All translations are compile-time constants — no async loading.
  *
  * Usage:
@@ -9,14 +9,16 @@
  *   t('inspection.status.COMPLETED', 'es') // → "Completada"
  */
 
-export type Locale = 'en' | 'es' | 'fr';
-export const SUPPORTED_LOCALES: Locale[] = ['en', 'es', 'fr'];
+export type Locale = 'en' | 'es' | 'fr' | 'pt-BR' | 'ro';
+export const SUPPORTED_LOCALES: Locale[] = ['en', 'es', 'fr', 'pt-BR', 'ro'];
 export const DEFAULT_LOCALE: Locale = 'en';
 
 export const LOCALE_LABELS: Record<Locale, string> = {
   en: 'English',
   es: 'Español',
   fr: 'Français',
+  'pt-BR': 'Português (Brasil)',
+  ro: 'Română',
 };
 
 // ---------------------------------------------------------------------------
@@ -267,6 +269,42 @@ const en: Translations = {
   'subs.status.ACTIVE': 'Active',
   'subs.status.INACTIVE': 'Inactive',
   'subs.status.PENDING': 'Pending',
+
+  // -- Public Inventory Count --
+  'count.locale.label': 'Language',
+  'count.title': 'Inventory Count — {site}',
+  'count.code': 'Code',
+  'count.date': 'Date: {date}',
+  'count.site': 'Site: {site}',
+  'count.instructions.enterAll': 'Enter the quantity for every item. `0` means out of stock.',
+  'count.value.notSet': 'Not Set',
+  'count.value.siteDefault': 'Site',
+  'count.value.units': 'units',
+  'count.field.countedBy': 'Counted By',
+  'count.field.countedByPlaceholder': 'Enter name',
+  'count.field.notes': 'Notes',
+  'count.field.notesPlaceholder': 'Optional notes for this count...',
+  'count.item.unknownSupply': 'Unknown Supply',
+  'count.item.unit': 'Unit',
+  'count.item.brand': 'Brand',
+  'count.item.vendor': 'Vendor',
+  'count.item.lastCount': 'Last Count',
+  'count.item.lastCountUnavailable': 'Not available',
+  'count.item.quantity': 'Quantity',
+  'count.item.required': 'This field is required',
+  'count.progress': 'Progress: {completed} of {total} items entered',
+  'count.status.unavailableTitle': 'Count form unavailable',
+  'count.status.unavailableDescription': 'This link may be expired or invalid. Request a new count URL from your site manager.',
+  'count.status.submittedTitle': 'Count submitted successfully',
+  'count.status.submittedDescription': 'Thank you. Inventory Count {code} has been submitted for {site}.',
+  'count.button.saveDraft': 'Save Draft',
+  'count.button.submit': 'Submit Count',
+  'count.toast.loadError': 'Unable to load count form.',
+  'count.toast.saveError': 'Unable to save draft.',
+  'count.toast.saved': 'Draft saved',
+  'count.toast.submitMissing': 'Please complete all quantities. {missing} item(s) still missing.',
+  'count.toast.submitError': 'Unable to submit count.',
+  'count.toast.submitted': 'Count submitted successfully',
 };
 
 const es: Translations = {
@@ -511,6 +549,42 @@ const es: Translations = {
   'subs.status.ACTIVE': 'Activo',
   'subs.status.INACTIVE': 'Inactivo',
   'subs.status.PENDING': 'Pendiente',
+
+  // -- Public Inventory Count --
+  'count.locale.label': 'Idioma',
+  'count.title': 'Conteo de Inventario — {site}',
+  'count.code': 'Código',
+  'count.date': 'Fecha: {date}',
+  'count.site': 'Sitio: {site}',
+  'count.instructions.enterAll': 'Ingrese la cantidad para cada artículo. `0` significa sin existencias.',
+  'count.value.notSet': 'No definido',
+  'count.value.siteDefault': 'Sitio',
+  'count.value.units': 'unidades',
+  'count.field.countedBy': 'Contado por',
+  'count.field.countedByPlaceholder': 'Ingrese nombre',
+  'count.field.notes': 'Notas',
+  'count.field.notesPlaceholder': 'Notas opcionales para este conteo...',
+  'count.item.unknownSupply': 'Suministro desconocido',
+  'count.item.unit': 'Unidad',
+  'count.item.brand': 'Marca',
+  'count.item.vendor': 'Proveedor',
+  'count.item.lastCount': 'Último Conteo',
+  'count.item.lastCountUnavailable': 'No disponible',
+  'count.item.quantity': 'Cantidad',
+  'count.item.required': 'Este campo es obligatorio',
+  'count.progress': 'Progreso: {completed} de {total} artículos ingresados',
+  'count.status.unavailableTitle': 'Formulario de conteo no disponible',
+  'count.status.unavailableDescription': 'Este enlace puede estar vencido o inválido. Solicite una nueva URL de conteo al gerente del sitio.',
+  'count.status.submittedTitle': 'Conteo enviado correctamente',
+  'count.status.submittedDescription': 'Gracias. El Conteo de Inventario {code} fue enviado para {site}.',
+  'count.button.saveDraft': 'Guardar Borrador',
+  'count.button.submit': 'Enviar Conteo',
+  'count.toast.loadError': 'No se pudo cargar el formulario de conteo.',
+  'count.toast.saveError': 'No se pudo guardar el borrador.',
+  'count.toast.saved': 'Borrador guardado',
+  'count.toast.submitMissing': 'Complete todas las cantidades. Aún faltan {missing} artículo(s).',
+  'count.toast.submitError': 'No se pudo enviar el conteo.',
+  'count.toast.submitted': 'Conteo enviado correctamente',
 };
 
 const fr: Translations = {
@@ -755,12 +829,122 @@ const fr: Translations = {
   'subs.status.ACTIVE': 'Actif',
   'subs.status.INACTIVE': 'Inactif',
   'subs.status.PENDING': 'En attente',
+
+  // -- Public Inventory Count --
+  'count.locale.label': 'Langue',
+  'count.title': 'Comptage d’inventaire — {site}',
+  'count.code': 'Code',
+  'count.date': 'Date : {date}',
+  'count.site': 'Site : {site}',
+  'count.instructions.enterAll': 'Saisissez la quantité pour chaque article. `0` signifie en rupture.',
+  'count.value.notSet': 'Non défini',
+  'count.value.siteDefault': 'Site',
+  'count.value.units': 'unités',
+  'count.field.countedBy': 'Compté par',
+  'count.field.countedByPlaceholder': 'Saisir le nom',
+  'count.field.notes': 'Notes',
+  'count.field.notesPlaceholder': 'Notes facultatives pour ce comptage...',
+  'count.item.unknownSupply': 'Fourniture inconnue',
+  'count.item.unit': 'Unité',
+  'count.item.brand': 'Marque',
+  'count.item.vendor': 'Fournisseur',
+  'count.item.lastCount': 'Dernier Comptage',
+  'count.item.lastCountUnavailable': 'Non disponible',
+  'count.item.quantity': 'Quantité',
+  'count.item.required': 'Ce champ est requis',
+  'count.progress': 'Progression : {completed} sur {total} articles saisis',
+  'count.status.unavailableTitle': 'Formulaire de comptage indisponible',
+  'count.status.unavailableDescription': 'Ce lien peut avoir expiré ou être invalide. Demandez une nouvelle URL de comptage à votre responsable de site.',
+  'count.status.submittedTitle': 'Comptage envoyé avec succès',
+  'count.status.submittedDescription': 'Merci. Le comptage {code} a été envoyé pour {site}.',
+  'count.button.saveDraft': 'Enregistrer brouillon',
+  'count.button.submit': 'Envoyer le comptage',
+  'count.toast.loadError': 'Impossible de charger le formulaire de comptage.',
+  'count.toast.saveError': 'Impossible d’enregistrer le brouillon.',
+  'count.toast.saved': 'Brouillon enregistré',
+  'count.toast.submitMissing': 'Veuillez compléter toutes les quantités. {missing} article(s) manquant(s).',
+  'count.toast.submitError': 'Impossible d’envoyer le comptage.',
+  'count.toast.submitted': 'Comptage envoyé avec succès',
+};
+
+const ptBR: Translations = {
+  'count.locale.label': 'Idioma',
+  'count.title': 'Contagem de Inventário — {site}',
+  'count.code': 'Código',
+  'count.date': 'Data: {date}',
+  'count.site': 'Local: {site}',
+  'count.instructions.enterAll': 'Informe a quantidade para cada item. `0` significa sem estoque.',
+  'count.value.notSet': 'Não definido',
+  'count.value.siteDefault': 'Local',
+  'count.value.units': 'unidades',
+  'count.field.countedBy': 'Contado por',
+  'count.field.countedByPlaceholder': 'Digite o nome',
+  'count.field.notes': 'Observações',
+  'count.field.notesPlaceholder': 'Observações opcionais para esta contagem...',
+  'count.item.unknownSupply': 'Item desconhecido',
+  'count.item.unit': 'Unidade',
+  'count.item.brand': 'Marca',
+  'count.item.vendor': 'Fornecedor',
+  'count.item.lastCount': 'Última Contagem',
+  'count.item.lastCountUnavailable': 'Não disponível',
+  'count.item.quantity': 'Quantidade',
+  'count.item.required': 'Este campo é obrigatório',
+  'count.progress': 'Progresso: {completed} de {total} itens preenchidos',
+  'count.status.unavailableTitle': 'Formulário de contagem indisponível',
+  'count.status.unavailableDescription': 'Este link pode estar expirado ou inválido. Solicite um novo link de contagem ao gerente do local.',
+  'count.status.submittedTitle': 'Contagem enviada com sucesso',
+  'count.status.submittedDescription': 'Obrigado. A Contagem de Inventário {code} foi enviada para {site}.',
+  'count.button.saveDraft': 'Salvar Rascunho',
+  'count.button.submit': 'Enviar Contagem',
+  'count.toast.loadError': 'Não foi possível carregar o formulário de contagem.',
+  'count.toast.saveError': 'Não foi possível salvar o rascunho.',
+  'count.toast.saved': 'Rascunho salvo',
+  'count.toast.submitMissing': 'Preencha todas as quantidades. Ainda faltam {missing} item(ns).',
+  'count.toast.submitError': 'Não foi possível enviar a contagem.',
+  'count.toast.submitted': 'Contagem enviada com sucesso',
+};
+
+const ro: Translations = {
+  'count.locale.label': 'Limbă',
+  'count.title': 'Inventar — {site}',
+  'count.code': 'Cod',
+  'count.date': 'Data: {date}',
+  'count.site': 'Locație: {site}',
+  'count.instructions.enterAll': 'Introduceți cantitatea pentru fiecare articol. `0` înseamnă fără stoc.',
+  'count.value.notSet': 'Nesetat',
+  'count.value.siteDefault': 'Locație',
+  'count.value.units': 'unități',
+  'count.field.countedBy': 'Numărat de',
+  'count.field.countedByPlaceholder': 'Introduceți numele',
+  'count.field.notes': 'Note',
+  'count.field.notesPlaceholder': 'Note opționale pentru acest inventar...',
+  'count.item.unknownSupply': 'Articol necunoscut',
+  'count.item.unit': 'Unitate',
+  'count.item.brand': 'Marcă',
+  'count.item.vendor': 'Furnizor',
+  'count.item.lastCount': 'Ultimul Inventar',
+  'count.item.lastCountUnavailable': 'Indisponibil',
+  'count.item.quantity': 'Cantitate',
+  'count.item.required': 'Acest câmp este obligatoriu',
+  'count.progress': 'Progres: {completed} din {total} articole completate',
+  'count.status.unavailableTitle': 'Formular indisponibil',
+  'count.status.unavailableDescription': 'Acest link poate fi expirat sau invalid. Solicitați un link nou managerului locației.',
+  'count.status.submittedTitle': 'Inventar trimis cu succes',
+  'count.status.submittedDescription': 'Mulțumim. Inventarul {code} a fost trimis pentru {site}.',
+  'count.button.saveDraft': 'Salvează Draft',
+  'count.button.submit': 'Trimite Inventarul',
+  'count.toast.loadError': 'Nu s-a putut încărca formularul de inventar.',
+  'count.toast.saveError': 'Nu s-a putut salva draftul.',
+  'count.toast.saved': 'Draft salvat',
+  'count.toast.submitMissing': 'Completați toate cantitățile. Mai lipsesc {missing} articol(e).',
+  'count.toast.submitError': 'Nu s-a putut trimite inventarul.',
+  'count.toast.submitted': 'Inventar trimis cu succes',
 };
 
 // ---------------------------------------------------------------------------
 // Merged dictionary lookup
 // ---------------------------------------------------------------------------
-const DICTIONARIES: Record<Locale, Translations> = { en, es, fr };
+const DICTIONARIES: Record<Locale, Translations> = { en, es, fr, 'pt-BR': ptBR, ro };
 
 /**
  * Translate a key to the given locale.

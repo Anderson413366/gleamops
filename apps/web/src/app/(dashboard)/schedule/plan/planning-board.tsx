@@ -101,7 +101,7 @@ interface PlanningBoardProps {
 
 export default function PlanningBoard({ search = '' }: PlanningBoardProps) {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
-  const [selectedDate, setSelectedDate] = useState(today);
+  const [selectedDate, setSelectedDate] = useState('');
   const [tickets, setTickets] = useState<PlanningTicket[]>([]);
   const [planningSchemaMode, setPlanningSchemaMode] = useState<'v2' | 'legacy'>(
     PLANNING_V2_ENABLED ? 'v2' : 'legacy'
@@ -113,8 +113,17 @@ export default function PlanningBoard({ search = '' }: PlanningBoardProps) {
   const [mobileColumn, setMobileColumn] = useState<PlanningStatus>('NOT_STARTED');
   const isMobile = useMediaQuery('(max-width: 767px)');
 
+  useEffect(() => {
+    setSelectedDate(today());
+  }, []);
+
   // ----- data fetching -----
   const loadTickets = useCallback(async () => {
+    if (!selectedDate) {
+      setTickets([]);
+      return;
+    }
+
     const loadLegacyTickets = async () => {
       const legacy = await supabase
         .from('work_tickets')
@@ -343,7 +352,7 @@ export default function PlanningBoard({ search = '' }: PlanningBoardProps) {
         <div className="min-w-0 flex items-center gap-2">
           <CalendarDays className="h-5 w-5 text-muted-foreground" />
           <h2 className="truncate text-base font-semibold text-foreground">
-            Plan for: {formatDateLabel(selectedDate)}
+            Plan for: {selectedDate ? formatDateLabel(selectedDate) : 'Loading date...'}
           </h2>
         </div>
         <div className="flex flex-wrap items-center gap-1">
@@ -359,8 +368,9 @@ export default function PlanningBoard({ search = '' }: PlanningBoardProps) {
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => setSelectedDate((d) => shiftDate(d, -1))}
+            onClick={() => setSelectedDate((d) => shiftDate(d || today(), -1))}
             aria-label="Previous day"
+            disabled={!selectedDate}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -368,6 +378,7 @@ export default function PlanningBoard({ search = '' }: PlanningBoardProps) {
             variant="secondary"
             size="sm"
             onClick={() => setSelectedDate(today())}
+            disabled={!selectedDate}
           >
             Today
           </Button>
@@ -375,14 +386,16 @@ export default function PlanningBoard({ search = '' }: PlanningBoardProps) {
             variant="secondary"
             size="sm"
             onClick={() => setSelectedDate(tomorrow())}
+            disabled={!selectedDate}
           >
             Tomorrow
           </Button>
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => setSelectedDate((d) => shiftDate(d, 1))}
+            onClick={() => setSelectedDate((d) => shiftDate(d || today(), 1))}
             aria-label="Next day"
+            disabled={!selectedDate}
           >
             <ChevronRight className="h-4 w-4" />
           </Button>

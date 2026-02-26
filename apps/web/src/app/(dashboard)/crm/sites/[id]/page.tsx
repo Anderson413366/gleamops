@@ -334,18 +334,29 @@ export default function SiteDetailPage() {
   const fetchSite = async () => {
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
-    const { data } = await supabase
-      .from('sites')
-      .select(`
+    const routeIdentifier = decodeURIComponent(id).trim();
+    const siteSelect = `
         *,
         client:client_id(name, client_code),
         primary_contact:primary_contact_id(name, role, role_title, email, phone, mobile_phone, work_phone, preferred_contact_method, photo_url),
         emergency_contact:emergency_contact_id(name, role, role_title, email, phone, mobile_phone, work_phone, preferred_contact_method, photo_url),
         supervisor:supervisor_id(full_name, staff_code, email, phone, mobile_phone, photo_url)
-      `)
-      .eq('site_code', id)
-      .is('archived_at', null)
-      .single();
+      `;
+    const fetchSiteBy = async (column: 'site_code' | 'id') => {
+      const { data, error } = await supabase
+        .from('sites')
+        .select(siteSelect)
+        .eq(column, routeIdentifier)
+        .is('archived_at', null)
+        .maybeSingle();
+      if (error) {
+        console.error(`Failed loading site by ${column}`, error);
+        return null;
+      }
+      return (data as unknown as SiteWithClient | null) ?? null;
+    };
+    const siteByCode = await fetchSiteBy('site_code');
+    const data = siteByCode ?? (routeIdentifier ? await fetchSiteBy('id') : null);
 
     if (data) {
       const s = data as unknown as SiteWithClient;

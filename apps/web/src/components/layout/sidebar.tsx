@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   Home,
   TrendingUp,
@@ -25,11 +25,13 @@ import {
   MapPin,
   Briefcase,
   ClipboardCheck,
+  Clock3,
   AlertTriangle,
 } from 'lucide-react';
-import { getModuleFromPathname, NAV_ITEMS, roleDisplayName, type NavItem } from '@gleamops/shared';
+import { getModuleFromPathname, NAV_ITEMS, normalizeRoleCode, roleDisplayName, type NavItem } from '@gleamops/shared';
 import { useAuth } from '@/hooks/use-auth';
 import { useFeatureFlag } from '@/hooks/use-feature-flag';
+import { useLocale } from '@/hooks/use-locale';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { NavigationTooltipTour } from './navigation-tooltip-tour';
 
@@ -70,6 +72,14 @@ const LEGACY_NAV_ITEMS: NavItem[] = [
   { id: 'settings', label: 'Admin', href: '/admin', icon: 'Settings' },
 ];
 
+const SHIFTS_TIME_SIDEBAR_ROLES = new Set([
+  'OWNER_ADMIN',
+  'MANAGER',
+  'SUPERVISOR',
+  'CLEANER',
+  'INSPECTOR',
+]);
+
 function getInitials(email: string): string {
   const name = email.split('@')[0];
   if (!name) return '?';
@@ -82,8 +92,11 @@ function getInitials(email: string): string {
 
 export function Sidebar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const activeModule = getModuleFromPathname(pathname);
   const v2NavigationEnabled = useFeatureFlag('v2_navigation');
+  const shiftsTimeV1Enabled = useFeatureFlag('shifts_time_v1');
+  const shiftsTimeRouteExecutionEnabled = useFeatureFlag('shifts_time_route_execution');
   const navItems = v2NavigationEnabled ? NAV_ITEMS : LEGACY_NAV_ITEMS;
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -91,6 +104,16 @@ export function Sidebar() {
   const [badgeCounts, setBadgeCounts] = useState<Record<string, number>>({});
   const quickRef = useRef<HTMLDivElement>(null);
   const { user, role, signOut } = useAuth();
+  const { t } = useLocale();
+  const roleCode = normalizeRoleCode(role ?? '') ?? (role ?? '').toUpperCase();
+  const showShiftsTimeNav = SHIFTS_TIME_SIDEBAR_ROLES.has(roleCode)
+    && (
+      shiftsTimeV1Enabled
+      || shiftsTimeRouteExecutionEnabled
+      || roleCode === 'OWNER_ADMIN'
+      || roleCode === 'MANAGER'
+    );
+  const shiftsTimeActive = pathname.startsWith('/jobs') && searchParams.get('tab') === 'shifts-time';
 
   // Fetch badge counts
   useEffect(() => {
@@ -241,6 +264,26 @@ export function Sidebar() {
               </Link>
             );
           })}
+          {showShiftsTimeNav && (
+            <Link
+              href="/jobs?tab=shifts-time"
+              onClick={() => setMobileOpen(false)}
+              aria-current={shiftsTimeActive ? 'page' : undefined}
+              className={`mt-1 flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 ease-in-out group ${
+                shiftsTimeActive
+                  ? 'border-module-accent/30 bg-module-accent/15 text-module-accent'
+                  : 'border-transparent text-sidebar-text hover:bg-sidebar-hover hover:text-white'
+              }`}
+            >
+              <Clock3
+                className={`h-[18px] w-[18px] shrink-0 transition-colors duration-200 ${
+                  shiftsTimeActive ? 'text-module-accent' : 'text-sidebar-text group-hover:text-white'
+                }`}
+              />
+              {t('shiftsTime.tab')}
+              {shiftsTimeActive && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-module-accent" />}
+            </Link>
+          )}
         </nav>
         {v2NavigationEnabled && <NavigationTooltipTour />}
 

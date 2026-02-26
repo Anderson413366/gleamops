@@ -13,10 +13,15 @@ import {
   rpcCaptureTravelSegment,
   rpcFinalizePayrollExport,
   rpcGeneratePayrollPreview,
+  findStaffIdByUserId,
+  listRouteStopsByRouteIds,
+  listRoutesForDate,
   rpcOfferCoverage,
   rpcReportCallout,
   rpcRouteCompleteStop,
   rpcRouteStartStop,
+  type ShiftsTimeRouteRow,
+  type ShiftsTimeRouteStopRow,
 } from './shifts-time.repository';
 
 type ServiceResult<T = unknown> =
@@ -37,6 +42,123 @@ function isCalloutEnabled() {
 
 function isPayrollEnabled() {
   return isFeatureEnabled('shifts_time_v1') && isFeatureEnabled('shifts_time_payroll_export_v1');
+}
+
+function isManagerTier(roles: string[]) {
+  return canManageShiftsTimeCoverage(roles) || canManageShiftsTimePayroll(roles);
+}
+
+function parseIsoDate(value: string | null): Date | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function toSiteDescriptor(stop: ShiftsTimeRouteStopRow) {
+  const siteFromDirect = stop.site;
+  const siteFromJob = stop.site_job?.site ?? null;
+  const site = siteFromDirect ?? siteFromJob;
+  return {
+    site_id: site?.id ?? null,
+    site_code: site?.site_code ?? null,
+    site_name: site?.name ?? null,
+    job_code: stop.site_job?.job_code ?? null,
+  };
+}
+
+function resolveRouteOwner(
+  routeOwner: ShiftsTimeRouteRow['route_owner'],
+): { id: string; staff_code: string | null; full_name: string | null } | null {
+  if (Array.isArray(routeOwner)) return routeOwner[0] ?? null;
+  return routeOwner ?? null;
+}
+
+type CoverageStatus = 'covered' | 'at_risk' | 'uncovered';
+
+type TonightBoardStop = {
+  id: string;
+  route_id: string;
+  stop_order: number;
+  route_owner_staff_id: string | null;
+  route_owner_name: string | null;
+  route_owner_code: string | null;
+  stop_status: string;
+  status: string;
+  planned_start_at: string | null;
+  planned_end_at: string | null;
+  arrived_at: string | null;
+  departed_at: string | null;
+  site_id: string | null;
+  site_code: string | null;
+  site_name: string | null;
+  job_code: string | null;
+};
+
+type SiteSummary = {
+  site_id: string;
+  site_code: string;
+  site_name: string;
+  total_stops: number;
+  completed_stops: number;
+  arrived_stops: number;
+  pending_stops: number;
+  skipped_stops: number;
+  late_stops: number;
+  coverage_status: CoverageStatus;
+};
+
+function toTonightBoardStop(
+  stop: ShiftsTimeRouteStopRow,
+  routeById: Map<string, ShiftsTimeRouteRow>,
+): TonightBoardStop {
+  const route = routeById.get(stop.route_id);
+  const routeOwner = resolveRouteOwner(route?.route_owner ?? null);
+  const site = toSiteDescriptor(stop);
+  return {
+    id: stop.id,
+    route_id: stop.route_id,
+    stop_order: Number(stop.stop_order ?? 0),
+    route_owner_staff_id: route?.route_owner_staff_id ?? null,
+    route_owner_name: routeOwner?.full_name ?? null,
+    route_owner_code: routeOwner?.staff_code ?? null,
+    stop_status: String(stop.stop_status ?? 'PENDING'),
+    status: String(stop.status ?? 'PENDING'),
+    planned_start_at: stop.planned_start_at ?? null,
+    planned_end_at: stop.planned_end_at ?? null,
+    arrived_at: stop.arrived_at ?? null,
+    departed_at: stop.departed_at ?? null,
+    site_id: site.site_id,
+    site_code: site.site_code,
+    site_name: site.site_name,
+    job_code: site.job_code,
+  };
+}
+
+function computeCoverageStatus(summary: Omit<SiteSummary, 'coverage_status'>): CoverageStatus {
+  if (summary.total_stops === 0) return 'uncovered';
+  if (summary.completed_stops + summary.arrived_stops >= summary.total_stops) return 'covered';
+  if (summary.skipped_stops >= summary.total_stops) return 'uncovered';
+  if (summary.late_stops > 0 && summary.completed_stops === 0 && summary.arrived_stops === 0) return 'uncovered';
+  return 'at_risk';
+}
+
+function toActionForStop(stop: TonightBoardStop): 'arrive' | 'complete' {
+  if (stop.stop_status === 'ARRIVED' || stop.status === 'IN_PROGRESS') return 'complete';
+  return 'arrive';
+}
+
+function toIsoDate(value: Date): string {
+  return value.toISOString().slice(0, 10);
+}
+
+function emptyTonightBoardPayload(date: string, pilotEnabled: boolean) {
+  return {
+    pilot_enabled: pilotEnabled,
+    date,
+    my_next_stop: null,
+    site_summaries: [],
+    totals: { sites: 0, stops: 0, uncovered_sites: 0 },
+  };
 }
 
 export async function startRouteStopRpc(
@@ -236,4 +358,155 @@ export async function finalizePayrollExportRpc(
   }
 
   return { success: true, data };
+}
+
+export async function getTonightBoard(
+  userDb: SupabaseClient,
+  auth: AuthContext,
+  apiPath: string,
+): Promise<ServiceResult> {
+  if (!canOperateShiftsTimeRouteExecution(auth.roles) && !isManagerTier(auth.roles)) {
+    return { success: false, error: AUTH_002(apiPath) };
+  }
+
+  const pilotEnabled = isRouteExecutionEnabled();
+  const today = toIsoDate(new Date());
+  if (!pilotEnabled) {
+    return {
+      success: true,
+      data: emptyTonightBoardPayload(today, false),
+    };
+  }
+
+  const managerTier = isManagerTier(auth.roles);
+  let staffId: string | null = null;
+
+  if (!managerTier) {
+    const staffResult = await findStaffIdByUserId(userDb, auth.userId);
+    if (staffResult.error) {
+      return { success: false, error: SYS_002(staffResult.error.message, apiPath) };
+    }
+    staffId = (staffResult.data as { id?: string | null } | null)?.id ?? null;
+
+    // Never widen scope for field users when staff mapping is missing.
+    if (!staffId) {
+      return { success: true, data: emptyTonightBoardPayload(today, true) };
+    }
+  } else {
+    const staffResult = await findStaffIdByUserId(userDb, auth.userId);
+    if (!staffResult.error) {
+      staffId = (staffResult.data as { id?: string | null } | null)?.id ?? null;
+    }
+  }
+
+  const routesResult = await listRoutesForDate(userDb, today, managerTier ? null : staffId);
+  if (routesResult.error) {
+    return { success: false, error: SYS_002(routesResult.error.message, apiPath) };
+  }
+
+  const routes = (routesResult.data ?? []) as unknown as ShiftsTimeRouteRow[];
+  const routeIds = routes.map((route) => route.id);
+  const routeById = new Map(routes.map((route) => [route.id, route]));
+
+  const stopsResult = await listRouteStopsByRouteIds(userDb, routeIds);
+  if (stopsResult.error) {
+    return { success: false, error: SYS_002(stopsResult.error.message, apiPath) };
+  }
+
+  const allStops = ((stopsResult.data ?? []) as ShiftsTimeRouteStopRow[]).map((stop) => toTonightBoardStop(stop, routeById));
+
+  const now = new Date();
+  const summariesBySite = new Map<string, Omit<SiteSummary, 'coverage_status'>>();
+  for (const stop of allStops) {
+    const siteId = stop.site_id ?? `unknown:${stop.id}`;
+    if (!summariesBySite.has(siteId)) {
+      summariesBySite.set(siteId, {
+        site_id: siteId,
+        site_code: stop.site_code ?? '--',
+        site_name: stop.site_name ?? stop.site_code ?? stop.job_code ?? '--',
+        total_stops: 0,
+        completed_stops: 0,
+        arrived_stops: 0,
+        pending_stops: 0,
+        skipped_stops: 0,
+        late_stops: 0,
+      });
+    }
+
+    const summary = summariesBySite.get(siteId)!;
+    summary.total_stops += 1;
+
+    if (stop.stop_status === 'COMPLETED' || stop.status === 'COMPLETED') {
+      summary.completed_stops += 1;
+      continue;
+    }
+
+    if (stop.stop_status === 'ARRIVED' || stop.status === 'IN_PROGRESS') {
+      summary.arrived_stops += 1;
+      continue;
+    }
+
+    if (stop.stop_status === 'SKIPPED' || stop.status === 'SKIPPED') {
+      summary.skipped_stops += 1;
+      continue;
+    }
+
+    summary.pending_stops += 1;
+    const plannedStart = parseIsoDate(stop.planned_start_at);
+    if (plannedStart && plannedStart < now) {
+      summary.late_stops += 1;
+    }
+  }
+
+  const siteSummaries = Array.from(summariesBySite.values())
+    .map((summary) => ({ ...summary, coverage_status: computeCoverageStatus(summary) }))
+    .sort((a, b) => {
+      const severity = { uncovered: 0, at_risk: 1, covered: 2 } as const;
+      const severityDiff = severity[a.coverage_status] - severity[b.coverage_status];
+      if (severityDiff !== 0) return severityDiff;
+      return a.site_name.localeCompare(b.site_name);
+    });
+
+  const myNextStopCandidates = (staffId
+    ? allStops.filter((stop) => stop.route_owner_staff_id === staffId)
+    : []
+  )
+    .filter((stop) => stop.stop_status !== 'COMPLETED' && stop.stop_status !== 'SKIPPED')
+    .sort((a, b) => {
+      const aStart = parseIsoDate(a.planned_start_at)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+      const bStart = parseIsoDate(b.planned_start_at)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+      if (aStart !== bStart) return aStart - bStart;
+      return a.stop_order - b.stop_order;
+    });
+
+  const myNextStop = myNextStopCandidates[0]
+    ? {
+      stop_id: myNextStopCandidates[0].id,
+      route_id: myNextStopCandidates[0].route_id,
+      stop_order: myNextStopCandidates[0].stop_order,
+      stop_status: myNextStopCandidates[0].stop_status,
+      planned_start_at: myNextStopCandidates[0].planned_start_at,
+      planned_end_at: myNextStopCandidates[0].planned_end_at,
+      site_id: myNextStopCandidates[0].site_id,
+      site_code: myNextStopCandidates[0].site_code,
+      site_name: myNextStopCandidates[0].site_name,
+      job_code: myNextStopCandidates[0].job_code,
+      primary_action: toActionForStop(myNextStopCandidates[0]),
+    }
+    : null;
+
+  return {
+    success: true,
+    data: {
+      pilot_enabled: true,
+      date: today,
+      my_next_stop: myNextStop,
+      site_summaries: siteSummaries,
+      totals: {
+        sites: siteSummaries.length,
+        stops: allStops.length,
+        uncovered_sites: siteSummaries.filter((site) => site.coverage_status === 'uncovered').length,
+      },
+    },
+  };
 }

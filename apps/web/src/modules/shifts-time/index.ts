@@ -1,4 +1,5 @@
 export {
+  getTonightBoard,
   startRouteStopRpc,
   completeRouteStopRpc,
   captureTravelSegmentRpc,

@@ -79,11 +79,11 @@ export default function JobsPageClient() {
 
   const roleCode = normalizeRoleCode(role ?? '') ?? (role ?? '').toUpperCase();
   const isShiftsTimePilotManager = roleCode === 'OWNER_ADMIN' || roleCode === 'MANAGER';
-  const keepRequestedShiftsTimeDuringAuth = requestedTab === 'shifts-time' && authLoading;
-  const showShiftsTime = keepRequestedShiftsTimeDuringAuth || (
+  const canAccessShiftsTime = (
     SHIFTS_TIME_ALLOWED_ROLES.has(roleCode)
       && (isShiftsTimePilotManager || shiftsTimeV1Enabled || shiftsTimeRouteExecutionEnabled)
   );
+  const showShiftsTime = requestedTab === 'shifts-time' || canAccessShiftsTime;
 
   const tabs = useMemo(() => (
     showShiftsTime
@@ -112,10 +112,14 @@ export default function JobsPageClient() {
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   useEffect(() => {
-    if (!showShiftsTime) return;
     if (requestedTab !== 'shifts-time') return;
+    if (authLoading) return;
+    if (!canAccessShiftsTime) {
+      if (tab !== 'service-plans') setTab('service-plans');
+      return;
+    }
     if (tab !== 'shifts-time') setTab('shifts-time');
-  }, [requestedTab, setTab, showShiftsTime, tab]);
+  }, [authLoading, canAccessShiftsTime, requestedTab, setTab, tab]);
 
   useEffect(() => {
     async function fetchKpis() {

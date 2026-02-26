@@ -1,7 +1,20 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { BookOpen, Hash, GitBranch, Upload, Database, FileCog, FileText, MapPin, Plus } from 'lucide-react';
+import {
+  BookOpen,
+  Hash,
+  GitBranch,
+  Upload,
+  Database,
+  MapPin,
+  Plus,
+  BriefcaseBusiness,
+  CalendarClock,
+  ShieldCheck,
+  Boxes,
+  MonitorSmartphone,
+} from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
@@ -11,14 +24,20 @@ import SequencesTable from './sequences/sequences-table';
 import StatusRulesTable from './rules/status-rules-table';
 import ImportPage from './import/import-page';
 import DataHubPanel from './data-hub/data-hub-panel';
-import CustomFormsBuilder from '../operations/custom-forms/custom-forms-builder';
-import TemplatesTable from '../operations/inspections/templates-table';
 import GeofenceTable from '../operations/geofence/geofence-table';
+import PositionTypesTable from './positions/position-types-table';
+import ScheduleSettings from './schedule-settings';
+import ClockInSettings from './clock-in-settings';
+import InventorySettings from './inventory-settings';
+import PortalSettings from './portal-settings';
 
 const TABS = [
   { key: 'lookups', label: 'Lookups', icon: <BookOpen className="h-4 w-4" /> },
-  { key: 'forms', label: 'Forms', icon: <FileCog className="h-4 w-4" /> },
-  { key: 'templates', label: 'Templates', icon: <FileText className="h-4 w-4" /> },
+  { key: 'position-types', label: 'Position Types', icon: <BriefcaseBusiness className="h-4 w-4" /> },
+  { key: 'schedule-settings', label: 'Schedule Settings', icon: <CalendarClock className="h-4 w-4" /> },
+  { key: 'clock-in-settings', label: 'Clock-In Settings', icon: <ShieldCheck className="h-4 w-4" /> },
+  { key: 'inventory-settings', label: 'Inventory Settings', icon: <Boxes className="h-4 w-4" /> },
+  { key: 'portal-settings', label: 'Portal Settings', icon: <MonitorSmartphone className="h-4 w-4" /> },
   { key: 'geofences', label: 'Geofences', icon: <MapPin className="h-4 w-4" /> },
   { key: 'data-hub', label: 'Data Hub', icon: <Database className="h-4 w-4" /> },
   { key: 'sequences', label: 'Sequences', icon: <Hash className="h-4 w-4" /> },
@@ -47,6 +66,7 @@ export default function AdminPageClient() {
   };
 
   const addLabel = tab === 'lookups' ? 'New Lookup' : '';
+  const searchEnabledTabs = new Set(['lookups', 'position-types', 'geofences', 'data-hub', 'sequences', 'rules']);
 
   useEffect(() => {
     async function fetchKpis() {
@@ -74,7 +94,7 @@ export default function AdminPageClient() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Admin</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            System configuration and controls. Services and Tasks now live in the dedicated Services module.
+            System configuration center for scheduling, workforce, geofencing, inventory, and portal controls.
           </p>
         </div>
         {addLabel && (
@@ -96,7 +116,7 @@ export default function AdminPageClient() {
         <div className="min-w-0 lg:flex-1">
           <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
         </div>
-        {tab !== 'import' && (
+        {searchEnabledTabs.has(tab) && (
           <SearchInput
             value={search}
             onChange={setSearch}
@@ -115,15 +135,11 @@ export default function AdminPageClient() {
           onRefresh={refresh}
         />
       )}
-      {tab === 'forms' && (
-        <CustomFormsBuilder
-          key={`forms-${refreshKey}`}
-          search={search}
-        />
-      )}
-      {tab === 'templates' && (
-        <TemplatesTable key={`templates-${refreshKey}`} search={search} />
-      )}
+      {tab === 'position-types' && <PositionTypesTable key={`position-types-${refreshKey}`} search={search} />}
+      {tab === 'schedule-settings' && <ScheduleSettings />}
+      {tab === 'clock-in-settings' && <ClockInSettings />}
+      {tab === 'inventory-settings' && <InventorySettings />}
+      {tab === 'portal-settings' && <PortalSettings />}
       {tab === 'geofences' && (
         <GeofenceTable
           key={`geo-${refreshKey}`}

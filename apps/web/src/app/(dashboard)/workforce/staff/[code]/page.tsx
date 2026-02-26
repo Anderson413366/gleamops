@@ -241,12 +241,23 @@ export default function StaffDetailPage() {
   const fetchStaff = async () => {
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
-    const { data } = await supabase
-      .from('staff')
-      .select('*')
-      .eq('staff_code', code)
-      .is('archived_at', null)
-      .single();
+    const routeIdentifier = decodeURIComponent(code).trim();
+    const fetchStaffBy = async (column: 'staff_code' | 'id') => {
+      const { data, error } = await supabase
+        .from('staff')
+        .select('*')
+        .eq(column, routeIdentifier)
+        .is('archived_at', null)
+        .maybeSingle();
+      if (error) {
+        console.error(`Failed loading staff by ${column}`, error);
+        return null;
+      }
+      return (data as unknown as Staff | null) ?? null;
+    };
+    const staffByCode = await fetchStaffBy('staff_code');
+    const data = staffByCode ?? (routeIdentifier ? await fetchStaffBy('id') : null);
+
     if (data) {
       setStaff(data as unknown as Staff);
 
@@ -289,6 +300,13 @@ export default function StaffDetailPage() {
         if (ticketRes.data) setTicketAssignments(ticketRes.data as unknown as TicketAssignmentRow[]);
         setSupervisedTeamCount(supervisedRes.count ?? 0);
       });
+    } else {
+      setStaff(null);
+      setJobs([]);
+      setEquipment([]);
+      setCertifications([]);
+      setTicketAssignments([]);
+      setSupervisedTeamCount(0);
     }
     setLoading(false);
   };

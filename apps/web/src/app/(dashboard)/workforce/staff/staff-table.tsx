@@ -98,7 +98,8 @@ export default function StaffTable({
   const handleAdd = () => { setEditItem(null); setFormOpen(true); };
 
   const handleRowClick = (row: Staff) => {
-    router.push(`/team/staff/${encodeURIComponent(row.staff_code)}`);
+    const routeIdentifier = row.staff_code?.trim() || row.id;
+    router.push(`/team/staff/${encodeURIComponent(routeIdentifier)}`);
   };
   const selectedStatusLabel = statusFilter === 'all'
     ? 'all statuses'
@@ -177,7 +178,7 @@ export default function StaffTable({
       result = result.filter(
         (r) =>
           r.full_name.toLowerCase().includes(q) ||
-          r.staff_code.toLowerCase().includes(q) ||
+          (r.staff_code?.toLowerCase().includes(q) ?? false) ||
           r.role.toLowerCase().includes(q) ||
           (r.email?.toLowerCase().includes(q) ?? false) ||
           (r.employment_type?.toLowerCase().includes(q) ?? false)

@@ -138,6 +138,14 @@ interface RelatedEquipmentRow {
   staff?: { full_name: string; staff_code: string } | null;
 }
 
+interface SiteFieldRequestRow {
+  id: string;
+  title: string;
+  severity: string | null;
+  body: string | null;
+  created_at: string;
+}
+
 function formatCurrency(n: number | null) {
   if (n == null) return '$0';
   return new Intl.NumberFormat('en-US', {
@@ -194,6 +202,43 @@ function formatRelativeDateTime(dateStr: string): string {
   if (diffHours < 24) return `${diffHours} hr ago`;
   const diffDays = Math.floor(diffHours / 24);
   return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+}
+
+function parseBody(body: string | null | undefined): Record<string, unknown> {
+  if (!body) return {};
+  try {
+    const parsed = JSON.parse(body);
+    return parsed && typeof parsed === 'object' ? parsed as Record<string, unknown> : {};
+  } catch {
+    return {};
+  }
+}
+
+function requestSeverityColor(severity: string | null): 'red' | 'yellow' | 'blue' | 'gray' {
+  if (severity === 'CRITICAL') return 'red';
+  if (severity === 'WARNING') return 'yellow';
+  if (severity === 'INFO') return 'blue';
+  return 'gray';
+}
+
+function requestTypeLabel(value: unknown): string {
+  const normalized = String(value ?? '').trim().toLowerCase();
+  if (!normalized) return 'Request';
+  return normalized
+    .split('-')
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(' ');
+}
+
+function detailValueLabel(value: unknown): string {
+  if (value === null || value === undefined || value === '') return 'Not Set';
+  if (Array.isArray(value)) {
+    const values = value.map((entry) => String(entry).trim()).filter(Boolean);
+    return values.length ? values.join(', ') : 'Not Set';
+  }
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
 }
 
 function notSet(v: unknown): ReactNode {
@@ -269,6 +314,7 @@ export default function SiteDetailPage() {
   const [keys, setKeys] = useState<KeyInventory[]>([]);
   const [relatedJobs, setRelatedJobs] = useState<RelatedSiteJobRow[]>([]);
   const [relatedEquipment, setRelatedEquipment] = useState<RelatedEquipmentRow[]>([]);
+  const [fieldRequests, setFieldRequests] = useState<SiteFieldRequestRow[]>([]);
   const [jobTasksByJob, setJobTasksByJob] = useState<Record<string, JobTaskRow[]>>({});
   const [jobStaffByJob, setJobStaffByJob] = useState<Record<string, JobStaffAssignmentRow[]>>({});
   const [expandedJobs, setExpandedJobs] = useState<string[]>([]);
@@ -306,7 +352,7 @@ export default function SiteDetailPage() {
       setSite(s);
 
       // Fetch related data in parallel
-      const [jobsRes, equipRes, keysRes, siteSuppliesRes, countHistoryRes, supplyCatalogRes] = await Promise.all([
+      const [jobsRes, equipRes, keysRes, siteSuppliesRes, countHistoryRes, supplyCatalogRes, fieldRequestsRes] = await Promise.all([
         supabase
           .from('site_jobs')
           .select('id, job_code, job_name, status, frequency, schedule_days, start_time, end_time, job_assigned_to, billing_amount, priority_level')
@@ -341,6 +387,15 @@ export default function SiteDetailPage() {
           .from('supply_catalog')
           .select('id, code, name, category, unit, preferred_vendor')
           .is('archived_at', null),
+        supabase
+          .from('alerts')
+          .select('id, title, severity, body, created_at')
+          .eq('alert_type', 'FIELD_REQUEST')
+          .eq('entity_type', 'site')
+          .eq('entity_id', s.id)
+          .is('dismissed_at', null)
+          .order('created_at', { ascending: false })
+          .limit(12),
       ]);
 
       const jobs = (jobsRes.data ?? []) as unknown as RelatedSiteJobRow[];
@@ -360,6 +415,7 @@ export default function SiteDetailPage() {
       const equipment = (equipRes.data ?? []) as unknown as RelatedEquipmentRow[];
       setRelatedEquipment(equipment);
       setEquipmentCount(equipment.length);
+      setFieldRequests((fieldRequestsRes.data ?? []) as unknown as SiteFieldRequestRow[]);
       setKeys((keysRes.data as unknown as KeyInventory[]) ?? []);
       setSiteSupplies((siteSuppliesRes.data as unknown as SiteSupplyRow[]) ?? []);
       const lookupByName: Record<string, SupplyLookupRow> = {};
@@ -450,6 +506,7 @@ export default function SiteDetailPage() {
     } else {
       setRelatedJobs([]);
       setRelatedEquipment([]);
+      setFieldRequests([]);
       setSiteSupplies([]);
       setLatestCount(null);
       setLatestCountedByName(null);
@@ -1534,6 +1591,69 @@ export default function SiteDetailPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+      </div>
+
+      {/* Field Requests */}
+      <div id="field-requests-section" className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Field Requests</h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Pending specialist requests submitted from schedule forms and QR links for this site.
+            </p>
+          </div>
+          <Link
+            href="/home"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            Open Command Center
+            <ExternalLink className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+
+        {fieldRequests.length === 0 ? (
+          <p className="mt-4 text-sm text-muted-foreground">No pending field requests for this site.</p>
+        ) : (
+          <div className="mt-4 space-y-3">
+            {fieldRequests.map((request) => {
+              const parsed = parseBody(request.body);
+              const details = parsed.details && typeof parsed.details === 'object' && !Array.isArray(parsed.details)
+                ? parsed.details as Record<string, unknown>
+                : {};
+              const detailEntries = Object.entries(details).slice(0, 4);
+
+              return (
+                <div key={request.id} className="rounded-lg border border-border/70 bg-muted/20 p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-medium text-foreground">{request.title}</p>
+                    <div className="flex items-center gap-2">
+                      <Badge color={requestSeverityColor(request.severity)}>
+                        {(request.severity ?? 'INFO').toUpperCase()}
+                      </Badge>
+                      <Badge color="gray">{requestTypeLabel(parsed.request_type)}</Badge>
+                    </div>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {String(parsed.submitted_by ?? 'Field Staff')} · {formatRelativeDateTime(request.created_at)}
+                  </p>
+
+                  {detailEntries.length > 0 ? (
+                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                      {detailEntries.map(([key, value]) => (
+                        <div key={`${request.id}:${key}`} className="rounded-md border border-border/60 bg-background px-2 py-1.5">
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            {requestTypeLabel(key.replace(/_/g, '-'))}
+                          </p>
+                          <p className="text-xs text-foreground">{detailValueLabel(value)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

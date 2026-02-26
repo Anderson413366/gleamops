@@ -27,7 +27,7 @@ const ACTIONS: QuickAction[] = [
     label: '+ New Task',
     description: 'Open the planning board and create same-day ticket assignments.',
     icon: <Plus className="h-4 w-4" aria-hidden="true" />,
-    href: '/schedule?tab=planning',
+    href: '/schedule?tab=planning&action=create-task',
   },
   {
     id: 'new-work-order',

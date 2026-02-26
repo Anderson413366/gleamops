@@ -180,6 +180,7 @@ export default function SchedulePageClient() {
   const [recurringAnchorDate, setRecurringAnchorDate] = useState<Date>(() => startOfWeek(new Date()));
   const [shiftFormOpen, setShiftFormOpen] = useState(false);
   const [openWorkOrderCreateToken, setOpenWorkOrderCreateToken] = useState(0);
+  const [openPlanningCreateToken, setOpenPlanningCreateToken] = useState(0);
   const [recurringRows, setRecurringRows] = useState<RecurringScheduleRow[]>([]);
   const [recurringLoading, setRecurringLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -214,6 +215,13 @@ export default function SchedulePageClient() {
     if (action === 'create-work-order') {
       setTab('work-orders');
       setOpenWorkOrderCreateToken((token) => token + 1);
+      clearActionParam();
+      return;
+    }
+
+    if (action === 'create-task') {
+      setTab('planning');
+      setOpenPlanningCreateToken((token) => token + 1);
       clearActionParam();
     }
   }, [action, clearActionParam, setTab]);
@@ -694,7 +702,11 @@ export default function SchedulePageClient() {
       )}
 
       {tab === 'planning' && (
-        <PlanningBoard key={`planning-${refreshKey}`} search={search} />
+        <PlanningBoard
+          key={`planning-${refreshKey}`}
+          search={search}
+          openCreateToken={openPlanningCreateToken}
+        />
       )}
 
       {tab === 'forms' && (

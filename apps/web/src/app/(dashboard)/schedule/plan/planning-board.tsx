@@ -107,9 +107,10 @@ function normalizeTicket(row: Partial<PlanningTicket>): PlanningTicket {
 
 interface PlanningBoardProps {
   search?: string;
+  openCreateToken?: number;
 }
 
-export default function PlanningBoard({ search = '' }: PlanningBoardProps) {
+export default function PlanningBoard({ search = '', openCreateToken = 0 }: PlanningBoardProps) {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const [selectedDate, setSelectedDate] = useState('');
   const [tickets, setTickets] = useState<PlanningTicket[]>([]);
@@ -393,6 +394,11 @@ export default function PlanningBoard({ search = '' }: PlanningBoardProps) {
     setCreateEndTime('');
     setCreateOpen(true);
   }, [selectedDate]);
+
+  useEffect(() => {
+    if (!openCreateToken) return;
+    openCreateTicket();
+  }, [openCreateToken, openCreateTicket]);
 
   const closeCreateTicket = useCallback(() => {
     setCreateOpen(false);

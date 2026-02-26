@@ -13,7 +13,8 @@ type RequestType =
   | 'site-issue'
   | 'bio-hazard'
   | 'photo-upload'
-  | 'chemical-restock';
+  | 'chemical-restock'
+  | 'vacuum-bag';
 type RequestUrgency = 'normal' | 'high' | 'asap';
 
 interface PublicFormPayload {
@@ -76,6 +77,7 @@ function normalizeRequestType(value: string | null | undefined): RequestType | n
     || value === 'bio-hazard'
     || value === 'photo-upload'
     || value === 'chemical-restock'
+    || value === 'vacuum-bag'
   ) return value;
   return null;
 }
@@ -93,6 +95,7 @@ function defaultTitle(type: RequestType): string {
   if (type === 'site-issue') return 'Site Issue';
   if (type === 'bio-hazard') return 'Bio-Hazard Report';
   if (type === 'photo-upload') return 'Photo Upload';
+  if (type === 'vacuum-bag') return 'Vacuum Bag Request';
   return 'Chemical Restock Request';
 }
 

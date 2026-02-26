@@ -6,6 +6,7 @@ import {
   Biohazard,
   Camera,
   Clock3,
+  Filter,
   FlaskConical,
   Package,
   ShieldAlert,
@@ -40,7 +41,8 @@ type SelfServiceType =
   | 'site-issue'
   | 'bio-hazard'
   | 'photo-upload'
-  | 'chemical-restock';
+  | 'chemical-restock'
+  | 'vacuum-bag';
 type RequestUrgency = 'asap' | 'high' | 'normal';
 
 interface FormsHubProps {
@@ -70,6 +72,7 @@ const FORM_TABS = [
   { key: 'bio-hazard', label: 'Bio-Hazard', icon: <Biohazard className="h-4 w-4" /> },
   { key: 'photo-upload', label: 'Photo Upload', icon: <Camera className="h-4 w-4" /> },
   { key: 'chemical-restock', label: 'Chemical Restock', icon: <FlaskConical className="h-4 w-4" /> },
+  { key: 'vacuum-bag', label: 'Vacuum Bag', icon: <Filter className="h-4 w-4" /> },
 ] as const;
 
 const URGENCY_OPTIONS = [
@@ -164,6 +167,10 @@ export function FormsHub({ search }: FormsHubProps) {
   const [chemicalQuantity, setChemicalQuantity] = useState('1');
   const [chemicalUnit, setChemicalUnit] = useState('bottle');
   const [chemicalReason, setChemicalReason] = useState('');
+
+  const [vacuumEquipmentType, setVacuumEquipmentType] = useState('');
+  const [vacuumQuantity, setVacuumQuantity] = useState('1');
+  const [vacuumNotes, setVacuumNotes] = useState('');
 
   const [urgency, setUrgency] = useState<RequestUrgency>('normal');
   const [recentRequests, setRecentRequests] = useState<RecentRequest[]>([]);
@@ -419,6 +426,20 @@ export function FormsHub({ search }: FormsHubProps) {
       };
     }
 
+    if (activeForm === 'vacuum-bag') {
+      const quantity = Number(vacuumQuantity);
+      if (!vacuumEquipmentType.trim() || !Number.isFinite(quantity) || quantity <= 0) {
+        toast.error('Vacuum bag request needs equipment type and quantity.');
+        return;
+      }
+      title = `Vacuum Bag Request - ${vacuumEquipmentType.trim()}`;
+      details = {
+        equipment_type: vacuumEquipmentType.trim(),
+        quantity,
+        notes: vacuumNotes.trim() || null,
+      };
+    }
+
     setSubmitting(true);
 
     let uploadedPhotoPathForCleanup: string | null = null;
@@ -480,6 +501,9 @@ export function FormsHub({ search }: FormsHubProps) {
       setChemicalQuantity('1');
       setChemicalUnit('bottle');
       setChemicalReason('');
+      setVacuumEquipmentType('');
+      setVacuumQuantity('1');
+      setVacuumNotes('');
 
       await loadData();
     } catch (error) {
@@ -665,6 +689,31 @@ export function FormsHub({ search }: FormsHubProps) {
                     value={chemicalReason}
                     onChange={(event) => setChemicalReason(event.target.value)}
                     placeholder="Why this restock is needed"
+                    rows={3}
+                  />
+                </div>
+              )}
+
+              {activeForm === 'vacuum-bag' && (
+                <div className="space-y-3">
+                  <Input
+                    label="Vacuum Equipment Type"
+                    value={vacuumEquipmentType}
+                    onChange={(event) => setVacuumEquipmentType(event.target.value)}
+                    placeholder="e.g., Backpack vacuum 10qt"
+                  />
+                  <Input
+                    label="Quantity Needed"
+                    type="number"
+                    min={1}
+                    value={vacuumQuantity}
+                    onChange={(event) => setVacuumQuantity(event.target.value)}
+                  />
+                  <Textarea
+                    label="Notes"
+                    value={vacuumNotes}
+                    onChange={(event) => setVacuumNotes(event.target.value)}
+                    placeholder="Bag type, site closet, or urgency details"
                     rows={3}
                   />
                 </div>

@@ -7,6 +7,7 @@ import {
   Biohazard,
   Camera,
   Clock3,
+  Filter,
   FlaskConical,
   Package,
   ShieldAlert,
@@ -34,7 +35,8 @@ type RequestType =
   | 'site-issue'
   | 'bio-hazard'
   | 'photo-upload'
-  | 'chemical-restock';
+  | 'chemical-restock'
+  | 'vacuum-bag';
 type RequestUrgency = 'normal' | 'high' | 'asap';
 
 interface SiteContext {
@@ -57,6 +59,7 @@ const REQUEST_TABS = [
   { key: 'bio-hazard', label: 'Bio-Hazard', icon: <Biohazard className="h-4 w-4" /> },
   { key: 'photo-upload', label: 'Photo Upload', icon: <Camera className="h-4 w-4" /> },
   { key: 'chemical-restock', label: 'Chemical Restock', icon: <FlaskConical className="h-4 w-4" /> },
+  { key: 'vacuum-bag', label: 'Vacuum Bag', icon: <Filter className="h-4 w-4" /> },
 ] as const;
 
 const URGENCY_OPTIONS = [
@@ -149,6 +152,10 @@ export default function PublicFormsTokenPage() {
   const [chemicalQuantity, setChemicalQuantity] = useState('1');
   const [chemicalUnit, setChemicalUnit] = useState('bottle');
   const [chemicalReason, setChemicalReason] = useState('');
+
+  const [vacuumEquipmentType, setVacuumEquipmentType] = useState('');
+  const [vacuumQuantity, setVacuumQuantity] = useState('1');
+  const [vacuumNotes, setVacuumNotes] = useState('');
 
   const selectedSite = useMemo(
     () => context?.sites.find((site) => site.id === selectedSiteId) ?? context?.site ?? null,
@@ -298,6 +305,20 @@ export default function PublicFormsTokenPage() {
         quantity,
         unit: chemicalUnit,
         reason: chemicalReason.trim() || null,
+      };
+    }
+
+    if (activeType === 'vacuum-bag') {
+      const quantity = Number(vacuumQuantity);
+      if (!vacuumEquipmentType.trim() || !Number.isFinite(quantity) || quantity <= 0) {
+        toast.error('Vacuum bag request needs equipment type and quantity.');
+        return;
+      }
+      title = `Vacuum Bag Request - ${vacuumEquipmentType.trim()}`;
+      details = {
+        equipment_type: vacuumEquipmentType.trim(),
+        quantity,
+        notes: vacuumNotes.trim() || null,
       };
     }
 
@@ -635,6 +656,30 @@ export default function PublicFormsTokenPage() {
                 label="Reason"
                 value={chemicalReason}
                 onChange={(event) => setChemicalReason(event.target.value)}
+                rows={3}
+              />
+            </div>
+          )}
+
+          {activeType === 'vacuum-bag' && (
+            <div className="space-y-3">
+              <Input
+                label="Vacuum Equipment Type"
+                value={vacuumEquipmentType}
+                onChange={(event) => setVacuumEquipmentType(event.target.value)}
+                placeholder="e.g., Backpack vacuum 10qt"
+              />
+              <Input
+                label="Quantity Needed"
+                type="number"
+                min={1}
+                value={vacuumQuantity}
+                onChange={(event) => setVacuumQuantity(event.target.value)}
+              />
+              <Textarea
+                label="Notes"
+                value={vacuumNotes}
+                onChange={(event) => setVacuumNotes(event.target.value)}
                 rows={3}
               />
             </div>

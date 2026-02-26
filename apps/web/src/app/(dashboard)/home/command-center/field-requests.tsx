@@ -5,6 +5,7 @@ import {
   Biohazard,
   Camera,
   Clock3,
+  Filter,
   FlaskConical,
   MessageCircleWarning,
   Package,
@@ -35,6 +36,7 @@ interface FieldRequestItem {
     | 'bio-hazard'
     | 'photo-upload'
     | 'chemical-restock'
+    | 'vacuum-bag'
     | 'other';
   title: string;
   site: string;
@@ -65,6 +67,7 @@ function getCategoryIcon(category: FieldRequestItem['category']) {
   if (category === 'bio-hazard') return <Biohazard className="h-3.5 w-3.5" aria-hidden="true" />;
   if (category === 'photo-upload') return <Camera className="h-3.5 w-3.5" aria-hidden="true" />;
   if (category === 'chemical-restock') return <FlaskConical className="h-3.5 w-3.5" aria-hidden="true" />;
+  if (category === 'vacuum-bag') return <Filter className="h-3.5 w-3.5" aria-hidden="true" />;
   return <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />;
 }
 
@@ -104,6 +107,7 @@ function normalizeCategory(value: unknown): FieldRequestItem['category'] {
   if (requestType === 'bio-hazard') return 'bio-hazard';
   if (requestType === 'photo-upload') return 'photo-upload';
   if (requestType === 'chemical-restock') return 'chemical-restock';
+  if (requestType === 'vacuum-bag') return 'vacuum-bag';
   return 'other';
 }
 

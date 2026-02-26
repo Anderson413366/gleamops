@@ -1,6 +1,6 @@
 # One-Shot Remaining Checklist
 
-Last updated: 2026-02-17
+Last updated: 2026-02-26
 Branch: main
 
 ## Completed in this sprint window
@@ -38,3 +38,7 @@ Branch: main
 - [x] `DATABASE_URL=linked pnpm audit:schema-parity`
 - [x] `pnpm audit:ui-fields`
 - [x] `vercel inspect gleamops.vercel.app --scope team_hyR74DI2FH5SWn4oawyNlltR`
+
+## Mobile deployment follow-up
+- [x] Android production EAS build requested (`6e45a8e0-4161-4304-a4a3-a136f22837eb`).
+- [ ] iOS production build + App Store submission pending Apple Developer account setup/acceptance.

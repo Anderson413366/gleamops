@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Home,
   TrendingUp,
@@ -92,7 +92,6 @@ function getInitials(email: string): string {
 
 export function Sidebar() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const activeModule = getModuleFromPathname(pathname);
   const v2NavigationEnabled = useFeatureFlag('v2_navigation');
   const shiftsTimeV1Enabled = useFeatureFlag('shifts_time_v1');
@@ -113,7 +112,7 @@ export function Sidebar() {
       || roleCode === 'OWNER_ADMIN'
       || roleCode === 'MANAGER'
     );
-  const shiftsTimeActive = pathname.startsWith('/jobs') && searchParams.get('tab') === 'shifts-time';
+  const shiftsTimeActive = pathname.startsWith('/shifts-time');
 
   // Fetch badge counts
   useEffect(() => {
@@ -268,7 +267,7 @@ export function Sidebar() {
           })}
           {showShiftsTimeNav && (
             <Link
-              href="/jobs?tab=shifts-time"
+              href="/shifts-time"
               onClick={() => setMobileOpen(false)}
               aria-current={shiftsTimeActive ? 'page' : undefined}
               className={`mt-1 flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 ease-in-out group ${

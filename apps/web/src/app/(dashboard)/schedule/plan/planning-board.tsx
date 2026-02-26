@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, CalendarDays, Inbox } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button, Card, CardContent } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -38,16 +38,27 @@ const TICKET_SELECT_LEGACY = `
 `;
 const PLANNING_V2_ENABLED = process.env.NEXT_PUBLIC_ENABLE_PLANNING_V2 === 'true';
 
+function toLocalDateKey(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function today(): string {
+  return toLocalDateKey(new Date());
+}
+
 function tomorrow(): string {
   const d = new Date();
   d.setDate(d.getDate() + 1);
-  return d.toISOString().slice(0, 10);
+  return toLocalDateKey(d);
 }
 
 function shiftDate(date: string, days: number): string {
   const d = new Date(date + 'T12:00:00');
   d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+  return toLocalDateKey(d);
 }
 
 function formatDateLabel(date: string): string {
@@ -90,7 +101,7 @@ interface PlanningBoardProps {
 
 export default function PlanningBoard({ search = '' }: PlanningBoardProps) {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
-  const [selectedDate, setSelectedDate] = useState(tomorrow);
+  const [selectedDate, setSelectedDate] = useState(today);
   const [tickets, setTickets] = useState<PlanningTicket[]>([]);
   const [planningSchemaMode, setPlanningSchemaMode] = useState<'v2' | 'legacy'>(
     PLANNING_V2_ENABLED ? 'v2' : 'legacy'
@@ -325,33 +336,26 @@ export default function PlanningBoard({ search = '' }: PlanningBoardProps) {
     [handleMarkReady, updatePlanningStatus]
   );
 
-  // ----- empty state -----
-  if (!loading && tickets.length === 0) {
-    return (
-      <Card>
-        <CardContent className="py-12 text-center">
-          <Inbox className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-          <h3 className="text-lg font-semibold text-foreground mb-2">No tickets scheduled</h3>
-          <p className="text-sm text-muted-foreground max-w-md mx-auto">
-            There are no tickets for {formatDateLabel(selectedDate)}.
-            Try selecting a different date or create tickets from the Calendar view.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <div className="space-y-4">
       {/* Date navigation */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="min-w-0 flex items-center gap-2">
           <CalendarDays className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-base font-semibold text-foreground">
+          <h2 className="truncate text-base font-semibold text-foreground">
             Plan for: {formatDateLabel(selectedDate)}
           </h2>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center gap-1">
+          <label className="sr-only" htmlFor="planning-date">Planning date</label>
+          <input
+            id="planning-date"
+            type="date"
+            value={selectedDate}
+            onChange={(event) => setSelectedDate(event.target.value)}
+            className="h-8 rounded-md border border-border bg-background px-2 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label="Planning date"
+          />
           <Button
             variant="secondary"
             size="sm"
@@ -359,6 +363,13 @@ export default function PlanningBoard({ search = '' }: PlanningBoardProps) {
             aria-label="Previous day"
           >
             <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setSelectedDate(today())}
+          >
+            Today
           </Button>
           <Button
             variant="secondary"

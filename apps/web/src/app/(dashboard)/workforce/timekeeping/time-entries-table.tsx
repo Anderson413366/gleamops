@@ -7,6 +7,7 @@ import { Clock, Crosshair, LogIn, LogOut, PauseCircle, PlayCircle, ShieldCheck }
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { resolveCurrentStaff } from '@/lib/staff/resolve-current-staff';
+import { useRole } from '@/hooks/use-role';
 import {
   diffMinutes,
   EMPTY_BREAK_SUMMARY,
@@ -19,7 +20,7 @@ import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
   EmptyState, Badge, Pagination, TableSkeleton, Button, ExportButton, SlideOver, Select,
 } from '@gleamops/ui';
-import { TIME_ENTRY_STATUS_COLORS } from '@gleamops/shared';
+import { normalizeRoleCode, TIME_ENTRY_STATUS_COLORS } from '@gleamops/shared';
 import type { TimeEntry } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
@@ -159,11 +160,18 @@ function toTrackingPoint(location: VerificationLocation, capturedAt: string): Tr
 }
 
 export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTableProps) {
+  const { role } = useRole();
+  const normalizedRole = normalizeRoleCode(role);
+  const canUseClockStation = normalizedRole === 'OWNER_ADMIN' || normalizedRole === 'MANAGER' || normalizedRole === 'SUPERVISOR';
+
   const [rows, setRows] = useState<EntryWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<EntryWithRelations | null>(null);
 
   const [currentStaff, setCurrentStaff] = useState<StaffContext | null>(null);
+  const [hasLinkedStaff, setHasLinkedStaff] = useState(false);
+  const [clockStationOptions, setClockStationOptions] = useState<StaffContext[]>([]);
+  const [clockStationStaffId, setClockStationStaffId] = useState('');
   const [openEntry, setOpenEntry] = useState<OpenEntry | null>(null);
   const [sites, setSites] = useState<SiteOption[]>([]);
 
@@ -212,7 +220,38 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
       supabase,
       'id, tenant_id, full_name, staff_code',
     );
-    const staffContext = staffRow ?? null;
+    let staffContext = staffRow ?? null;
+    setHasLinkedStaff(Boolean(staffRow));
+
+    if (staffContext) {
+      setClockStationOptions([]);
+      if (clockStationStaffId) {
+        setClockStationStaffId('');
+      }
+    } else if (canUseClockStation) {
+      const { data: staffOptionsData } = await supabase
+        .from('staff')
+        .select('id, tenant_id, full_name, staff_code')
+        .is('archived_at', null)
+        .eq('staff_status', 'ACTIVE')
+        .order('full_name', { ascending: true })
+        .limit(100);
+
+      const options = (staffOptionsData ?? []) as StaffContext[];
+      setClockStationOptions(options);
+      const fallbackId = options.some((option) => option.id === clockStationStaffId)
+        ? clockStationStaffId
+        : (options[0]?.id ?? '');
+      if (fallbackId !== clockStationStaffId) {
+        setClockStationStaffId(fallbackId);
+      }
+      staffContext = options.find((option) => option.id === fallbackId) ?? null;
+    } else {
+      setClockStationOptions([]);
+      if (clockStationStaffId) {
+        setClockStationStaffId('');
+      }
+    }
 
     setCurrentStaff(staffContext);
 
@@ -303,7 +342,7 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
     }
 
     setLoading(false);
-  }, []);
+  }, [canUseClockStation, clockStationStaffId]);
 
   useEffect(() => {
     void fetchData();
@@ -961,6 +1000,9 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
 
   const isClockedIn = Boolean(openEntry);
   const actionLabel = isClockedIn ? 'Clock Out' : 'Clock In';
+  const profileHeading = currentStaff
+    ? (hasLinkedStaff ? `Active for ${currentStaff.full_name}` : `Clock station for ${currentStaff.full_name}`)
+    : (canUseClockStation ? 'Select Staff Profile' : 'Staff Profile Required');
 
   return (
     <div>
@@ -968,13 +1010,31 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
         <div className="rounded-xl border border-border bg-muted/20 p-4 sm:p-5">
           <p className="text-xs uppercase tracking-wide text-muted-foreground">Clock-In Verification</p>
           <h3 className="mt-1 text-base font-semibold text-foreground">
-            {currentStaff ? `Active for ${currentStaff.full_name}` : 'Staff Profile Required'}
+            {profileHeading}
           </h3>
           <p className="mt-1 text-sm text-muted-foreground">
             {isClockedIn && openEntry
               ? `Currently clocked in for ${formatDurationFromStart(openEntry.start_at)}.`
               : 'Currently off the clock.'}
           </p>
+          {!hasLinkedStaff && canUseClockStation ? (
+            <div className="mt-3 space-y-2">
+              <p className="text-xs text-muted-foreground">
+                This login is not linked to a staff profile. Use clock station mode to clock in or out on behalf of a selected staff member.
+              </p>
+              <Select
+                label="Clock Station Staff"
+                value={clockStationStaffId}
+                onChange={(event) => setClockStationStaffId(event.target.value)}
+                options={clockStationOptions.map((staffOption) => ({
+                  value: staffOption.id,
+                  label: `${staffOption.full_name} (${staffOption.staff_code})`,
+                }))}
+                placeholder={clockStationOptions.length > 0 ? 'Select staff profile...' : 'No active staff available'}
+                disabled={clockStationOptions.length === 0 || submittingVerification || breakSubmitting}
+              />
+            </div>
+          ) : null}
           <p className={`mt-1 text-xs ${
             shiftTrackingStatus === 'error'
               ? 'text-destructive'

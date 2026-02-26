@@ -8,6 +8,7 @@ import {
   MessageCircleWarning,
 } from 'lucide-react';
 import { ChipTabs } from '@gleamops/ui';
+import { BirthdayAnniversaryWidget } from './command-center/birthday-anniversary-widget';
 import { CoverageAlerts } from './command-center/coverage-alerts';
 import { FieldRequests } from './command-center/field-requests';
 import { QuickActions } from './command-center/quick-actions';
@@ -86,6 +87,8 @@ export default function CommandCenter() {
 
         <div className="grid gap-4">
           <QuickActions />
+
+          <BirthdayAnniversaryWidget date={selectedDate} filter={activeFilter} />
 
           <FieldRequests filter={activeFilter} />
 

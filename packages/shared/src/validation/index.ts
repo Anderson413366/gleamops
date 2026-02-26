@@ -11,6 +11,7 @@ export * from './periodic-task';
 export * from './field-report';
 export * from './customer-portal';
 export * from './owner-dashboard';
+export * from './shifts-time';
 
 // ---------------------------------------------------------------------------
 // CRM

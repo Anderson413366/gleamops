@@ -8,6 +8,7 @@ import {
   Clock3,
   FlaskConical,
   Package,
+  ShieldAlert,
   Wrench,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -29,11 +30,14 @@ import { useAuth } from '@/hooks/use-auth';
 import { SupplyRequestForm } from '@/components/forms/supply-request-form';
 import { TimeOffRequestForm } from '@/components/forms/time-off-request-form';
 import { EquipmentIssueForm } from '@/components/forms/equipment-issue-form';
+import { SiteIssueForm } from '@/components/forms/site-issue-form';
+import { BiohazardReportForm } from '@/components/forms/biohazard-report-form';
 
 type SelfServiceType =
   | 'supply'
   | 'time-off'
   | 'equipment'
+  | 'site-issue'
   | 'bio-hazard'
   | 'photo-upload'
   | 'chemical-restock';
@@ -62,6 +66,7 @@ const FORM_TABS = [
   { key: 'supply', label: 'Supply Request', icon: <Package className="h-4 w-4" /> },
   { key: 'time-off', label: 'Time Off Request', icon: <Clock3 className="h-4 w-4" /> },
   { key: 'equipment', label: 'Equipment Issue', icon: <Wrench className="h-4 w-4" /> },
+  { key: 'site-issue', label: 'Site Issue', icon: <ShieldAlert className="h-4 w-4" /> },
   { key: 'bio-hazard', label: 'Bio-Hazard', icon: <Biohazard className="h-4 w-4" /> },
   { key: 'photo-upload', label: 'Photo Upload', icon: <Camera className="h-4 w-4" /> },
   { key: 'chemical-restock', label: 'Chemical Restock', icon: <FlaskConical className="h-4 w-4" /> },
@@ -71,19 +76,6 @@ const URGENCY_OPTIONS = [
   { value: 'normal', label: 'Normal' },
   { value: 'high', label: 'High' },
   { value: 'asap', label: 'ASAP' },
-];
-
-const HAZARD_TYPE_OPTIONS = [
-  { value: 'blood', label: 'Blood' },
-  { value: 'bodily_fluid', label: 'Bodily Fluid' },
-  { value: 'sharps', label: 'Sharps' },
-  { value: 'unknown', label: 'Unknown' },
-];
-
-const HAZARD_EXPOSURE_OPTIONS = [
-  { value: 'low', label: 'Low' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'high', label: 'High' },
 ];
 
 const PHOTO_CATEGORY_OPTIONS = [
@@ -151,10 +143,16 @@ export function FormsHub({ search }: FormsHubProps) {
   const [equipmentSeverity, setEquipmentSeverity] = useState('high');
   const [equipmentDescription, setEquipmentDescription] = useState('');
 
+  const [siteIssueLocation, setSiteIssueLocation] = useState('');
+  const [siteIssueSeverity, setSiteIssueSeverity] = useState('high');
+  const [siteIssueDescription, setSiteIssueDescription] = useState('');
+  const [siteIssuePhotoUrl, setSiteIssuePhotoUrl] = useState('');
+
   const [hazardLocation, setHazardLocation] = useState('');
   const [hazardType, setHazardType] = useState('blood');
   const [hazardExposure, setHazardExposure] = useState('high');
   const [hazardActions, setHazardActions] = useState('');
+  const [hazardPhotoUrl, setHazardPhotoUrl] = useState('');
 
   const [photoSubject, setPhotoSubject] = useState('');
   const [photoCategory, setPhotoCategory] = useState('site-condition');
@@ -350,6 +348,20 @@ export function FormsHub({ search }: FormsHubProps) {
       };
     }
 
+    if (activeForm === 'site-issue') {
+      if (!siteIssueLocation.trim() || !siteIssueDescription.trim()) {
+        toast.error('Site issue needs location and description.');
+        return;
+      }
+      title = `Site Issue - ${siteIssueLocation.trim()}`;
+      details = {
+        location: siteIssueLocation.trim(),
+        severity: siteIssueSeverity,
+        description: siteIssueDescription.trim(),
+        photo_url: siteIssuePhotoUrl.trim() || null,
+      };
+    }
+
     if (activeForm === 'bio-hazard') {
       if (!hazardLocation.trim() || !hazardActions.trim()) {
         toast.error('Bio-hazard report needs location and containment details.');
@@ -361,6 +373,7 @@ export function FormsHub({ search }: FormsHubProps) {
         hazard_type: hazardType,
         exposure_risk: hazardExposure,
         immediate_actions: hazardActions.trim(),
+        photo_url: hazardPhotoUrl.trim() || null,
       };
     }
 
@@ -449,10 +462,15 @@ export function FormsHub({ search }: FormsHubProps) {
       setTimeOffReason('');
       setEquipmentName('');
       setEquipmentDescription('');
+      setSiteIssueLocation('');
+      setSiteIssueSeverity('high');
+      setSiteIssueDescription('');
+      setSiteIssuePhotoUrl('');
       setHazardLocation('');
       setHazardType('blood');
       setHazardExposure('high');
       setHazardActions('');
+      setHazardPhotoUrl('');
       setPhotoSubject('');
       setPhotoCategory('site-condition');
       setPhotoNotes('');
@@ -548,36 +566,32 @@ export function FormsHub({ search }: FormsHubProps) {
                 />
               )}
 
+              {activeForm === 'site-issue' && (
+                <SiteIssueForm
+                  location={siteIssueLocation}
+                  severity={siteIssueSeverity}
+                  description={siteIssueDescription}
+                  photoUrl={siteIssuePhotoUrl}
+                  onLocationChange={setSiteIssueLocation}
+                  onSeverityChange={setSiteIssueSeverity}
+                  onDescriptionChange={setSiteIssueDescription}
+                  onPhotoUrlChange={setSiteIssuePhotoUrl}
+                />
+              )}
+
               {activeForm === 'bio-hazard' && (
-                <div className="space-y-3">
-                  <Input
-                    label="Location"
-                    value={hazardLocation}
-                    onChange={(event) => setHazardLocation(event.target.value)}
-                    placeholder="e.g., 2nd floor restroom"
-                  />
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <Select
-                      label="Hazard Type"
-                      value={hazardType}
-                      onChange={(event) => setHazardType(event.target.value)}
-                      options={HAZARD_TYPE_OPTIONS}
-                    />
-                    <Select
-                      label="Exposure Risk"
-                      value={hazardExposure}
-                      onChange={(event) => setHazardExposure(event.target.value)}
-                      options={HAZARD_EXPOSURE_OPTIONS}
-                    />
-                  </div>
-                  <Textarea
-                    label="Immediate Actions Taken"
-                    value={hazardActions}
-                    onChange={(event) => setHazardActions(event.target.value)}
-                    placeholder="Containment, PPE used, and escalation actions"
-                    rows={4}
-                  />
-                </div>
+                <BiohazardReportForm
+                  location={hazardLocation}
+                  hazardType={hazardType}
+                  exposureRisk={hazardExposure}
+                  immediateActions={hazardActions}
+                  photoUrl={hazardPhotoUrl}
+                  onLocationChange={setHazardLocation}
+                  onHazardTypeChange={setHazardType}
+                  onExposureRiskChange={setHazardExposure}
+                  onImmediateActionsChange={setHazardActions}
+                  onPhotoUrlChange={setHazardPhotoUrl}
+                />
               )}
 
               {activeForm === 'photo-upload' && (

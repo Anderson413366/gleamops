@@ -9,6 +9,7 @@ import {
   Clock3,
   FlaskConical,
   Package,
+  ShieldAlert,
   Wrench,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -30,6 +31,7 @@ type RequestType =
   | 'supply'
   | 'time-off'
   | 'equipment'
+  | 'site-issue'
   | 'bio-hazard'
   | 'photo-upload'
   | 'chemical-restock';
@@ -51,6 +53,7 @@ const REQUEST_TABS = [
   { key: 'supply', label: 'Supply Request', icon: <Package className="h-4 w-4" /> },
   { key: 'time-off', label: 'Time Off Request', icon: <Clock3 className="h-4 w-4" /> },
   { key: 'equipment', label: 'Equipment Issue', icon: <Wrench className="h-4 w-4" /> },
+  { key: 'site-issue', label: 'Site Issue', icon: <ShieldAlert className="h-4 w-4" /> },
   { key: 'bio-hazard', label: 'Bio-Hazard', icon: <Biohazard className="h-4 w-4" /> },
   { key: 'photo-upload', label: 'Photo Upload', icon: <Camera className="h-4 w-4" /> },
   { key: 'chemical-restock', label: 'Chemical Restock', icon: <FlaskConical className="h-4 w-4" /> },
@@ -126,6 +129,11 @@ export default function PublicFormsTokenPage() {
   const [equipmentName, setEquipmentName] = useState('');
   const [equipmentSeverity, setEquipmentSeverity] = useState('high');
   const [equipmentDescription, setEquipmentDescription] = useState('');
+
+  const [siteIssueLocation, setSiteIssueLocation] = useState('');
+  const [siteIssueSeverity, setSiteIssueSeverity] = useState('high');
+  const [siteIssueDescription, setSiteIssueDescription] = useState('');
+  const [siteIssuePhotoUrl, setSiteIssuePhotoUrl] = useState('');
 
   const [hazardLocation, setHazardLocation] = useState('');
   const [hazardType, setHazardType] = useState('blood');
@@ -233,6 +241,20 @@ export default function PublicFormsTokenPage() {
         equipment: equipmentName.trim(),
         severity: equipmentSeverity,
         description: equipmentDescription.trim(),
+      };
+    }
+
+    if (activeType === 'site-issue') {
+      if (!siteIssueLocation.trim() || !siteIssueDescription.trim()) {
+        toast.error('Site issue needs location and description.');
+        return;
+      }
+      title = `Site Issue - ${siteIssueLocation.trim()}`;
+      details = {
+        location: siteIssueLocation.trim(),
+        severity: siteIssueSeverity,
+        description: siteIssueDescription.trim(),
+        photo_url: siteIssuePhotoUrl.trim() || null,
       };
     }
 
@@ -486,6 +508,41 @@ export default function PublicFormsTokenPage() {
                 value={equipmentDescription}
                 onChange={(event) => setEquipmentDescription(event.target.value)}
                 rows={4}
+              />
+            </div>
+          )}
+
+          {activeType === 'site-issue' && (
+            <div className="space-y-3">
+              <Input
+                label="Location in Building"
+                value={siteIssueLocation}
+                onChange={(event) => setSiteIssueLocation(event.target.value)}
+                placeholder="e.g., North stairwell by loading dock"
+              />
+              <Select
+                label="Issue Severity"
+                value={siteIssueSeverity}
+                onChange={(event) => setSiteIssueSeverity(event.target.value)}
+                options={[
+                  { value: 'low', label: 'Low' },
+                  { value: 'medium', label: 'Medium' },
+                  { value: 'high', label: 'High' },
+                  { value: 'critical', label: 'Critical' },
+                ]}
+              />
+              <Textarea
+                label="Issue Description"
+                value={siteIssueDescription}
+                onChange={(event) => setSiteIssueDescription(event.target.value)}
+                rows={4}
+              />
+              <Input
+                label="Photo URL (optional)"
+                type="url"
+                value={siteIssuePhotoUrl}
+                onChange={(event) => setSiteIssuePhotoUrl(event.target.value)}
+                placeholder="https://..."
               />
             </div>
           )}

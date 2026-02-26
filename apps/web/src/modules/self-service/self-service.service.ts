@@ -10,6 +10,7 @@ type RequestType =
   | 'supply'
   | 'time-off'
   | 'equipment'
+  | 'site-issue'
   | 'bio-hazard'
   | 'photo-upload'
   | 'chemical-restock';
@@ -71,6 +72,7 @@ function normalizeRequestType(value: string | null | undefined): RequestType | n
     value === 'supply'
     || value === 'time-off'
     || value === 'equipment'
+    || value === 'site-issue'
     || value === 'bio-hazard'
     || value === 'photo-upload'
     || value === 'chemical-restock'
@@ -88,6 +90,7 @@ function defaultTitle(type: RequestType): string {
   if (type === 'supply') return 'Supply Request';
   if (type === 'time-off') return 'Time Off Request';
   if (type === 'equipment') return 'Equipment Issue';
+  if (type === 'site-issue') return 'Site Issue';
   if (type === 'bio-hazard') return 'Bio-Hazard Report';
   if (type === 'photo-upload') return 'Photo Upload';
   return 'Chemical Restock Request';

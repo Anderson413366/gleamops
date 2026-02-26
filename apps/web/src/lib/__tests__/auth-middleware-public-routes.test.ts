@@ -23,3 +23,9 @@ test('protected dashboard routes still require auth', () => {
   assert.equal(isPublicRoutePath('/schedule'), false);
   assert.equal(isPublicRoutePath('/home'), false);
 });
+
+test('protected schedule and timekeeping APIs still require auth', () => {
+  assert.equal(isPublicRoutePath('/api/operations/schedule/periods'), false);
+  assert.equal(isPublicRoutePath('/api/operations/schedule/trades'), false);
+  assert.equal(isPublicRoutePath('/api/timekeeping/pin-checkin'), false);
+});

@@ -1157,6 +1157,202 @@ export interface JobStaffAssignment extends StandardColumns {
 }
 
 // ---------------------------------------------------------------------------
+// Shifts & Time: Route Execution + Coverage + Payroll Export
+// ---------------------------------------------------------------------------
+export interface Route extends StandardColumns {
+  route_date: string;
+  route_owner_staff_id: string | null;
+  route_type: 'DAILY_ROUTE' | 'MASTER_ROUTE' | 'PROJECT_ROUTE';
+  status: 'DRAFT' | 'PUBLISHED' | 'LOCKED' | 'COMPLETED' | 'ARCHIVED';
+  schedule_period_id: string | null;
+  published_at: string | null;
+  published_by: string | null;
+  locked_at: string | null;
+  locked_by: string | null;
+}
+
+export interface RouteStopRecord extends StandardColumns {
+  route_id: string;
+  site_job_id: string;
+  stop_order: number;
+  estimated_travel_minutes: number | null;
+  is_locked: boolean;
+  work_ticket_id: string | null;
+  site_id: string | null;
+  planned_start_at: string | null;
+  planned_end_at: string | null;
+  actual_start_at: string | null;
+  actual_end_at: string | null;
+  status: 'PENDING' | 'ARRIVED' | 'IN_PROGRESS' | 'COMPLETED' | 'SKIPPED' | 'CANCELED';
+}
+
+export interface TravelSegment extends StandardColumns {
+  route_id: string;
+  from_stop_id: string;
+  to_stop_id: string;
+  estimated_minutes: number | null;
+  actual_minutes: number | null;
+  payable_minutes: number;
+  travel_start_at: string | null;
+  travel_end_at: string | null;
+  source: 'AUTO' | 'MANUAL_ADJUST' | 'SYSTEM_RECALC';
+  status: 'PENDING' | 'CAPTURED' | 'ADJUSTED' | 'APPROVED' | 'REJECTED';
+  note: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
+}
+
+export interface CalloutEvent extends StandardColumns {
+  reported_by_staff_id: string | null;
+  affected_staff_id: string;
+  route_id: string | null;
+  route_stop_id: string | null;
+  work_ticket_id: string | null;
+  site_id: string | null;
+  reason: 'SICK' | 'PERSONAL' | 'EMERGENCY' | 'NO_SHOW' | 'WEATHER' | 'TRANSPORT' | 'OTHER';
+  status: 'REPORTED' | 'FINDING_COVER' | 'COVERED' | 'UNCOVERED' | 'ESCALATED' | 'CANCELED';
+  reported_at: string;
+  escalated_at: string | null;
+  escalation_level: number;
+  covered_by_staff_id: string | null;
+  covered_at: string | null;
+  resolved_by_user_id: string | null;
+  resolution_note: string | null;
+  metadata: Record<string, unknown> | null;
+}
+
+export interface CoverageOffer extends StandardColumns {
+  callout_event_id: string;
+  candidate_staff_id: string;
+  offered_by_user_id: string | null;
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'CANCELED';
+  offered_at: string;
+  expires_at: string | null;
+  responded_at: string | null;
+  response_note: string | null;
+  assignment_applied_at: string | null;
+  metadata: Record<string, unknown> | null;
+}
+
+export interface OnCallPool extends StandardColumns {
+  staff_id: string;
+  effective_date: string;
+  start_time: string;
+  end_time: string;
+  standby_fee: number;
+  status: 'AVAILABLE' | 'ASSIGNED' | 'DECLINED' | 'UNAVAILABLE' | 'COMPLETED';
+  assigned_callout_event_id: string | null;
+  assigned_at: string | null;
+  acknowledged_at: string | null;
+  declined_at: string | null;
+  eligibility_note: string | null;
+  notes: string | null;
+}
+
+export interface SiteBook extends StandardColumns {
+  site_id: string;
+  instructions_en: string | null;
+  instructions_es: string | null;
+  instructions_pt_br: string | null;
+  access_notes_en: string | null;
+  access_notes_es: string | null;
+  access_notes_pt_br: string | null;
+  sensitive_site: boolean;
+  sensitive_site_type: 'HEALTHCARE' | 'GOVERNMENT' | 'LEGAL' | 'RESIDENTIAL' | 'OTHER' | null;
+  hipaa_awareness_required: boolean;
+  hipaa_acknowledgment_required: boolean;
+  vault_ref: string | null;
+  client_contact_name: string | null;
+  client_contact_phone: string | null;
+  is_active: boolean;
+}
+
+export interface SiteBookChecklistItem extends StandardColumns {
+  site_book_id: string;
+  sort_order: number;
+  item_key: string;
+  label_en: string;
+  label_es: string | null;
+  label_pt_br: string | null;
+  is_required: boolean;
+  requires_photo: boolean;
+  is_active: boolean;
+}
+
+export interface PayrollExportMapping extends StandardColumns {
+  template_name: string;
+  provider_code: string | null;
+  delimiter: ',' | ';' | '\t' | '|';
+  include_header: boolean;
+  quote_all: boolean;
+  decimal_separator: '.' | ',';
+  date_format: string;
+  is_default: boolean;
+  is_active: boolean;
+  notes: string | null;
+}
+
+export interface PayrollExportMappingField extends StandardColumns {
+  mapping_id: string;
+  sort_order: number;
+  output_column_name: string;
+  source_field: string | null;
+  static_value: string | null;
+  transform_config: Record<string, unknown> | null;
+  is_required: boolean;
+  is_enabled: boolean;
+}
+
+export interface PayrollExportRun extends StandardColumns {
+  mapping_id: string;
+  period_start: string;
+  period_end: string;
+  status: 'DRAFT' | 'PREVIEW_READY' | 'EXPORTED' | 'FAILED' | 'CANCELED';
+  total_rows: number;
+  valid_rows: number;
+  invalid_rows: number;
+  exported_file_path: string | null;
+  exported_file_checksum: string | null;
+  exported_by_user_id: string | null;
+  exported_at: string | null;
+  metadata: Record<string, unknown> | null;
+}
+
+export interface PayrollExportItem extends StandardColumns {
+  run_id: string;
+  staff_id: string | null;
+  line_number: number;
+  payload: Record<string, unknown>;
+  validation_errors: Record<string, unknown> | null;
+  is_valid: boolean;
+}
+
+export interface AttendancePolicy extends StandardColumns {
+  policy_name: string;
+  rolling_window_days: number;
+  first_callout_action: 'NONE' | 'DOCUMENT_ONLY' | 'VERBAL_WARNING' | 'WRITTEN_WARNING';
+  second_callout_action: 'NONE' | 'DOCUMENT_ONLY' | 'VERBAL_WARNING' | 'WRITTEN_WARNING';
+  third_callout_action: 'NONE' | 'DOCUMENT_ONLY' | 'VERBAL_WARNING' | 'WRITTEN_WARNING';
+  no_show_action: 'NONE' | 'DOCUMENT_ONLY' | 'VERBAL_WARNING' | 'WRITTEN_WARNING';
+  no_show_cutoff_minutes: number;
+  auto_enforce: boolean;
+  on_call_standby_fee: number;
+  coverage_response_minutes: number;
+  escalation_minutes: number;
+  is_active: boolean;
+}
+
+export interface HolidayCalendar extends StandardColumns {
+  holiday_date: string;
+  observed_date: string | null;
+  holiday_name: string;
+  holiday_scope: 'FEDERAL_MAJOR' | 'COMPANY_OBSERVED' | 'TENANT_CUSTOM';
+  pay_multiplier: number;
+  is_active: boolean;
+  notes: string | null;
+}
+
+// ---------------------------------------------------------------------------
 // RBAC: User Profiles & Client Access
 // ---------------------------------------------------------------------------
 export interface UserProfile {

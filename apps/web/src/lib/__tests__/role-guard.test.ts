@@ -23,3 +23,9 @@ test('canPublishSchedule allows only owner admin and manager', () => {
   assert.equal(canPublishSchedule(['operations']), true);
   assert.equal(canPublishSchedule(['SUPERVISOR']), false);
 });
+
+test('schedule guards normalize whitespace and mixed casing', () => {
+  assert.equal(canManageSchedule(['  operations  ']), true);
+  assert.equal(canPublishSchedule([' owner_admin ']), true);
+  assert.equal(canPublishSchedule([' supervisor ']), false);
+});

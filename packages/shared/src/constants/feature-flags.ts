@@ -20,7 +20,11 @@ export type FeatureDomain =
   | 'v2_navigation'
   | 'planning_board'
   | 'unified_sales'
-  | 'standalone_calculator';
+  | 'standalone_calculator'
+  | 'shifts_time_v1'
+  | 'shifts_time_route_execution'
+  | 'shifts_time_callout_automation'
+  | 'shifts_time_payroll_export_v1';
 
 export type FeatureFlags = Record<FeatureDomain, boolean>;
 
@@ -38,6 +42,10 @@ const DOMAIN_TO_ENV: Record<FeatureDomain, string> = {
   planning_board: 'NEXT_PUBLIC_FF_PLANNING_BOARD',
   unified_sales: 'NEXT_PUBLIC_FF_UNIFIED_SALES',
   standalone_calculator: 'NEXT_PUBLIC_FF_STANDALONE_CALCULATOR',
+  shifts_time_v1: 'NEXT_PUBLIC_FF_SHIFTS_TIME_V1',
+  shifts_time_route_execution: 'NEXT_PUBLIC_FF_SHIFTS_TIME_ROUTE_EXECUTION',
+  shifts_time_callout_automation: 'NEXT_PUBLIC_FF_SHIFTS_TIME_CALLOUT_AUTOMATION',
+  shifts_time_payroll_export_v1: 'NEXT_PUBLIC_FF_SHIFTS_TIME_PAYROLL_EXPORT_V1',
 };
 
 /**
@@ -54,6 +62,10 @@ const WORKER_ENV: Record<string, string> = {
   NEXT_PUBLIC_FF_PLANNING_BOARD: 'FF_PLANNING_BOARD',
   NEXT_PUBLIC_FF_UNIFIED_SALES: 'FF_UNIFIED_SALES',
   NEXT_PUBLIC_FF_STANDALONE_CALCULATOR: 'FF_STANDALONE_CALCULATOR',
+  NEXT_PUBLIC_FF_SHIFTS_TIME_V1: 'FF_SHIFTS_TIME_V1',
+  NEXT_PUBLIC_FF_SHIFTS_TIME_ROUTE_EXECUTION: 'FF_SHIFTS_TIME_ROUTE_EXECUTION',
+  NEXT_PUBLIC_FF_SHIFTS_TIME_CALLOUT_AUTOMATION: 'FF_SHIFTS_TIME_CALLOUT_AUTOMATION',
+  NEXT_PUBLIC_FF_SHIFTS_TIME_PAYROLL_EXPORT_V1: 'FF_SHIFTS_TIME_PAYROLL_EXPORT_V1',
 };
 
 const ALL_DOMAINS: FeatureDomain[] = [
@@ -70,6 +82,10 @@ const ALL_DOMAINS: FeatureDomain[] = [
   'planning_board',
   'unified_sales',
   'standalone_calculator',
+  'shifts_time_v1',
+  'shifts_time_route_execution',
+  'shifts_time_callout_automation',
+  'shifts_time_payroll_export_v1',
 ];
 
 const DOMAIN_DEFAULTS: Partial<FeatureFlags> = {

@@ -77,6 +77,7 @@ export default function PortalSettings() {
   const [settings, setSettings] = useState<PortalSettingsState>(DEFAULT_SETTINGS);
 
   useEffect(() => {
+    if (!tenantId) return;
     setSettings(loadTenantSetting(tenantId, STORAGE_KEY, DEFAULT_SETTINGS));
   }, [tenantId]);
 
@@ -146,6 +147,10 @@ export default function PortalSettings() {
   };
 
   const handleSave = () => {
+    if (!tenantId) {
+      toast.error('Tenant context is missing.');
+      return;
+    }
     saveTenantSetting(tenantId, STORAGE_KEY, settings);
     toast.success('Client portal settings saved.');
   };

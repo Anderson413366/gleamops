@@ -48,6 +48,7 @@ export default function ScheduleSettings() {
   const [values, setValues] = useState<ScheduleSettingsState>(DEFAULT_SETTINGS);
 
   useEffect(() => {
+    if (!tenantId) return;
     setValues(loadTenantSetting(tenantId, STORAGE_KEY, DEFAULT_SETTINGS));
   }, [tenantId]);
 
@@ -65,6 +66,10 @@ export default function ScheduleSettings() {
   };
 
   const handleSave = () => {
+    if (!tenantId) {
+      toast.error('Tenant context is missing.');
+      return;
+    }
     saveTenantSetting(tenantId, STORAGE_KEY, values);
     toast.success('Schedule settings saved.');
   };

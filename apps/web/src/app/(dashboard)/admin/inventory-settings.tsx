@@ -34,10 +34,15 @@ export default function InventorySettings() {
   const [values, setValues] = useState<InventorySettingsState>(DEFAULT_SETTINGS);
 
   useEffect(() => {
+    if (!tenantId) return;
     setValues(loadTenantSetting(tenantId, STORAGE_KEY, DEFAULT_SETTINGS));
   }, [tenantId]);
 
   const handleSave = () => {
+    if (!tenantId) {
+      toast.error('Tenant context is missing.');
+      return;
+    }
     saveTenantSetting(tenantId, STORAGE_KEY, values);
     toast.success('Inventory settings saved.');
   };

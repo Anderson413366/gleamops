@@ -43,7 +43,10 @@ export default function ClockInSettings() {
   const [extras, setExtras] = useState<ClockInExtras>(DEFAULT_EXTRAS);
 
   const loadPolicy = useCallback(async () => {
-    if (!tenantId) return;
+    if (!tenantId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
 
     const { data, error } = await supabase

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Calendar, ClipboardList, Briefcase, FileText, ListTodo, Plus } from 'lucide-react';
+import { Calendar, ClipboardList, Briefcase, FileText, ListTodo, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ChipTabs, SearchInput, Card, CardContent, Button } from '@gleamops/ui';
 import { normalizeRoleCode, type WorkTicket } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -44,6 +44,7 @@ const TABS = [
 ];
 
 const WEEKDAY_ORDER = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+type RecurringHorizon = '1w' | '2w' | '4w' | '1m';
 
 interface RecurringTicketRow {
   id: string;
@@ -93,6 +94,66 @@ function normalizeTime(value: string | null | undefined) {
   return value.slice(0, 5);
 }
 
+function shiftDate(date: Date, days: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function startOfMonth(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function endOfMonth(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0);
+}
+
+function rangeToDateKeys(start: Date, end: Date) {
+  const keys: string[] = [];
+  const cursor = new Date(start);
+  cursor.setHours(0, 0, 0, 0);
+
+  while (cursor <= end) {
+    keys.push(toDateKey(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return keys;
+}
+
+function formatRangeLabel(start: Date, end: Date) {
+  const startLabel = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const endLabel = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return `${startLabel} - ${endLabel}`;
+}
+
+function buildRecurringRange(anchor: Date, horizon: RecurringHorizon) {
+  if (horizon === '1m') {
+    const start = startOfMonth(anchor);
+    start.setHours(0, 0, 0, 0);
+    const end = endOfMonth(anchor);
+    end.setHours(0, 0, 0, 0);
+    return {
+      start,
+      end,
+      visibleDates: rangeToDateKeys(start, end),
+      label: formatRangeLabel(start, end),
+    };
+  }
+
+  const dayCount = horizon === '1w' ? 7 : horizon === '2w' ? 14 : 28;
+  const start = startOfWeek(anchor);
+  const end = shiftDate(start, dayCount - 1);
+  end.setHours(0, 0, 0, 0);
+
+  return {
+    start,
+    end,
+    visibleDates: rangeToDateKeys(start, end),
+    label: formatRangeLabel(start, end),
+  };
+}
+
 export default function SchedulePageClient() {
   const router = useRouter();
   const pathname = usePathname();
@@ -115,6 +176,8 @@ export default function SchedulePageClient() {
   });
   const [search, setSearch] = useState('');
   const [recurringView, setRecurringView] = useState<'list' | 'card' | 'grid'>('list');
+  const [recurringHorizon, setRecurringHorizon] = useState<RecurringHorizon>('2w');
+  const [recurringAnchorDate, setRecurringAnchorDate] = useState<Date>(() => startOfWeek(new Date()));
   const [shiftFormOpen, setShiftFormOpen] = useState(false);
   const [openWorkOrderCreateToken, setOpenWorkOrderCreateToken] = useState(0);
   const [recurringRows, setRecurringRows] = useState<RecurringScheduleRow[]>([]);
@@ -134,6 +197,10 @@ export default function SchedulePageClient() {
   });
   const [kpisLoading, setKpisLoading] = useState(true);
   const action = searchParams.get('action');
+  const recurringRange = useMemo(
+    () => buildRecurringRange(recurringAnchorDate, recurringHorizon),
+    [recurringAnchorDate, recurringHorizon],
+  );
 
   const clearActionParam = useCallback(() => {
     const params = new URLSearchParams(searchParams.toString());
@@ -194,10 +261,30 @@ export default function SchedulePageClient() {
   }, [refreshKey]);
 
   useEffect(() => {
-    if (tab !== 'recurring' || recurringView !== 'grid') {
+    if (tab !== 'recurring') {
       setSelectedRecurringRow(null);
     }
-  }, [tab, recurringView]);
+  }, [tab]);
+
+  const stepRecurringRange = useCallback((direction: -1 | 1) => {
+    setRecurringAnchorDate((current) => {
+      if (recurringHorizon === '1m') {
+        return new Date(current.getFullYear(), current.getMonth() + direction, 1);
+      }
+
+      const days = recurringHorizon === '1w' ? 7 : recurringHorizon === '2w' ? 14 : 28;
+      return shiftDate(current, direction * days);
+    });
+  }, [recurringHorizon]);
+
+  const jumpRecurringToToday = useCallback(() => {
+    const today = new Date();
+    if (recurringHorizon === '1m') {
+      setRecurringAnchorDate(new Date(today.getFullYear(), today.getMonth(), 1));
+      return;
+    }
+    setRecurringAnchorDate(startOfWeek(today));
+  }, [recurringHorizon]);
 
   useEffect(() => {
     let cancelled = false;
@@ -207,9 +294,6 @@ export default function SchedulePageClient() {
 
       setRecurringLoading(true);
       const supabase = getSupabaseBrowserClient();
-      const weekStart = startOfWeek(new Date());
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekEnd.getDate() + 6);
 
       const { data, error } = await supabase
         .from('work_tickets')
@@ -234,8 +318,8 @@ export default function SchedulePageClient() {
           ),
           assignments:ticket_assignments(assignment_status, staff:staff_id(full_name))
         `)
-        .gte('scheduled_date', toDateKey(weekStart))
-        .lte('scheduled_date', toDateKey(weekEnd))
+        .gte('scheduled_date', toDateKey(recurringRange.start))
+        .lte('scheduled_date', toDateKey(recurringRange.end))
         .is('archived_at', null)
         .order('scheduled_date', { ascending: true })
         .order('start_time', { ascending: true });
@@ -257,6 +341,7 @@ export default function SchedulePageClient() {
         endTime: string;
         status: RecurringScheduleRow['status'];
         scheduleDays: Set<string>;
+        scheduledDates: Set<string>;
         blueprint: NonNullable<RecurringScheduleRow['blueprint']>;
       }>();
 
@@ -294,6 +379,7 @@ export default function SchedulePageClient() {
           const existing = byAssignment.get(key);
           if (existing) {
             existing.scheduleDays.add(dayCode);
+            existing.scheduledDates.add(raw.scheduled_date);
             continue;
           }
 
@@ -306,6 +392,7 @@ export default function SchedulePageClient() {
             endTime,
             status,
             scheduleDays: new Set([dayCode]),
+            scheduledDates: new Set([raw.scheduled_date]),
             blueprint: {
               janitorialClosetLocation: raw.site?.janitorial_closet_location ?? null,
               supplyStorageLocation: raw.site?.supply_storage_location ?? null,
@@ -329,6 +416,7 @@ export default function SchedulePageClient() {
         startTime: entry.startTime,
         endTime: entry.endTime,
         status: entry.status,
+        scheduledDates: Array.from(entry.scheduledDates).sort((a, b) => a.localeCompare(b)),
         scheduleDays: Array.from(entry.scheduleDays).sort((a, b) => WEEKDAY_ORDER.indexOf(a) - WEEKDAY_ORDER.indexOf(b)),
         blueprint: entry.blueprint,
       }));
@@ -348,7 +436,7 @@ export default function SchedulePageClient() {
     return () => {
       cancelled = true;
     };
-  }, [recurringView, refreshKey, tab]);
+  }, [recurringRange, refreshKey, tab]);
 
   return (
     <div className="space-y-6">
@@ -470,7 +558,60 @@ export default function SchedulePageClient() {
       </div>
 
       {tab === 'recurring' && (
-        <div className="flex justify-end">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Range</span>
+            <div className="inline-flex items-center rounded-lg border border-border bg-muted p-0.5">
+              {([
+                { key: '1w', label: '1W' },
+                { key: '2w', label: '2W' },
+                { key: '4w', label: '4W' },
+                { key: '1m', label: 'Month' },
+              ] as const).map((option) => (
+                <button
+                  key={option.key}
+                  type="button"
+                  onClick={() => setRecurringHorizon(option.key)}
+                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                    recurringHorizon === option.key
+                      ? 'bg-card text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="inline-flex items-center rounded-lg border border-border bg-card">
+              <button
+                type="button"
+                onClick={() => stepRecurringRange(-1)}
+                className="rounded-l-md px-2.5 py-1.5 text-muted-foreground hover:text-foreground"
+                aria-label="Previous recurring period"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={jumpRecurringToToday}
+                className="border-x border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+              >
+                Today
+              </button>
+              <button
+                type="button"
+                onClick={() => stepRecurringRange(1)}
+                className="rounded-r-md px-2.5 py-1.5 text-muted-foreground hover:text-foreground"
+                aria-label="Next recurring period"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+
+            <span className="text-xs text-muted-foreground">{recurringRange.label}</span>
+          </div>
+
           <div className="inline-flex items-center rounded-lg border border-border bg-muted p-0.5">
             <button
               type="button"
@@ -530,7 +671,12 @@ export default function SchedulePageClient() {
           ) : recurringView === 'card' ? (
             <ScheduleCardGrid rows={recurringRows} search={search} onSelect={setSelectedRecurringRow} />
           ) : (
-            <ScheduleGrid rows={recurringRows} search={search} onSelect={setSelectedRecurringRow} />
+            <ScheduleGrid
+              rows={recurringRows}
+              visibleDates={recurringRange.visibleDates}
+              search={search}
+              onSelect={setSelectedRecurringRow}
+            />
           )
         )
       )}

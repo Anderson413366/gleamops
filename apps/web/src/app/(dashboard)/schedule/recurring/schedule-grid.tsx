@@ -8,11 +8,10 @@ import type { RecurringScheduleRow } from './schedule-list';
 
 interface ScheduleGridProps {
   rows: RecurringScheduleRow[];
+  visibleDates?: string[];
   search?: string;
   onSelect?: (row: RecurringScheduleRow) => void;
 }
-
-const WEEK_DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'] as const;
 
 function groupByStaff(rows: RecurringScheduleRow[]) {
   return rows.reduce<Record<string, RecurringScheduleRow[]>>((acc, row) => {
@@ -22,11 +21,42 @@ function groupByStaff(rows: RecurringScheduleRow[]) {
   }, {});
 }
 
-function rowsForDay(rows: RecurringScheduleRow[], day: string) {
-  return rows.filter((row) => row.scheduleDays.includes(day));
+function rowsForDate(rows: RecurringScheduleRow[], dateKey: string) {
+  return rows.filter((row) => row.scheduledDates.includes(dateKey));
 }
 
-export function ScheduleGrid({ rows, search = '', onSelect }: ScheduleGridProps) {
+function normalizeDateKey(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function fallbackWeekDates() {
+  const today = new Date();
+  const start = new Date(today);
+  const day = start.getDay();
+  const distanceFromMonday = (day + 6) % 7;
+  start.setDate(start.getDate() - distanceFromMonday);
+  start.setHours(0, 0, 0, 0);
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(start);
+    date.setDate(start.getDate() + index);
+    return normalizeDateKey(date);
+  });
+}
+
+function formatDateHeading(dateKey: string) {
+  const date = new Date(`${dateKey}T12:00:00`);
+  return {
+    day: date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),
+    label: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+  };
+}
+
+function isToday(dateKey: string) {
+  return normalizeDateKey(new Date()) === dateKey;
+}
+
+export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect }: ScheduleGridProps) {
   const filtered = useMemo(() => {
     if (!search.trim()) return rows;
     const query = search.toLowerCase();
@@ -41,6 +71,9 @@ export function ScheduleGrid({ rows, search = '', onSelect }: ScheduleGridProps)
 
   const grouped = useMemo(() => groupByStaff(filtered), [filtered]);
   const staffNames = useMemo(() => Object.keys(grouped).sort((a, b) => a.localeCompare(b)), [grouped]);
+  const dateColumns = visibleDates.length > 0 ? visibleDates : fallbackWeekDates();
+  const gridTemplateColumns = `220px repeat(${dateColumns.length}, minmax(128px, 1fr))`;
+  const minWidthPx = 220 + dateColumns.length * 128;
 
   if (!filtered.length) {
     return (
@@ -54,31 +87,46 @@ export function ScheduleGrid({ rows, search = '', onSelect }: ScheduleGridProps)
 
   return (
     <div className="overflow-x-auto rounded-2xl border border-border">
-      <div className="min-w-[980px]">
-        <div className="grid grid-cols-[220px_repeat(7,minmax(120px,1fr))] border-b border-border bg-muted/40 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <div style={{ minWidth: `${minWidthPx}px` }}>
+        <div
+          className="grid border-b border-border bg-muted/40 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+          style={{ gridTemplateColumns }}
+        >
           <div className="px-4 py-3">Specialist</div>
-          {WEEK_DAYS.map((day) => (
-            <div key={day} className="px-3 py-3 text-center">{day}</div>
-          ))}
+          {dateColumns.map((dateKey) => {
+            const heading = formatDateHeading(dateKey);
+            return (
+              <div key={dateKey} className="px-3 py-3 text-center">
+                <p>{heading.day}</p>
+                <p className={`mt-0.5 text-[10px] normal-case ${isToday(dateKey) ? 'text-primary font-semibold' : ''}`}>
+                  {heading.label}
+                </p>
+              </div>
+            );
+          })}
         </div>
 
         {staffNames.map((staffName) => {
           const staffRows = grouped[staffName];
           return (
-            <div key={staffName} className="grid grid-cols-[220px_repeat(7,minmax(120px,1fr))] border-b border-border last:border-b-0">
+            <div
+              key={staffName}
+              className="grid border-b border-border last:border-b-0"
+              style={{ gridTemplateColumns }}
+            >
               <div className="px-4 py-3">
                 <p className="text-sm font-semibold text-foreground">{staffName}</p>
                 <p className="text-xs text-muted-foreground">{staffRows.length} assignment(s)</p>
               </div>
 
-              {WEEK_DAYS.map((day) => {
-                const dayRows = rowsForDay(staffRows, day);
+              {dateColumns.map((dateKey) => {
+                const dayRows = rowsForDate(staffRows, dateKey);
                 return (
-                  <div key={`${staffName}-${day}`} className="space-y-2 px-2 py-2">
+                  <div key={`${staffName}-${dateKey}`} className="space-y-2 px-2 py-2">
                     {dayRows.length ? (
                       dayRows.map((row) => (
                         <button
-                          key={`${row.id}-${day}`}
+                          key={`${row.id}-${dateKey}`}
                           type="button"
                           onClick={() => onSelect?.(row)}
                           className="w-full text-left rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-module-accent/40"

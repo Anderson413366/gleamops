@@ -26,6 +26,7 @@ export interface RecurringScheduleRow {
   siteCode?: string | null;
   startTime: string;
   endTime: string;
+  scheduledDates: string[];
   scheduleDays: string[];
   status: 'assigned' | 'open' | 'pending';
   blueprint?: {

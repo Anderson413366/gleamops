@@ -113,3 +113,112 @@ export async function rpcFinalizePayrollExport(
     p_exported_file_checksum: payload.exported_file_checksum ?? null,
   });
 }
+
+export type ShiftsTimeRouteRow = {
+  id: string;
+  route_date: string;
+  status: string;
+  route_owner_staff_id: string | null;
+  route_owner: {
+    id: string;
+    staff_code: string | null;
+    full_name: string | null;
+  } | Array<{
+    id: string;
+    staff_code: string | null;
+    full_name: string | null;
+  }> | null;
+};
+
+export type ShiftsTimeRouteStopRow = {
+  id: string;
+  route_id: string;
+  stop_order: number;
+  stop_status: string | null;
+  status: string | null;
+  planned_start_at: string | null;
+  planned_end_at: string | null;
+  arrived_at: string | null;
+  departed_at: string | null;
+  site: {
+    id: string;
+    site_code: string | null;
+    name: string | null;
+  } | null;
+  site_job: {
+    id: string;
+    job_code: string | null;
+    site: {
+      id: string;
+      site_code: string | null;
+      name: string | null;
+    } | null;
+  } | null;
+};
+
+export async function findStaffIdByUserId(
+  db: SupabaseClient,
+  userId: string,
+) {
+  return db
+    .from('staff')
+    .select('id')
+    .eq('user_id', userId)
+    .is('archived_at', null)
+    .maybeSingle<{ id: string | null }>();
+}
+
+export async function listRoutesForDate(
+  db: SupabaseClient,
+  routeDate: string,
+  routeOwnerStaffId?: string | null,
+) {
+  let query = db
+    .from('routes')
+    .select(`
+      id,
+      route_date,
+      status,
+      route_owner_staff_id,
+      route_owner:route_owner_staff_id(id, staff_code, full_name)
+    `)
+    .eq('route_date', routeDate)
+    .is('archived_at', null)
+    .order('created_at', { ascending: true })
+    .limit(1000);
+
+  if (routeOwnerStaffId) {
+    query = query.eq('route_owner_staff_id', routeOwnerStaffId);
+  }
+
+  return query;
+}
+
+export async function listRouteStopsByRouteIds(
+  db: SupabaseClient,
+  routeIds: string[],
+) {
+  if (routeIds.length === 0) {
+    return { data: [] as ShiftsTimeRouteStopRow[], error: null };
+  }
+
+  return db
+    .from('route_stops')
+    .select(`
+      id,
+      route_id,
+      stop_order,
+      stop_status,
+      status,
+      planned_start_at,
+      planned_end_at,
+      arrived_at,
+      departed_at,
+      site:site_id(id, site_code, name),
+      site_job:site_job_id(id, job_code, site:site_id(id, site_code, name))
+    `)
+    .in('route_id', routeIds)
+    .is('archived_at', null)
+    .order('stop_order', { ascending: true })
+    .limit(5000);
+}

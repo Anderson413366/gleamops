@@ -16,7 +16,8 @@
       "bundleIdentifier": "com.gleamops.mobile",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "GleamOps needs your location for clock in/out verification.",
-        "NSCameraUsageDescription": "GleamOps needs camera access for inspection photos and issue reports."
+        "NSCameraUsageDescription": "GleamOps needs camera access for inspection photos and issue reports.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -41,6 +42,15 @@
         "expo-image-picker",
         { "photosPermission": "GleamOps needs photo library access for uploading inspection images." }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "892a0b17-d1d4-4cac-830f-406047889c7a"
+      }
+    },
+    "owner": "anderson860"
   }
 }

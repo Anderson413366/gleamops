@@ -69,17 +69,21 @@ export default function JobsPageClient() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { role } = useAuth();
+  const { role, loading: authLoading } = useAuth();
   const { t } = useLocale();
   const shiftsTimeV1Enabled = useFeatureFlag('shifts_time_v1');
   const shiftsTimeRouteExecutionEnabled = useFeatureFlag('shifts_time_route_execution');
   const initialTicketId = searchParams.get('ticket');
   const action = searchParams.get('action');
+  const requestedTab = searchParams.get('tab');
 
   const roleCode = normalizeRoleCode(role ?? '') ?? (role ?? '').toUpperCase();
   const isShiftsTimePilotManager = roleCode === 'OWNER_ADMIN' || roleCode === 'MANAGER';
-  const showShiftsTime = SHIFTS_TIME_ALLOWED_ROLES.has(roleCode)
-    && (isShiftsTimePilotManager || shiftsTimeV1Enabled || shiftsTimeRouteExecutionEnabled);
+  const keepRequestedShiftsTimeDuringAuth = requestedTab === 'shifts-time' && authLoading;
+  const showShiftsTime = keepRequestedShiftsTimeDuringAuth || (
+    SHIFTS_TIME_ALLOWED_ROLES.has(roleCode)
+      && (isShiftsTimePilotManager || shiftsTimeV1Enabled || shiftsTimeRouteExecutionEnabled)
+  );
 
   const tabs = useMemo(() => (
     showShiftsTime
@@ -109,9 +113,9 @@ export default function JobsPageClient() {
 
   useEffect(() => {
     if (!showShiftsTime) return;
-    if (searchParams.get('tab') !== 'shifts-time') return;
+    if (requestedTab !== 'shifts-time') return;
     if (tab !== 'shifts-time') setTab('shifts-time');
-  }, [searchParams, setTab, showShiftsTime, tab]);
+  }, [requestedTab, setTab, showShiftsTime, tab]);
 
   useEffect(() => {
     async function fetchKpis() {

@@ -1,9 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, Plus, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
-import { Button, Card, CardContent } from '@gleamops/ui';
+import { Button, Card, CardContent, Input, Select, SlideOver } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { PlanningStatus } from '@gleamops/shared';
 import { useMediaQuery } from '@/hooks/use-media-query';
@@ -15,6 +15,16 @@ interface StaffOption {
   id: string;
   staff_code: string;
   full_name: string | null;
+}
+
+interface ActiveJob {
+  id: string;
+  job_code: string;
+  job_name?: string | null;
+  site_id: string;
+  start_time?: string | null;
+  end_time?: string | null;
+  site?: { name: string; site_code: string; client?: { name: string } | null } | null;
 }
 
 const COLUMNS: { key: PlanningStatus; label: string }[] = [
@@ -109,6 +119,15 @@ export default function PlanningBoard({ search = '' }: PlanningBoardProps) {
   const [staff, setStaff] = useState<StaffOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [jobs, setJobs] = useState<ActiveJob[]>([]);
+  const [jobsLoading, setJobsLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [createJobId, setCreateJobId] = useState('');
+  const [createDate, setCreateDate] = useState('');
+  const [createStartTime, setCreateStartTime] = useState('');
+  const [createEndTime, setCreateEndTime] = useState('');
   const [dragOverColumn, setDragOverColumn] = useState<PlanningStatus | null>(null);
   const [mobileColumn, setMobileColumn] = useState<PlanningStatus>('NOT_STARTED');
   const isMobile = useMediaQuery('(max-width: 767px)');
@@ -183,6 +202,50 @@ export default function PlanningBoard({ search = '' }: PlanningBoardProps) {
     setStaff((data ?? []) as StaffOption[]);
   }, [supabase]);
 
+  const loadJobs = useCallback(async () => {
+    setJobsLoading(true);
+    const { data, error } = await supabase
+      .from('site_jobs')
+      .select('id, job_code, job_name, site_id, start_time, end_time, site:site_id(name, site_code, client:client_id(name))')
+      .is('archived_at', null)
+      .eq('status', 'ACTIVE')
+      .order('job_code', { ascending: true });
+
+    if (error) {
+      toast.error(error.message);
+      setJobs([]);
+      setJobsLoading(false);
+      return;
+    }
+
+    const normalizedJobs = (data ?? []).map((row) => {
+      const rawSite = Array.isArray((row as { site?: unknown }).site)
+        ? (row as { site?: Array<{ name?: string | null; site_code?: string | null; client?: Array<{ name?: string | null }> | { name?: string | null } | null }> }).site?.[0]
+        : (row as { site?: { name?: string | null; site_code?: string | null; client?: Array<{ name?: string | null }> | { name?: string | null } | null } | null }).site;
+
+      const rawClient = Array.isArray(rawSite?.client) ? rawSite.client[0] : rawSite?.client ?? null;
+
+      return {
+        id: String((row as { id: string }).id),
+        job_code: String((row as { job_code: string }).job_code),
+        job_name: ((row as { job_name?: string | null }).job_name ?? null),
+        site_id: String((row as { site_id: string }).site_id),
+        start_time: ((row as { start_time?: string | null }).start_time ?? null),
+        end_time: ((row as { end_time?: string | null }).end_time ?? null),
+        site: rawSite
+          ? {
+              name: rawSite.name ?? '',
+              site_code: rawSite.site_code ?? '',
+              client: rawClient ? { name: rawClient.name ?? '' } : null,
+            }
+          : null,
+      } satisfies ActiveJob;
+    });
+
+    setJobs(normalizedJobs);
+    setJobsLoading(false);
+  }, [supabase]);
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -191,6 +254,22 @@ export default function PlanningBoard({ search = '' }: PlanningBoardProps) {
     });
     return () => { cancelled = true; };
   }, [loadTickets, loadStaff]);
+
+  useEffect(() => {
+    if (!createOpen) return;
+    if (jobs.length === 0 && !jobsLoading) {
+      void loadJobs();
+    }
+  }, [createOpen, jobs.length, jobsLoading, loadJobs]);
+
+  useEffect(() => {
+    if (!createOpen) return;
+    if (!createJobId && jobs.length > 0) {
+      setCreateJobId(jobs[0].id);
+    }
+  }, [createOpen, createJobId, jobs]);
+
+  const selectedJob = useMemo(() => jobs.find((job) => job.id === createJobId) ?? null, [createJobId, jobs]);
 
   // ----- search filter -----
   const filteredTickets = useMemo(() => {
@@ -307,6 +386,115 @@ export default function PlanningBoard({ search = '' }: PlanningBoardProps) {
     [supabase, loadTickets]
   );
 
+  const openCreateTicket = useCallback(() => {
+    setCreateError(null);
+    setCreateDate(selectedDate || today());
+    setCreateStartTime('');
+    setCreateEndTime('');
+    setCreateOpen(true);
+  }, [selectedDate]);
+
+  const closeCreateTicket = useCallback(() => {
+    setCreateOpen(false);
+    setCreateError(null);
+    setCreateDate('');
+    setCreateStartTime('');
+    setCreateEndTime('');
+  }, []);
+
+  const handleCreateTicket = useCallback(async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (!createJobId) {
+      setCreateError('Select a service plan.');
+      return;
+    }
+    if (!createDate) {
+      setCreateError('Select a scheduled date.');
+      return;
+    }
+    if (createStartTime && createEndTime && createEndTime <= createStartTime) {
+      setCreateError('End time must be after start time.');
+      return;
+    }
+
+    const siteId = selectedJob?.site_id;
+    if (!siteId) {
+      setCreateError('Selected service plan is missing a site.');
+      return;
+    }
+
+    setCreating(true);
+    setCreateError(null);
+
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      const tenantId = auth.user?.app_metadata?.tenant_id ?? null;
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        throw new Error('Missing session token for ticket code generation.');
+      }
+
+      const codeResponse = await fetch('/api/codes/next', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ prefix: 'TKT' }),
+      });
+
+      if (!codeResponse.ok) {
+        throw new Error('Unable to generate ticket code.');
+      }
+
+      const payload = await codeResponse.json() as { data?: unknown };
+      if (typeof payload.data !== 'string' || !payload.data.trim()) {
+        throw new Error('Invalid ticket code response.');
+      }
+      const ticketCode = payload.data.trim();
+
+      const { error } = await supabase.from('work_tickets').insert({
+        tenant_id: tenantId,
+        ticket_code: ticketCode,
+        job_id: createJobId,
+        site_id: siteId,
+        scheduled_date: createDate,
+        start_time: createStartTime ? `${createStartTime}:00` : null,
+        end_time: createEndTime ? `${createEndTime}:00` : null,
+        status: 'SCHEDULED',
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      closeCreateTicket();
+      toast.success('Task created');
+      if (selectedDate === createDate) {
+        await loadTickets();
+      } else {
+        setSelectedDate(createDate);
+      }
+    } catch (error) {
+      setCreateError(error instanceof Error ? error.message : 'Failed to create task.');
+    } finally {
+      setCreating(false);
+    }
+  }, [
+    closeCreateTicket,
+    createDate,
+    createEndTime,
+    createJobId,
+    createStartTime,
+    loadTickets,
+    selectedDate,
+    selectedJob?.site_id,
+    supabase,
+  ]);
+
   // ----- drag-and-drop -----
   const handleDragStart = useCallback(
     (e: React.DragEvent, ticketId: string) => {
@@ -356,6 +544,15 @@ export default function PlanningBoard({ search = '' }: PlanningBoardProps) {
           </h2>
         </div>
         <div className="flex flex-wrap items-center gap-1">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={openCreateTicket}
+            disabled={!selectedDate}
+          >
+            <Plus className="h-4 w-4" />
+            New Task
+          </Button>
           <label className="sr-only" htmlFor="planning-date">Planning date</label>
           <input
             id="planning-date"
@@ -522,6 +719,88 @@ export default function PlanningBoard({ search = '' }: PlanningBoardProps) {
         onQuickAssign={handleQuickAssign}
         busy={busy}
       />
+
+      <SlideOver
+        open={createOpen}
+        onClose={closeCreateTicket}
+        title="New Task"
+        subtitle="Create a planning task"
+      >
+        <form className="space-y-4" onSubmit={handleCreateTicket}>
+          <Select
+            label="Service Plan"
+            value={createJobId}
+            onChange={(event) => setCreateJobId(event.target.value)}
+            options={[
+              {
+                value: '',
+                label: jobsLoading
+                  ? 'Loading service plans...'
+                  : jobs.length === 0
+                    ? 'No active service plans found'
+                    : 'Select a service plan...',
+              },
+              ...jobs.map((job) => ({
+                value: job.id,
+                label: `${job.job_code}${job.job_name ? ` - ${job.job_name}` : ''}${job.site?.name ? ` (${job.site.name})` : ''}`,
+              })),
+            ]}
+            disabled={jobsLoading || jobs.length === 0 || creating}
+            required
+          />
+
+          <Input
+            label="Scheduled Date"
+            type="date"
+            value={createDate}
+            onChange={(event) => setCreateDate(event.target.value)}
+            disabled={creating}
+            required
+          />
+
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Start Time"
+              type="time"
+              value={createStartTime}
+              onChange={(event) => setCreateStartTime(event.target.value)}
+              disabled={creating}
+            />
+            <Input
+              label="End Time"
+              type="time"
+              value={createEndTime}
+              onChange={(event) => setCreateEndTime(event.target.value)}
+              disabled={creating}
+            />
+          </div>
+
+          {selectedJob?.site ? (
+            <div className="rounded-lg border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
+              <p><span className="font-semibold text-foreground">Site:</span> {selectedJob.site.name} ({selectedJob.site.site_code})</p>
+              <p><span className="font-semibold text-foreground">Client:</span> {selectedJob.site.client?.name ?? 'N/A'}</p>
+            </div>
+          ) : null}
+
+          {createError ? (
+            <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
+              {createError}
+            </div>
+          ) : null}
+
+          <div className="rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-xs text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300">
+            <div className="inline-flex items-center gap-1">
+              <Sparkles className="h-3.5 w-3.5" />
+              <span>Tip: use date navigation first, then create tasks for that day.</span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <Button type="button" variant="secondary" onClick={closeCreateTicket} disabled={creating}>Cancel</Button>
+            <Button type="submit" loading={creating}>Create Task</Button>
+          </div>
+        </form>
+      </SlideOver>
     </div>
   );
 }

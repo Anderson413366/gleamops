@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, type DragEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type DragEvent, type MouseEvent } from 'react';
 import { BriefcaseBusiness, CalendarDays, ChevronLeft, ChevronRight, Clock, GripVertical, Plus, Sparkles, Users } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Button, ChipTabs, Input, Select, Skeleton, SlideOver } from '@gleamops/ui';
@@ -212,6 +212,7 @@ function TicketCard({
   return (
     <div
       key={ticket.id}
+      data-ticket-card="true"
       draggable
       onDragStart={(event) => onDragStart(event, ticket.id)}
       onDragEnd={onDragEnd}
@@ -412,6 +413,14 @@ export default function WeekCalendar({ onSelectTicket, onCreatedTicket }: WeekCa
   }, []);
 
   const selectedJob = useMemo(() => jobs.find((job) => job.id === createJobId) ?? null, [createJobId, jobs]);
+
+  const handleDaySurfaceClick = useCallback((event: MouseEvent<HTMLElement>, dateStr: string) => {
+    const target = event.target as HTMLElement;
+    if (target.closest('[data-ticket-card="true"]')) {
+      return;
+    }
+    openCreateTicket({ date: dateStr });
+  }, [openCreateTicket]);
 
   const handleCreateTicket = useCallback(async (event: React.FormEvent) => {
     event.preventDefault();
@@ -675,6 +684,7 @@ export default function WeekCalendar({ onSelectTicket, onCreatedTicket }: WeekCa
           isDropping ? 'border-brand-500 bg-brand-50 border-dashed border-2' : '',
           isPast ? 'bg-muted/50' : '',
         ].join(' ')}
+        onClick={(event) => handleDaySurfaceClick(event, dateStr)}
         onDragOver={(event) => handleDragOver(event, dateStr)}
         onDragLeave={handleDragLeave}
         onDrop={(event) => handleDrop(event, dateStr)}
@@ -852,7 +862,7 @@ export default function WeekCalendar({ onSelectTicket, onCreatedTicket }: WeekCa
                     isDropping ? 'border-brand-500 bg-brand-50 border-dashed border-2' : '',
                     isPast ? 'bg-muted/50' : '',
                   ].join(' ')}
-                  onClick={() => openCreateTicket({ date: dateStr })}
+                  onClick={(event) => handleDaySurfaceClick(event, dateStr)}
                   onDragOver={(event) => handleDragOver(event, dateStr)}
                   onDragLeave={handleDragLeave}
                   onDrop={(event) => handleDrop(event, dateStr)}
@@ -889,7 +899,11 @@ export default function WeekCalendar({ onSelectTicket, onCreatedTicket }: WeekCa
             const dateStr = toDateInput(day);
             const dayTickets = ticketsByDate.get(dateStr) ?? [];
             return (
-              <div key={dateStr} className="rounded-lg border border-border p-3">
+              <div
+                key={dateStr}
+                className="rounded-lg border border-border p-3"
+                onClick={(event) => handleDaySurfaceClick(event, dateStr)}
+              >
                 <div className="mb-2 flex items-center justify-between">
                   <button
                     type="button"

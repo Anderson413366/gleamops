@@ -6,7 +6,7 @@
  */
 
 import { useState, useMemo, useEffect } from 'react';
-import { Users, FileText, BriefcaseBusiness, DollarSign, Plus, MessageSquare, UserRoundCheck, Clock } from 'lucide-react';
+import { Users, FileText, BriefcaseBusiness, DollarSign, Plus, MessageSquare, UserRoundCheck, Clock, Droplets } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import { useFeatureFlag } from '@/hooks/use-feature-flag';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -19,6 +19,8 @@ import PositionsTable from '../workforce/positions/positions-table';
 import PayrollTable from '../workforce/payroll/payroll-table';
 import MessagesTab from '../workforce/messages/messages-tab';
 import HrLitePanel from '../workforce/hr/hr-lite-panel';
+import MicrofiberTable from '../workforce/microfiber/microfiber-table';
+import MicrofiberExport from '../workforce/microfiber/microfiber-export';
 
 const BASE_TABS = [
   { key: 'staff', label: 'Staff', icon: <Users className="h-4 w-4" /> },
@@ -27,6 +29,7 @@ const BASE_TABS = [
   { key: 'timesheets', label: 'Timesheets', icon: <FileText className="h-4 w-4" /> },
   { key: 'payroll', label: 'Payroll', icon: <DollarSign className="h-4 w-4" /> },
   { key: 'hr', label: 'HR', icon: <UserRoundCheck className="h-4 w-4" /> },
+  { key: 'microfiber', label: 'Microfiber', icon: <Droplets className="h-4 w-4" /> },
 ];
 
 export default function TeamPageClient() {
@@ -90,7 +93,7 @@ export default function TeamPageClient() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Team</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage your team — staff, positions, timesheets, payroll, and HR</p>
+          <p className="text-sm text-muted-foreground mt-1">Manage your team — staff, positions, timesheets, payroll, HR, and microfiber program</p>
         </div>
         {addLabel && (
           <Button onClick={handleAdd}>
@@ -133,6 +136,12 @@ export default function TeamPageClient() {
       {tab === 'timesheets' && <TimesheetsTable key={`ts-${refreshKey}`} search={search} />}
       {tab === 'payroll' && <PayrollTable key={`pay-${refreshKey}`} search={search} />}
       {tab === 'hr' && <HrLitePanel key={`hr-${refreshKey}`} search={search} />}
+      {tab === 'microfiber' && (
+        <div className="space-y-4">
+          <MicrofiberExport key={`mfe-${refreshKey}`} />
+          <MicrofiberTable key={`mft-${refreshKey}`} search={search} />
+        </div>
+      )}
       {tab === 'messages' && messagingEnabled && <MessagesTab key={`msg-${refreshKey}`} search={search} />}
     </div>
   );

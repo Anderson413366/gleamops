@@ -1,13 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Route, Truck, PlusCircle, MapPin, Clock3, Lock, ShieldCheck, Gauge } from 'lucide-react';
+import { Route, Truck, PlusCircle, MapPin, Clock3, Lock, ShieldCheck, Gauge, CalendarPlus, ClipboardPlus, ChevronDown, ChevronRight, PackageSearch } from 'lucide-react';
 import { Badge, Button, Card, CardContent, CardHeader, ExportButton, SlideOver, Textarea } from '@gleamops/ui';
 import { toast } from 'sonner';
 import { EntityLink } from '@/components/links/entity-link';
 import { useAuth } from '@/hooks/use-auth';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { executeWithOfflineQueue } from '@/lib/offline/mutation-queue';
+import type { LoadSheetResponse } from '@gleamops/shared';
 
 type RouteRow = {
   id: string;
@@ -25,6 +26,17 @@ type RouteStopRow = {
   stop_order: number;
   estimated_travel_minutes: number | null;
   is_locked: boolean;
+};
+
+type RouteStopTaskRow = {
+  id: string;
+  route_stop_id: string;
+  task_type: string;
+  description: string;
+  task_order: number;
+  is_from_template: boolean;
+  is_completed: boolean;
+  evidence_required: boolean;
 };
 
 type StaffRow = {
@@ -150,6 +162,11 @@ export default function RoutesFleetPanel({ search }: Props) {
   const [maintenance, setMaintenance] = useState<VehicleMaintenanceRow[]>([]);
   const [dvirLogs, setDvirLogs] = useState<VehicleDvirRow[]>([]);
   const [fuelLogs, setFuelLogs] = useState<VehicleFuelLogRow[]>([]);
+  const [routeStopTasks, setRouteStopTasks] = useState<RouteStopTaskRow[]>([]);
+  const [loadSheet, setLoadSheet] = useState<LoadSheetResponse | null>(null);
+  const [loadSheetLoading, setLoadSheetLoading] = useState(false);
+  const [loadSheetOpen, setLoadSheetOpen] = useState(true);
+  const [expandedLoadItems, setExpandedLoadItems] = useState<Record<string, boolean>>({});
 
   const [selectedRouteId, setSelectedRouteId] = useState<string>('');
   const [newRouteDate, setNewRouteDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -158,6 +175,11 @@ export default function RoutesFleetPanel({ search }: Props) {
 
   const [newStopJobId, setNewStopJobId] = useState('');
   const [newStopTravelMinutes, setNewStopTravelMinutes] = useState('');
+  const [customTaskOpen, setCustomTaskOpen] = useState(false);
+  const [customTaskStopId, setCustomTaskStopId] = useState('');
+  const [customTaskDescription, setCustomTaskDescription] = useState('');
+  const [customTaskEvidenceRequired, setCustomTaskEvidenceRequired] = useState(false);
+  const [savingCustomTask, setSavingCustomTask] = useState(false);
 
   const [fleetModalOpen, setFleetModalOpen] = useState(false);
   const [fleetMode, setFleetMode] = useState<'checkout' | 'return'>('checkout');
@@ -184,7 +206,7 @@ export default function RoutesFleetPanel({ search }: Props) {
   const load = useCallback(async () => {
     setLoading(true);
 
-    const [routesRes, stopsRes, staffRes, jobsRes, sitesRes, vehiclesRes, checkoutsRes, maintenanceRes, dvirRes, fuelRes] = await Promise.all([
+    const [routesRes, stopsRes, tasksRes, staffRes, jobsRes, sitesRes, vehiclesRes, checkoutsRes, maintenanceRes, dvirRes, fuelRes] = await Promise.all([
       supabase
         .from('routes')
         .select('id, route_date, route_type, status, route_owner_staff_id, created_at')
@@ -197,6 +219,12 @@ export default function RoutesFleetPanel({ search }: Props) {
         .is('archived_at', null)
         .order('stop_order', { ascending: true })
         .limit(2000),
+      supabase
+        .from('route_stop_tasks')
+        .select('id, route_stop_id, task_type, description, task_order, is_from_template, is_completed, evidence_required')
+        .is('archived_at', null)
+        .order('task_order', { ascending: true })
+        .limit(6000),
       supabase
         .from('staff')
         .select('id, staff_code, full_name')
@@ -248,6 +276,7 @@ export default function RoutesFleetPanel({ search }: Props) {
     const errors = [
       routesRes.error,
       stopsRes.error,
+      tasksRes.error,
       staffRes.error,
       jobsRes.error,
       sitesRes.error,
@@ -264,6 +293,7 @@ export default function RoutesFleetPanel({ search }: Props) {
 
     setRoutes((routesRes.data ?? []) as RouteRow[]);
     setStops((stopsRes.data ?? []) as RouteStopRow[]);
+    setRouteStopTasks((tasksRes.data ?? []) as RouteStopTaskRow[]);
     setStaff((staffRes.data ?? []) as StaffRow[]);
     setJobs((jobsRes.data ?? []) as SiteJobRow[]);
     setSites((sitesRes.data ?? []) as SiteRow[]);
@@ -314,12 +344,78 @@ export default function RoutesFleetPanel({ search }: Props) {
     [filteredRoutes, selectedRouteId],
   );
 
+  useEffect(() => {
+    let active = true;
+
+    if (!selectedRouteId) {
+      setLoadSheet(null);
+      setExpandedLoadItems({});
+      return () => {
+        active = false;
+      };
+    }
+    setExpandedLoadItems({});
+
+    const loadRouteSheet = async () => {
+      setLoadSheetLoading(true);
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        const headers: Record<string, string> = {};
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+
+        const response = await fetch(`/api/operations/routes/${selectedRouteId}/load-sheet`, {
+          method: 'GET',
+          headers,
+          cache: 'no-store',
+        });
+
+        const body = await response.json().catch(() => null);
+        if (!response.ok || !body?.data) {
+          throw new Error(body?.detail ?? body?.title ?? 'Failed to load route load sheet.');
+        }
+
+        if (!active) return;
+        setLoadSheet(body.data as LoadSheetResponse);
+      } catch (error) {
+        if (!active) return;
+        setLoadSheet(null);
+        toast.error(error instanceof Error ? error.message : 'Failed to load route load sheet.');
+      } finally {
+        if (active) {
+          setLoadSheetLoading(false);
+        }
+      }
+    };
+
+    void loadRouteSheet();
+
+    return () => {
+      active = false;
+    };
+  }, [selectedRouteId, supabase]);
+
+  const toggleLoadItem = useCallback((key: string) => {
+    setExpandedLoadItems((prev) => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+
   const stopsForSelectedRoute = useMemo(() => {
     if (!selectedRouteId) return [];
     return stops
       .filter((row) => row.route_id === selectedRouteId)
       .sort((a, b) => a.stop_order - b.stop_order);
   }, [selectedRouteId, stops]);
+
+  const tasksByStopId = useMemo(() => {
+    return routeStopTasks.reduce<Map<string, RouteStopTaskRow[]>>((map, task) => {
+      const existing = map.get(task.route_stop_id) ?? [];
+      existing.push(task);
+      map.set(task.route_stop_id, existing);
+      return map;
+    }, new Map());
+  }, [routeStopTasks]);
 
   const routeKpis = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
@@ -497,6 +593,36 @@ export default function RoutesFleetPanel({ search }: Props) {
     await load();
   }, [load, supabase]);
 
+  const generateTomorrowRoutes = useCallback(async () => {
+    try {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const targetDate = tomorrow.toISOString().slice(0, 10);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+
+      const response = await fetch('/api/operations/routes/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ target_date: targetDate }),
+      });
+
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || body?.success !== true) {
+        throw new Error(body?.detail || body?.title || 'Failed to generate tomorrow routes.');
+      }
+
+      const generatedCount = Array.isArray(body.data) ? body.data.length : 0;
+      toast.success(`Generated ${generatedCount} route${generatedCount === 1 ? '' : 's'} for ${targetDate}.`);
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to generate tomorrow routes.');
+    }
+  }, [load, supabase]);
+
   const toggleStopLock = useCallback(async (stopId: string, nextValue: boolean) => {
     const { error } = await supabase
       .from('route_stops')
@@ -510,6 +636,54 @@ export default function RoutesFleetPanel({ search }: Props) {
 
     await load();
   }, [load, supabase]);
+
+  const openCustomTaskModal = useCallback((stopId: string) => {
+    setCustomTaskStopId(stopId);
+    setCustomTaskDescription('');
+    setCustomTaskEvidenceRequired(false);
+    setCustomTaskOpen(true);
+  }, []);
+
+  const saveCustomTask = useCallback(async () => {
+    if (!tenantId || !customTaskStopId) {
+      toast.error('Select a stop before adding a one-off task.');
+      return;
+    }
+
+    const description = customTaskDescription.trim();
+    if (!description) {
+      toast.error('Task description is required.');
+      return;
+    }
+
+    const existingTasks = tasksByStopId.get(customTaskStopId) ?? [];
+    const nextOrder = existingTasks.length > 0
+      ? Math.max(...existingTasks.map((task) => task.task_order)) + 1
+      : 1;
+
+    setSavingCustomTask(true);
+    const { error } = await supabase
+      .from('route_stop_tasks')
+      .insert({
+        tenant_id: tenantId,
+        route_stop_id: customTaskStopId,
+        task_type: 'CUSTOM',
+        description,
+        task_order: nextOrder,
+        evidence_required: customTaskEvidenceRequired,
+        is_from_template: false,
+      });
+    setSavingCustomTask(false);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    toast.success('One-off task added.');
+    setCustomTaskOpen(false);
+    await load();
+  }, [customTaskDescription, customTaskEvidenceRequired, customTaskStopId, load, supabase, tasksByStopId, tenantId]);
 
   const openCheckoutModal = useCallback((vehicleId: string) => {
     setFleetMode('checkout');
@@ -642,6 +816,10 @@ export default function RoutesFleetPanel({ search }: Props) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-end gap-2">
+        <Button type="button" size="sm" onClick={generateTomorrowRoutes}>
+          <CalendarPlus className="h-4 w-4" />
+          Generate Tomorrow&apos;s Routes
+        </Button>
         <Button type="button" variant="secondary" size="sm" onClick={() => window.print()}>
           Print PDF
         </Button>
@@ -816,18 +994,30 @@ export default function RoutesFleetPanel({ search }: Props) {
                     stopsForSelectedRoute.map((stop) => {
                       const job = jobById.get(stop.site_job_id);
                       const site = job ? siteById.get(job.site_id) : undefined;
+                      const stopTasks = tasksByStopId.get(stop.id) ?? [];
+                      const customTasks = stopTasks.filter((task) => !task.is_from_template);
                       return (
                         <div key={stop.id} className="rounded-md border border-border px-3 py-2">
                           <div className="flex items-center justify-between gap-2">
                             <p className="text-sm font-semibold text-foreground">Stop {stop.stop_order}</p>
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={() => toggleStopLock(stop.id, !stop.is_locked)}
-                            >
-                              <Lock className="h-3.5 w-3.5" />
-                              {stop.is_locked ? 'Unlock' : 'Lock'}
-                            </Button>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => openCustomTaskModal(stop.id)}
+                              >
+                                <ClipboardPlus className="h-3.5 w-3.5" />
+                                Add One-Off Task
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => toggleStopLock(stop.id, !stop.is_locked)}
+                              >
+                                <Lock className="h-3.5 w-3.5" />
+                                {stop.is_locked ? 'Unlock' : 'Lock'}
+                              </Button>
+                            </div>
                           </div>
                           <div className="mt-1 text-sm text-foreground">
                             {job ? (
@@ -850,11 +1040,95 @@ export default function RoutesFleetPanel({ search }: Props) {
                             <span className="inline-flex items-center gap-1"><Clock3 className="h-3.5 w-3.5" />{stop.estimated_travel_minutes ?? 0} min travel</span>
                             <span>{stop.is_locked ? 'Locked' : 'Editable'}</span>
                             <span>{job?.start_date ? new Date(`${job.start_date}T00:00:00`).toLocaleDateString() : 'No date'}</span>
+                            <span>{stopTasks.length} task{stopTasks.length === 1 ? '' : 's'}</span>
                           </div>
+                          {customTasks.length > 0 ? (
+                            <div className="mt-2 space-y-1">
+                              {customTasks.map((task) => (
+                                <div key={task.id} className="rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground">
+                                  One-off: {task.description}
+                                </div>
+                              ))}
+                            </div>
+                          ) : null}
                         </div>
                       );
                     })
                   )}
+                </div>
+
+                <div className="rounded-md border border-border print:border-0 print:shadow-none">
+                  <button
+                    type="button"
+                    onClick={() => setLoadSheetOpen((prev) => !prev)}
+                    className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left"
+                  >
+                    <span className="inline-flex items-center gap-2 text-sm font-semibold text-foreground">
+                      <PackageSearch className="h-4 w-4 text-primary" />
+                      Load Sheet Preview
+                    </span>
+                    {loadSheetOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                  </button>
+
+                  {loadSheetOpen ? (
+                    <div className="space-y-3 border-t border-border px-3 py-3">
+                      {loadSheetLoading ? (
+                        <p className="text-sm text-muted-foreground">Loading load sheet...</p>
+                      ) : !loadSheet || loadSheet.items.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No delivery tasks on this route.</p>
+                      ) : (
+                        <>
+                          <div className="space-y-2">
+                            {loadSheet.items.map((item) => {
+                              const key = `${item.supply_id}:${item.direction}`;
+                              const isExpanded = !!expandedLoadItems[key];
+
+                              return (
+                                <div key={key} className="rounded-md border border-border bg-background px-2 py-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleLoadItem(key)}
+                                    className="flex w-full items-center justify-between gap-2 text-left"
+                                  >
+                                    <div>
+                                      <p className="text-sm font-medium text-foreground">
+                                        {item.total_quantity} {item.unit ?? ''} {item.supply_name}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">{item.direction === 'pickup' ? 'Pickup' : 'Deliver'}</p>
+                                    </div>
+                                    {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                                  </button>
+
+                                  {isExpanded ? (
+                                    <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                                      {item.site_breakdown.map((site, index) => (
+                                        <p key={`${key}:${site.stop_order}:${index}`}>
+                                          Stop {site.stop_order}: {site.site_name} ({site.quantity})
+                                        </p>
+                                      ))}
+                                    </div>
+                                  ) : null}
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {loadSheet.special_items.length > 0 ? (
+                            <div className="rounded-md border border-border bg-background px-2 py-2">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Special items</p>
+                              <div className="mt-1 space-y-1">
+                                {loadSheet.special_items.map((item, index) => (
+                                  <p key={`${item.for_stop}:${index}`} className="text-xs text-foreground">
+                                    Stop {item.for_stop}: {item.site_name} — {item.description}
+                                  </p>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
+                        </>
+                      )}
+                    </div>
+                  ) : null}
                 </div>
               </>
             )}
@@ -937,6 +1211,45 @@ export default function RoutesFleetPanel({ search }: Props) {
           )}
         </CardContent>
       </Card>
+
+      <SlideOver
+        open={customTaskOpen}
+        onClose={() => setCustomTaskOpen(false)}
+        title="Add One-Off Task"
+        subtitle={customTaskStopId ? `Stop ${stops.find((stop) => stop.id === customTaskStopId)?.stop_order ?? ''}` : undefined}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Add an ad-hoc custom task to this stop without changing the underlying template.
+          </p>
+          <Textarea
+            label="Task Description"
+            value={customTaskDescription}
+            onChange={(event) => setCustomTaskDescription(event.target.value)}
+            rows={4}
+            required
+          />
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Photo Evidence Required</label>
+            <select
+              value={customTaskEvidenceRequired ? 'yes' : 'no'}
+              onChange={(event) => setCustomTaskEvidenceRequired(event.target.value === 'yes')}
+              className="w-full rounded-md border border-border bg-background px-2 py-2 text-sm"
+            >
+              <option value="no">No</option>
+              <option value="yes">Yes</option>
+            </select>
+          </div>
+          <div className="flex justify-end gap-2 border-t border-border pt-4">
+            <Button variant="secondary" onClick={() => setCustomTaskOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={saveCustomTask} disabled={savingCustomTask}>
+              {savingCustomTask ? 'Adding...' : 'Add Task'}
+            </Button>
+          </div>
+        </div>
+      </SlideOver>
 
       <SlideOver
         open={fleetModalOpen}

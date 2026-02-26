@@ -2,19 +2,6 @@ import { Tabs } from 'expo-router';
 import { Platform } from 'react-native';
 import { Colors } from '../../src/lib/constants';
 
-// Simple icon component using text (avoids dependency on icon library)
-function TabIcon({ name, focused }: { name: string; focused: boolean }) {
-  const icons: Record<string, string> = {
-    home: '🏠',
-    tickets: '📋',
-    clock: '⏰',
-    profile: '👤',
-  };
-  return (
-    <>{/* Using text for now; swap for vector icons when ready */}</>
-  );
-}
-
 export default function TabLayout() {
   return (
     <Tabs
@@ -60,6 +47,13 @@ export default function TabLayout() {
         options={{
           title: 'Inspect',
           headerTitle: 'Inspections',
+        }}
+      />
+      <Tabs.Screen
+        name="route"
+        options={{
+          title: 'Route',
+          headerTitle: 'Tonight\'s Route',
         }}
       />
       <Tabs.Screen

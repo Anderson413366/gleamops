@@ -72,12 +72,79 @@ interface InspectionStatusMutation {
   clientVersion: number;
 }
 
+interface FieldReportCreateMutation {
+  type: 'field_report_create';
+  reportType: 'SUPPLY_REQUEST' | 'MAINTENANCE' | 'DAY_OFF' | 'INCIDENT' | 'GENERAL';
+  siteId: string | null;
+  description: string;
+  priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+  photos: string[] | null;
+  requestedItems: Array<{ supply_id: string; qty: number }> | null;
+  requestedDate: string | null;
+}
+
+type RouteSkipReason = 'SITE_CLOSED' | 'ACCESS_ISSUE' | 'TIME_CONSTRAINT' | 'OTHER';
+
+interface RouteStartShiftMutation {
+  type: 'route_start_shift';
+  routeId: string;
+  mileageStart: number;
+  vehicleId: string;
+  keyBoxNumber: string | null;
+}
+
+interface RouteArriveStopMutation {
+  type: 'route_arrive_stop';
+  stopId: string;
+}
+
+interface RouteCompleteStopMutation {
+  type: 'route_complete_stop';
+  stopId: string;
+}
+
+interface RouteSkipStopMutation {
+  type: 'route_skip_stop';
+  stopId: string;
+  skipReason: RouteSkipReason;
+  skipNotes: string | null;
+}
+
+interface RouteCompleteTaskMutation {
+  type: 'route_complete_task';
+  taskId: string;
+  notes: string | null;
+}
+
+interface RouteTaskPhotoMutation {
+  type: 'route_task_photo';
+  taskId: string;
+  photoUrl: string;
+}
+
+interface RouteEndShiftMutation {
+  type: 'route_end_shift';
+  routeId: string;
+  mileageEnd: number;
+  vehicleCleaned: boolean;
+  personalItemsRemoved: boolean;
+  floaterNotes: string | null;
+}
+
 type MutationPayload =
   | ChecklistToggle
   | TimeEventMutation
   | PhotoMetadataMutation
   | InspectionScoreMutation
-  | InspectionStatusMutation;
+  | InspectionStatusMutation
+  | FieldReportCreateMutation
+  | RouteStartShiftMutation
+  | RouteArriveStopMutation
+  | RouteCompleteStopMutation
+  | RouteSkipStopMutation
+  | RouteCompleteTaskMutation
+  | RouteTaskPhotoMutation
+  | RouteEndShiftMutation;
 
 export type PendingMutation = MutationPayload & {
   id: string;
@@ -297,6 +364,98 @@ async function flushInspectionStatus(m: PendingMutation & InspectionStatusMutati
   return true;
 }
 
+async function flushFieldReportCreate(m: PendingMutation & FieldReportCreateMutation): Promise<boolean> {
+  return postOperationsApi('/api/operations/field-reports', {
+    report_type: m.reportType,
+    site_id: m.siteId,
+    description: m.description,
+    priority: m.priority,
+    photos: m.photos,
+    requested_items: m.requestedItems,
+    requested_date: m.requestedDate,
+  });
+}
+
+function resolveApiBaseUrl(): string | null {
+  const raw = process.env.EXPO_PUBLIC_API_URL ?? '';
+  const normalized = raw.trim().replace(/\/+$/, '');
+  return normalized.length > 0 ? normalized : null;
+}
+
+async function postOperationsApi(path: string, body?: Record<string, unknown>): Promise<boolean> {
+  const baseUrl = resolveApiBaseUrl();
+  if (!baseUrl) return false;
+
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) return false;
+
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+  };
+
+  if (body) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  const response = await fetch(`${baseUrl}${path}`, {
+    method: 'POST',
+    headers,
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+
+  if (response.ok) return true;
+
+  // Treat conflicts as already-synced to avoid blocking queue on retries.
+  if (response.status === 409) return true;
+
+  return false;
+}
+
+async function flushRouteStartShift(m: PendingMutation & RouteStartShiftMutation): Promise<boolean> {
+  return postOperationsApi(`/api/operations/routes/${m.routeId}/start-shift`, {
+    mileage_start: m.mileageStart,
+    vehicle_id: m.vehicleId,
+    key_box_number: m.keyBoxNumber,
+  });
+}
+
+async function flushRouteArriveStop(m: PendingMutation & RouteArriveStopMutation): Promise<boolean> {
+  return postOperationsApi(`/api/operations/routes/stops/${m.stopId}/arrive`);
+}
+
+async function flushRouteCompleteStop(m: PendingMutation & RouteCompleteStopMutation): Promise<boolean> {
+  return postOperationsApi(`/api/operations/routes/stops/${m.stopId}/complete`);
+}
+
+async function flushRouteSkipStop(m: PendingMutation & RouteSkipStopMutation): Promise<boolean> {
+  return postOperationsApi(`/api/operations/routes/stops/${m.stopId}/skip`, {
+    skip_reason: m.skipReason,
+    skip_notes: m.skipNotes,
+  });
+}
+
+async function flushRouteCompleteTask(m: PendingMutation & RouteCompleteTaskMutation): Promise<boolean> {
+  return postOperationsApi(`/api/operations/routes/stops/tasks/${m.taskId}/complete`, {
+    notes: m.notes,
+  });
+}
+
+async function flushRouteTaskPhoto(m: PendingMutation & RouteTaskPhotoMutation): Promise<boolean> {
+  return postOperationsApi(`/api/operations/routes/stops/tasks/${m.taskId}/photo`, {
+    photo_url: m.photoUrl,
+  });
+}
+
+async function flushRouteEndShift(m: PendingMutation & RouteEndShiftMutation): Promise<boolean> {
+  return postOperationsApi(`/api/operations/routes/${m.routeId}/end-shift`, {
+    mileage_end: m.mileageEnd,
+    vehicle_cleaned: m.vehicleCleaned,
+    personal_items_removed: m.personalItemsRemoved,
+    floater_notes: m.floaterNotes,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Flush: replay all pending mutations to Supabase
 // ---------------------------------------------------------------------------
@@ -334,6 +493,22 @@ export async function flushQueue(): Promise<number> {
         ok = await flushInspectionScore(mutation as PendingMutation & InspectionScoreMutation);
       } else if (mutation.type === 'inspection_status') {
         ok = await flushInspectionStatus(mutation as PendingMutation & InspectionStatusMutation);
+      } else if (mutation.type === 'field_report_create') {
+        ok = await flushFieldReportCreate(mutation as PendingMutation & FieldReportCreateMutation);
+      } else if (mutation.type === 'route_start_shift') {
+        ok = await flushRouteStartShift(mutation as PendingMutation & RouteStartShiftMutation);
+      } else if (mutation.type === 'route_arrive_stop') {
+        ok = await flushRouteArriveStop(mutation as PendingMutation & RouteArriveStopMutation);
+      } else if (mutation.type === 'route_complete_stop') {
+        ok = await flushRouteCompleteStop(mutation as PendingMutation & RouteCompleteStopMutation);
+      } else if (mutation.type === 'route_skip_stop') {
+        ok = await flushRouteSkipStop(mutation as PendingMutation & RouteSkipStopMutation);
+      } else if (mutation.type === 'route_complete_task') {
+        ok = await flushRouteCompleteTask(mutation as PendingMutation & RouteCompleteTaskMutation);
+      } else if (mutation.type === 'route_task_photo') {
+        ok = await flushRouteTaskPhoto(mutation as PendingMutation & RouteTaskPhotoMutation);
+      } else if (mutation.type === 'route_end_shift') {
+        ok = await flushRouteEndShift(mutation as PendingMutation & RouteEndShiftMutation);
       }
     } catch {
       ok = false;

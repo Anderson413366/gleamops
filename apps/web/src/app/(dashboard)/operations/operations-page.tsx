@@ -7,7 +7,10 @@ import {
   ClipboardList,
   ClipboardCheck,
   Route,
+  Moon,
+  RefreshCw,
   AlertTriangle,
+  MessageSquareWarning,
   Eye,
   EyeOff,
 } from 'lucide-react';
@@ -24,6 +27,10 @@ import { InspectionDetail } from './inspections/inspection-detail';
 import { CreateInspectionForm } from './inspections/create-inspection-form';
 import AlertsTable from './geofence/alerts-table';
 import RoutesFleetPanel from './routes/routes-fleet-panel';
+import RouteTemplatesTable from './templates/route-templates-table';
+import NightBridgeDashboard from './night-bridge/night-bridge-dashboard';
+import ComplaintsTable from './complaints/complaints-table';
+import PeriodicTasksTable from './periodic/periodic-tasks-table';
 
 interface TicketWithRelations extends WorkTicket {
   job?: { job_code: string; billing_amount?: number | null } | null;
@@ -47,7 +54,11 @@ const TABS = [
   { key: 'jobs', label: 'Jobs', icon: <Briefcase className="h-4 w-4" /> },
   { key: 'tickets', label: 'Tickets', icon: <ClipboardList className="h-4 w-4" /> },
   { key: 'inspections', label: 'Inspections', icon: <ClipboardCheck className="h-4 w-4" /> },
+  { key: 'templates', label: 'Route Templates', icon: <Route className="h-4 w-4" /> },
   { key: 'routes', label: 'Routes', icon: <Route className="h-4 w-4" /> },
+  { key: 'night-bridge', label: 'Night Bridge', icon: <Moon className="h-4 w-4" /> },
+  { key: 'periodic', label: 'Periodic Tasks', icon: <RefreshCw className="h-4 w-4" /> },
+  { key: 'complaints', label: 'Complaints', icon: <MessageSquareWarning className="h-4 w-4" /> },
   { key: 'alerts', label: 'Alerts', icon: <AlertTriangle className="h-4 w-4" /> },
 ];
 
@@ -224,8 +235,16 @@ export default function OperationsPageClient() {
                 ? 'Search tickets...'
                 : tab === 'inspections'
                   ? 'Search inspections...'
+                  : tab === 'templates'
+                    ? 'Search route templates...'
                   : tab === 'routes'
                     ? 'Search routes and owners...'
+                    : tab === 'night-bridge'
+                      ? 'Search shift reviews...'
+                    : tab === 'periodic'
+                      ? 'Search periodic tasks...'
+                    : tab === 'complaints'
+                      ? 'Search complaints...'
                     : tab === 'alerts'
                       ? 'Search alerts...'
                       : `Search ${tab}...`
@@ -259,6 +278,30 @@ export default function OperationsPageClient() {
       {tab === 'routes' && (
         <RoutesFleetPanel
           key={`routes-${refreshKey}`}
+          search={search}
+        />
+      )}
+      {tab === 'templates' && (
+        <RouteTemplatesTable
+          key={`route-templates-${refreshKey}`}
+          search={search}
+        />
+      )}
+      {tab === 'night-bridge' && (
+        <NightBridgeDashboard
+          key={`night-bridge-${refreshKey}`}
+          search={search}
+        />
+      )}
+      {tab === 'periodic' && (
+        <PeriodicTasksTable
+          key={`periodic-${refreshKey}`}
+          search={search}
+        />
+      )}
+      {tab === 'complaints' && (
+        <ComplaintsTable
+          key={`complaints-${refreshKey}`}
           search={search}
         />
       )}

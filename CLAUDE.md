@@ -84,7 +84,7 @@ pnpm db:migrate      # Run pending migrations
 |------|-----|
 | Production | https://gleamops.vercel.app |
 | GitHub | https://github.com/Anderson413366/gleamops |
-| Supabase | https://ytaseunyzzqjcxeqxery.supabase.co |
+| Supabase | https://bqoqjixsdqrqsxasyifa.supabase.co |
 
 ---
 

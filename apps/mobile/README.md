@@ -29,6 +29,7 @@ Copy `.env` and update with your Supabase project credentials:
 ```
 EXPO_PUBLIC_SUPABASE_URL=your-url
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your-key
+EXPO_PUBLIC_API_URL=http://localhost:3000
 ```
 
 ## Architecture

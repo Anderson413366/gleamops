@@ -55,6 +55,20 @@ export async function findClientById(db: SupabaseClient, clientId: string) {
     .single();
 }
 
+export async function findClientByIdAndTenant(
+  db: SupabaseClient,
+  tenantId: string,
+  clientId: string,
+) {
+  return db
+    .from('clients')
+    .select('id, name, client_code')
+    .eq('tenant_id', tenantId)
+    .eq('id', clientId)
+    .is('archived_at', null)
+    .single();
+}
+
 export async function findClientSites(db: SupabaseClient, clientId: string) {
   return db
     .from('sites')
@@ -180,5 +194,310 @@ export async function insertPortalChangeAlert(
     .from('alerts')
     .insert(payload)
     .select('id, created_at')
+    .single();
+}
+
+export async function nextCustomerPortalSessionCode(
+  db: SupabaseClient,
+  tenantId: string,
+) {
+  return db.rpc('next_code', {
+    p_tenant_id: tenantId,
+    p_prefix: 'CPS',
+    p_padding: 4,
+  });
+}
+
+export async function nextCustomerFeedbackCode(
+  db: SupabaseClient,
+  tenantId: string,
+) {
+  return db.rpc('next_code', {
+    p_tenant_id: tenantId,
+    p_prefix: 'FB',
+    p_padding: 4,
+  });
+}
+
+export async function findCustomerPortalSessionByHash(
+  db: SupabaseClient,
+  tokenHash: string,
+) {
+  return db
+    .from('customer_portal_sessions')
+    .select(`
+      id,
+      tenant_id,
+      session_code,
+      client_id,
+      token_hash,
+      expires_at,
+      last_used_at,
+      is_active,
+      created_at,
+      updated_at,
+      archived_at,
+      version_etag,
+      client:client_id(id, client_code, name)
+    `)
+    .eq('token_hash', tokenHash)
+    .is('archived_at', null)
+    .maybeSingle();
+}
+
+export async function touchCustomerPortalSession(
+  db: SupabaseClient,
+  sessionId: string,
+) {
+  return db
+    .from('customer_portal_sessions')
+    .update({ last_used_at: new Date().toISOString() })
+    .eq('id', sessionId);
+}
+
+export async function listCustomerPortalSessions(
+  db: SupabaseClient,
+  tenantId: string,
+  filters?: { client_id?: string; include_inactive?: boolean },
+) {
+  let query = db
+    .from('customer_portal_sessions')
+    .select(`
+      id,
+      tenant_id,
+      session_code,
+      client_id,
+      token_hash,
+      expires_at,
+      last_used_at,
+      is_active,
+      created_at,
+      updated_at,
+      archived_at,
+      version_etag,
+      client:client_id(id, client_code, name)
+    `)
+    .eq('tenant_id', tenantId)
+    .is('archived_at', null)
+    .order('created_at', { ascending: false })
+    .limit(200);
+
+  if (!filters?.include_inactive) {
+    query = query.eq('is_active', true);
+  }
+  if (filters?.client_id) {
+    query = query.eq('client_id', filters.client_id);
+  }
+
+  return query;
+}
+
+export async function insertCustomerPortalSession(
+  db: SupabaseClient,
+  payload: Record<string, unknown>,
+) {
+  return db
+    .from('customer_portal_sessions')
+    .insert(payload)
+    .select(`
+      id,
+      tenant_id,
+      session_code,
+      client_id,
+      token_hash,
+      expires_at,
+      last_used_at,
+      is_active,
+      created_at,
+      updated_at,
+      archived_at,
+      version_etag,
+      client:client_id(id, client_code, name)
+    `)
+    .single();
+}
+
+export async function archiveCustomerPortalSession(
+  db: SupabaseClient,
+  tenantId: string,
+  sessionId: string,
+  archiveReason: string | null,
+) {
+  return db
+    .from('customer_portal_sessions')
+    .update({
+      is_active: false,
+      archived_at: new Date().toISOString(),
+      archive_reason: archiveReason,
+    })
+    .eq('tenant_id', tenantId)
+    .eq('id', sessionId)
+    .is('archived_at', null);
+}
+
+export async function listPortalInspectionsBySites(
+  db: SupabaseClient,
+  siteIds: string[],
+) {
+  return db
+    .from('inspections')
+    .select(`
+      id,
+      inspection_code,
+      site_id,
+      status,
+      score_pct,
+      passed,
+      completed_at,
+      started_at,
+      notes,
+      summary_notes,
+      photos,
+      site:site_id(id, site_code, name),
+      inspector:inspector_id(id, staff_code, full_name)
+    `)
+    .in('site_id', siteIds)
+    .in('status', ['COMPLETED', 'SUBMITTED'])
+    .is('archived_at', null)
+    .order('completed_at', { ascending: false })
+    .limit(150);
+}
+
+export async function getPortalInspectionById(
+  db: SupabaseClient,
+  inspectionId: string,
+) {
+  return db
+    .from('inspections')
+    .select(`
+      id,
+      inspection_code,
+      site_id,
+      status,
+      score_pct,
+      passed,
+      completed_at,
+      started_at,
+      notes,
+      summary_notes,
+      photos,
+      site:site_id(id, site_code, name),
+      inspector:inspector_id(id, staff_code, full_name)
+    `)
+    .eq('id', inspectionId)
+    .is('archived_at', null)
+    .maybeSingle();
+}
+
+export async function listPortalInspectionItems(
+  db: SupabaseClient,
+  inspectionId: string,
+) {
+  return db
+    .from('inspection_items')
+    .select('id, section, label, score, score_value, notes, photos')
+    .eq('inspection_id', inspectionId)
+    .is('archived_at', null)
+    .order('sort_order', { ascending: true });
+}
+
+export async function listPortalInspectionIssues(
+  db: SupabaseClient,
+  inspectionId: string,
+) {
+  return db
+    .from('inspection_issues')
+    .select('id, severity, description, resolved_at')
+    .eq('inspection_id', inspectionId)
+    .is('archived_at', null)
+    .order('created_at', { ascending: true });
+}
+
+export async function listPortalComplaintsByClient(
+  db: SupabaseClient,
+  clientId: string,
+) {
+  return db
+    .from('complaint_records')
+    .select(`
+      id,
+      complaint_code,
+      site_id,
+      category,
+      priority,
+      status,
+      created_at,
+      resolution_description,
+      site:site_id(id, site_code, name)
+    `)
+    .eq('client_id', clientId)
+    .is('archived_at', null)
+    .order('created_at', { ascending: false })
+    .limit(150);
+}
+
+export async function listPortalWorkTicketsBySites(
+  db: SupabaseClient,
+  siteIds: string[],
+) {
+  return db
+    .from('work_tickets')
+    .select(`
+      id,
+      ticket_code,
+      site_id,
+      scheduled_date,
+      status,
+      type,
+      title,
+      description,
+      priority,
+      site:site_id(id, site_code, name)
+    `)
+    .in('site_id', siteIds)
+    .is('archived_at', null)
+    .order('scheduled_date', { ascending: false })
+    .limit(120);
+}
+
+export async function insertCustomerFeedback(
+  db: SupabaseClient,
+  payload: Record<string, unknown>,
+) {
+  return db
+    .from('customer_feedback')
+    .insert(payload)
+    .select(`
+      id,
+      tenant_id,
+      feedback_code,
+      client_id,
+      site_id,
+      feedback_type,
+      submitted_via,
+      category,
+      contact_name,
+      contact_email,
+      message,
+      photos,
+      linked_complaint_id,
+      status,
+      created_at,
+      updated_at,
+      archived_at,
+      version_etag,
+      site:site_id(id, site_code, name)
+    `)
+    .single();
+}
+
+export async function insertPortalComplaintRecord(
+  db: SupabaseClient,
+  payload: Record<string, unknown>,
+) {
+  return db
+    .from('complaint_records')
+    .insert(payload)
+    .select('id, complaint_code, status')
     .single();
 }

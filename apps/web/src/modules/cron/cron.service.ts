@@ -8,6 +8,8 @@ import {
   findDueSites,
   findCountTokensBySiteIds,
   findTenantMemberships,
+  findNightBridgeRecipients,
+  findUnreviewedNightBridgeRoutes,
   getUserEmail,
   updateSiteAlert,
   findExistingNotification,
@@ -32,6 +34,29 @@ type ReminderResult = {
   error: string;
 };
 
+type NightBridgeReminderResult = {
+  ok: true;
+  scannedShifts: number;
+  tenantsWithPendingShifts: number;
+  remindersQueued: number;
+} | {
+  ok: true;
+  skipped: true;
+  reason: string;
+} | {
+  ok: false;
+  error: string;
+};
+
+export type DailyOperationsCronResult = {
+  ok: true;
+  inventory: ReminderResult;
+  nightBridge: NightBridgeReminderResult;
+} | {
+  ok: false;
+  error: string;
+};
+
 function toDateKey(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
@@ -40,6 +65,10 @@ function addDays(date: Date, days: number): Date {
   const next = new Date(date);
   next.setDate(next.getDate() + days);
   return next;
+}
+
+function subtractDays(date: Date, days: number): Date {
+  return addDays(date, -days);
 }
 
 function classify(dueDate: string, today: Date) {
@@ -280,5 +309,112 @@ export async function processInventoryCountReminders(): Promise<ReminderResult> 
     emailCandidates,
     emailsSent,
     emailFailures,
+  };
+}
+
+export async function processNightBridgeReviewReminders(): Promise<NightBridgeReminderResult> {
+  const db = createDb();
+  const today = new Date();
+  const targetDate = toDateKey(subtractDays(today, 1));
+  const midnightIso = `${toDateKey(today)}T00:00:00.000Z`;
+  const bridgePath = `/operations?tab=night-bridge&date=${encodeURIComponent(targetDate)}&status=PENDING`;
+
+  const { data: shifts, error: shiftsError } = await findUnreviewedNightBridgeRoutes(db, targetDate);
+  if (shiftsError) {
+    // Backward compatibility before shift review columns exist.
+    if (shiftsError.message.toLowerCase().includes('shift_review_status')) {
+      return {
+        ok: true,
+        skipped: true,
+        reason: 'Night Bridge columns are not available in this environment yet.',
+      };
+    }
+    return { ok: false, error: shiftsError.message };
+  }
+
+  const pendingShifts = (shifts ?? []) as Array<{ tenant_id: string }>;
+  if (pendingShifts.length === 0) {
+    return {
+      ok: true,
+      scannedShifts: 0,
+      tenantsWithPendingShifts: 0,
+      remindersQueued: 0,
+    };
+  }
+
+  const pendingByTenant = new Map<string, number>();
+  for (const shift of pendingShifts) {
+    pendingByTenant.set(shift.tenant_id, (pendingByTenant.get(shift.tenant_id) ?? 0) + 1);
+  }
+
+  const tenantIds = Array.from(pendingByTenant.keys());
+  const { data: members, error: membersError } = await findNightBridgeRecipients(db, tenantIds);
+  if (membersError) {
+    return { ok: false, error: membersError.message };
+  }
+
+  const recipientsByTenant = new Map<string, string[]>();
+  for (const row of ((members ?? []) as Array<{ tenant_id: string; user_id: string }>)) {
+    if (!recipientsByTenant.has(row.tenant_id)) recipientsByTenant.set(row.tenant_id, []);
+    recipientsByTenant.get(row.tenant_id)!.push(row.user_id);
+  }
+
+  let remindersQueued = 0;
+  for (const tenantId of tenantIds) {
+    const count = pendingByTenant.get(tenantId) ?? 0;
+    const recipients = recipientsByTenant.get(tenantId) ?? [];
+    if (count <= 0 || recipients.length === 0) continue;
+
+    const title = count === 1
+      ? 'Night Bridge has 1 unreviewed shift'
+      : `Night Bridge has ${count} unreviewed shifts`;
+    const body = count === 1
+      ? 'Review last night\'s shift summary and mark it reviewed.'
+      : `Review last night\'s ${count} shift summaries and mark them reviewed.`;
+
+    const { data: existingRows } = await findExistingNotification(
+      db,
+      tenantId,
+      title,
+      bridgePath,
+      midnightIso,
+    );
+    if ((existingRows ?? []).length > 0) continue;
+
+    const payload = recipients.map((userId) => ({
+      tenant_id: tenantId,
+      user_id: userId,
+      title,
+      body,
+      link: bridgePath,
+    }));
+
+    const { error } = await insertNotifications(db, payload);
+    if (!error) remindersQueued += payload.length;
+  }
+
+  return {
+    ok: true,
+    scannedShifts: pendingShifts.length,
+    tenantsWithPendingShifts: tenantIds.length,
+    remindersQueued,
+  };
+}
+
+export async function processOperationsMorningCron(): Promise<DailyOperationsCronResult> {
+  const inventory = await processInventoryCountReminders();
+  if (!inventory.ok) {
+    return { ok: false, error: inventory.error };
+  }
+
+  const nightBridge = await processNightBridgeReviewReminders();
+  if (!nightBridge.ok) {
+    return { ok: false, error: nightBridge.error };
+  }
+
+  return {
+    ok: true,
+    inventory,
+    nightBridge,
   };
 }

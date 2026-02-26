@@ -107,3 +107,28 @@ export async function insertNotifications(
 ) {
   return db.from('notifications').insert(payload);
 }
+
+export async function findUnreviewedNightBridgeRoutes(
+  db: SupabaseClient,
+  routeDate: string,
+) {
+  return db
+    .from('routes')
+    .select('id, tenant_id')
+    .eq('route_date', routeDate)
+    .eq('status', 'COMPLETED')
+    .eq('shift_review_status', 'PENDING')
+    .is('archived_at', null);
+}
+
+export async function findNightBridgeRecipients(
+  db: SupabaseClient,
+  tenantIds: string[],
+) {
+  return db
+    .from('tenant_memberships')
+    .select('tenant_id, user_id, role_code')
+    .in('tenant_id', tenantIds)
+    .in('role_code', ['OWNER_ADMIN', 'MANAGER'])
+    .is('archived_at', null);
+}

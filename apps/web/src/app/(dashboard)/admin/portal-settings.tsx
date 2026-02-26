@@ -7,6 +7,7 @@ import { Button, Card, CardContent, CardHeader, CardTitle, Select } from '@gleam
 import { useAuth } from '@/hooks/use-auth';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { loadTenantSetting, saveTenantSetting } from '@/lib/admin/tenant-settings-storage';
+import { CustomerPortalAccess } from './customer-portal-access';
 
 interface ClientRow {
   id: string;
@@ -222,6 +223,8 @@ export default function PortalSettings() {
           Save Portal Settings
         </Button>
       </div>
+
+      <CustomerPortalAccess />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPublicPortal } from '@/modules/public-portal';
+import { getCustomerPortalDashboard, getPublicPortal } from '@/modules/public-portal';
 
 export async function GET(
   _request: NextRequest,
@@ -10,11 +10,17 @@ export async function GET(
     return NextResponse.json({ error: 'Token required' }, { status: 400 });
   }
 
-  const result = await getPublicPortal(token);
-  if (!result.success) {
-    const safeError = result.status >= 500 ? 'Portal is temporarily unavailable' : result.error;
-    return NextResponse.json({ error: safeError }, { status: result.status });
+  const customerPortalResult = await getCustomerPortalDashboard(token);
+  if (customerPortalResult.success) {
+    return NextResponse.json({ success: true, data: customerPortalResult.data });
   }
 
-  return NextResponse.json(result.data);
+  // Backward compatibility for proposal-linked tokens.
+  const legacyResult = await getPublicPortal(token);
+  if (!legacyResult.success) {
+    const safeError = legacyResult.status >= 500 ? 'Portal is temporarily unavailable' : legacyResult.error;
+    return NextResponse.json({ error: safeError }, { status: legacyResult.status });
+  }
+
+  return NextResponse.json(legacyResult.data);
 }

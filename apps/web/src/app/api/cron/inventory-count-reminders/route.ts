@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { processInventoryCountReminders } from '@/modules/cron';
+import { processOperationsMorningCron } from '@/modules/cron';
 
 export const runtime = 'nodejs';
 
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  const result = await processInventoryCountReminders();
+  const result = await processOperationsMorningCron();
 
   if (!result.ok) {
     return NextResponse.json({ error: (result as { ok: false; error: string }).error }, { status: 500 });

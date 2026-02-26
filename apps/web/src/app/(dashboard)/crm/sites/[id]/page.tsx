@@ -56,6 +56,8 @@ interface SiteWithClient extends Site {
   site_supervisor_name?: string | null;
   site_supervisor_email?: string | null;
   site_supervisor_phone?: string | null;
+  cleaning_procedures?: string | null;
+  cleaning_procedures_photos?: string[] | null;
   client?: { name: string; client_code: string } | null;
   primary_contact?: Pick<Contact, 'name' | 'role' | 'role_title' | 'email' | 'phone' | 'mobile_phone' | 'work_phone' | 'preferred_contact_method' | 'photo_url'> | null;
   emergency_contact?: Pick<Contact, 'name' | 'role' | 'role_title' | 'email' | 'phone' | 'mobile_phone' | 'work_phone' | 'preferred_contact_method' | 'photo_url'> | null;
@@ -330,6 +332,9 @@ export default function SiteDetailPage() {
   const [countHistory, setCountHistory] = useState<CountSummary[]>([]);
   const [countDetailsByCountId, setCountDetailsByCountId] = useState<Record<string, CountDetailSummary[]>>({});
   const [expandedCountIds, setExpandedCountIds] = useState<string[]>([]);
+  const [proceduresDraft, setProceduresDraft] = useState('');
+  const [proceduresPhotoDraft, setProceduresPhotoDraft] = useState('');
+  const [proceduresSaving, setProceduresSaving] = useState(false);
 
   const fetchSite = async () => {
     setLoading(true);
@@ -361,6 +366,12 @@ export default function SiteDetailPage() {
     if (data) {
       const s = data as unknown as SiteWithClient;
       setSite(s);
+      setProceduresDraft((s.cleaning_procedures ?? '').trim());
+      setProceduresPhotoDraft(
+        Array.isArray(s.cleaning_procedures_photos)
+          ? s.cleaning_procedures_photos.filter(Boolean).join('\n')
+          : '',
+      );
 
       // Fetch related data in parallel
       const [jobsRes, equipRes, keysRes, siteSuppliesRes, countHistoryRes, supplyCatalogRes, fieldRequestsRes] = await Promise.all([
@@ -529,6 +540,8 @@ export default function SiteDetailPage() {
       setExpandedCountIds([]);
       setJobTasksByJob({});
       setJobStaffByJob({});
+      setProceduresDraft('');
+      setProceduresPhotoDraft('');
     }
     setLoading(false);
   };
@@ -564,6 +577,36 @@ export default function SiteDetailPage() {
       setArchiveLoading(false);
       setArchiveOpen(false);
     }
+  };
+
+  const handleSaveProcedures = async () => {
+    if (!site) return;
+    setProceduresSaving(true);
+    const supabase = getSupabaseBrowserClient();
+
+    const normalizedPhotos = proceduresPhotoDraft
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    const { error } = await supabase
+      .from('sites')
+      .update({
+        cleaning_procedures: proceduresDraft.trim() || null,
+        cleaning_procedures_photos: normalizedPhotos.length > 0 ? normalizedPhotos : null,
+      })
+      .eq('id', site.id)
+      .eq('version_etag', site.version_etag);
+
+    if (error) {
+      toast.error(error.message);
+      setProceduresSaving(false);
+      return;
+    }
+
+    toast.success('Cleaning procedures saved.');
+    await fetchSite();
+    setProceduresSaving(false);
   };
 
   const activeServicePlans = useMemo(
@@ -1171,6 +1214,79 @@ export default function SiteDetailPage() {
             <p>
               Geofence radius: <span className="font-mono">{geofenceRadiusLabel ?? 'Not Set'}</span>
             </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Cleaning Procedures</h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              This content is shown to specialists on their phones.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 space-y-4">
+          <div>
+            <label htmlFor="cleaning-procedures" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Procedure Steps
+            </label>
+            <textarea
+              id="cleaning-procedures"
+              value={proceduresDraft}
+              onChange={(event) => setProceduresDraft(event.target.value)}
+              placeholder="Step 1: Unlock janitorial closet...
+Step 2: Restock restroom supplies...
+Step 3: Mop lobby and hallways..."
+              className="min-h-40 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="cleaning-procedures-photos" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Reference Photo URLs (one per line)
+            </label>
+            <textarea
+              id="cleaning-procedures-photos"
+              value={proceduresPhotoDraft}
+              onChange={(event) => setProceduresPhotoDraft(event.target.value)}
+              placeholder="https://...
+https://..."
+              className="min-h-28 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+            />
+          </div>
+
+          {proceduresPhotoDraft.trim() ? (
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {proceduresPhotoDraft
+                .split('\n')
+                .map((line) => line.trim())
+                .filter(Boolean)
+                .map((url, index) => (
+                  <a
+                    key={`${url}-${index}`}
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-lg border border-border bg-background p-2 text-xs text-primary underline-offset-2 hover:underline"
+                  >
+                    Procedure Photo {index + 1}
+                  </a>
+                ))}
+            </div>
+          ) : null}
+
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => void handleSaveProcedures()}
+              disabled={proceduresSaving}
+              className="inline-flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-all duration-200 ease-in-out hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {proceduresSaving ? 'Saving...' : 'Save Procedures'}
+            </button>
           </div>
         </div>
       </div>

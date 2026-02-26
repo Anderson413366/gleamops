@@ -6,6 +6,7 @@ import { useRole } from '@/hooks/use-role';
 
 import CommandCenter from './command-center';
 import DashboardHome from './dashboard-home';
+import OwnerOverview from './owner-overview';
 import StaffHome from './staff-home';
 import SupervisorRouteView from '../schedule/supervisor/supervisor-route-view';
 
@@ -32,7 +33,11 @@ export default function HomePage() {
     return <HomeLoadingState />;
   }
 
-  if (isAtLeast('MANAGER')) {
+  if (normalizedRole === 'OWNER_ADMIN') {
+    return <OwnerOverview />;
+  }
+
+  if (normalizedRole === 'MANAGER' || isAtLeast('MANAGER')) {
     return <CommandCenter />;
   }
 

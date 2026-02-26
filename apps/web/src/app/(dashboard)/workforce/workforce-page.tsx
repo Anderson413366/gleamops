@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { Users, Clock, FileText, AlertTriangle, BriefcaseBusiness, DollarSign, Plus, MessageSquare, UserRoundCheck } from 'lucide-react';
+import { Users, Clock, FileText, AlertTriangle, BriefcaseBusiness, DollarSign, Plus, MessageSquare, UserRoundCheck, Inbox, Droplets } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import { useFeatureFlag } from '@/hooks/use-feature-flag';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -15,6 +15,9 @@ import PositionsTable from './positions/positions-table';
 import PayrollTable from './payroll/payroll-table';
 import MessagesTab from './messages/messages-tab';
 import HrLitePanel from './hr/hr-lite-panel';
+import FieldReportsTable from './field-reports/field-reports-table';
+import MicrofiberTable from './microfiber/microfiber-table';
+import MicrofiberExport from './microfiber/microfiber-export';
 
 const BASE_TABS = [
   { key: 'staff', label: 'Staff', icon: <Users className="h-4 w-4" /> },
@@ -24,6 +27,8 @@ const BASE_TABS = [
   { key: 'exceptions', label: 'Exceptions', icon: <AlertTriangle className="h-4 w-4" /> },
   { key: 'payroll', label: 'Payroll', icon: <DollarSign className="h-4 w-4" /> },
   { key: 'hr-lite', label: 'HR Lite', icon: <UserRoundCheck className="h-4 w-4" /> },
+  { key: 'field-reports', label: 'Field Reports', icon: <Inbox className="h-4 w-4" /> },
+  { key: 'microfiber', label: 'Microfiber', icon: <Droplets className="h-4 w-4" /> },
 ];
 
 export default function WorkforcePageClient() {
@@ -83,7 +88,9 @@ export default function WorkforcePageClient() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Workforce</h1>
-          <p className="text-sm text-muted-foreground mt-1">Staff, Positions, Timekeeping, Timesheets, Exceptions, Payroll{messagingEnabled ? ', Messages' : ''}</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Staff, Positions, Timekeeping, Timesheets, Exceptions, Payroll, Field Reports, Microfiber Program{messagingEnabled ? ', Messages' : ''}
+          </p>
         </div>
         {tab === 'staff' && (
           <Button onClick={handleAdd}>
@@ -126,6 +133,13 @@ export default function WorkforcePageClient() {
       {tab === 'exceptions' && <ExceptionsTable key={`ex-${refreshKey}`} search={search} />}
       {tab === 'payroll' && <PayrollTable key={`pay-${refreshKey}`} search={search} />}
       {tab === 'hr-lite' && <HrLitePanel key={`hr-${refreshKey}`} search={search} />}
+      {tab === 'field-reports' && <FieldReportsTable key={`fr-${refreshKey}`} search={search} />}
+      {tab === 'microfiber' && (
+        <div className="space-y-4">
+          <MicrofiberExport key={`mfe-${refreshKey}`} />
+          <MicrofiberTable key={`mft-${refreshKey}`} search={search} />
+        </div>
+      )}
       {tab === 'messages' && messagingEnabled && <MessagesTab key={`msg-${refreshKey}`} search={search} />}
     </div>
   );

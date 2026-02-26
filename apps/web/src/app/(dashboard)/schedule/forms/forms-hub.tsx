@@ -53,6 +53,7 @@ interface SiteOption {
   id: string;
   name: string;
   site_code: string;
+  tenant_id: string | null;
 }
 
 interface RecentRequest {
@@ -183,7 +184,7 @@ export function FormsHub({ search }: FormsHubProps) {
     const [sitesRes, requestsRes] = await Promise.all([
       supabase
         .from('sites')
-        .select('id, name, site_code')
+        .select('id, name, site_code, tenant_id')
         .is('archived_at', null)
         .order('name', { ascending: true }),
       supabase
@@ -244,15 +245,15 @@ export function FormsHub({ search }: FormsHubProps) {
     ));
   }, [recentRequests, search]);
 
-  const uploadPhotoToStorage = useCallback(async (file: File, siteCode: string): Promise<{ path: string }> => {
-    if (!tenantId) {
-      throw new Error('Tenant context is required for upload.');
-    }
-
+  const uploadPhotoToStorage = useCallback(async (
+    file: File,
+    siteCode: string,
+    tenantContextId: string,
+  ): Promise<{ path: string }> => {
     const extension = file.name.includes('.')
       ? file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
       : 'jpg';
-    const path = `${tenantId}/field-requests/${siteCode}/${Date.now()}-${sanitizeFileBaseName(file.name)}.${extension}`;
+    const path = `${tenantContextId}/field-requests/${siteCode}/${Date.now()}-${sanitizeFileBaseName(file.name)}.${extension}`;
 
     const { error: uploadError } = await supabase
       .storage
@@ -267,7 +268,7 @@ export function FormsHub({ search }: FormsHubProps) {
     }
 
     return { path };
-  }, [supabase, tenantId]);
+  }, [supabase]);
 
   const handlePhotoFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
@@ -292,10 +293,6 @@ export function FormsHub({ search }: FormsHubProps) {
   };
 
   const handleSubmit = async () => {
-    if (!tenantId) {
-      toast.error('Tenant context is required to submit a request.');
-      return;
-    }
     if (!selectedSiteId) {
       toast.error('Choose a site before submitting.');
       return;
@@ -304,6 +301,11 @@ export function FormsHub({ search }: FormsHubProps) {
     const selectedSite = sites.find((site) => site.id === selectedSiteId);
     if (!selectedSite) {
       toast.error('Selected site is invalid.');
+      return;
+    }
+    const resolvedTenantId = tenantId ?? selectedSite.tenant_id ?? null;
+    if (!resolvedTenantId) {
+      toast.error('Tenant context is required to submit a request.');
       return;
     }
 
@@ -395,7 +397,7 @@ export function FormsHub({ search }: FormsHubProps) {
       }
       let uploadedPhotoPath: string | null = null;
       try {
-        const uploaded = await uploadPhotoToStorage(photoFile, selectedSite.site_code);
+        const uploaded = await uploadPhotoToStorage(photoFile, selectedSite.site_code, resolvedTenantId);
         uploadedPhotoPath = uploaded.path;
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Photo upload failed.';
@@ -462,7 +464,7 @@ export function FormsHub({ search }: FormsHubProps) {
       const { error } = await supabase
         .from('alerts')
         .insert({
-          tenant_id: tenantId,
+          tenant_id: resolvedTenantId,
           alert_type: 'FIELD_REQUEST',
           severity: urgencyToSeverity(urgency),
           title,

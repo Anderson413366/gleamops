@@ -132,6 +132,7 @@ export default function SchedulePageClient() {
     openWorkOrders: 0,
     activeServicePlans: 0,
   });
+  const [kpisLoading, setKpisLoading] = useState(true);
   const action = searchParams.get('action');
 
   const clearActionParam = useCallback(() => {
@@ -152,37 +153,42 @@ export default function SchedulePageClient() {
 
   useEffect(() => {
     async function fetchKpis() {
-      const supabase = getSupabaseBrowserClient();
-      const today = new Date().toISOString().slice(0, 10);
-      const [todayRes, gapsRes, openWorkOrdersRes, servicePlansRes] = await Promise.all([
-        supabase
-          .from('work_tickets')
-          .select('id', { count: 'exact', head: true })
-          .eq('scheduled_date', today)
-          .is('archived_at', null),
-        supabase
-          .from('schedule_conflicts')
-          .select('id', { count: 'exact', head: true })
-          .eq('conflict_type', 'COVERAGE_GAP')
-          .eq('is_blocking', true),
-        supabase
-          .from('work_tickets')
-          .select('id', { count: 'exact', head: true })
-          .in('status', ['SCHEDULED', 'IN_PROGRESS'])
-          .is('archived_at', null),
-        supabase
-          .from('site_jobs')
-          .select('id', { count: 'exact', head: true })
-          .eq('status', 'ACTIVE')
-          .is('archived_at', null),
-      ]);
+      setKpisLoading(true);
+      try {
+        const supabase = getSupabaseBrowserClient();
+        const today = new Date().toISOString().slice(0, 10);
+        const [todayRes, gapsRes, openWorkOrdersRes, servicePlansRes] = await Promise.all([
+          supabase
+            .from('work_tickets')
+            .select('id', { count: 'exact', head: true })
+            .eq('scheduled_date', today)
+            .is('archived_at', null),
+          supabase
+            .from('schedule_conflicts')
+            .select('id', { count: 'exact', head: true })
+            .eq('conflict_type', 'COVERAGE_GAP')
+            .eq('is_blocking', true),
+          supabase
+            .from('work_tickets')
+            .select('id', { count: 'exact', head: true })
+            .in('status', ['SCHEDULED', 'IN_PROGRESS'])
+            .is('archived_at', null),
+          supabase
+            .from('site_jobs')
+            .select('id', { count: 'exact', head: true })
+            .eq('status', 'ACTIVE')
+            .is('archived_at', null),
+        ]);
 
-      setKpis({
-        todayTickets: todayRes.count ?? 0,
-        coverageGaps: gapsRes.count ?? 0,
-        openWorkOrders: openWorkOrdersRes.count ?? 0,
-        activeServicePlans: servicePlansRes.count ?? 0,
-      });
+        setKpis({
+          todayTickets: todayRes.count ?? 0,
+          coverageGaps: gapsRes.count ?? 0,
+          openWorkOrders: openWorkOrdersRes.count ?? 0,
+          activeServicePlans: servicePlansRes.count ?? 0,
+        });
+      } finally {
+        setKpisLoading(false);
+      }
     }
     fetchKpis();
   }, [refreshKey]);
@@ -376,7 +382,7 @@ export default function SchedulePageClient() {
         >
           <CardContent className="pt-4">
             <p className="text-xs text-muted-foreground">Tickets Today</p>
-            <p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.todayTickets}</p>
+            <p className="text-lg font-semibold sm:text-xl leading-tight">{kpisLoading ? '—' : kpis.todayTickets}</p>
             <p className="text-[11px] text-muted-foreground">Open Calendar</p>
           </CardContent>
         </Card>
@@ -395,7 +401,7 @@ export default function SchedulePageClient() {
           <CardContent className="pt-4">
             <p className="text-xs text-muted-foreground">Coverage Gaps</p>
             <p className={`text-lg font-semibold sm:text-xl leading-tight ${kpis.coverageGaps > 0 ? 'text-destructive' : ''}`}>
-              {kpis.coverageGaps}
+              {kpisLoading ? '—' : kpis.coverageGaps}
             </p>
             <p className="text-[11px] text-muted-foreground">Open Employee Schedule</p>
           </CardContent>
@@ -414,7 +420,7 @@ export default function SchedulePageClient() {
         >
           <CardContent className="pt-4">
             <p className="text-xs text-muted-foreground">Open Work Orders</p>
-            <p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.openWorkOrders}</p>
+            <p className="text-lg font-semibold sm:text-xl leading-tight">{kpisLoading ? '—' : kpis.openWorkOrders}</p>
             <p className="text-[11px] text-muted-foreground">Open Work Orders</p>
           </CardContent>
         </Card>
@@ -432,7 +438,7 @@ export default function SchedulePageClient() {
         >
           <CardContent className="pt-4">
             <p className="text-xs text-muted-foreground">Active Service Plans</p>
-            <p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.activeServicePlans}</p>
+            <p className="text-lg font-semibold sm:text-xl leading-tight">{kpisLoading ? '—' : kpis.activeServicePlans}</p>
             <p className="text-[11px] text-muted-foreground">Open Service Plans</p>
           </CardContent>
         </Card>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   Briefcase,
@@ -103,6 +103,7 @@ export default function JobsPageClient() {
   const [showCreateInspection, setShowCreateInspection] = useState(false);
   const [openServicePlanCreateToken, setOpenServicePlanCreateToken] = useState(0);
   const [focusMode, setFocusMode] = useState(false);
+  const shiftsTimeDeepLinkHandledRef = useRef(false);
   const [kpis, setKpis] = useState({
     todayTickets: 0,
     openTickets: 0,
@@ -112,12 +113,18 @@ export default function JobsPageClient() {
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   useEffect(() => {
-    if (requestedTab !== 'shifts-time') return;
+    if (requestedTab !== 'shifts-time') {
+      shiftsTimeDeepLinkHandledRef.current = false;
+      return;
+    }
     if (authLoading) return;
     if (!canAccessShiftsTime) {
       if (tab !== 'service-plans') setTab('service-plans');
       return;
     }
+    // Deep-link once per request to avoid stale-query tab bounce while switching tabs.
+    if (shiftsTimeDeepLinkHandledRef.current) return;
+    shiftsTimeDeepLinkHandledRef.current = true;
     if (tab !== 'shifts-time') setTab('shifts-time');
   }, [authLoading, canAccessShiftsTime, requestedTab, setTab, tab]);
 

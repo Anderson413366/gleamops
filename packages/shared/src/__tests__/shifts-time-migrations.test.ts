@@ -62,6 +62,17 @@ describe('Shifts & Time migration guards', () => {
     expect(completeStopBlock).toContain("RAISE EXCEPTION 'ROUTE_EXECUTION_FORBIDDEN'");
   });
 
+  it('keeps legacy route stop execution columns in sync in 00097', () => {
+    const sql = loadMigration('00097_shifts_time_rpc_compat.sql');
+    const startStopBlock = getFunctionBlock(sql, 'fn_route_start_stop');
+    const completeStopBlock = getFunctionBlock(sql, 'fn_route_complete_stop');
+
+    expect(startStopBlock).toContain("stop_status = CASE WHEN rs.stop_status = 'PENDING' THEN 'ARRIVED'");
+    expect(startStopBlock).toContain('arrived_at = COALESCE(rs.arrived_at, now())');
+    expect(completeStopBlock).toContain("stop_status = CASE WHEN rs.stop_status IN ('PENDING','ARRIVED') THEN 'COMPLETED'");
+    expect(completeStopBlock).toContain('departed_at = COALESCE(rs.departed_at, now())');
+  });
+
   it('guards auto travel capture RPC to operations roles', () => {
     const sql = loadMigration('00096_shifts_time_functions.sql');
     const autoCaptureBlock = getFunctionBlock(sql, 'fn_auto_capture_travel_segment');

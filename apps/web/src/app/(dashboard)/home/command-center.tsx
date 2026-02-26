@@ -10,10 +10,12 @@ import {
 import { ChipTabs } from '@gleamops/ui';
 import { BirthdayAnniversaryWidget } from './command-center/birthday-anniversary-widget';
 import { CoverageAlerts } from './command-center/coverage-alerts';
+import { DriverLicenseWidget } from './command-center/driver-license-widget';
 import { FieldRequests } from './command-center/field-requests';
 import { QuickActions } from './command-center/quick-actions';
 import { SiteBlueprintReview } from './command-center/site-blueprint-review';
 import { TodaysTasks } from './command-center/todays-tasks';
+import { VehicleComplianceWidget } from './command-center/vehicle-compliance-widget';
 import { WeeklyProjects } from './command-center/weekly-projects';
 
 type CommandCenterFilter = 'all' | 'regular-shifts' | 'projects' | 'requests';
@@ -89,6 +91,10 @@ export default function CommandCenter() {
           <QuickActions />
 
           <BirthdayAnniversaryWidget date={selectedDate} filter={activeFilter} />
+
+          <VehicleComplianceWidget date={selectedDate} filter={activeFilter} />
+
+          <DriverLicenseWidget date={selectedDate} filter={activeFilter} />
 
           <FieldRequests filter={activeFilter} />
 

@@ -3,6 +3,7 @@
  * Extracts user + tenant from Supabase JWT in the Authorization header.
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { createProblemDetails } from '@gleamops/shared';
 
@@ -31,22 +32,48 @@ export async function extractAuth(
   instance: string
 ): Promise<AuthContext | NextResponse> {
   const authHeader = req.headers.get('authorization');
-  if (!authHeader) {
-    return problemResponse(
-      createProblemDetails('AUTH_001', 'Unauthorized', 401, 'Missing authorization header', instance)
+  let user: Awaited<ReturnType<ReturnType<typeof createClient>['auth']['getUser']>>['data']['user'] = null;
+
+  if (authHeader) {
+    const supabaseAuth = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { global: { headers: { Authorization: authHeader } } }
     );
+
+    const authResult = await supabaseAuth.auth.getUser();
+    user = authResult.data.user;
   }
 
-  const supabaseAuth = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: authHeader } } }
-  );
+  if (!user) {
+    const supabaseCookieAuth = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return req.cookies.getAll();
+          },
+          setAll(cookiesToSet: Array<{ name: string; value: string; options?: Record<string, unknown> }>) {
+            try {
+              cookiesToSet.forEach(({ name, value }) => {
+                req.cookies.set(name, value);
+              });
+            } catch {
+              // Ignore in request contexts where cookies are read-only.
+            }
+          },
+        },
+      }
+    );
 
-  const { data: { user } } = await supabaseAuth.auth.getUser();
+    const authResult = await supabaseCookieAuth.auth.getUser();
+    user = authResult.data.user;
+  }
+
   if (!user) {
     return problemResponse(
-      createProblemDetails('AUTH_001', 'Unauthorized', 401, 'Invalid or expired token', instance)
+      createProblemDetails('AUTH_001', 'Unauthorized', 401, 'Invalid or expired session', instance)
     );
   }
 

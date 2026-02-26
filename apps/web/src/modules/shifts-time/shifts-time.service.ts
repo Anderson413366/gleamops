@@ -151,10 +151,11 @@ function toIsoDate(value: Date): string {
   return value.toISOString().slice(0, 10);
 }
 
-function emptyTonightBoardPayload(date: string, pilotEnabled: boolean) {
+function emptyTonightBoardPayload(date: string, pilotEnabled: boolean, myStaffId: string | null = null) {
   return {
     pilot_enabled: pilotEnabled,
     date,
+    my_staff_id: myStaffId,
     my_next_stop: null,
     site_summaries: [],
     totals: { sites: 0, stops: 0, uncovered_sites: 0 },
@@ -374,7 +375,7 @@ export async function getTonightBoard(
   if (!pilotEnabled) {
     return {
       success: true,
-      data: emptyTonightBoardPayload(today, false),
+      data: emptyTonightBoardPayload(today, false, null),
     };
   }
 
@@ -390,7 +391,7 @@ export async function getTonightBoard(
 
     // Never widen scope for field users when staff mapping is missing.
     if (!staffId) {
-      return { success: true, data: emptyTonightBoardPayload(today, true) };
+      return { success: true, data: emptyTonightBoardPayload(today, true, null) };
     }
   } else {
     const staffResult = await findStaffIdByUserId(userDb, auth.userId);
@@ -500,6 +501,7 @@ export async function getTonightBoard(
     data: {
       pilot_enabled: true,
       date: today,
+      my_staff_id: staffId,
       my_next_stop: myNextStop,
       site_summaries: siteSummaries,
       totals: {

@@ -42,6 +42,7 @@ type SiteSummary = {
 type TonightBoardData = {
   pilot_enabled: boolean;
   date: string;
+  my_staff_id: string | null;
   my_next_stop: NextStop | null;
   site_summaries: SiteSummary[];
   totals: {
@@ -56,6 +57,8 @@ interface ShiftsTimePanelProps {
 }
 
 const FIELD_ROLES = new Set(['CLEANER', 'INSPECTOR']);
+const CALLOUT_REASONS = ['SICK', 'PERSONAL', 'EMERGENCY', 'NO_SHOW', 'WEATHER', 'TRANSPORT', 'OTHER'] as const;
+type CalloutReason = (typeof CALLOUT_REASONS)[number];
 
 async function authHeaders() {
   const supabase = getSupabaseBrowserClient();
@@ -88,6 +91,9 @@ export default function ShiftsTimePanel({ search }: ShiftsTimePanelProps) {
   const { locale, t } = useLocale();
   const [loading, setLoading] = useState(true);
   const [actionSaving, setActionSaving] = useState(false);
+  const [calloutSaving, setCalloutSaving] = useState(false);
+  const [showCalloutForm, setShowCalloutForm] = useState(false);
+  const [calloutReason, setCalloutReason] = useState<CalloutReason>('SICK');
   const [data, setData] = useState<TonightBoardData | null>(null);
   const localeCode = getIntlLocale(locale);
   const roleCode = normalizeRoleCode(role ?? '') ?? (role ?? '').toUpperCase();
@@ -174,6 +180,42 @@ export default function ShiftsTimePanel({ search }: ShiftsTimePanelProps) {
     }
   }, [data?.my_next_stop, load, t]);
 
+  const reportCallout = useCallback(async () => {
+    if (!data?.my_staff_id) {
+      toast.error(t('shiftsTime.callout.noStaff'));
+      return;
+    }
+
+    setCalloutSaving(true);
+    try {
+      const headers = await authHeaders();
+      headers['Content-Type'] = 'application/json';
+      const response = await fetch('/api/operations/shifts-time/callouts/report', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          affected_staff_id: data.my_staff_id,
+          reason: calloutReason,
+          route_id: data.my_next_stop?.route_id ?? null,
+          route_stop_id: data.my_next_stop?.stop_id ?? null,
+          site_id: data.my_next_stop?.site_id ?? null,
+        }),
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok || !body?.success) {
+        throw new Error(body?.detail ?? body?.title ?? t('shiftsTime.callout.error'));
+      }
+
+      toast.success(t('shiftsTime.callout.success'));
+      setShowCalloutForm(false);
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('shiftsTime.callout.error'));
+    } finally {
+      setCalloutSaving(false);
+    }
+  }, [calloutReason, data?.my_next_stop?.route_id, data?.my_next_stop?.site_id, data?.my_next_stop?.stop_id, data?.my_staff_id, load, t]);
+
   if (loading) {
     return (
       <Card>
@@ -224,6 +266,61 @@ export default function ShiftsTimePanel({ search }: ShiftsTimePanelProps) {
                       ? t('shiftsTime.action.complete')
                       : t('shiftsTime.action.arrive')}
                 </Button>
+
+                {isFieldRole && (
+                  <div className="space-y-2">
+                    {!showCalloutForm ? (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="w-full sm:w-auto"
+                        onClick={() => setShowCalloutForm(true)}
+                      >
+                        {t('shiftsTime.callout.report')}
+                      </Button>
+                    ) : (
+                      <div className="space-y-2 rounded-lg border border-border bg-background p-3">
+                        <p className="text-sm font-medium text-foreground">{t('shiftsTime.callout.title')}</p>
+                        <p className="text-xs text-muted-foreground">{t('shiftsTime.callout.help')}</p>
+                        <label className="block text-xs font-medium text-muted-foreground" htmlFor="shifts-time-callout-reason">
+                          {t('shiftsTime.callout.reasonLabel')}
+                        </label>
+                        <select
+                          id="shifts-time-callout-reason"
+                          className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                          value={calloutReason}
+                          onChange={(event) => setCalloutReason(event.target.value as CalloutReason)}
+                          disabled={calloutSaving}
+                        >
+                          {CALLOUT_REASONS.map((reason) => (
+                            <option key={reason} value={reason}>
+                              {t(`shiftsTime.callout.reason.${reason}`)}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                          <Button
+                            type="button"
+                            className="w-full sm:w-auto"
+                            onClick={() => void reportCallout()}
+                            disabled={calloutSaving}
+                          >
+                            {calloutSaving ? t('shiftsTime.callout.reporting') : t('shiftsTime.callout.report')}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            className="w-full sm:w-auto"
+                            onClick={() => setShowCalloutForm(false)}
+                            disabled={calloutSaving}
+                          >
+                            {t('common.cancel')}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">{t('shiftsTime.noNextStop')}</p>

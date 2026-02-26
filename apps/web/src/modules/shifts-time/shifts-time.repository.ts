@@ -156,6 +156,81 @@ export type ShiftsTimeRouteStopRow = {
   } | null;
 };
 
+export type ShiftsTimeCalloutEventRow = {
+  id: string;
+  reason: string;
+  status: string;
+  reported_at: string;
+  escalation_level: number | null;
+  route_id: string | null;
+  route_stop_id: string | null;
+  affected_staff: {
+    id: string;
+    staff_code: string | null;
+    full_name: string | null;
+  } | Array<{
+    id: string;
+    staff_code: string | null;
+    full_name: string | null;
+  }> | null;
+  reported_by_staff: {
+    id: string;
+    staff_code: string | null;
+    full_name: string | null;
+  } | Array<{
+    id: string;
+    staff_code: string | null;
+    full_name: string | null;
+  }> | null;
+  covered_by_staff: {
+    id: string;
+    staff_code: string | null;
+    full_name: string | null;
+  } | Array<{
+    id: string;
+    staff_code: string | null;
+    full_name: string | null;
+  }> | null;
+  site: {
+    id: string;
+    site_code: string | null;
+    name: string | null;
+  } | Array<{
+    id: string;
+    site_code: string | null;
+    name: string | null;
+  }> | null;
+};
+
+export type ShiftsTimeCoverageCandidateRow = {
+  id: string;
+  staff_code: string | null;
+  full_name: string | null;
+};
+
+export type ShiftsTimePayrollMappingRow = {
+  id: string;
+  template_name: string;
+  provider_code: string | null;
+  is_default: boolean;
+};
+
+export type ShiftsTimePayrollRunRow = {
+  id: string;
+  period_start: string;
+  period_end: string;
+  status: string;
+  created_at: string;
+  exported_at: string | null;
+  mapping: {
+    id: string;
+    template_name: string;
+  } | Array<{
+    id: string;
+    template_name: string;
+  }> | null;
+};
+
 export async function findStaffIdByUserId(
   db: SupabaseClient,
   userId: string,
@@ -221,4 +296,81 @@ export async function listRouteStopsByRouteIds(
     .is('archived_at', null)
     .order('stop_order', { ascending: true })
     .limit(5000);
+}
+
+export async function listRecentCalloutEvents(
+  db: SupabaseClient,
+  limit: number,
+  affectedStaffId?: string | null,
+) {
+  let query = db
+    .from('callout_events')
+    .select(`
+      id,
+      reason,
+      status,
+      reported_at,
+      escalation_level,
+      route_id,
+      route_stop_id,
+      affected_staff:affected_staff_id(id, staff_code, full_name),
+      reported_by_staff:reported_by_staff_id(id, staff_code, full_name),
+      covered_by_staff:covered_by_staff_id(id, staff_code, full_name),
+      site:site_id(id, site_code, name)
+    `)
+    .is('archived_at', null)
+    .order('reported_at', { ascending: false })
+    .limit(Math.max(1, Math.min(limit, 100)));
+
+  if (affectedStaffId) {
+    query = query.eq('affected_staff_id', affectedStaffId);
+  }
+
+  return query;
+}
+
+export async function listCoverageCandidates(
+  db: SupabaseClient,
+  limit = 200,
+) {
+  return db
+    .from('staff')
+    .select('id, staff_code, full_name')
+    .is('archived_at', null)
+    .order('full_name', { ascending: true })
+    .limit(Math.max(1, Math.min(limit, 500)));
+}
+
+export async function listActivePayrollMappings(
+  db: SupabaseClient,
+  limit = 50,
+) {
+  return db
+    .from('payroll_export_mappings')
+    .select('id, template_name, provider_code, is_default')
+    .is('archived_at', null)
+    .eq('is_active', true)
+    .order('is_default', { ascending: false })
+    .order('template_name', { ascending: true })
+    .limit(Math.max(1, Math.min(limit, 200)));
+}
+
+export async function listRecentPayrollRuns(
+  db: SupabaseClient,
+  limit = 25,
+) {
+  return db
+    .from('payroll_export_runs')
+    .select(`
+      id,
+      period_start,
+      period_end,
+      status,
+      created_at,
+      exported_at,
+      mapping:mapping_id(id, template_name)
+    `)
+    .is('archived_at', null)
+    .order('created_at', { ascending: false })
+    .limit(Math.max(1, Math.min(limit, 100)));
 }

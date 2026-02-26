@@ -26,6 +26,7 @@ export type NavSpace =
   | 'home'
   | 'schedule'
   | 'jobs'
+  | 'shifts_time'
   | 'pipeline'
   | 'crm'
   | 'clients'

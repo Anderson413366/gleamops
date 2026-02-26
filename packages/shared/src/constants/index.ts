@@ -27,6 +27,7 @@ export const MODULE_ACCENTS: Record<ModuleKey, ModuleAccent> = {
   home: { name: 'Harbor Blue', hex: '#2563EB', hsl: '217 82% 54%' },
   schedule: { name: 'Sunset Orange', hex: '#F97316', hsl: '24 95% 53%' },
   jobs: { name: 'Signal Red', hex: '#EF4444', hsl: '0 84% 60%' },
+  shifts_time: { name: 'Ocean Teal', hex: '#0891B2', hsl: '190 90% 37%' },
   pipeline: { name: 'Canyon Orange', hex: '#F97316', hsl: '24 95% 53%' },
   crm: { name: 'Evergreen', hex: '#10B981', hsl: '160 84% 39%' },
   clients: { name: 'Evergreen', hex: '#10B981', hsl: '160 84% 39%' },
@@ -49,7 +50,7 @@ export function getModuleFromPathname(pathname: string): ModuleKey {
   // Primary routes (Phase 2)
   if (pathname.startsWith('/schedule')) return 'schedule';
   if (pathname.startsWith('/jobs')) return 'jobs';
-  if (pathname.startsWith('/shifts-time')) return 'jobs';
+  if (pathname.startsWith('/shifts-time')) return 'shifts_time';
   if (pathname.startsWith('/clients')) return 'clients';
   if (pathname.startsWith('/pipeline')) return 'pipeline';
   if (pathname.startsWith('/team')) return 'team';

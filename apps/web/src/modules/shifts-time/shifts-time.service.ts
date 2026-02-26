@@ -14,12 +14,20 @@ import {
   rpcFinalizePayrollExport,
   rpcGeneratePayrollPreview,
   findStaffIdByUserId,
+  listActivePayrollMappings,
+  listCoverageCandidates,
+  listRecentCalloutEvents,
+  listRecentPayrollRuns,
   listRouteStopsByRouteIds,
   listRoutesForDate,
   rpcOfferCoverage,
   rpcReportCallout,
   rpcRouteCompleteStop,
   rpcRouteStartStop,
+  type ShiftsTimeCalloutEventRow,
+  type ShiftsTimeCoverageCandidateRow,
+  type ShiftsTimePayrollMappingRow,
+  type ShiftsTimePayrollRunRow,
   type ShiftsTimeRouteRow,
   type ShiftsTimeRouteStopRow,
 } from './shifts-time.repository';
@@ -107,6 +115,67 @@ type SiteSummary = {
   coverage_status: CoverageStatus;
 };
 
+type RouteSummary = {
+  route_id: string;
+  route_date: string;
+  route_status: string;
+  route_owner_staff_id: string | null;
+  route_owner_code: string | null;
+  route_owner_name: string | null;
+  stops: Array<{
+    stop_id: string;
+    stop_order: number;
+    stop_status: string;
+    planned_start_at: string | null;
+    planned_end_at: string | null;
+    site_id: string | null;
+    site_code: string | null;
+    site_name: string | null;
+    job_code: string | null;
+    primary_action: 'arrive' | 'complete';
+  }>;
+};
+
+type CalloutSummary = {
+  id: string;
+  reason: string;
+  status: string;
+  reported_at: string;
+  escalation_level: number;
+  route_id: string | null;
+  route_stop_id: string | null;
+  affected_staff_id: string | null;
+  affected_staff_name: string | null;
+  covered_by_staff_id: string | null;
+  covered_by_staff_name: string | null;
+  site_id: string | null;
+  site_code: string | null;
+  site_name: string | null;
+};
+
+type CoverageCandidate = {
+  staff_id: string;
+  staff_code: string | null;
+  full_name: string | null;
+};
+
+type PayrollMappingSummary = {
+  id: string;
+  template_name: string;
+  provider_code: string | null;
+  is_default: boolean;
+};
+
+type PayrollRunSummary = {
+  id: string;
+  period_start: string;
+  period_end: string;
+  status: string;
+  created_at: string;
+  exported_at: string | null;
+  mapping_name: string | null;
+};
+
 function toTonightBoardStop(
   stop: ShiftsTimeRouteStopRow,
   routeById: Map<string, ShiftsTimeRouteRow>,
@@ -151,12 +220,127 @@ function toIsoDate(value: Date): string {
   return value.toISOString().slice(0, 10);
 }
 
+function firstRelation<T>(value: T | T[] | null | undefined): T | null {
+  if (!value) return null;
+  return Array.isArray(value) ? (value[0] ?? null) : value;
+}
+
+function toRouteSummaries(routes: ShiftsTimeRouteRow[], stops: TonightBoardStop[]): RouteSummary[] {
+  const routeById = new Map(routes.map((route) => [route.id, route]));
+  const grouped = new Map<string, RouteSummary>();
+
+  for (const stop of stops) {
+    const route = routeById.get(stop.route_id);
+    if (!route) continue;
+    const routeOwner = resolveRouteOwner(route.route_owner);
+    if (!grouped.has(route.id)) {
+      grouped.set(route.id, {
+        route_id: route.id,
+        route_date: route.route_date,
+        route_status: route.status,
+        route_owner_staff_id: route.route_owner_staff_id ?? null,
+        route_owner_code: routeOwner?.staff_code ?? null,
+        route_owner_name: routeOwner?.full_name ?? null,
+        stops: [],
+      });
+    }
+
+    grouped.get(route.id)!.stops.push({
+      stop_id: stop.id,
+      stop_order: stop.stop_order,
+      stop_status: stop.stop_status,
+      planned_start_at: stop.planned_start_at,
+      planned_end_at: stop.planned_end_at,
+      site_id: stop.site_id,
+      site_code: stop.site_code,
+      site_name: stop.site_name,
+      job_code: stop.job_code,
+      primary_action: toActionForStop(stop),
+    });
+  }
+
+  return Array.from(grouped.values())
+    .map((route) => ({
+      ...route,
+      stops: route.stops.sort((a, b) => a.stop_order - b.stop_order),
+    }))
+    .sort((a, b) => {
+      const ownerA = a.route_owner_name ?? '';
+      const ownerB = b.route_owner_name ?? '';
+      const ownerDiff = ownerA.localeCompare(ownerB);
+      if (ownerDiff !== 0) return ownerDiff;
+      return a.route_id.localeCompare(b.route_id);
+    });
+}
+
+function toCalloutSummary(row: ShiftsTimeCalloutEventRow): CalloutSummary {
+  const affectedStaff = firstRelation(row.affected_staff);
+  const coveredByStaff = firstRelation(row.covered_by_staff);
+  const site = firstRelation(row.site);
+  return {
+    id: row.id,
+    reason: row.reason,
+    status: row.status,
+    reported_at: row.reported_at,
+    escalation_level: row.escalation_level ?? 0,
+    route_id: row.route_id,
+    route_stop_id: row.route_stop_id,
+    affected_staff_id: affectedStaff?.id ?? null,
+    affected_staff_name: affectedStaff?.full_name ?? null,
+    covered_by_staff_id: coveredByStaff?.id ?? null,
+    covered_by_staff_name: coveredByStaff?.full_name ?? null,
+    site_id: site?.id ?? null,
+    site_code: site?.site_code ?? null,
+    site_name: site?.name ?? null,
+  };
+}
+
+function toCoverageCandidate(row: ShiftsTimeCoverageCandidateRow): CoverageCandidate {
+  return {
+    staff_id: row.id,
+    staff_code: row.staff_code ?? null,
+    full_name: row.full_name ?? null,
+  };
+}
+
+function toPayrollMappingSummary(row: ShiftsTimePayrollMappingRow): PayrollMappingSummary {
+  return {
+    id: row.id,
+    template_name: row.template_name,
+    provider_code: row.provider_code ?? null,
+    is_default: row.is_default,
+  };
+}
+
+function toPayrollRunSummary(row: ShiftsTimePayrollRunRow): PayrollRunSummary {
+  const mapping = Array.isArray(row.mapping) ? row.mapping[0] : row.mapping;
+  return {
+    id: row.id,
+    period_start: row.period_start,
+    period_end: row.period_end,
+    status: row.status,
+    created_at: row.created_at,
+    exported_at: row.exported_at ?? null,
+    mapping_name: mapping?.template_name ?? null,
+  };
+}
+
 function emptyTonightBoardPayload(date: string, pilotEnabled: boolean, myStaffId: string | null = null) {
   return {
     pilot_enabled: pilotEnabled,
+    features: {
+      route_execution: pilotEnabled,
+      callout_automation: isCalloutEnabled(),
+      payroll_export: isPayrollEnabled(),
+    },
     date,
     my_staff_id: myStaffId,
     my_next_stop: null,
+    route_summaries: [] as RouteSummary[],
+    recent_callouts: [] as CalloutSummary[],
+    coverage_candidates: [] as CoverageCandidate[],
+    payroll_mappings: [] as PayrollMappingSummary[],
+    payroll_runs: [] as PayrollRunSummary[],
     site_summaries: [],
     totals: { sites: 0, stops: 0, uncovered_sites: 0 },
   };
@@ -496,13 +680,59 @@ export async function getTonightBoard(
     }
     : null;
 
+  let recentCallouts: CalloutSummary[] = [];
+  let coverageCandidates: CoverageCandidate[] = [];
+  if (isCalloutEnabled()) {
+    const [calloutsResult, candidatesResult] = await Promise.all([
+      listRecentCalloutEvents(userDb, managerTier ? 50 : 10, managerTier ? null : staffId),
+      managerTier ? listCoverageCandidates(userDb, 250) : Promise.resolve({ data: [], error: null }),
+    ]);
+
+    if (!calloutsResult.error) {
+      recentCallouts = ((calloutsResult.data ?? []) as ShiftsTimeCalloutEventRow[]).map(toCalloutSummary);
+    }
+
+    if (!candidatesResult.error) {
+      coverageCandidates = ((candidatesResult.data ?? []) as ShiftsTimeCoverageCandidateRow[]).map(toCoverageCandidate);
+    }
+  }
+
+  let payrollMappings: PayrollMappingSummary[] = [];
+  let payrollRuns: PayrollRunSummary[] = [];
+  if (managerTier && isPayrollEnabled()) {
+    const [mappingsResult, runsResult] = await Promise.all([
+      listActivePayrollMappings(userDb, 50),
+      listRecentPayrollRuns(userDb, 20),
+    ]);
+
+    if (!mappingsResult.error) {
+      payrollMappings = ((mappingsResult.data ?? []) as ShiftsTimePayrollMappingRow[]).map(toPayrollMappingSummary);
+    }
+
+    if (!runsResult.error) {
+      payrollRuns = ((runsResult.data ?? []) as ShiftsTimePayrollRunRow[]).map(toPayrollRunSummary);
+    }
+  }
+
+  const routeSummaries = toRouteSummaries(routes, allStops);
+
   return {
     success: true,
     data: {
       pilot_enabled: true,
+      features: {
+        route_execution: true,
+        callout_automation: isCalloutEnabled(),
+        payroll_export: isPayrollEnabled(),
+      },
       date: today,
       my_staff_id: staffId,
       my_next_stop: myNextStop,
+      route_summaries: routeSummaries,
+      recent_callouts: recentCallouts,
+      coverage_candidates: coverageCandidates,
+      payroll_mappings: payrollMappings,
+      payroll_runs: payrollRuns,
       site_summaries: siteSummaries,
       totals: {
         sites: siteSummaries.length,

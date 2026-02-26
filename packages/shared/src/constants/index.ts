@@ -49,6 +49,7 @@ export function getModuleFromPathname(pathname: string): ModuleKey {
   // Primary routes (Phase 2)
   if (pathname.startsWith('/schedule')) return 'schedule';
   if (pathname.startsWith('/jobs')) return 'jobs';
+  if (pathname.startsWith('/shifts-time')) return 'jobs';
   if (pathname.startsWith('/clients')) return 'clients';
   if (pathname.startsWith('/pipeline')) return 'pipeline';
   if (pathname.startsWith('/team')) return 'team';

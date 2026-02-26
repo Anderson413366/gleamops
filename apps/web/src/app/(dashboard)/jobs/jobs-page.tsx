@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   Briefcase,
@@ -13,13 +13,9 @@ import {
   Plus,
 } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
-import { normalizeRoleCode } from '@gleamops/shared';
 import type { WorkTicket, Inspection } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
-import { useFeatureFlag } from '@/hooks/use-feature-flag';
-import { useAuth } from '@/hooks/use-auth';
-import { useLocale } from '@/hooks/use-locale';
 
 import TicketsTable from '../operations/tickets/tickets-table';
 import { TicketDetail } from '../operations/tickets/ticket-detail';
@@ -29,7 +25,6 @@ import { CreateInspectionForm } from '../operations/inspections/create-inspectio
 import JobsTable from '../operations/jobs/jobs-table';
 import AlertsTable from '../operations/geofence/alerts-table';
 import RoutesFleetPanel from '../operations/routes/routes-fleet-panel';
-import ShiftsTimePanel from './shifts-time-panel';
 
 interface TicketWithRelations extends WorkTicket {
   job?: { job_code: string; billing_amount?: number | null } | null;
@@ -57,39 +52,13 @@ const BASE_TABS = [
   { key: 'routes', label: 'Routes', icon: <Route className="h-4 w-4" /> },
 ] as const;
 
-const SHIFTS_TIME_ALLOWED_ROLES = new Set([
-  'OWNER_ADMIN',
-  'MANAGER',
-  'SUPERVISOR',
-  'CLEANER',
-  'INSPECTOR',
-]);
-
 export default function JobsPageClient() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { role, loading: authLoading } = useAuth();
-  const { t } = useLocale();
-  const shiftsTimeV1Enabled = useFeatureFlag('shifts_time_v1');
-  const shiftsTimeRouteExecutionEnabled = useFeatureFlag('shifts_time_route_execution');
   const initialTicketId = searchParams.get('ticket');
   const action = searchParams.get('action');
-  const requestedTab = searchParams.get('tab');
-
-  const roleCode = normalizeRoleCode(role ?? '') ?? (role ?? '').toUpperCase();
-  const isShiftsTimePilotManager = roleCode === 'OWNER_ADMIN' || roleCode === 'MANAGER';
-  const canAccessShiftsTime = (
-    SHIFTS_TIME_ALLOWED_ROLES.has(roleCode)
-      && (isShiftsTimePilotManager || shiftsTimeV1Enabled || shiftsTimeRouteExecutionEnabled)
-  );
-  const showShiftsTime = requestedTab === 'shifts-time' || canAccessShiftsTime;
-
-  const tabs = useMemo(() => (
-    showShiftsTime
-      ? [...BASE_TABS, { key: 'shifts-time', label: t('shiftsTime.tab'), icon: <Clock className="h-4 w-4" /> }]
-      : [...BASE_TABS]
-  ), [showShiftsTime, t]);
+  const tabs = [...BASE_TABS];
 
   const [tab, setTab] = useSyncedTab({
     tabKeys: tabs.map((entry) => entry.key),
@@ -103,7 +72,6 @@ export default function JobsPageClient() {
   const [showCreateInspection, setShowCreateInspection] = useState(false);
   const [openServicePlanCreateToken, setOpenServicePlanCreateToken] = useState(0);
   const [focusMode, setFocusMode] = useState(false);
-  const shiftsTimeDeepLinkHandledRef = useRef(false);
   const [kpis, setKpis] = useState({
     todayTickets: 0,
     openTickets: 0,
@@ -111,22 +79,6 @@ export default function JobsPageClient() {
     openAlerts: 0,
   });
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
-
-  useEffect(() => {
-    if (requestedTab !== 'shifts-time') {
-      shiftsTimeDeepLinkHandledRef.current = false;
-      return;
-    }
-    if (authLoading) return;
-    if (!canAccessShiftsTime) {
-      if (tab !== 'service-plans') setTab('service-plans');
-      return;
-    }
-    // Deep-link once per request to avoid stale-query tab bounce while switching tabs.
-    if (shiftsTimeDeepLinkHandledRef.current) return;
-    shiftsTimeDeepLinkHandledRef.current = true;
-    if (tab !== 'shifts-time') setTab('shifts-time');
-  }, [authLoading, canAccessShiftsTime, requestedTab, setTab, tab]);
 
   useEffect(() => {
     async function fetchKpis() {
@@ -332,9 +284,7 @@ export default function JobsPageClient() {
                   : tab === 'time'
                     ? 'Search time alerts and exceptions...'
                     : tab === 'routes'
-                    ? 'Search routes and owners...'
-                    : tab === 'shifts-time'
-                      ? t('shiftsTime.searchPlaceholder')
+                      ? 'Search routes and owners...'
                       : `Search ${tab}...`
           }
           className="w-full sm:w-72 lg:w-80 lg:ml-auto"
@@ -371,10 +321,6 @@ export default function JobsPageClient() {
 
       {tab === 'routes' && (
         <RoutesFleetPanel key={`routes-${refreshKey}`} search={search} />
-      )}
-
-      {tab === 'shifts-time' && (
-        <ShiftsTimePanel key={`shifts-time-${refreshKey}`} search={search} />
       )}
 
       <TicketDetail

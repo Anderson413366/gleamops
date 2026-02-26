@@ -2,6 +2,8 @@ export {
   getTonightBoard,
   startRouteStopRpc,
   completeRouteStopRpc,
+  startWorkTicketExecution,
+  completeWorkTicketExecution,
   captureTravelSegmentRpc,
   reportCalloutRpc,
   offerCoverageRpc,

@@ -31,6 +31,7 @@ function queryResult<T>(data: T) {
     order() { return this; },
     limit() { return this; },
     in() { return this; },
+    not() { return this; },
     maybeSingle: async () => ({ data, error: null }),
   };
 }
@@ -91,6 +92,10 @@ test('tonight board includes route, coverage, and payroll enrichment for manager
             site_job: { id: 'job-1', job_code: 'JOB-1006', site: { id: 'site-1', site_code: '1006', name: 'Agawam Crossing' } },
           },
         ]);
+      }
+
+      if (table === 'work_tickets') {
+        return queryResult([]);
       }
 
       if (table === 'callout_events') {

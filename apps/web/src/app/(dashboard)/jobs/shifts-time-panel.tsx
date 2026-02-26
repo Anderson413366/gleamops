@@ -11,10 +11,13 @@ import { useAuth } from '@/hooks/use-auth';
 import { useLocale } from '@/hooks/use-locale';
 
 type CoverageStatus = 'covered' | 'at_risk' | 'uncovered';
+type StopExecutionSource = 'route_stop' | 'work_ticket';
 
 type NextStop = {
   stop_id: string;
   route_id: string;
+  execution_source: StopExecutionSource;
+  work_ticket_id: string | null;
   stop_order: number;
   stop_status: string;
   planned_start_at: string | null;
@@ -48,6 +51,8 @@ type RouteSummary = {
   route_owner_name: string | null;
   stops: Array<{
     stop_id: string;
+    execution_source: StopExecutionSource;
+    work_ticket_id: string | null;
     stop_order: number;
     stop_status: string;
     planned_start_at: string | null;
@@ -272,14 +277,29 @@ export default function ShiftsTimePanel({ search }: ShiftsTimePanelProps) {
     }
   }, [activeTab, isFieldRole, managerTabs]);
 
-  const executeStopAction = useCallback(async (stopId: string, action: 'arrive' | 'complete') => {
+  const executeStopAction = useCallback(async (
+    stopId: string,
+    action: 'arrive' | 'complete',
+    executionSource: StopExecutionSource,
+    workTicketId: string | null,
+  ) => {
     setActionSaving(true);
     try {
       const headers = await authHeaders();
       headers['Content-Type'] = 'application/json';
-      const endpoint = action === 'complete'
-        ? `/api/operations/shifts-time/stops/${encodeURIComponent(stopId)}/complete`
-        : `/api/operations/shifts-time/stops/${encodeURIComponent(stopId)}/start`;
+      let endpoint = '';
+      if (executionSource === 'route_stop') {
+        endpoint = action === 'complete'
+          ? `/api/operations/shifts-time/stops/${encodeURIComponent(stopId)}/complete`
+          : `/api/operations/shifts-time/stops/${encodeURIComponent(stopId)}/start`;
+      } else {
+        if (!workTicketId) {
+          throw new Error(t('shiftsTime.error.action'));
+        }
+        endpoint = action === 'complete'
+          ? `/api/operations/shifts-time/tickets/${encodeURIComponent(workTicketId)}/complete`
+          : `/api/operations/shifts-time/tickets/${encodeURIComponent(workTicketId)}/start`;
+      }
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -302,7 +322,7 @@ export default function ShiftsTimePanel({ search }: ShiftsTimePanelProps) {
   const executePrimary = useCallback(async () => {
     const nextStop = data?.my_next_stop;
     if (!nextStop) return;
-    await executeStopAction(nextStop.stop_id, nextStop.primary_action);
+    await executeStopAction(nextStop.stop_id, nextStop.primary_action, nextStop.execution_source, nextStop.work_ticket_id);
   }, [data?.my_next_stop, executeStopAction]);
 
   const reportCallout = useCallback(async () => {
@@ -321,8 +341,9 @@ export default function ShiftsTimePanel({ search }: ShiftsTimePanelProps) {
         body: JSON.stringify({
           affected_staff_id: data.my_staff_id,
           reason: calloutReason,
-          route_id: data.my_next_stop?.route_id ?? null,
-          route_stop_id: data.my_next_stop?.stop_id ?? null,
+          route_id: data.my_next_stop?.execution_source === 'route_stop' ? data.my_next_stop.route_id : null,
+          route_stop_id: data.my_next_stop?.execution_source === 'route_stop' ? data.my_next_stop.stop_id : null,
+          work_ticket_id: data.my_next_stop?.execution_source === 'work_ticket' ? data.my_next_stop.work_ticket_id : null,
           site_id: data.my_next_stop?.site_id ?? null,
         }),
       });
@@ -339,7 +360,7 @@ export default function ShiftsTimePanel({ search }: ShiftsTimePanelProps) {
     } finally {
       setCalloutSaving(false);
     }
-  }, [calloutReason, data?.my_next_stop?.route_id, data?.my_next_stop?.site_id, data?.my_next_stop?.stop_id, data?.my_staff_id, load, t]);
+  }, [calloutReason, data?.my_next_stop, data?.my_staff_id, load, t]);
 
   const offerCoverage = useCallback(async () => {
     if (!offerTargetCalloutId) {
@@ -737,7 +758,7 @@ export default function ShiftsTimePanel({ search }: ShiftsTimePanelProps) {
                                   <div className="mt-2">
                                     <Button
                                       size="sm"
-                                      onClick={() => void executeStopAction(stop.stop_id, stop.primary_action)}
+                                      onClick={() => void executeStopAction(stop.stop_id, stop.primary_action, stop.execution_source, stop.work_ticket_id)}
                                       disabled={actionSaving || !routeExecutionEnabled}
                                     >
                                       {stop.primary_action === 'complete' ? t('shiftsTime.action.complete') : t('shiftsTime.action.arrive')}

@@ -18,12 +18,17 @@ import {
   listCoverageCandidates,
   listRecentCalloutEvents,
   listRecentPayrollRuns,
+  listAssignedTicketsForDate,
   listRouteStopsByRouteIds,
   listRoutesForDate,
+  getWorkTicketForExecution,
+  isStaffAssignedToTicket,
+  updateWorkTicketExecutionStatus,
   rpcOfferCoverage,
   rpcReportCallout,
   rpcRouteCompleteStop,
   rpcRouteStartStop,
+  type ShiftsTimeAssignedTicketRow,
   type ShiftsTimeCalloutEventRow,
   type ShiftsTimeCoverageCandidateRow,
   type ShiftsTimePayrollMappingRow,
@@ -82,10 +87,13 @@ function resolveRouteOwner(
 }
 
 type CoverageStatus = 'covered' | 'at_risk' | 'uncovered';
+type StopExecutionSource = 'route_stop' | 'work_ticket';
 
 type TonightBoardStop = {
   id: string;
   route_id: string;
+  execution_source: StopExecutionSource;
+  work_ticket_id: string | null;
   stop_order: number;
   route_owner_staff_id: string | null;
   route_owner_name: string | null;
@@ -124,6 +132,8 @@ type RouteSummary = {
   route_owner_name: string | null;
   stops: Array<{
     stop_id: string;
+    execution_source: StopExecutionSource;
+    work_ticket_id: string | null;
     stop_order: number;
     stop_status: string;
     planned_start_at: string | null;
@@ -186,6 +196,8 @@ function toTonightBoardStop(
   return {
     id: stop.id,
     route_id: stop.route_id,
+    execution_source: 'route_stop',
+    work_ticket_id: stop.work_ticket_id ?? null,
     stop_order: Number(stop.stop_order ?? 0),
     route_owner_staff_id: route?.route_owner_staff_id ?? null,
     route_owner_name: routeOwner?.full_name ?? null,
@@ -225,6 +237,125 @@ function firstRelation<T>(value: T | T[] | null | undefined): T | null {
   return Array.isArray(value) ? (value[0] ?? null) : value;
 }
 
+function toLocalDateTime(date: string | null, time: string | null): string | null {
+  if (!date || !time) return null;
+  return `${date}T${time}:00`;
+}
+
+function toTicketStopStatus(ticketStatus: string): { stop_status: string; status: string } {
+  const normalized = ticketStatus.trim().toUpperCase();
+  if (normalized === 'COMPLETED' || normalized === 'VERIFIED') {
+    return { stop_status: 'COMPLETED', status: 'COMPLETED' };
+  }
+  if (normalized === 'IN_PROGRESS') {
+    return { stop_status: 'ARRIVED', status: 'IN_PROGRESS' };
+  }
+  if (normalized === 'CANCELED' || normalized === 'CANCELLED') {
+    return { stop_status: 'SKIPPED', status: 'CANCELED' };
+  }
+  return { stop_status: 'PENDING', status: 'PENDING' };
+}
+
+function toTicketRouteStatus(stops: TonightBoardStop[]): string {
+  if (stops.length === 0) return 'DRAFT';
+  if (stops.every((stop) => stop.stop_status === 'COMPLETED' || stop.stop_status === 'SKIPPED')) {
+    return 'COMPLETED';
+  }
+  if (stops.some((stop) => stop.stop_status === 'ARRIVED' || stop.status === 'IN_PROGRESS')) {
+    return 'PUBLISHED';
+  }
+  return 'PUBLISHED';
+}
+
+function projectAssignedTicketsToRoutes(
+  ticketRows: ShiftsTimeAssignedTicketRow[],
+  existingRouteTicketKeys: Set<string>,
+): { routes: ShiftsTimeRouteRow[]; stops: TonightBoardStop[] } {
+  const routeStops = new Map<string, TonightBoardStop[]>();
+  const routeOwners = new Map<string, { id: string; staff_code: string | null; full_name: string | null }>();
+  const routeDates = new Map<string, string>();
+  const seenStops = new Set<string>();
+
+  for (const ticket of ticketRows) {
+    const site = firstRelation(ticket.site);
+    const assignments = Array.isArray(ticket.assignments) ? ticket.assignments : [];
+    const plannedStartAt = toLocalDateTime(ticket.scheduled_date, ticket.start_time);
+    const plannedEndAt = toLocalDateTime(ticket.scheduled_date, ticket.end_time);
+    const { stop_status, status } = toTicketStopStatus(ticket.status);
+
+    for (const assignment of assignments) {
+      if (String(assignment.assignment_status).toUpperCase() !== 'ASSIGNED') continue;
+      const staff = firstRelation(assignment.staff);
+      const routeOwnerStaffId = assignment.staff_id;
+      if (!routeOwnerStaffId) continue;
+
+      const ticketAssignmentKey = `${ticket.id}:${routeOwnerStaffId}`;
+      if (existingRouteTicketKeys.has(ticketAssignmentKey)) continue;
+
+      const routeId = `ticket-route:${routeOwnerStaffId}:${ticket.scheduled_date}`;
+      const stopId = `ticket-stop:${ticket.id}:${routeOwnerStaffId}`;
+      if (seenStops.has(stopId)) continue;
+      seenStops.add(stopId);
+
+      routeOwners.set(routeId, {
+        id: routeOwnerStaffId,
+        staff_code: staff?.staff_code ?? null,
+        full_name: staff?.full_name ?? null,
+      });
+      routeDates.set(routeId, ticket.scheduled_date);
+
+      const list = routeStops.get(routeId) ?? [];
+      list.push({
+        id: stopId,
+        route_id: routeId,
+        execution_source: 'work_ticket',
+        work_ticket_id: ticket.id,
+        stop_order: 0,
+        route_owner_staff_id: routeOwnerStaffId,
+        route_owner_name: staff?.full_name ?? null,
+        route_owner_code: staff?.staff_code ?? null,
+        stop_status,
+        status,
+        planned_start_at: plannedStartAt,
+        planned_end_at: plannedEndAt,
+        arrived_at: null,
+        departed_at: null,
+        site_id: site?.id ?? null,
+        site_code: site?.site_code ?? null,
+        site_name: site?.name ?? null,
+        job_code: ticket.ticket_code ?? null,
+      });
+      routeStops.set(routeId, list);
+    }
+  }
+
+  const stops: TonightBoardStop[] = [];
+  const routes: ShiftsTimeRouteRow[] = [];
+
+  for (const [routeId, routeStopList] of routeStops.entries()) {
+    const sortedStops = routeStopList
+      .sort((a, b) => {
+        const aStart = parseIsoDate(a.planned_start_at)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+        const bStart = parseIsoDate(b.planned_start_at)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+        if (aStart !== bStart) return aStart - bStart;
+        return a.id.localeCompare(b.id);
+      })
+      .map((stop, index) => ({ ...stop, stop_order: index + 1 }));
+
+    const owner = routeOwners.get(routeId);
+    routes.push({
+      id: routeId,
+      route_date: routeDates.get(routeId) ?? toIsoDate(new Date()),
+      status: toTicketRouteStatus(sortedStops),
+      route_owner_staff_id: owner?.id ?? null,
+      route_owner: owner ?? null,
+    });
+    stops.push(...sortedStops);
+  }
+
+  return { routes, stops };
+}
+
 function toRouteSummaries(routes: ShiftsTimeRouteRow[], stops: TonightBoardStop[]): RouteSummary[] {
   const routeById = new Map(routes.map((route) => [route.id, route]));
   const grouped = new Map<string, RouteSummary>();
@@ -247,6 +378,8 @@ function toRouteSummaries(routes: ShiftsTimeRouteRow[], stops: TonightBoardStop[
 
     grouped.get(route.id)!.stops.push({
       stop_id: stop.id,
+      execution_source: stop.execution_source,
+      work_ticket_id: stop.work_ticket_id,
       stop_order: stop.stop_order,
       stop_status: stop.stop_status,
       planned_start_at: stop.planned_start_at,
@@ -344,6 +477,111 @@ function emptyTonightBoardPayload(date: string, pilotEnabled: boolean, myStaffId
     site_summaries: [],
     totals: { sites: 0, stops: 0, uncovered_sites: 0 },
   };
+}
+
+function conflict(instance: string, detail: string) {
+  return createProblemDetails('SYS_003', 'Conflict', 409, detail, instance);
+}
+
+async function getTicketExecutionContext(
+  userDb: SupabaseClient,
+  auth: AuthContext,
+  ticketId: string,
+  apiPath: string,
+): Promise<ServiceResult<{ id: string; status: string }>> {
+  if (!isRouteExecutionEnabled()) {
+    return { success: false, error: featureDisabled(apiPath, 'Shifts & Time route execution is not enabled.') };
+  }
+  if (!canOperateShiftsTimeRouteExecution(auth.roles)) {
+    return { success: false, error: AUTH_002(apiPath) };
+  }
+
+  const ticketResult = await getWorkTicketForExecution(userDb, ticketId);
+  if (ticketResult.error) {
+    return { success: false, error: SYS_002(ticketResult.error.message, apiPath) };
+  }
+
+  const ticket = ticketResult.data ?? null;
+  if (!ticket) {
+    return {
+      success: false,
+      error: createProblemDetails('SHIFT_002', 'Work ticket not found', 404, 'Ticket not found', apiPath),
+    };
+  }
+
+  if (!isManagerTier(auth.roles)) {
+    const staffResult = await findStaffIdByUserId(userDb, auth.userId);
+    if (staffResult.error) {
+      return { success: false, error: SYS_002(staffResult.error.message, apiPath) };
+    }
+    const staffId = (staffResult.data as { id?: string | null } | null)?.id ?? null;
+    if (!staffId) {
+      return { success: false, error: AUTH_002(apiPath) };
+    }
+
+    const assignmentResult = await isStaffAssignedToTicket(userDb, ticket.id, staffId);
+    if (assignmentResult.error) {
+      return { success: false, error: SYS_002(assignmentResult.error.message, apiPath) };
+    }
+    if (!assignmentResult.data) {
+      return { success: false, error: AUTH_002(apiPath) };
+    }
+  }
+
+  return { success: true, data: ticket };
+}
+
+export async function startWorkTicketExecution(
+  userDb: SupabaseClient,
+  auth: AuthContext,
+  ticketId: string,
+  apiPath: string,
+): Promise<ServiceResult> {
+  const context = await getTicketExecutionContext(userDb, auth, ticketId, apiPath);
+  if (!context.success) return context;
+
+  const currentStatus = context.data.status.trim().toUpperCase();
+  if (currentStatus === 'IN_PROGRESS') {
+    return { success: true, data: context.data };
+  }
+  if (currentStatus === 'COMPLETED' || currentStatus === 'VERIFIED') {
+    return { success: false, error: conflict(apiPath, 'Ticket is already completed.') };
+  }
+  if (currentStatus === 'CANCELED' || currentStatus === 'CANCELLED') {
+    return { success: false, error: conflict(apiPath, 'Ticket is canceled and cannot be started.') };
+  }
+
+  const { data, error } = await updateWorkTicketExecutionStatus(userDb, ticketId, 'IN_PROGRESS');
+  if (error) {
+    return { success: false, error: SYS_002(error.message, apiPath) };
+  }
+
+  return { success: true, data: data ?? { id: ticketId, status: 'IN_PROGRESS' } };
+}
+
+export async function completeWorkTicketExecution(
+  userDb: SupabaseClient,
+  auth: AuthContext,
+  ticketId: string,
+  apiPath: string,
+): Promise<ServiceResult> {
+  const context = await getTicketExecutionContext(userDb, auth, ticketId, apiPath);
+  if (!context.success) return context;
+
+  const currentStatus = context.data.status.trim().toUpperCase();
+  if (currentStatus === 'COMPLETED' || currentStatus === 'VERIFIED') {
+    return { success: true, data: context.data };
+  }
+  if (currentStatus === 'CANCELED' || currentStatus === 'CANCELLED') {
+    return { success: false, error: conflict(apiPath, 'Ticket is canceled and cannot be completed.') };
+  }
+
+  const { data, error } = await updateWorkTicketExecutionStatus(userDb, ticketId, 'COMPLETED');
+  if (error) {
+    return { success: false, error: SYS_002(error.message, apiPath) };
+  }
+
+  return { success: true, data: data ?? { id: ticketId, status: 'COMPLETED' } };
 }
 
 export async function startRouteStopRpc(
@@ -589,16 +827,35 @@ export async function getTonightBoard(
     return { success: false, error: SYS_002(routesResult.error.message, apiPath) };
   }
 
-  const routes = (routesResult.data ?? []) as unknown as ShiftsTimeRouteRow[];
-  const routeIds = routes.map((route) => route.id);
-  const routeById = new Map(routes.map((route) => [route.id, route]));
+  const routeRows = (routesResult.data ?? []) as unknown as ShiftsTimeRouteRow[];
+  const routeIds = routeRows.map((route) => route.id);
+  const routeById = new Map(routeRows.map((route) => [route.id, route]));
 
   const stopsResult = await listRouteStopsByRouteIds(userDb, routeIds);
   if (stopsResult.error) {
     return { success: false, error: SYS_002(stopsResult.error.message, apiPath) };
   }
 
-  const allStops = ((stopsResult.data ?? []) as ShiftsTimeRouteStopRow[]).map((stop) => toTonightBoardStop(stop, routeById));
+  const routeStopRows = (stopsResult.data ?? []) as ShiftsTimeRouteStopRow[];
+  const routeStops = routeStopRows.map((stop) => toTonightBoardStop(stop, routeById));
+  const routeTicketKeys = new Set(
+    routeStops
+      .filter((stop) => stop.work_ticket_id && stop.route_owner_staff_id)
+      .map((stop) => `${stop.work_ticket_id}:${stop.route_owner_staff_id}`),
+  );
+
+  const ticketProjectionResult = await listAssignedTicketsForDate(userDb, today, managerTier ? null : staffId);
+  if (ticketProjectionResult.error) {
+    return { success: false, error: SYS_002(ticketProjectionResult.error.message, apiPath) };
+  }
+
+  const projected = projectAssignedTicketsToRoutes(
+    (ticketProjectionResult.data ?? []) as ShiftsTimeAssignedTicketRow[],
+    routeTicketKeys,
+  );
+
+  const routes = [...routeRows, ...projected.routes];
+  const allStops = [...routeStops, ...projected.stops];
 
   const now = new Date();
   const summariesBySite = new Map<string, Omit<SiteSummary, 'coverage_status'>>();
@@ -668,6 +925,8 @@ export async function getTonightBoard(
     ? {
       stop_id: myNextStopCandidates[0].id,
       route_id: myNextStopCandidates[0].route_id,
+      execution_source: myNextStopCandidates[0].execution_source,
+      work_ticket_id: myNextStopCandidates[0].work_ticket_id,
       stop_order: myNextStopCandidates[0].stop_order,
       stop_status: myNextStopCandidates[0].stop_status,
       planned_start_at: myNextStopCandidates[0].planned_start_at,

@@ -133,6 +133,7 @@ export type ShiftsTimeRouteRow = {
 export type ShiftsTimeRouteStopRow = {
   id: string;
   route_id: string;
+  work_ticket_id: string | null;
   stop_order: number;
   stop_status: string | null;
   status: string | null;
@@ -154,6 +155,38 @@ export type ShiftsTimeRouteStopRow = {
       name: string | null;
     } | null;
   } | null;
+};
+
+export type ShiftsTimeAssignedTicketRow = {
+  id: string;
+  ticket_code: string | null;
+  scheduled_date: string;
+  start_time: string | null;
+  end_time: string | null;
+  status: string;
+  site: {
+    id: string;
+    site_code: string | null;
+    name: string | null;
+  } | Array<{
+    id: string;
+    site_code: string | null;
+    name: string | null;
+  }> | null;
+  assignments: Array<{
+    id: string;
+    staff_id: string;
+    assignment_status: string;
+    staff: {
+      id: string;
+      staff_code: string | null;
+      full_name: string | null;
+    } | Array<{
+      id: string;
+      staff_code: string | null;
+      full_name: string | null;
+    }> | null;
+  }>;
 };
 
 export type ShiftsTimeCalloutEventRow = {
@@ -282,6 +315,7 @@ export async function listRouteStopsByRouteIds(
     .select(`
       id,
       route_id,
+      work_ticket_id,
       stop_order,
       stop_status,
       status,
@@ -296,6 +330,83 @@ export async function listRouteStopsByRouteIds(
     .is('archived_at', null)
     .order('stop_order', { ascending: true })
     .limit(5000);
+}
+
+export async function listAssignedTicketsForDate(
+  db: SupabaseClient,
+  scheduledDate: string,
+  staffId?: string | null,
+) {
+  let query = db
+    .from('work_tickets')
+    .select(`
+      id,
+      ticket_code,
+      scheduled_date,
+      start_time,
+      end_time,
+      status,
+      site:site_id(id, site_code, name),
+      assignments:ticket_assignments!inner(
+        id,
+        staff_id,
+        assignment_status,
+        staff:staff_id(id, staff_code, full_name)
+      )
+    `)
+    .eq('scheduled_date', scheduledDate)
+    .is('archived_at', null)
+    .is('assignments.archived_at', null)
+    .eq('assignments.assignment_status', 'ASSIGNED')
+    .not('status', 'in', '(CANCELED,CANCELLED)')
+    .order('start_time', { ascending: true })
+    .limit(5000);
+
+  if (staffId) {
+    query = query.eq('assignments.staff_id', staffId);
+  }
+
+  return query;
+}
+
+export async function getWorkTicketForExecution(
+  db: SupabaseClient,
+  ticketId: string,
+) {
+  return db
+    .from('work_tickets')
+    .select('id, status')
+    .eq('id', ticketId)
+    .is('archived_at', null)
+    .maybeSingle<{ id: string; status: string }>();
+}
+
+export async function isStaffAssignedToTicket(
+  db: SupabaseClient,
+  ticketId: string,
+  staffId: string,
+) {
+  return db
+    .from('ticket_assignments')
+    .select('id')
+    .eq('ticket_id', ticketId)
+    .eq('staff_id', staffId)
+    .eq('assignment_status', 'ASSIGNED')
+    .is('archived_at', null)
+    .maybeSingle<{ id: string }>();
+}
+
+export async function updateWorkTicketExecutionStatus(
+  db: SupabaseClient,
+  ticketId: string,
+  status: string,
+) {
+  return db
+    .from('work_tickets')
+    .update({ status })
+    .eq('id', ticketId)
+    .select('id, status')
+    .maybeSingle<{ id: string; status: string }>();
 }
 
 export async function listRecentCalloutEvents(

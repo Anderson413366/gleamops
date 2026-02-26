@@ -33,6 +33,10 @@ describe('feature-flags', () => {
         planning_board: false,
         unified_sales: true,
         standalone_calculator: true,
+        shifts_time_v1: false,
+        shifts_time_route_execution: false,
+        shifts_time_callout_automation: false,
+        shifts_time_payroll_export_v1: false,
       });
     });
 
@@ -117,6 +121,10 @@ describe('feature-flags', () => {
         'planning_board',
         'unified_sales',
         'standalone_calculator',
+        'shifts_time_v1',
+        'shifts_time_route_execution',
+        'shifts_time_callout_automation',
+        'shifts_time_payroll_export_v1',
       ];
       for (const domain of domains) {
         const expectedDefault = domain === 'schedule_liberation' || domain === 'v2_navigation' || domain === 'unified_sales' || domain === 'standalone_calculator';

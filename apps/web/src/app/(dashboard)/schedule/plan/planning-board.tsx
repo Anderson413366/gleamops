@@ -431,44 +431,66 @@ export default function PlanningBoard({ search = '' }: PlanningBoardProps) {
       const { data: auth } = await supabase.auth.getUser();
       const tenantId = auth.user?.app_metadata?.tenant_id ?? null;
 
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData.session?.access_token;
-      if (!accessToken) {
-        throw new Error('Missing session token for ticket code generation.');
-      }
+      const getNextTicketCode = async () => {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData.session?.access_token;
+        if (!accessToken) {
+          throw new Error('Missing session token for ticket code generation.');
+        }
 
-      const codeResponse = await fetch('/api/codes/next', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ prefix: 'TKT' }),
-      });
+        const codeResponse = await fetch('/api/codes/next', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ prefix: 'TKT' }),
+        });
 
-      if (!codeResponse.ok) {
-        throw new Error('Unable to generate ticket code.');
-      }
+        if (!codeResponse.ok) {
+          throw new Error('Unable to generate ticket code.');
+        }
 
-      const payload = await codeResponse.json() as { data?: unknown };
-      if (typeof payload.data !== 'string' || !payload.data.trim()) {
-        throw new Error('Invalid ticket code response.');
-      }
-      const ticketCode = payload.data.trim();
+        const payload = await codeResponse.json() as { data?: unknown };
+        if (typeof payload.data !== 'string' || !payload.data.trim()) {
+          throw new Error('Invalid ticket code response.');
+        }
 
-      const { error } = await supabase.from('work_tickets').insert({
-        tenant_id: tenantId,
-        ticket_code: ticketCode,
-        job_id: createJobId,
-        site_id: siteId,
-        scheduled_date: createDate,
-        start_time: createStartTime ? `${createStartTime}:00` : null,
-        end_time: createEndTime ? `${createEndTime}:00` : null,
-        status: 'SCHEDULED',
-      });
+        return payload.data.trim();
+      };
 
-      if (error) {
+      let inserted = false;
+      let attempts = 0;
+      while (!inserted && attempts < 5) {
+        attempts += 1;
+        const ticketCode = await getNextTicketCode();
+        const { error } = await supabase.from('work_tickets').insert({
+          tenant_id: tenantId,
+          ticket_code: ticketCode,
+          job_id: createJobId,
+          site_id: siteId,
+          scheduled_date: createDate,
+          start_time: createStartTime ? `${createStartTime}:00` : null,
+          end_time: createEndTime ? `${createEndTime}:00` : null,
+          status: 'SCHEDULED',
+        });
+
+        if (!error) {
+          inserted = true;
+          break;
+        }
+
+        const isTicketCodeConflict = error.code === '23505'
+          && /ticket_code/i.test(error.message ?? '');
+        if (isTicketCodeConflict && attempts < 5) {
+          continue;
+        }
+
         throw error;
+      }
+
+      if (!inserted) {
+        throw new Error('Unable to create a unique ticket code. Please retry.');
       }
 
       closeCreateTicket();

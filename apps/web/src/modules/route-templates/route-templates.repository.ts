@@ -342,6 +342,28 @@ export async function updateRouteStop(
     .single();
 }
 
+export async function rpcRouteStartStop(
+  db: SupabaseClient,
+  stopId: string,
+  note: string | null = null,
+) {
+  return db.rpc('fn_route_start_stop', {
+    p_route_stop_id: stopId,
+    p_note: note,
+  });
+}
+
+export async function rpcRouteCompleteStop(
+  db: SupabaseClient,
+  stopId: string,
+  note: string | null = null,
+) {
+  return db.rpc('fn_route_complete_stop', {
+    p_route_stop_id: stopId,
+    p_note: note,
+  });
+}
+
 export async function getRouteStopTaskById(
   db: SupabaseClient,
   taskId: string,

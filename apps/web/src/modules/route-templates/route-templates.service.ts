@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { AUTH_002, SYS_002, createProblemDetails } from '@gleamops/shared';
+import { AUTH_002, SYS_002, createProblemDetails, isFeatureEnabled } from '@gleamops/shared';
 import { hasAnyRole } from '@/lib/api/role-guard';
 import type { AuthContext } from '@/lib/api/auth-guard';
 import {
@@ -22,6 +22,8 @@ import {
   listSupplyUnitCosts,
   listRouteTemplates,
   nextSiteSupplyCostCode,
+  rpcRouteCompleteStop,
+  rpcRouteStartStop,
   updateRoute,
   updateRouteStop,
   updateRouteStopTask,
@@ -49,6 +51,10 @@ function canManageTemplates(roles: string[]) {
 
 function canOperateShift(roles: string[]) {
   return hasAnyRole(roles, SHIFT_OPERATOR_ROLES);
+}
+
+function shouldRouteViaShiftsTimeRpc() {
+  return isFeatureEnabled('shifts_time_v1') && isFeatureEnabled('shifts_time_route_execution');
 }
 
 function conflict(instance: string, detail: string) {
@@ -659,6 +665,15 @@ export async function arriveAtStop(
     };
   }
 
+  if (shouldRouteViaShiftsTimeRpc()) {
+    const { data, error } = await rpcRouteStartStop(userDb, stopId, null);
+    if (error || !data) {
+      return { success: false, error: SYS_002(error?.message ?? 'Failed to mark stop as arrived', apiPath) };
+    }
+
+    return { success: true, data };
+  }
+
   const { data, error } = await updateRouteStop(userDb, stopId, {
     stop_status: 'ARRIVED',
     arrived_at: new Date().toISOString(),
@@ -687,6 +702,20 @@ export async function completeStop(
       success: false,
       error: createProblemDetails('ROUTE_006', 'Route stop not found', 404, 'Stop was not found', apiPath),
     };
+  }
+
+  if (shouldRouteViaShiftsTimeRpc()) {
+    const { error } = await rpcRouteCompleteStop(userDb, stopId, null);
+    if (error) {
+      return { success: false, error: SYS_002(error.message, apiPath) };
+    }
+
+    const { data: refreshedStop, error: refreshError } = await getRouteStopById(userDb, stopId);
+    if (refreshError || !refreshedStop) {
+      return { success: false, error: SYS_002(refreshError?.message ?? 'Failed to complete stop', apiPath) };
+    }
+
+    return { success: true, data: refreshedStop };
   }
 
   const { data, error } = await updateRouteStop(userDb, stopId, {

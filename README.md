@@ -4,6 +4,8 @@
 
 **Production:** [gleamops.vercel.app](https://gleamops.vercel.app) | **Repo:** [github.com/Anderson413366/gleamops](https://github.com/Anderson413366/gleamops)
 
+**Program status (2026-02-26):** Monday replacement phases 1-8 implemented, PT-BR backfill complete, mobile iOS store submission pending Apple Developer setup.
+
 ---
 
 ## Tech Stack
@@ -76,27 +78,27 @@ pnpm dev
 ```
 gleamops_dev_pack/
 ├── apps/
-│   ├── web/             → Next.js 15 web application (56 pages, 36 API routes)
+│   ├── web/             → Next.js 15 web application (dashboard + API route handlers)
 │   │   └── src/
 │   │       ├── app/
 │   │       │   ├── (auth)/        → Login page
 │   │       │   ├── (dashboard)/   → 10 navigation modules + 21 detail pages
-│   │       │   └── api/           → 36 route handlers (thin delegates → modules)
+│   │       │   └── api/           → route handlers (thin delegates → modules)
 │   │       ├── components/
 │   │       │   ├── forms/         → 29 entity form components
 │   │       │   └── layout/        → AppShell, Header, Sidebar
 │   │       ├── hooks/             → 19 custom hooks
 │   │       ├── lib/               → Supabase clients, auth guard, audit, utils
-│   │       └── modules/           → 16 domain service modules
+│   │       └── modules/           → 27 domain service modules
 │   ├── worker/          → Background jobs (PDF generation, follow-ups)
-│   └── mobile/          → Expo React Native (in development)
+│   └── mobile/          → Expo React Native (production setup in progress)
 ├── packages/
 │   ├── shared/          → Types, Zod schemas, constants, error catalog
 │   ├── domain/          → Pure business rules (RBAC, status machine)
 │   ├── cleanflow/       → Bid math engine (pure functions, no DB deps)
 │   └── ui/              → Design system (32 components)
 ├── supabase/
-│   ├── migrations/      → 84 SQL migration files (13,349 lines)
+│   ├── migrations/      → 99 SQL migration files (15,714 lines)
 │   └── functions/       → Edge Functions (Deno)
 ├── openapi/             → OpenAPI 3.1 contract
 ├── docs/                → 74 documentation files
@@ -154,7 +156,7 @@ Every stage links to the next. The CleanFlow engine handles all bid math — pro
 
 ### API Route Architecture
 
-All 36 API routes follow the **thin delegate** pattern after the Round 1–2 reorg:
+API route handlers follow the **thin delegate** pattern after the Round 1–2 reorg:
 
 ```
 Route Handler (auth → validate → service → respond)
@@ -164,7 +166,7 @@ Service Layer (business logic, orchestration)
 Repository Layer (Supabase queries, data access)
 ```
 
-16 domain modules in `src/modules/`:
+Core domain modules in `src/modules/` include:
 
 | Module | Domain | LOC Extracted |
 |--------|--------|--------------|
@@ -204,7 +206,7 @@ RBAC controls what you can do. Site scoping controls where you can do it.
 
 ## Database
 
-- **84 migration files** totaling 13,349 lines of SQL
+- **99 migration files** totaling 15,714 lines of SQL
 - **Standard columns** on every table: `tenant_id`, `created_at`, `updated_at`, `archived_at`, `version_etag`
 - **Soft delete** via `archived_at` (no hard deletes)
 - **Optimistic locking** via `version_etag` UUID

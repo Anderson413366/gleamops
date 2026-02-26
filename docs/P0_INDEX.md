@@ -3,6 +3,12 @@
 **Purpose:** Lock the baseline before starting new feature phases.
 **Scope:** All additive — no existing code removed or modified (except exports + env vars).
 
+> Status note (2026-02-26): this document is a historical P0 baseline record.
+> For current implementation/release state, use:
+> - `docs/00_EXEC_SUMMARY.md`
+> - `docs/20_VERIFICATION_CHECKLIST.md`
+> - `docs/MONDAY_REPLACEMENT_PLAN.md` (Implementation Status Snapshot)
+
 ---
 
 ## Documents

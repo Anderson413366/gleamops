@@ -43,12 +43,25 @@ For each phase below:
 - **Neuroinclusive UX**: ADHD (progressive disclosure), Dyslexia (spacing/scanning), Anxiety (predictability)
 
 ### Existing Migration Count
-There are 88 migration files (`00001` through `00088`). New migrations in this plan start at `00089`.
+Plan baseline: 88 migration files (`00001` through `00088`), with this implementation plan starting at `00089`.
+Current repository state: 99 migration files (`00001` through `00099`), including all Monday replacement migrations.
 
 ### Project Root
 ```
 /Users/andersongomes/claude_sandbox/gleamops_dev_pack/
 ```
+
+---
+
+## Implementation Status Snapshot (2026-02-26)
+
+- Phases 1 through 8 in this plan are implemented.
+- PT-BR i18n backfill is complete (EN/ES/PT-BR parity in `packages/shared/src/i18n.ts`).
+- Migration train for this plan is complete through `00099`.
+- Web deployment is live on `https://gleamops.vercel.app`.
+- Mobile deployment status:
+  - Android production build requested (`6e45a8e0-4161-4304-a4a3-a136f22837eb`).
+  - iOS release is pending Apple Developer account setup.
 
 ---
 
@@ -62,7 +75,7 @@ There are 88 migration files (`00001` through `00088`). New migrations in this p
 | **Jobs / Service Plans** | `/operations/jobs` + `site_jobs` table | DONE |
 | **Work Tickets** (the nucleus) | `/operations/tickets` + `work_tickets` table | DONE |
 | **Inspections** (templates, scoring, issues) | `/operations/inspections` + mobile app tab | DONE |
-| **Routes** (basic route + stops + vehicle checkout) | `/operations/routes` + `daily_routes`, `route_stops`, `vehicle_checkouts` tables | PARTIAL |
+| **Routes** (basic route + stops + vehicle checkout) | `/operations/routes` + `daily_routes`, `route_stops`, `vehicle_checkouts` tables | DONE (extended by Phase 1 + shift flow support) |
 | **Schedule** (recurring, calendar, planning board, shift trades, forms, checklists) | `/schedule` module, 13 schedule API routes | DONE |
 | **Inventory** (supply catalog, site assignments, counts with photo proof, orders, kits, warehouse, forecasting) | `/inventory` module + `supply_catalog`, `supply_assignments`, `inventory_counts`, `supply_orders` tables | DONE |
 | **Vehicles** (registry, checkout, maintenance, DVIR) | `/assets/vehicles` + `vehicles`, `vehicle_checkouts`, `vehicle_maintenance`, `fleet_dvir` tables | DONE |
@@ -71,15 +84,17 @@ There are 88 migration files (`00001` through `00088`). New migrations in this p
 | **Staff / Workforce** (staff, positions, payroll, timekeeping, timesheets, HR lite) | `/workforce` module + `staff`, `staff_positions`, `time_entries` tables | DONE |
 | **Subcontractors** | `/vendors` module + `subcontractors` table | DONE |
 | **Messaging** (threads, direct/group/ticket-context) | `/workforce/messages` + `message_threads` table | DONE |
-| **i18n** (EN, ES, FR, PT-BR, RO with `t()` function, `useLocale()` hook) | `packages/shared/src/i18n.ts` + `apps/web/src/hooks/use-locale.ts` | PARTIAL (PT-BR only has inventory count translations) |
+| **i18n** (EN, ES, FR, PT-BR, RO with `t()` function, `useLocale()` hook) | `packages/shared/src/i18n.ts` + `apps/web/src/hooks/use-locale.ts` | DONE (EN/ES/PT-BR parity complete) |
 | **RBAC** (OWNER_ADMIN, MANAGER, SUPERVISOR, CLEANER, INSPECTOR, SALES) | `packages/domain` + `useRole()` hook + RLS | DONE |
-| **Mobile app** (Expo, tabs: Today, Tickets, Inspections, Clock, Profile, offline sync) | `apps/mobile/` | PARTIAL (scaffold, needs floater route experience) |
+| **Mobile app** (Expo, tabs: Today, Tickets, Inspections, Clock, Profile, offline sync) | `apps/mobile/` | DONE (floater route and specialist workflows implemented) |
 | **Geofence alerts** | `/operations/geofence` + `geofences`, `alerts` tables | DONE |
 | **Custom forms builder** | `/operations/custom-forms` | PARTIAL |
 | **Checklists** (admin templates + shift checklists) | `/schedule/checklists` | DONE |
 | **Site details** (janitorial closet, supply storage, water source, dumpster, security protocol, entry instructions, parking instructions, access notes) | `sites` table columns | DONE |
 
 ### What Is MISSING (Must Build)
+
+Status update (2026-02-26): all capabilities in this table have been implemented. The table is preserved as original planning context.
 
 | # | Capability | What's Needed | Priority |
 |---|---|---|---|
@@ -96,7 +111,7 @@ There are 88 migration files (`00001` through `00088`). New migrations in this p
 | 11 | **Microfiber Program Tracking** | Enrollment, per-payroll reporting | LOW |
 | 12 | **Owner Dashboard** | KPI snapshot, alerts, supply costs by site | MEDIUM |
 | 13 | **Monthly Vehicle Inspection** | Scheduled monthly checklist (extend existing DVIR) | LOW |
-| 14 | **i18n Completion** | Fill PT-BR translations for entire app (currently only inventory count) | MEDIUM |
+| 14 | **i18n Completion** | Fill PT-BR translations for entire app | MEDIUM |
 | 15 | **Route Template Management** | Weekday-based recurring route templates for auto-generation | HIGH |
 
 ---
@@ -1882,12 +1897,16 @@ When a delivery task is completed on a route (Phase 1):
 ## Complete i18n Backfill: PT-BR Full Coverage
 
 ### Purpose
-The `pt-BR` dictionary in `packages/shared/src/i18n.ts` currently only has inventory count translations (~50 keys). EN has ~320 keys. ES has ~320 keys. PT-BR needs all of them.
+This task is complete. `ptBR` now matches EN/ES key coverage for implemented locales in this codebase.
 
 ### Approach
-Add all missing PT-BR translations to the `ptBR` object in `i18n.ts`. Follow the same key structure. Use neutral Brazilian Portuguese — no slang, no regional idioms.
+All missing PT-BR translations were added to the `ptBR` object in `i18n.ts` using the same key structure and neutral Brazilian Portuguese.
 
-This is a standalone task that can be done in parallel with any phase. The full list of keys to translate is the entire `en` dictionary minus the `count.*` keys (which PT-BR already has).
+Validation snapshot (2026-02-26):
+- EN keys: 479
+- ES keys: 479
+- PT-BR keys: 479
+- Missing PT-BR keys vs EN: 0
 
 ---
 

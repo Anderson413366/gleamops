@@ -1,62 +1,42 @@
-# Executive summary
+# Executive Summary
 
-Your earlier “plan” had the right ideas, but the inspections were correct: without **constraints, indexes, RLS policies, conversion rules, error catalog, and test gates**, it wasn’t implementation-ready.
+Last updated: 2026-02-26
 
-This dev pack fixes that. It’s now a buildable blueprint that a lead AI developer can execute *without inventing the product in the gaps*.
+## Delivery status
 
-## What’s now fully specified (the inspection punch‑list)
+- Monday.com replacement scope is implemented end-to-end (Phases 1-8).
+- PT-BR i18n backfill is complete in `packages/shared/src/i18n.ts` (EN/ES/PT-BR key parity).
+- Supabase migration train for this scope is complete through `00099`:
+  - `00089_route_templates.sql`
+  - `00090_route_shift_extensions.sql`
+  - `00091_load_sheet_view.sql`
+  - `00092_night_bridge_view.sql`
+  - `00093_complaint_records.sql`
+  - `00094_periodic_tasks.sql`
+  - `00095_field_reports.sql`
+  - `00096_customer_portal.sql`
+  - `00097_owner_dashboard.sql`
+  - `00098_generate_daily_routes_urgent_complaints.sql`
+  - `00099_field_reports_insert_policy_hardening.sql`
 
-### Data integrity (no more garbage-in garbage-out)
-- Database **constraints** (NOT NULL, CHECKs, FK rules) for all business-critical fields
-- **Soft delete** columns standardized across tables (`archived_at`, `archived_by`, `archive_reason`)
-- **Optimistic locking** via `version_etag` for concurrent edits (bid wizard, proposals, jobs)
+## Deployment status
 
-### Performance and scalability (no “it worked on my laptop”)
-- Index plan for:
-  - pipeline lookups (status/stage, owners)
-  - schedule queries (tickets by date/assignee/site)
-  - high-write tables (email events, check-in/out events)
-  - full-text search (tsvector + GIN)
-  - fuzzy duplicate detection (pg_trgm)
+- Web production is live on `https://gleamops.vercel.app`.
+- Linked Supabase project is in migration parity through `00099`.
+- Expo/EAS setup is complete for `@anderson860/gleamops-mobile`.
+- Android production build requested: `6e45a8e0-4161-4304-a4a3-a136f22837eb`.
+- iOS production build + App Store submission remain pending Apple Developer account completion.
 
-### Security (RLS-first, tenant-safe)
-- Multi-tenant isolation strategy with **explicit RLS policies**
-- RBAC + **site-scoping** (supervisors only see assigned sites)
-- Secure file delivery via **signed URLs** + private buckets
-- Webhook ingestion with signature verification (email tracking)
+## Verification snapshot
 
-### Bid engine (CleanFlow) is now deterministic and explainable
-- Production rate matching algorithm (most-specific → least-specific)
-- Workloading formulas (minutes/hours)
-- Pricing formulas (true labor cost + burden + supplies + overhead + profit)
-- “Why this price?” explanation payload (trust-building, not vibes)
+- Repository quality gates passed for web/repo checks used in release flow:
+  - `pnpm lint`
+  - `pnpm typecheck`
+  - `pnpm build`
+- Production smoke suite passed for core public + API routes (0 failures / 0 5xx in latest run).
+- Public customer portal middleware access path was fixed and revalidated in production.
 
-### Conversion is now a real system, not a wish
-- Explicit trigger: *user action* (“Convert to Job”) or API call
-- Transaction rules, idempotency, duplicate prevention
-- Conversion event stream for auditability and forensic debugging
-- Optional **dry-run** conversion mode to validate before committing
+## Ready-for-next-phase assessment
 
-### Follow-ups are now a state machine (not a spam cannon)
-- Sequence states, send states, bounce stop rules
-- Timezone rules and business-hours scheduling
-- Stop conditions (Won/Lost/Manual stop) enforced
-
-### Ops reality is included (Assets, Inventory, Safety)
-- SDS links at the site and ticket level
-- Key custody and vehicle checkout rules integrated into ticket lifecycle
-- Staff certifications tracking (compliance)
-
-## Canonical terms (so the codebase doesn’t become a synonym museum)
-- Product name: **GleamOps**
-- Sales/bid math engine folder name: **CleanFlow**
-- Operational center of gravity: **Work Ticket**
-
-## Next-step for engineering
-1. Implement the database foundation + RLS (`docs/04_DATA_MODEL.md`, `docs/05_SECURITY_RLS.md`)
-2. Implement CleanFlow calculation package and unit tests (`docs/09_CLEANFLOW_ENGINE.md`)
-3. Ship Pipeline MVP (Prospects → Bid → Proposal PDF → Send/Track)
-4. Ship Won → Service Plan → Tickets conversion
-5. Ship Schedule + Ticket execution + Timekeeping + Quality
-
-If the build follows this order, you get value early and avoid the classic ERP death spiral.
+- Backend + web platform are ready for the next implementation phase.
+- Remaining release blocker is external to code: Apple Developer enrollment/credentials for iOS store pipeline.

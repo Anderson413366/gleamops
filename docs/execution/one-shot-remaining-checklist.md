@@ -15,6 +15,9 @@ Branch: main
 - [x] Inventory Forecasting tab.
 - [x] Inventory Warehouse tab.
 - [x] Settings notification preferences + quiet hours.
+- [x] Monday replacement Phases 1-8 implemented (routes/load sheet/night bridge/complaints/periodic tasks/field forms/customer portal/owner dashboard).
+- [x] PT-BR i18n full backfill completed.
+- [x] Supabase migrations `00089` through `00099` created and applied to linked project.
 
 ## Remaining to finish full one-shot scope
 

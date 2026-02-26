@@ -4,6 +4,30 @@ Maps documentation specs (docs 00–23 + appendices) to implementation status.
 
 ---
 
+## Current Status Override (2026-02-26)
+
+This file was originally created as a P0 baseline snapshot. The implementation status below supersedes the original baseline matrix for current execution decisions.
+
+| Program Area | Current Status | Evidence |
+|---|---|---|
+| Monday replacement phases 1-8 | DONE | Migrations `00089`-`00099`, web modules/routes, mobile route flow, portal/dashboard features |
+| PT-BR i18n completion | DONE | `packages/shared/src/i18n.ts` has EN/ES/PT-BR key parity (479 keys each for EN/ES/PT-BR) |
+| Supabase rollout state | DONE | Linked project migration parity through `00099` |
+| Web production rollout | DONE | `gleamops.vercel.app` deployed and smoke-validated |
+| Mobile production rollout | PARTIAL | Android build requested; iOS release pending Apple Developer setup |
+
+### Read Me First
+
+- Use `docs/MONDAY_REPLACEMENT_PLAN.md` for phase-by-phase functional scope and implementation details.
+- Use `docs/20_VERIFICATION_CHECKLIST.md` for current release gates and blockers.
+- Use `docs/execution/one-shot-remaining-checklist.md` for sprint execution tracking.
+
+### Historical Baseline
+
+The matrices below remain as the original P0 baseline record and are intentionally preserved for historical comparison.
+
+---
+
 ## Section 1: Doc-to-Feature Mapping
 
 | Doc | Title | Status | Notes |

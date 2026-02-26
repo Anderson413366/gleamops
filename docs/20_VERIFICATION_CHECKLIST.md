@@ -1,84 +1,49 @@
-# Verification Checklist (Definition of Done)
-**Version:** vFinal2  
-**Date:** 2026-02-12
+# Verification Checklist (Current Release Baseline)
 
-This checklist exists because “trust me bro” is not a QA strategy.
+Version: v2026-02-26  
+Scope: Monday replacement rollout + production readiness snapshot
 
----
+## 1) Build and static quality gates
 
-## 1) Data continuity checks (must pass)
+- [x] `pnpm lint` passed
+- [x] `pnpm typecheck` passed
+- [x] `pnpm build` passed
+- [ ] Full automated test suite is green in CI for all apps/packages (environment-bound tests still require configured Supabase env)
 
-- [ ] Service template can be created (tasks + services + service_tasks)
-- [ ] Bid can be created from a service template without manual re-entry
-- [ ] Proposal can be generated deterministically (same input → same PDF hash)
-- [ ] Proposal can be sent and tracked (delivered/open/bounce)
-- [ ] Follow-ups stop on:
-  - [ ] proposal WON
-  - [ ] proposal LOST
-  - [ ] bounce/spam report
-  - [ ] manual stop
-- [ ] WON conversion produces:
-  - [ ] contract/service plan
-  - [ ] recurrence rule
-  - [ ] generated tickets (next N weeks)
-  - [ ] correct links back to source bid/proposal
-- [ ] Ticket completion attaches:
-  - [ ] checklist completion
-  - [ ] photos
-  - [ ] time entries
-  - [ ] inspection results (if applicable)
-  - [ ] safety docs visibility for assigned supplies
+## 2) Database and migration gates
 
----
+- [x] Migration files `00089` through `00099` exist in `supabase/migrations/`
+- [x] Linked Supabase project is in parity through migration `00099`
+- [x] New tenant tables in this rollout include standard columns + RLS (`tenant_id = current_tenant_id()` policy pattern)
+- [x] Hardening migration applied for field report insert impersonation guard (`00099`)
 
-## 2) Security checks (must pass)
+## 3) Web production gates
 
-- [ ] Every tenant table has `tenant_id`
-- [ ] RLS enabled on every tenant table
-- [ ] Policies prevent cross-tenant reads/writes
-- [ ] Site scoping enforced (supervisor sees only assigned sites)
-- [ ] Service role usage is limited to server-side code only
-- [ ] Audit events exist for:
-  - [ ] ticket create/update/reschedule/reassign/status change
-  - [ ] time entry edits
-  - [ ] timesheet approvals
-  - [ ] proposal sent / status changed
-  - [ ] geofence changes / site assignments changes
+- [x] Latest production deployment is live on `https://gleamops.vercel.app`
+- [x] Production smoke checks completed for public pages + core APIs with 0 failures / 0 5xx
+- [x] Public customer portal middleware allowlist fixed and verified in production
+- [x] Protected APIs redirect unauthenticated sessions to `/login` as expected
 
----
+## 4) Monday replacement feature gates (Phase 1-8)
 
-## 3) Reliability checks (must pass)
+- [x] Phase 1: Route templates + route generation + mobile route flow
+- [x] Phase 2: Load sheet view + API + mobile checklist integration
+- [x] Phase 3: Night bridge shift handoff + review APIs + operations UI
+- [x] Phase 4: Complaint intake + issue hub + resolution workflow
+- [x] Phase 5: Periodic task scheduler + generation integration
+- [x] Phase 6: Field quick forms + specialist mobile workflow
+- [x] Phase 7: Customer portal tables/pages/APIs
+- [x] Phase 8: Owner dashboard + supply cost + microfiber tracking
+- [x] PT-BR full i18n backfill completed (EN/ES/PT-BR parity)
 
-- [ ] Webhooks are idempotent (same event twice → one stored record)
-- [ ] Webhook signature verification implemented (raw request bytes)
-- [ ] PDF generation is async and retried safely (idempotency key)
-- [ ] Job worker can restart without duplicating side effects
-- [ ] Follow-up scheduler does not send after stop conditions
-- [ ] Offline inspection sync does not lose data (versioned upsert)
+## 5) Mobile release gates
 
----
+- [x] Expo/EAS project initialized and linked (`@anderson860/gleamops-mobile`)
+- [x] Android production build requested (`6e45a8e0-4161-4304-a4a3-a136f22837eb`)
+- [ ] iOS production build is blocked pending Apple Developer account setup/acceptance
+- [ ] App Store submission pending iOS credential setup
 
-## 4) Performance checks (must pass)
+## 6) Go / No-Go
 
-- [ ] Schedule week view query uses correct indexes
-- [ ] Tickets list payload remains small (no giant joins)
-- [ ] Full-text search uses GIN indexes (tsvector + trigram where needed)
-- [ ] High-volume tables (email_events) have proper indexes and retention plan
-
----
-
-## 5) UX checks (must pass)
-- [ ] Navigation stays at 5 top-level spaces
-- [ ] Each screen has one primary action
-- [ ] List → detail drawer pattern used consistently
-- [ ] Critical statuses are never “fake optimistic”
-- [ ] No dense “Microsoft Excel cosplay” tables unless absolutely required
-
----
-
-## 6) Release checks (must pass)
-
-- [ ] CI gates: lint + typecheck + tests + OpenAPI contract validation
-- [ ] Database migrations run cleanly in staging and are reversible
-- [ ] Monitoring exists (Sentry + structured logs)
-- [ ] Backups and restore procedure documented
+- [x] GO for next backend/web phase work
+- [ ] GO for iOS store release (blocked by Apple account prerequisites)

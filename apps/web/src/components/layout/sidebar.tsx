@@ -227,7 +227,9 @@ export function Sidebar() {
         <nav className="flex-1 py-3 px-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const Icon = ICON_MAP[item.icon] ?? Building2;
-            const isActive = activeModule === item.id || pathname.startsWith(item.href);
+            const isJobsNavItem = item.id === 'jobs' || item.href === '/jobs';
+            const suppressJobsActive = showShiftsTimeNav && shiftsTimeActive && isJobsNavItem;
+            const isActive = (activeModule === item.id || pathname.startsWith(item.href)) && !suppressJobsActive;
             const badgeCount = badgeCounts[item.id] ?? 0;
 
             return (

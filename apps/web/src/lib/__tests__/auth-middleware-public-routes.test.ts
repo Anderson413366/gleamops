@@ -7,6 +7,13 @@ test('proposal public routes bypass auth redirect', () => {
   assert.equal(isPublicRoutePath('/api/public/proposals/invalid-token'), true);
 });
 
+test('portal public routes bypass auth redirect', () => {
+  assert.equal(isPublicRoutePath('/public/portal'), true);
+  assert.equal(isPublicRoutePath('/public/portal/abc123'), true);
+  assert.equal(isPublicRoutePath('/api/public/portal/auth'), true);
+  assert.equal(isPublicRoutePath('/api/public/portal/abc123/dashboard'), true);
+});
+
 test('pwa assets bypass auth redirect', () => {
   assert.equal(isPublicRoutePath('/manifest.webmanifest'), true);
   assert.equal(isPublicRoutePath('/sw.js'), true);

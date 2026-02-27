@@ -1,13 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, CalendarDays, Plus, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, Plus, Printer, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
-import { Button, Card, CardContent, Input, Select, SlideOver, cn } from '@gleamops/ui';
+import { Button, Card, CardContent, ExportButton, Input, Select, SlideOver, cn } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { PlanningStatus } from '@gleamops/shared';
 import { useMediaQuery } from '@/hooks/use-media-query';
-import { PlanningCard, type PlanningTicket } from './planning-card';
+import { PlanningCard, formatPositionLabel, type PlanningTicket } from './planning-card';
 import { StaffingGapPanel } from './staffing-gap-panel';
 import { HandoffSummary } from './handoff-summary';
 import { BoardActivityLog } from './board-activity-log';
@@ -724,6 +724,34 @@ export default function PlanningBoard({ search = '', openCreateToken = 0 }: Plan
             <option value="site">Group by Site</option>
             <option value="position">Group by Position</option>
           </select>
+          <span className="border-l border-border h-5 mx-1" />
+          <ExportButton
+            data={filteredTickets.map((t) => ({
+              ticket_code: t.ticket_code,
+              site: t.site?.name ?? '',
+              position: t.position_code ? formatPositionLabel(t.position_code) : '',
+              date: t.scheduled_date,
+              start: t.start_time ?? '',
+              end: t.end_time ?? '',
+              status: t.planning_status,
+              assigned: (t.assignments ?? [])
+                .filter((a) => !a.assignment_status || a.assignment_status === 'ASSIGNED')
+                .map((a) => a.staff?.full_name ?? 'Unassigned')
+                .join(', '),
+              notes: t.notes ?? '',
+            }))}
+            filename={`planning-board-${selectedDate}`}
+            label="Export"
+            className="h-8 text-xs"
+          />
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => window.print()}
+            aria-label="Print board"
+          >
+            <Printer className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 

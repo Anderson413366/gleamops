@@ -102,6 +102,7 @@ const en: Translations = {
   'common.next': 'Next',
   'common.previous': 'Previous',
   'common.close': 'Close',
+  'common.dismiss': 'Dismiss',
   'common.confirm': 'Confirm',
   'common.yes': 'Yes',
   'common.no': 'No',
@@ -259,6 +260,10 @@ const en: Translations = {
   'shiftsTime.payroll.preview': 'Preview Export',
   'shiftsTime.payroll.previewing': 'Generating preview...',
   'shiftsTime.payroll.previewSuccess': 'Payroll preview generated.',
+  'shiftsTime.payroll.previewResultsTitle': 'Preview results',
+  'shiftsTime.payroll.previewEmpty': 'Preview returned no rows for the selected period and mapping.',
+  'shiftsTime.payroll.previewRowCount': '{count} rows',
+  'shiftsTime.payroll.previewShowingRows': 'Showing 50 of {count} rows',
   'shiftsTime.payroll.previewError': 'Unable to generate payroll preview.',
   'shiftsTime.payroll.finalize': 'Finalize Export',
   'shiftsTime.payroll.finalizing': 'Finalizing...',
@@ -765,6 +770,7 @@ const es: Translations = {
   'common.next': 'Siguiente',
   'common.previous': 'Anterior',
   'common.close': 'Cerrar',
+  'common.dismiss': 'Descartar',
   'common.confirm': 'Confirmar',
   'common.yes': 'Sí',
   'common.no': 'No',
@@ -922,6 +928,10 @@ const es: Translations = {
   'shiftsTime.payroll.preview': 'Vista previa',
   'shiftsTime.payroll.previewing': 'Generando vista previa...',
   'shiftsTime.payroll.previewSuccess': 'Vista previa de nómina generada.',
+  'shiftsTime.payroll.previewResultsTitle': 'Resultados de vista previa',
+  'shiftsTime.payroll.previewEmpty': 'La vista previa no devolvió filas para el período y mapeo seleccionados.',
+  'shiftsTime.payroll.previewRowCount': '{count} filas',
+  'shiftsTime.payroll.previewShowingRows': 'Mostrando 50 de {count} filas',
   'shiftsTime.payroll.previewError': 'No se pudo generar la vista previa de nómina.',
   'shiftsTime.payroll.finalize': 'Finalizar exportación',
   'shiftsTime.payroll.finalizing': 'Finalizando...',
@@ -1428,6 +1438,7 @@ const fr: Translations = {
   'common.next': 'Suivant',
   'common.previous': 'Précédent',
   'common.close': 'Fermer',
+  'common.dismiss': 'Rejeter',
   'common.confirm': 'Confirmer',
   'common.yes': 'Oui',
   'common.no': 'Non',
@@ -1587,6 +1598,12 @@ const fr: Translations = {
   'messaging.threadType.DIRECT': 'Direct',
   'messaging.threadType.GROUP': 'Groupe',
   'messaging.threadType.TICKET_CONTEXT': 'Ticket',
+
+  // -- Shifts & Time (payroll preview) --
+  'shiftsTime.payroll.previewResultsTitle': "Résultats de l'aperçu",
+  'shiftsTime.payroll.previewEmpty': "L'aperçu n'a renvoyé aucune ligne pour la période et le mappage sélectionnés.",
+  'shiftsTime.payroll.previewRowCount': '{count} lignes',
+  'shiftsTime.payroll.previewShowingRows': 'Affichage de 50 lignes sur {count}',
 
   // -- Subcontractors --
   'subs.title': 'Sous-traitants',
@@ -1952,6 +1969,7 @@ const ptBR: Translations = {
   'common.back': 'Voltar',
   'common.cancel': 'Cancelar',
   'common.close': 'Fechar',
+  'common.dismiss': 'Dispensar',
   'common.confirm': 'Confirmar',
   'common.create': 'Criar',
   'common.delete': 'Excluir',
@@ -2131,6 +2149,10 @@ const ptBR: Translations = {
   'shiftsTime.payroll.preview': 'Pre-visualizar exportacao',
   'shiftsTime.payroll.previewing': 'Gerando pre-visualizacao...',
   'shiftsTime.payroll.previewSuccess': 'Pre-visualizacao da folha gerada.',
+  'shiftsTime.payroll.previewResultsTitle': 'Resultados da pre-visualizacao',
+  'shiftsTime.payroll.previewEmpty': 'A pre-visualizacao nao retornou linhas para o periodo e mapeamento selecionados.',
+  'shiftsTime.payroll.previewRowCount': '{count} linhas',
+  'shiftsTime.payroll.previewShowingRows': 'Mostrando 50 de {count} linhas',
   'shiftsTime.payroll.previewError': 'Nao foi possivel gerar a pre-visualizacao da folha.',
   'shiftsTime.payroll.finalize': 'Finalizar exportacao',
   'shiftsTime.payroll.finalizing': 'Finalizando...',
@@ -2272,6 +2294,8 @@ const ptBR: Translations = {
 };
 
 const ro: Translations = {
+  'common.dismiss': 'Respinge',
+
   'count.locale.label': 'Limbă',
   'count.title': 'Inventar — {site}',
   'count.code': 'Cod',
@@ -2318,6 +2342,12 @@ const ro: Translations = {
   'count.toast.photoUploaded': 'Fotografie încărcată',
   'count.toast.photoTypeError': 'Sunt permise doar fișiere imagine.',
   'count.toast.photoSizeError': 'Imaginea trebuie să aibă cel mult 8MB.',
+
+  // -- Shifts & Time (payroll preview) --
+  'shiftsTime.payroll.previewResultsTitle': 'Rezultatele previzualizării',
+  'shiftsTime.payroll.previewEmpty': 'Previzualizarea nu a returnat rânduri pentru perioada și maparea selectate.',
+  'shiftsTime.payroll.previewRowCount': '{count} rânduri',
+  'shiftsTime.payroll.previewShowingRows': 'Se afișează 50 din {count} rânduri',
 };
 
 // ---------------------------------------------------------------------------

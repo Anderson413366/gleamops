@@ -247,6 +247,7 @@ export default function ShiftsTimePanel({ search }: ShiftsTimePanelProps) {
   const [exportedFilePath, setExportedFilePath] = useState('');
   const [exportedChecksum, setExportedChecksum] = useState('');
   const [previewSaving, setPreviewSaving] = useState(false);
+  const [previewResult, setPreviewResult] = useState<{ run_id: string; rows: Record<string, unknown>[]; row_count: number } | null>(null);
   const [finalizeSaving, setFinalizeSaving] = useState(false);
   const [createMappingSaving, setCreateMappingSaving] = useState(false);
   const [mappingFieldsLoading, setMappingFieldsLoading] = useState(false);
@@ -512,17 +513,31 @@ export default function ShiftsTimePanel({ search }: ShiftsTimePanelProps) {
         throw new Error(body?.detail ?? body?.title ?? t('shiftsTime.payroll.previewError'));
       }
 
-      const runId = typeof body.data === 'string'
-        ? body.data
-        : (typeof body.data?.run_id === 'string' ? body.data.run_id : '');
+      const payload = body.data;
+      const runId = typeof payload === 'string'
+        ? payload
+        : (typeof payload?.run_id === 'string' ? payload.run_id : '');
 
       if (runId) {
         setPreviewRunId(runId);
       }
+
+      if (payload && typeof payload === 'object' && Array.isArray(payload.rows)) {
+        const rows = payload.rows as Record<string, unknown>[];
+        setPreviewResult({
+          run_id: runId,
+          rows,
+          row_count: typeof payload.row_count === 'number' ? payload.row_count : rows.length,
+        });
+      } else {
+        setPreviewResult(null);
+      }
+
       toast.success(t('shiftsTime.payroll.previewSuccess'));
       await load();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('shiftsTime.payroll.previewError'));
+      setPreviewResult(null);
     } finally {
       setPreviewSaving(false);
     }
@@ -1224,7 +1239,7 @@ export default function ShiftsTimePanel({ search }: ShiftsTimePanelProps) {
                       id="payroll-mapping"
                       className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                       value={mappingId}
-                      onChange={(event) => setMappingId(event.target.value)}
+                      onChange={(event) => { setMappingId(event.target.value); setPreviewResult(null); }}
                       disabled={previewSaving || finalizeSaving}
                     >
                       <option value="">{t('shiftsTime.payroll.noMappings')}</option>
@@ -1317,6 +1332,63 @@ export default function ShiftsTimePanel({ search }: ShiftsTimePanelProps) {
                     {finalizeSaving ? t('shiftsTime.payroll.finalizing') : t('shiftsTime.payroll.finalize')}
                   </Button>
                 </div>
+
+                {previewResult && previewResult.rows.length > 0 && (() => {
+                  const columns = Object.keys(previewResult.rows[0] ?? {});
+                  return (
+                    <div className="rounded-lg border border-border bg-background p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-foreground">
+                          {t('shiftsTime.payroll.previewResultsTitle')} ({t('shiftsTime.payroll.previewRowCount', { count: previewResult.row_count })})
+                        </p>
+                        <button
+                          type="button"
+                          className="text-xs text-muted-foreground hover:text-foreground"
+                          onClick={() => setPreviewResult(null)}
+                        >
+                          {t('common.dismiss')}
+                        </button>
+                      </div>
+                      <div className="overflow-x-auto max-h-64 overflow-y-auto rounded-md border border-border">
+                        <table className="min-w-full text-xs">
+                          <thead className="sticky top-0 bg-muted">
+                            <tr>
+                              {columns.map((col) => (
+                                <th key={col} className="whitespace-nowrap px-3 py-2 text-left font-medium text-foreground border-b border-border">
+                                  {col}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {previewResult.rows.slice(0, 50).map((row, rowIndex) => (
+                              <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-background' : 'bg-muted/30'}>
+                                {columns.map((col) => (
+                                  <td key={col} className="whitespace-nowrap px-3 py-1.5 text-muted-foreground border-b border-border">
+                                    {row[col] != null ? String(row[col]) : ''}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      {previewResult.rows.length > 50 && (
+                        <p className="text-xs text-muted-foreground">
+                            {t('shiftsTime.payroll.previewShowingRows', { count: previewResult.row_count })}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {previewResult && previewResult.rows.length === 0 && (
+                  <div className="rounded-lg border border-border bg-background p-3">
+                    <p className="text-sm text-muted-foreground">
+                      {t('shiftsTime.payroll.previewEmpty')}
+                    </p>
+                  </div>
+                )}
 
                 <div className="rounded-lg border border-border bg-background p-3 space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">

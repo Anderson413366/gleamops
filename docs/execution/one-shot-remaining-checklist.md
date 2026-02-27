@@ -46,3 +46,10 @@ Branch: main
 ## Mobile deployment follow-up
 - [x] Android production EAS build requested (`6e45a8e0-4161-4304-a4a3-a136f22837eb`).
 - [ ] iOS production build + App Store submission pending Apple Developer account setup/acceptance.
+
+## Remaining cutover tasks (non-code)
+- [ ] Complete Apple Developer enrollment/account acceptance.
+- [ ] Run iOS EAS production build and submit to App Store.
+- [ ] Confirm Android release completion path in Play Console (internal vs production rollout).
+- [ ] Execute Monday.com manual migration/cutover data entry (sites, route templates, periodic tasks, supply assignments, microfiber enrollments).
+- [ ] Run UAT sign-off with operations stakeholders (owner, managers, supervisors, floaters, specialists).

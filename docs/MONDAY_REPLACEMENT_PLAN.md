@@ -63,6 +63,34 @@ Current repository state: 109 migration files (`00001` through `00109`), includi
   - Android production build requested (`6e45a8e0-4161-4304-a4a3-a136f22837eb`).
   - iOS release is pending Apple Developer account setup.
 
+### Execution Ledger (Completed)
+
+- Phase 1 complete: route templates, template stops/tasks, route shift extensions, route generation APIs, route execution APIs, Operations route template surfaces, mobile route flow.
+- Phase 2 complete: load sheet SQL view, route load sheet API, mobile load sheet/checklist.
+- Phase 3 complete: night bridge SQL view, night bridge APIs, Operations handoff dashboard + review workflow.
+- Phase 4 complete: complaint records table, complaint intake/resolve/send APIs, issue hub UI, complaint-to-route integration.
+- Phase 5 complete: periodic tasks table + scheduler RPC flow, periodic task APIs/UI, route generation integration.
+- Phase 6 complete: field reports table + site extensions, field report APIs, specialist mobile view, web field reports tab.
+- Phase 7 complete: customer portal tables, token auth/API surface, public portal pages/workflows.
+- Phase 8 complete: owner dashboard APIs/views, supply cost tracking tables/flows, microfiber enrollment/export APIs.
+- PT-BR backfill complete: EN/ES/PT-BR key parity in `packages/shared/src/i18n.ts`.
+- Migration sequencing fixed: duplicate migration versions removed by resequencing shifts/time series to `00100`-`00109`.
+- Supabase linked deployment complete through `00109` (local/remote parity confirmed).
+- Release quality gates passed on current tree: `pnpm lint`, `pnpm typecheck`, `pnpm build`.
+
+### Remaining Work (Code/Release/Ops)
+
+- Apple Developer enrollment/account acceptance must be completed.
+- iOS EAS production build + App Store submission must be executed after Apple account readiness.
+- Android EAS build status should be finalized and Play Console release flow completed (internal/prod rollout decision).
+- Manual migration/cutover data entry from Monday.com is still required (see `Migration Data Strategy` section):
+  - site verification + procedures/access windows,
+  - route template population by weekday,
+  - periodic task seeding,
+  - supply assignment verification,
+  - microfiber enrollment data confirmation.
+- UAT + production cutover checklist with operations team (Paulette/supervisors/floaters) should be run and signed off.
+
 ---
 
 ## Codebase Audit: What Already Exists vs. What Must Be Built

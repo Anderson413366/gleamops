@@ -57,3 +57,4 @@ Branch: main
 - [x] UAT sign-off template added at `docs/execution/monday-cutover-uat-signoff.md`.
 - [x] Cutover workbook generated for tenant `TNT-0001` at `reports/cutover/TNT-0001-2026-02-27T01-18-31.550Z`.
 - [x] Weekday route template skeleton (MON-SAT) auto-created for `TNT-0001`.
+- [x] Session closeout documented at `docs/execution/2026-02-27-monday-cutover-session-closeout.md`.

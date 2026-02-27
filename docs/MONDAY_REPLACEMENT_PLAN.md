@@ -44,7 +44,7 @@ For each phase below:
 
 ### Existing Migration Count
 Plan baseline: 88 migration files (`00001` through `00088`), with this implementation plan starting at `00089`.
-Current repository state: 99 migration files (`00001` through `00099`), including all Monday replacement migrations.
+Current repository state: 109 migration files (`00001` through `00109`), including Monday replacement migrations (`00089`-`00099`) plus shifts/time migrations (`00100`-`00109`).
 
 ### Project Root
 ```
@@ -57,7 +57,7 @@ Current repository state: 99 migration files (`00001` through `00099`), includin
 
 - Phases 1 through 8 in this plan are implemented.
 - PT-BR i18n backfill is complete (EN/ES/PT-BR parity in `packages/shared/src/i18n.ts`).
-- Migration train for this plan is complete through `00099`.
+- Migration train for this plan is complete through `00099` (overall linked project parity currently through `00109`).
 - Web deployment is live on `https://gleamops.vercel.app`.
 - Mobile deployment status:
   - Android production build requested (`6e45a8e0-4161-4304-a4a3-a136f22837eb`).

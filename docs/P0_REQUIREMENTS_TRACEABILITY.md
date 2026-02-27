@@ -12,7 +12,7 @@ This file was originally created as a P0 baseline snapshot. The implementation s
 |---|---|---|
 | Monday replacement phases 1-8 | DONE | Migrations `00089`-`00099`, web modules/routes, mobile route flow, portal/dashboard features |
 | PT-BR i18n completion | DONE | `packages/shared/src/i18n.ts` has EN/ES/PT-BR key parity (479 keys each for EN/ES/PT-BR) |
-| Supabase rollout state | DONE | Linked project migration parity through `00099` |
+| Supabase rollout state | DONE | Linked project migration parity through `00109` (Monday replacement `00089`-`00099` + shifts/time `00100`-`00109`) |
 | Web production rollout | DONE | `gleamops.vercel.app` deployed and smoke-validated |
 | Mobile production rollout | PARTIAL | Android build requested; iOS release pending Apple Developer setup |
 

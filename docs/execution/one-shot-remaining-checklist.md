@@ -17,7 +17,8 @@ Branch: main
 - [x] Settings notification preferences + quiet hours.
 - [x] Monday replacement Phases 1-8 implemented (routes/load sheet/night bridge/complaints/periodic tasks/field forms/customer portal/owner dashboard).
 - [x] PT-BR i18n full backfill completed.
-- [x] Supabase migrations `00089` through `00099` created and applied to linked project.
+- [x] Supabase Monday replacement migrations `00089` through `00099` created and applied to linked project.
+- [x] Shifts/time migration sequence normalized to `00100` through `00109` and applied to linked project.
 
 ## Remaining to finish full one-shot scope
 

@@ -98,7 +98,7 @@ gleamops_dev_pack/
 │   ├── cleanflow/       → Bid math engine (pure functions, no DB deps)
 │   └── ui/              → Design system (32 components)
 ├── supabase/
-│   ├── migrations/      → 99 SQL migration files (15,714 lines)
+│   ├── migrations/      → 109 SQL migration files (17,518 lines)
 │   └── functions/       → Edge Functions (Deno)
 ├── openapi/             → OpenAPI 3.1 contract
 ├── docs/                → 74 documentation files
@@ -206,7 +206,7 @@ RBAC controls what you can do. Site scoping controls where you can do it.
 
 ## Database
 
-- **99 migration files** totaling 15,714 lines of SQL
+- **109 migration files** totaling 17,518 lines of SQL
 - **Standard columns** on every table: `tenant_id`, `created_at`, `updated_at`, `archived_at`, `version_etag`
 - **Soft delete** via `archived_at` (no hard deletes)
 - **Optimistic locking** via `version_etag` UUID

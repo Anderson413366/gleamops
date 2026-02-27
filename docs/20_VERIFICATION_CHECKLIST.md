@@ -12,8 +12,9 @@ Scope: Monday replacement rollout + production readiness snapshot
 
 ## 2) Database and migration gates
 
-- [x] Migration files `00089` through `00099` exist in `supabase/migrations/`
-- [x] Linked Supabase project is in parity through migration `00099`
+- [x] Monday replacement migration files `00089` through `00099` exist in `supabase/migrations/`
+- [x] Additional shifts/time migration files `00100` through `00109` are sequenced with no duplicate versions
+- [x] Linked Supabase project is in parity through migration `00109`
 - [x] New tenant tables in this rollout include standard columns + RLS (`tenant_id = current_tenant_id()` policy pattern)
 - [x] Hardening migration applied for field report insert impersonation guard (`00099`)
 

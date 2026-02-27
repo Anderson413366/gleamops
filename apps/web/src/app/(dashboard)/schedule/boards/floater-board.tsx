@@ -1,8 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Clock, MapPin, MapPinned, Navigation, Route } from 'lucide-react';
-import { Badge, Button, Card, CardContent, EmptyState, Skeleton, cn } from '@gleamops/ui';
+import {
+  CheckCircle2, Clock, MapPin, MapPinned, Navigation, Route,
+} from 'lucide-react';
+import { Button, Card, CardContent, EmptyState, Skeleton, cn } from '@gleamops/ui';
 
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
@@ -80,6 +82,14 @@ interface StopViewData {
   checkOutTime: string | null;
 }
 
+const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
+  SCHEDULED: { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-300', dot: 'bg-blue-500' },
+  IN_PROGRESS: { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-300', dot: 'bg-amber-500' },
+  COMPLETED: { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-300', dot: 'bg-emerald-500' },
+  VERIFIED: { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-300', dot: 'bg-emerald-500' },
+  CANCELED: { bg: 'bg-gray-100 dark:bg-gray-800/30', text: 'text-gray-600 dark:text-gray-400', dot: 'bg-gray-400' },
+};
+
 export function FloaterBoard() {
   const [routes, setRoutes] = useState<RouteRow[]>([]);
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
@@ -90,7 +100,6 @@ export function FloaterBoard() {
 
   const today = useMemo(() => toDateInput(new Date()), []);
 
-  // Fetch today's routes for the current user
   useEffect(() => {
     let cancelled = false;
 
@@ -105,7 +114,6 @@ export function FloaterBoard() {
         return;
       }
 
-      // Get staff record for current user
       const { data: staffRow } = await supabase
         .from('staff')
         .select('id')
@@ -118,7 +126,6 @@ export function FloaterBoard() {
         return;
       }
 
-      // Fetch routes for today
       const { data: routeData } = await supabase
         .from('daily_routes')
         .select('id, route_code, route_date, status')
@@ -134,7 +141,6 @@ export function FloaterBoard() {
         }
       }
 
-      // Fetch my tickets for today
       const { data: ticketData } = await supabase
         .from('work_tickets')
         .select(`
@@ -158,7 +164,6 @@ export function FloaterBoard() {
     return () => { cancelled = true; };
   }, [today, selectedRouteId]);
 
-  // Fetch stops for selected route
   useEffect(() => {
     if (!selectedRouteId) return;
     let cancelled = false;
@@ -178,7 +183,6 @@ export function FloaterBoard() {
 
       if (!stopData || cancelled) return;
 
-      // Fetch check events
       const stopIds = stopData.map((s: { id: string }) => s.id);
       const { data: events } = await supabase
         .from('time_events')
@@ -248,7 +252,6 @@ export function FloaterBoard() {
         longitude: lng,
       });
 
-      // Refresh stops
       setStops((prev) =>
         prev.map((s) => {
           if (s.stopId !== stopId) return s;
@@ -267,12 +270,13 @@ export function FloaterBoard() {
   const totalTravelMinutes = stops.reduce((sum, s) => sum + (s.estimatedTravel ?? 0), 0);
   const progressPercent = totalStops > 0 ? Math.round((completedStops / totalStops) * 100) : 0;
 
-  const nextStop = stops.find((s) => !s.checkedIn);
+  const currentStopIndex = stops.findIndex((s) => !s.checkedIn);
+  const nextStop = currentStopIndex >= 0 ? stops[currentStopIndex] : null;
 
   if (loading) {
     return (
       <div className="space-y-4">
-        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-32 w-full" />
         <Skeleton className="h-48 w-full" />
         <Skeleton className="h-48 w-full" />
       </div>
@@ -290,19 +294,20 @@ export function FloaterBoard() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {routes.length > 0 && (
         <>
-          <Card>
+          {/* Route header card */}
+          <Card className="border-l-[3px] border-l-primary">
             <CardContent className="pt-4">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                  <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                    <Route className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+                    <Route className="h-5 w-5 text-primary" />
                     Tonight&apos;s Route
                   </h3>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {today} · {totalStops} stops · ~{totalTravelMinutes} min travel
+                    {today} — {totalStops} stops — ~{totalTravelMinutes} min total travel
                   </p>
                 </div>
                 {routes.length > 1 && (
@@ -318,135 +323,229 @@ export function FloaterBoard() {
                 )}
               </div>
 
-              <div className="mt-3">
-                <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                  <span>Progress</span>
-                  <span>{completedStops}/{totalStops} completed</span>
+              {/* Progress bar */}
+              <div className="mt-4">
+                <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+                  <span>Route Progress</span>
+                  <span className="font-medium">{completedStops}/{totalStops} stops completed ({progressPercent}%)</span>
                 </div>
-                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <div className="h-3 rounded-full bg-muted overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-primary transition-all"
+                    className="h-full rounded-full bg-emerald-500 transition-all duration-500"
                     style={{ width: `${progressPercent}%` }}
                   />
                 </div>
               </div>
 
+              {/* Next stop highlight */}
               {nextStop && (
-                <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs">
-                  <p className="font-medium text-primary">Next: {nextStop.siteName}</p>
-                  <p className="text-muted-foreground">
-                    {nextStop.address ? nextStop.address : 'No address'} · {nextStop.startTime ? formatTime(nextStop.startTime) : 'No time set'}
-                  </p>
+                <div className="mt-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-[11px] font-medium uppercase tracking-wider text-primary mb-0.5">Next Stop</p>
+                      <p className="text-sm font-semibold text-foreground">{nextStop.siteName}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {nextStop.address || 'No address on file'}
+                        {nextStop.startTime && ` — ${formatTime(nextStop.startTime)}`}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => handleCheckAction(nextStop.stopId, 'CHECK_IN')}
+                      loading={checkingSaving === nextStop.stopId}
+                    >
+                      Check In
+                    </Button>
+                  </div>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          <div className="space-y-3">
-            {stops.map((stop) => {
-              const isDone = stop.checkedOut;
-              const isOnSite = stop.checkedIn && !stop.checkedOut;
-              const isPending = !stop.checkedIn;
+          {/* Vertical timeline stops */}
+          <div className="relative">
+            {/* Vertical line */}
+            <div className="absolute left-[19px] top-0 bottom-0 w-0.5 bg-border" />
 
-              return (
-                <Card key={stop.stopId} className={cn(isDone && 'opacity-60')}>
-                  <CardContent className="pt-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-3">
+            <div className="space-y-0">
+              {stops.map((stop, idx) => {
+                const isDone = stop.checkedOut;
+                const isOnSite = stop.checkedIn && !stop.checkedOut;
+                const isPending = !stop.checkedIn;
+                const isNext = idx === currentStopIndex;
+
+                return (
+                  <div key={stop.stopId} className="relative">
+                    {/* Travel indicator between stops */}
+                    {idx > 0 && stop.estimatedTravel != null && stop.estimatedTravel > 0 && (
+                      <div className="flex items-center gap-2 py-1.5 pl-[30px]">
+                        <Navigation className="h-3 w-3 text-muted-foreground/50" />
+                        <span className="text-[10px] text-muted-foreground/60">~{stop.estimatedTravel} min drive</span>
+                      </div>
+                    )}
+
+                    <div className={cn(
+                      'relative flex items-start gap-4 rounded-lg py-3 pl-0 pr-3 transition-all',
+                      isNext && 'bg-primary/5',
+                      isDone && 'opacity-60',
+                    )}>
+                      {/* Timeline node */}
+                      <div className="relative z-10 flex flex-col items-center shrink-0 w-10">
                         <div className={cn(
-                          'flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold',
-                          isDone ? 'bg-green-100 text-green-700' : isOnSite ? 'bg-blue-100 text-blue-700' : 'bg-muted text-muted-foreground',
+                          'flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold border-2 transition-all',
+                          isDone
+                            ? 'bg-emerald-500 border-emerald-500 text-white'
+                            : isOnSite
+                              ? 'bg-primary border-primary text-white ring-4 ring-primary/20'
+                              : isNext
+                                ? 'bg-background border-primary text-primary'
+                                : 'bg-muted border-border text-muted-foreground',
                         )}>
-                          {isDone ? <CheckCircle2 className="h-4 w-4" /> : stop.stopOrder}
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-foreground">{stop.siteName}</p>
-                          <p className="text-xs text-muted-foreground">{stop.siteCode}{stop.jobCode ? ` · ${stop.jobCode}` : ''}</p>
-                          {stop.address && (
-                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                              <MapPin className="h-3 w-3" />
-                              {stop.address}
-                            </p>
+                          {isDone ? (
+                            <CheckCircle2 className="h-5 w-5" />
+                          ) : (
+                            stop.stopOrder
                           )}
-                          <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                            {(stop.startTime ?? stop.endTime) && (
-                              <span className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {formatTime(stop.startTime)}{stop.endTime ? ` - ${formatTime(stop.endTime)}` : ''}
-                              </span>
+                        </div>
+                      </div>
+
+                      {/* Stop content */}
+                      <div className="flex-1 min-w-0 pt-0.5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className={cn(
+                              'text-sm font-semibold truncate',
+                              isDone ? 'text-muted-foreground line-through' : 'text-foreground',
+                            )}>
+                              {stop.siteName}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {stop.siteCode}
+                              {stop.jobCode && ` — ${stop.jobCode}`}
+                            </p>
+
+                            {stop.address && (
+                              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                                <MapPin className="h-3 w-3 shrink-0" />
+                                <span className="truncate">{stop.address}</span>
+                              </p>
                             )}
-                            {stop.estimatedTravel != null && (
-                              <span className="flex items-center gap-1">
-                                <Navigation className="h-3 w-3" />
-                                ~{stop.estimatedTravel} min drive
-                              </span>
+
+                            <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
+                              {(stop.startTime ?? stop.endTime) && (
+                                <span className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  {formatTime(stop.startTime)}{stop.endTime ? ` - ${formatTime(stop.endTime)}` : ''}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Check timestamps */}
+                            {stop.checkInTime && (
+                              <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground">
+                                <span>In: {new Date(stop.checkInTime).toLocaleTimeString()}</span>
+                                {stop.checkOutTime && <span>Out: {new Date(stop.checkOutTime).toLocaleTimeString()}</span>}
+                              </div>
                             )}
                           </div>
-                          {stop.checkInTime && (
-                            <p className="text-[10px] text-muted-foreground mt-1">
-                              Checked in: {new Date(stop.checkInTime).toLocaleTimeString()}
-                              {stop.checkOutTime && ` · Out: ${new Date(stop.checkOutTime).toLocaleTimeString()}`}
-                            </p>
-                          )}
+
+                          {/* Status + actions */}
+                          <div className="flex flex-col items-end gap-2 shrink-0">
+                            {(() => {
+                              const statusKey = isDone ? 'COMPLETED' : isOnSite ? 'IN_PROGRESS' : 'SCHEDULED';
+                              const statusStyle = STATUS_COLORS[statusKey];
+                              const statusLabel = isDone ? 'Done' : isOnSite ? 'On Site' : 'Pending';
+                              return (
+                                <span className={cn(
+                                  'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold',
+                                  statusStyle.bg, statusStyle.text,
+                                )}>
+                                  <span className={cn('h-1.5 w-1.5 rounded-full', statusStyle.dot)} />
+                                  {statusLabel}
+                                </span>
+                              );
+                            })()}
+
+                            {isPending && !isNext && (
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => handleCheckAction(stop.stopId, 'CHECK_IN')}
+                                loading={checkingSaving === stop.stopId}
+                              >
+                                Check In
+                              </Button>
+                            )}
+                            {isOnSite && (
+                              <Button
+                                size="sm"
+                                onClick={() => handleCheckAction(stop.stopId, 'CHECK_OUT')}
+                                loading={checkingSaving === stop.stopId}
+                              >
+                                Check Out
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
-
-                      <div className="flex items-center gap-2">
-                        <Badge color={isDone ? 'green' : isOnSite ? 'blue' : 'gray'}>
-                          {isDone ? 'Done' : isOnSite ? 'On Site' : 'Pending'}
-                        </Badge>
-                        {isPending && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleCheckAction(stop.stopId, 'CHECK_IN')}
-                            loading={checkingSaving === stop.stopId}
-                          >
-                            Check In
-                          </Button>
-                        )}
-                        {isOnSite && (
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => handleCheckAction(stop.stopId, 'CHECK_OUT')}
-                            loading={checkingSaving === stop.stopId}
-                          >
-                            Check Out
-                          </Button>
-                        )}
-                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </>
       )}
 
+      {/* My Assignments — Monday.com-style table */}
       {myTickets.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-3">
             <MapPinned className="h-4 w-4 text-muted-foreground" />
             My Assignments Today
           </h3>
-          {myTickets.map((ticket) => (
-            <Card key={ticket.id}>
-              <CardContent className="pt-4 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium text-foreground">{ticket.site?.name ?? ticket.ticket_code}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {ticket.site?.site_code ?? ''}
-                    {ticket.position_code ? ` · ${ticket.position_code.replaceAll('_', ' ')}` : ''}
-                    {ticket.start_time ? ` · ${formatTime(ticket.start_time)}${ticket.end_time ? `-${formatTime(ticket.end_time)}` : ''}` : ''}
-                  </p>
-                </div>
-                <Badge color={ticket.status === 'COMPLETED' || ticket.status === 'VERIFIED' ? 'green' : ticket.status === 'IN_PROGRESS' ? 'yellow' : 'blue'}>
-                  {ticket.status}
-                </Badge>
-              </CardContent>
-            </Card>
-          ))}
+
+          <div className="rounded-lg border border-border overflow-hidden">
+            {/* Column header */}
+            <div className="grid grid-cols-[1fr_100px_120px_120px] border-b border-border bg-muted/30 px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              <span>Site</span>
+              <span>Position</span>
+              <span>Time</span>
+              <span>Status</span>
+            </div>
+
+            <div className="divide-y divide-border/50">
+              {myTickets.map((ticket) => {
+                const statusStyle = STATUS_COLORS[ticket.status] ?? STATUS_COLORS.CANCELED;
+
+                return (
+                  <div
+                    key={ticket.id}
+                    className="grid grid-cols-[1fr_100px_120px_120px] items-center gap-1 px-4 py-2.5 text-sm hover:bg-muted/20 transition-colors"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-medium text-foreground truncate">{ticket.site?.name ?? ticket.ticket_code}</p>
+                      <p className="text-xs text-muted-foreground">{ticket.site?.site_code ?? ''}</p>
+                    </div>
+                    <div className="text-xs text-foreground truncate">
+                      {ticket.position_code?.replaceAll('_', ' ') ?? '—'}
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3 shrink-0" />
+                      {ticket.start_time ? `${formatTime(ticket.start_time)}${ticket.end_time ? `-${formatTime(ticket.end_time)}` : ''}` : 'No time'}
+                    </div>
+                    <span className={cn(
+                      'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold w-fit',
+                      statusStyle.bg, statusStyle.text,
+                    )}>
+                      <span className={cn('h-1.5 w-1.5 rounded-full', statusStyle.dot)} />
+                      {ticket.status}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
     </div>

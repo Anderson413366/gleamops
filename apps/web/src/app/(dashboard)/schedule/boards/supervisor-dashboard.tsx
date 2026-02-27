@@ -1,8 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Building2, Clock, MapPinned, Phone, RefreshCw, UserCircle2, Users } from 'lucide-react';
-import { Badge, Button, Card, CardContent, EmptyState, Select, Skeleton, cn } from '@gleamops/ui';
+import {
+  AlertTriangle, Building2, CheckCircle2, ChevronDown, ChevronRight,
+  Clock, MapPinned, Phone, RefreshCw,
+} from 'lucide-react';
+import { Button, Card, CardContent, EmptyState, Select, Skeleton, cn } from '@gleamops/ui';
 
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
@@ -26,18 +29,6 @@ interface SupervisorTicket {
   }>;
 }
 
-interface StaffAssignment {
-  staffId: string;
-  staffName: string;
-  phone: string | null;
-  siteName: string;
-  siteCode: string;
-  shiftTime: string;
-  checkedIn: boolean;
-  ticketId: string;
-  status: string;
-}
-
 function formatTime(t: string | null): string {
   if (!t) return '';
   const parts = t.split(':');
@@ -55,24 +46,53 @@ function toDateInput(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-const STATUS_BADGE: Record<string, 'green' | 'yellow' | 'blue' | 'red' | 'gray'> = {
-  SCHEDULED: 'blue',
-  IN_PROGRESS: 'yellow',
-  COMPLETED: 'green',
-  VERIFIED: 'green',
-  CANCELED: 'gray',
+function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
+  SCHEDULED: { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-300', dot: 'bg-blue-500' },
+  IN_PROGRESS: { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-300', dot: 'bg-amber-500' },
+  COMPLETED: { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-300', dot: 'bg-emerald-500' },
+  VERIFIED: { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-300', dot: 'bg-emerald-500' },
+  CANCELED: { bg: 'bg-gray-100 dark:bg-gray-800/30', text: 'text-gray-600 dark:text-gray-400', dot: 'bg-gray-400' },
 };
 
-interface SiteCard {
+const SITE_ACCENT_COLORS = [
+  'border-l-blue-500', 'border-l-violet-500', 'border-l-emerald-500',
+  'border-l-amber-500', 'border-l-rose-500', 'border-l-cyan-500',
+  'border-l-orange-500', 'border-l-indigo-500', 'border-l-teal-500',
+  'border-l-pink-500',
+];
+
+const SITE_HEADER_BG = [
+  'bg-blue-50 dark:bg-blue-950/20', 'bg-violet-50 dark:bg-violet-950/20',
+  'bg-emerald-50 dark:bg-emerald-950/20', 'bg-amber-50 dark:bg-amber-950/20',
+  'bg-rose-50 dark:bg-rose-950/20', 'bg-cyan-50 dark:bg-cyan-950/20',
+  'bg-orange-50 dark:bg-orange-950/20', 'bg-indigo-50 dark:bg-indigo-950/20',
+  'bg-teal-50 dark:bg-teal-950/20', 'bg-pink-50 dark:bg-pink-950/20',
+];
+
+const AVATAR_BG_COLORS = [
+  'bg-blue-100 text-blue-700', 'bg-violet-100 text-violet-700',
+  'bg-emerald-100 text-emerald-700', 'bg-amber-100 text-amber-700',
+  'bg-rose-100 text-rose-700', 'bg-cyan-100 text-cyan-700',
+];
+
+interface SiteGroup {
   siteId: string;
   siteName: string;
   siteCode: string;
   tickets: SupervisorTicket[];
-  assignedStaff: string[];
-  shiftRange: string;
-  allCheckedIn: boolean;
+  staffList: Array<{ id: string; name: string; phone: string | null; ticketId: string; status: string; shiftTime: string }>;
+  completedCount: number;
+  totalCount: number;
   hasIssues: boolean;
-  status: string;
 }
 
 export function SupervisorDashboard() {
@@ -81,8 +101,19 @@ export function SupervisorDashboard() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [reassigningTicketId, setReassigningTicketId] = useState<string | null>(null);
   const [availableStaff, setAvailableStaff] = useState<Array<{ id: string; full_name: string }>>([]);
+  const [collapsedSites, setCollapsedSites] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = useState<'sites' | 'staff'>('sites');
 
   const today = useMemo(() => toDateInput(new Date()), []);
+
+  const toggleSiteCollapse = useCallback((siteId: string) => {
+    setCollapsedSites((prev) => {
+      const next = new Set(prev);
+      if (next.has(siteId)) next.delete(siteId);
+      else next.add(siteId);
+      return next;
+    });
+  }, []);
 
   const fetchTickets = useCallback(async () => {
     setLoading(true);
@@ -103,7 +134,6 @@ export function SupervisorDashboard() {
       setTickets(data as unknown as SupervisorTicket[]);
     }
 
-    // Fetch available staff
     const { data: staffData } = await supabase
       .from('staff')
       .select('id, full_name')
@@ -122,105 +152,100 @@ export function SupervisorDashboard() {
     void fetchTickets();
   }, [fetchTickets, refreshKey]);
 
-  // KPI calculations
+  // KPIs
   const kpis = useMemo(() => {
     const siteIds = new Set(tickets.map((t) => t.site?.id).filter(Boolean));
-    const staffedTickets = tickets.filter((t) =>
+    const staffedCount = tickets.filter((t) =>
       t.assignments?.some((a) => a.staff && (!a.assignment_status || a.assignment_status === 'ASSIGNED')),
-    );
-    const unstaffedTickets = tickets.filter((t) =>
-      !t.assignments?.some((a) => a.staff && (!a.assignment_status || a.assignment_status === 'ASSIGNED')),
-    );
-    const completedTickets = tickets.filter((t) => t.status === 'COMPLETED' || t.status === 'VERIFIED');
-    const issueTickets = unstaffedTickets;
+    ).length;
+    const completedCount = tickets.filter((t) => t.status === 'COMPLETED' || t.status === 'VERIFIED').length;
+    const unstaffedCount = tickets.length - staffedCount;
 
-    return {
-      totalSites: siteIds.size,
-      staffed: staffedTickets.length,
-      unstaffed: unstaffedTickets.length,
-      completed: completedTickets.length,
-      issues: issueTickets.length,
-    };
+    return { totalSites: siteIds.size, totalTickets: tickets.length, staffed: staffedCount, unstaffed: unstaffedCount, completed: completedCount };
   }, [tickets]);
 
-  // Group tickets into site cards
-  const siteCards = useMemo(() => {
-    const map = new Map<string, SiteCard>();
+  // Group by site
+  const siteGroups = useMemo(() => {
+    const map = new Map<string, SiteGroup>();
 
     for (const ticket of tickets) {
       const siteId = ticket.site?.id ?? 'no-site';
       const siteName = ticket.site?.name ?? 'No Site';
       const siteCode = ticket.site?.site_code ?? '';
-
       const existing = map.get(siteId);
-      const staffNames = (ticket.assignments ?? [])
-        .filter((a) => a.staff && (!a.assignment_status || a.assignment_status === 'ASSIGNED'))
-        .map((a) => a.staff!.full_name ?? 'Unknown');
+      const activeAssignments = (ticket.assignments ?? [])
+        .filter((a) => a.staff && (!a.assignment_status || a.assignment_status === 'ASSIGNED'));
+      const shiftTime = ticket.start_time
+        ? `${formatTime(ticket.start_time)}${ticket.end_time ? ` - ${formatTime(ticket.end_time)}` : ''}`
+        : 'No time';
+
+      const staffEntries = activeAssignments.map((a) => ({
+        id: a.staff!.id,
+        name: a.staff!.full_name ?? 'Unknown',
+        phone: a.staff!.phone ?? null,
+        ticketId: ticket.id,
+        status: ticket.status,
+        shiftTime,
+      }));
+
+      const isCompleted = ticket.status === 'COMPLETED' || ticket.status === 'VERIFIED';
 
       if (existing) {
         existing.tickets.push(ticket);
-        for (const name of staffNames) {
-          if (!existing.assignedStaff.includes(name)) {
-            existing.assignedStaff.push(name);
-          }
-        }
+        existing.staffList.push(...staffEntries);
+        if (isCompleted) existing.completedCount++;
+        existing.totalCount++;
+        if (staffEntries.length === 0) existing.hasIssues = true;
       } else {
         map.set(siteId, {
           siteId,
           siteName,
           siteCode,
           tickets: [ticket],
-          assignedStaff: [...staffNames],
-          shiftRange: '',
-          allCheckedIn: false,
-          hasIssues: staffNames.length === 0,
-          status: ticket.status,
+          staffList: [...staffEntries],
+          completedCount: isCompleted ? 1 : 0,
+          totalCount: 1,
+          hasIssues: staffEntries.length === 0,
         });
       }
-    }
-
-    // Compute shift ranges and status
-    for (const card of map.values()) {
-      const times = card.tickets
-        .flatMap((t) => [t.start_time, t.end_time])
-        .filter(Boolean) as string[];
-      if (times.length >= 2) {
-        times.sort();
-        card.shiftRange = `${formatTime(times[0])} - ${formatTime(times[times.length - 1])}`;
-      }
-
-      const hasInProgress = card.tickets.some((t) => t.status === 'IN_PROGRESS');
-      const allCompleted = card.tickets.every((t) => t.status === 'COMPLETED' || t.status === 'VERIFIED');
-
-      card.status = allCompleted ? 'COMPLETED' : hasInProgress ? 'IN_PROGRESS' : 'SCHEDULED';
-      card.hasIssues = card.assignedStaff.length === 0 || card.tickets.some((t) =>
-        !t.assignments?.some((a) => a.staff && (!a.assignment_status || a.assignment_status === 'ASSIGNED')),
-      );
     }
 
     return Array.from(map.values()).sort((a, b) => a.siteName.localeCompare(b.siteName));
   }, [tickets]);
 
-  // Staff assignment table
-  const staffAssignments = useMemo(() => {
-    const assignments: StaffAssignment[] = [];
+  // Flat staff list for staff view
+  const allStaff = useMemo(() => {
+    const staffMap = new Map<string, { id: string; name: string; phone: string | null; sites: Array<{ siteName: string; siteCode: string; shiftTime: string; status: string; ticketId: string }> }>();
+
     for (const ticket of tickets) {
-      for (const assignment of ticket.assignments ?? []) {
-        if (!assignment.staff || (assignment.assignment_status && assignment.assignment_status !== 'ASSIGNED')) continue;
-        assignments.push({
-          staffId: assignment.staff.id,
-          staffName: assignment.staff.full_name ?? 'Unknown',
-          phone: assignment.staff.phone ?? null,
+      const activeAssignments = (ticket.assignments ?? [])
+        .filter((a) => a.staff && (!a.assignment_status || a.assignment_status === 'ASSIGNED'));
+
+      for (const a of activeAssignments) {
+        const staffId = a.staff!.id;
+        const existing = staffMap.get(staffId);
+        const entry = {
           siteName: ticket.site?.name ?? 'No Site',
           siteCode: ticket.site?.site_code ?? '',
-          shiftTime: ticket.start_time ? `${formatTime(ticket.start_time)}${ticket.end_time ? ` - ${formatTime(ticket.end_time)}` : ''}` : 'No time',
-          checkedIn: ticket.status === 'IN_PROGRESS' || ticket.status === 'COMPLETED' || ticket.status === 'VERIFIED',
-          ticketId: ticket.id,
+          shiftTime: ticket.start_time ? `${formatTime(ticket.start_time)}${ticket.end_time ? `-${formatTime(ticket.end_time)}` : ''}` : 'No time',
           status: ticket.status,
-        });
+          ticketId: ticket.id,
+        };
+
+        if (existing) {
+          existing.sites.push(entry);
+        } else {
+          staffMap.set(staffId, {
+            id: staffId,
+            name: a.staff!.full_name ?? 'Unknown',
+            phone: a.staff!.phone ?? null,
+            sites: [entry],
+          });
+        }
       }
     }
-    return assignments.sort((a, b) => a.staffName.localeCompare(b.staffName));
+
+    return Array.from(staffMap.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [tickets]);
 
   const handleReassign = useCallback(async (ticketId: string, newStaffId: string) => {
@@ -228,13 +253,11 @@ export function SupervisorDashboard() {
     const { data: auth } = await supabase.auth.getUser();
     const tenantId = auth.user?.app_metadata?.tenant_id ?? null;
 
-    // Remove existing assignments
     await supabase
       .from('ticket_assignments')
       .update({ assignment_status: 'REMOVED' })
       .eq('ticket_id', ticketId);
 
-    // Add new assignment
     await supabase.from('ticket_assignments').insert({
       tenant_id: tenantId,
       ticket_id: ticketId,
@@ -270,196 +293,311 @@ export function SupervisorDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-foreground">Supervisor Dashboard — {today}</h3>
-        <Button variant="secondary" size="sm" onClick={() => setRefreshKey((k) => k + 1)}>
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </Button>
-      </div>
-
-      {/* KPI Row */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-        <Card>
-          <CardContent className="pt-4 text-center">
-            <p className="text-xs text-muted-foreground">Total Sites</p>
-            <p className="text-2xl font-bold">{kpis.totalSites}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 text-center">
-            <p className="text-xs text-muted-foreground">Staffed</p>
-            <p className="text-2xl font-bold text-green-600">{kpis.staffed}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 text-center">
-            <p className="text-xs text-muted-foreground">Unstaffed</p>
-            <p className={cn('text-2xl font-bold', kpis.unstaffed > 0 ? 'text-destructive' : '')}>{kpis.unstaffed}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 text-center">
-            <p className="text-xs text-muted-foreground">Completed</p>
-            <p className="text-2xl font-bold text-green-600">{kpis.completed}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 text-center">
-            <p className="text-xs text-muted-foreground">Issues</p>
-            <p className={cn('text-2xl font-bold', kpis.issues > 0 ? 'text-amber-600' : '')}>{kpis.issues}</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Site Status Grid */}
-      <div>
-        <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-          <Building2 className="h-4 w-4 text-muted-foreground" />
-          Site Status
-        </h4>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {siteCards.map((card) => (
-            <Card key={card.siteId} className={cn(card.hasIssues && 'border-amber-300 dark:border-amber-800')}>
-              <CardContent className="pt-4">
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">{card.siteName}</p>
-                    <p className="text-xs text-muted-foreground">{card.siteCode}</p>
-                  </div>
-                  <Badge color={STATUS_BADGE[card.status] ?? 'gray'}>{card.status}</Badge>
-                </div>
-
-                {card.shiftRange && (
-                  <p className="text-xs text-muted-foreground flex items-center gap-1 mb-2">
-                    <Clock className="h-3 w-3" />
-                    {card.shiftRange}
-                  </p>
-                )}
-
-                <div className="space-y-1 mb-2">
-                  {card.assignedStaff.length > 0 ? (
-                    card.assignedStaff.map((name) => (
-                      <div key={name} className="flex items-center gap-1.5">
-                        <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-[9px] font-bold text-primary">
-                          {name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
-                        </div>
-                        <span className="text-xs text-foreground">{name}</span>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-xs text-destructive font-medium flex items-center gap-1">
-                      <AlertTriangle className="h-3 w-3" />
-                      No staff assigned
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2 pt-2 border-t border-border">
-                  <p className="text-[10px] text-muted-foreground">{card.tickets.length} ticket(s)</p>
-                  {card.hasIssues && (
-                    <span className="text-[10px] text-amber-600 font-medium">Needs attention</span>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        <div>
+          <h3 className="text-lg font-semibold text-foreground">Supervisor Dashboard</h3>
+          <p className="text-xs text-muted-foreground">{today} — Tonight&apos;s overview</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Select
+            value={viewMode}
+            onChange={(e) => setViewMode(e.target.value as 'sites' | 'staff')}
+            options={[
+              { value: 'sites', label: 'View by Sites' },
+              { value: 'staff', label: 'View by Staff' },
+            ]}
+          />
+          <Button variant="secondary" size="sm" onClick={() => setRefreshKey((k) => k + 1)}>
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
         </div>
       </div>
 
-      {/* Staff Assignment Table */}
-      <div>
-        <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-          <Users className="h-4 w-4 text-muted-foreground" />
-          Staff Assignments
-        </h4>
-        <Card>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/40 text-xs text-muted-foreground uppercase tracking-wide">
-                  <th className="px-4 py-3 text-left font-medium">Staff</th>
-                  <th className="px-4 py-3 text-left font-medium">Site</th>
-                  <th className="px-4 py-3 text-left font-medium">Shift</th>
-                  <th className="px-4 py-3 text-left font-medium">Status</th>
-                  <th className="px-4 py-3 text-left font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {staffAssignments.map((assignment) => (
-                  <tr key={`${assignment.ticketId}-${assignment.staffId}`}>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <UserCircle2 className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium text-foreground">{assignment.staffName}</p>
-                          {assignment.phone && (
-                            <p className="text-xs text-muted-foreground">{assignment.phone}</p>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="text-foreground">{assignment.siteName}</p>
-                      <p className="text-xs text-muted-foreground">{assignment.siteCode}</p>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">{assignment.shiftTime}</td>
-                    <td className="px-4 py-3">
-                      <Badge color={STATUS_BADGE[assignment.status] ?? 'gray'}>{assignment.status}</Badge>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1">
-                        {reassigningTicketId === assignment.ticketId ? (
-                          <Select
-                            value=""
-                            onChange={(e) => {
-                              if (e.target.value) void handleReassign(assignment.ticketId, e.target.value);
-                            }}
-                            options={[
-                              { value: '', label: 'Select new staff...' },
-                              ...availableStaff
-                                .filter((s) => s.id !== assignment.staffId)
-                                .map((s) => ({ value: s.id, label: s.full_name })),
-                            ]}
-                          />
-                        ) : (
-                          <>
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => setReassigningTicketId(assignment.ticketId)}
-                            >
-                              <RefreshCw className="h-3 w-3" />
-                              Reassign
-                            </Button>
-                            {assignment.phone && (
-                              <Button
-                                variant="secondary"
-                                size="sm"
-                                onClick={() => window.open(`tel:${assignment.phone}`, '_self')}
-                              >
-                                <Phone className="h-3 w-3" />
-                              </Button>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {staffAssignments.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
-                      No staff assignments for today.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+      {/* KPI Cards — Monday.com number tiles */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+        {[
+          { label: 'Sites Tonight', value: kpis.totalSites, color: 'text-foreground', icon: Building2 },
+          { label: 'Total Shifts', value: kpis.totalTickets, color: 'text-foreground', icon: Clock },
+          { label: 'Staffed', value: kpis.staffed, color: 'text-emerald-600', icon: CheckCircle2 },
+          { label: 'Unstaffed', value: kpis.unstaffed, color: kpis.unstaffed > 0 ? 'text-destructive' : 'text-foreground', icon: AlertTriangle },
+          { label: 'Completed', value: kpis.completed, color: 'text-emerald-600', icon: CheckCircle2 },
+        ].map((kpi) => (
+          <Card key={kpi.label}>
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 mb-1">
+                <kpi.icon className="h-3.5 w-3.5 text-muted-foreground" />
+                <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{kpi.label}</p>
+              </div>
+              <p className={cn('text-2xl font-bold', kpi.color)}>{kpi.value}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
+
+      {/* Overall progress bar */}
+      <div className="px-1">
+        <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+          <span>Tonight&apos;s Progress</span>
+          <span>{kpis.completed}/{kpis.totalTickets} completed ({kpis.totalTickets > 0 ? Math.round((kpis.completed / kpis.totalTickets) * 100) : 0}%)</span>
+        </div>
+        <div className="h-2.5 rounded-full bg-muted overflow-hidden">
+          <div
+            className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+            style={{ width: `${kpis.totalTickets > 0 ? (kpis.completed / kpis.totalTickets) * 100 : 0}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Sites View — Monday.com-style collapsible groups */}
+      {viewMode === 'sites' && (
+        <div className="space-y-3">
+          {siteGroups.map((group, idx) => {
+            const accent = SITE_ACCENT_COLORS[idx % SITE_ACCENT_COLORS.length];
+            const headerBg = SITE_HEADER_BG[idx % SITE_HEADER_BG.length];
+            const isCollapsed = collapsedSites.has(group.siteId);
+            const progressPct = group.totalCount > 0 ? Math.round((group.completedCount / group.totalCount) * 100) : 0;
+
+            return (
+              <div key={group.siteId} className={cn('rounded-lg border border-border overflow-hidden border-l-[3px]', accent)}>
+                {/* Group header */}
+                <button
+                  type="button"
+                  onClick={() => toggleSiteCollapse(group.siteId)}
+                  className={cn('w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:opacity-90', headerBg)}
+                >
+                  {isCollapsed ? (
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                  )}
+                  <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-semibold text-foreground">{group.siteName}</span>
+                    <span className="ml-2 text-xs text-muted-foreground">{group.siteCode}</span>
+                  </div>
+
+                  {group.hasIssues && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+                      <AlertTriangle className="h-3 w-3" />
+                      Needs Attention
+                    </span>
+                  )}
+
+                  <span className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span>{group.staffList.length} staff</span>
+                    <span>{group.completedCount}/{group.totalCount} done</span>
+                  </span>
+                </button>
+
+                {!isCollapsed && (
+                  <>
+                    {/* Progress bar for site */}
+                    <div className="px-4 py-2 border-b border-border/50 bg-muted/10">
+                      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-emerald-500 transition-all"
+                          style={{ width: `${progressPct}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Staff assigned to this site */}
+                    <div className="divide-y divide-border/50">
+                      {group.staffList.length > 0 ? (
+                        group.staffList.map((staff, staffIdx) => {
+                          const statusStyle = STATUS_COLORS[staff.status] ?? STATUS_COLORS.CANCELED;
+                          const avatarColor = AVATAR_BG_COLORS[staffIdx % AVATAR_BG_COLORS.length];
+
+                          return (
+                            <div
+                              key={`${staff.ticketId}-${staff.id}`}
+                              className="flex items-center gap-3 px-4 py-3 hover:bg-muted/20 transition-colors"
+                            >
+                              {/* Avatar */}
+                              <div className={cn('h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0', avatarColor)}>
+                                {getInitials(staff.name)}
+                              </div>
+
+                              {/* Name + phone */}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-foreground truncate">{staff.name}</p>
+                                {staff.phone && (
+                                  <p className="text-xs text-muted-foreground">{staff.phone}</p>
+                                )}
+                              </div>
+
+                              {/* Shift time */}
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Clock className="h-3 w-3 shrink-0" />
+                                <span>{staff.shiftTime}</span>
+                              </div>
+
+                              {/* Status pill */}
+                              <span className={cn(
+                                'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold',
+                                statusStyle.bg, statusStyle.text,
+                              )}>
+                                <span className={cn('h-1.5 w-1.5 rounded-full', statusStyle.dot)} />
+                                {staff.status}
+                              </span>
+
+                              {/* Actions */}
+                              <div className="flex items-center gap-1">
+                                {reassigningTicketId === staff.ticketId ? (
+                                  <Select
+                                    value=""
+                                    onChange={(e) => {
+                                      if (e.target.value) void handleReassign(staff.ticketId, e.target.value);
+                                    }}
+                                    options={[
+                                      { value: '', label: 'Select...' },
+                                      ...availableStaff
+                                        .filter((s) => s.id !== staff.id)
+                                        .map((s) => ({ value: s.id, label: s.full_name })),
+                                    ]}
+                                  />
+                                ) : (
+                                  <>
+                                    <Button variant="secondary" size="sm" onClick={() => setReassigningTicketId(staff.ticketId)}>
+                                      <RefreshCw className="h-3 w-3" />
+                                    </Button>
+                                    {staff.phone && (
+                                      <Button variant="secondary" size="sm" onClick={() => window.open(`tel:${staff.phone}`, '_self')}>
+                                        <Phone className="h-3 w-3" />
+                                      </Button>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="px-4 py-4 text-center">
+                          <p className="text-xs text-destructive font-medium flex items-center justify-center gap-1">
+                            <AlertTriangle className="h-3.5 w-3.5" />
+                            No staff assigned — immediate attention required
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Summary row */}
+                    <div className="flex items-center justify-between px-4 py-2 bg-muted/20 border-t border-border text-[11px] font-medium text-muted-foreground">
+                      <span>{group.totalCount} shift{group.totalCount !== 1 ? 's' : ''}</span>
+                      <span>{group.staffList.length} staff assigned</span>
+                      <span>{progressPct}% complete</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Staff View — Monday.com-style table */}
+      {viewMode === 'staff' && (
+        <div className="rounded-lg border border-border overflow-hidden">
+          {/* Column header */}
+          <div className="grid grid-cols-[1fr_1fr_120px_140px_100px] border-b border-border bg-muted/30 px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+            <span>Staff</span>
+            <span>Site</span>
+            <span>Shift</span>
+            <span>Status</span>
+            <span>Actions</span>
+          </div>
+
+          <div className="divide-y divide-border/50">
+            {allStaff.map((staff, idx) => {
+              const avatarColor = AVATAR_BG_COLORS[idx % AVATAR_BG_COLORS.length];
+
+              return staff.sites.map((site, siteIdx) => {
+                const statusStyle = STATUS_COLORS[site.status] ?? STATUS_COLORS.CANCELED;
+
+                return (
+                  <div
+                    key={`${staff.id}-${site.ticketId}`}
+                    className="grid grid-cols-[1fr_1fr_120px_140px_100px] items-center gap-1 px-4 py-2.5 text-sm hover:bg-muted/20 transition-colors"
+                  >
+                    {/* Staff */}
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {siteIdx === 0 ? (
+                        <>
+                          <div className={cn('h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0', avatarColor)}>
+                            {getInitials(staff.name)}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium text-foreground truncate">{staff.name}</p>
+                            {staff.phone && <p className="text-xs text-muted-foreground">{staff.phone}</p>}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="ml-10 text-xs text-muted-foreground italic">same staff</div>
+                      )}
+                    </div>
+
+                    {/* Site */}
+                    <div className="min-w-0">
+                      <p className="text-sm text-foreground truncate">{site.siteName}</p>
+                      <p className="text-xs text-muted-foreground">{site.siteCode}</p>
+                    </div>
+
+                    {/* Shift */}
+                    <div className="text-xs text-muted-foreground">{site.shiftTime}</div>
+
+                    {/* Status */}
+                    <span className={cn(
+                      'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold w-fit',
+                      statusStyle.bg, statusStyle.text,
+                    )}>
+                      <span className={cn('h-1.5 w-1.5 rounded-full', statusStyle.dot)} />
+                      {site.status}
+                    </span>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-1">
+                      {reassigningTicketId === site.ticketId ? (
+                        <Select
+                          value=""
+                          onChange={(e) => {
+                            if (e.target.value) void handleReassign(site.ticketId, e.target.value);
+                          }}
+                          options={[
+                            { value: '', label: 'Select...' },
+                            ...availableStaff
+                              .filter((s) => s.id !== staff.id)
+                              .map((s) => ({ value: s.id, label: s.full_name })),
+                          ]}
+                        />
+                      ) : (
+                        <>
+                          <Button variant="secondary" size="sm" onClick={() => setReassigningTicketId(site.ticketId)}>
+                            <RefreshCw className="h-3 w-3" />
+                          </Button>
+                          {staff.phone && (
+                            <Button variant="secondary" size="sm" onClick={() => window.open(`tel:${staff.phone}`, '_self')}>
+                              <Phone className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              });
+            })}
+            {allStaff.length === 0 && (
+              <div className="px-4 py-8 text-center text-muted-foreground text-sm">
+                No staff assignments for today.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

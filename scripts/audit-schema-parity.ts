@@ -27,50 +27,7 @@ type RequirementCatalog = {
 
 const ROOT = resolve(__dirname, '..');
 const REPORT_DIR = resolve(ROOT, 'reports', 'schema-parity');
-const REQUIRED_V1 = resolve(ROOT, 'docs', 'schema', 'required-schema-v1.json');
-const REQUIRED_V2 = resolve(ROOT, 'docs', 'schema', 'required-schema-v2-enterprise.json');
-
-const TABLE_ALIASES: Record<string, string[]> = {
-  job_sites: ['sites', 'locations'],
-  work_orders: ['work_tickets', 'jobs'],
-  job_assignments: ['job_staff_assignments'],
-  location_areas: ['site_areas'],
-  inventory_items: ['items', 'supply_catalog'],
-  inventory_transactions: ['stock_movements'],
-  equipment_maintenance_logs: ['asset_maintenance_logs', 'vehicle_maintenance'],
-  training_modules: ['training_courses'],
-  training_records: ['training_completions'],
-  quality_control_inspections: ['inspections'],
-  contracts: ['contracts'],
-  quotes: ['sales_proposals', 'quotes'],
-  opportunities: ['sales_opportunities', 'opportunities'],
-  leads: ['sales_prospects', 'leads'],
-  real_estate_properties: ['real_estate_properties'],
-  schedules: ['routes', 'job_visits'],
-  customers: ['clients', 'customers'],
-  customer_contacts: ['contacts', 'customer_contacts'],
-  locations: ['sites', 'locations'],
-  assets: ['equipment', 'assets'],
-};
-
-const COLUMN_ALIASES: Record<string, string[]> = {
-  id: ['id', 'module_id', 'record_id', 'item_id', 'asset_id', 'employee_id'],
-  org_id: ['org_id', 'tenant_id'],
-  customer_id: ['customer_id', 'client_id'],
-  location_id: ['location_id', 'site_id'],
-  user_id: ['user_id', 'staff_id', 'employee_id'],
-  status: ['status', 'is_active'],
-  long: ['lng', 'center_long', 'center_lng'],
-  area_name: ['name'],
-  area_code: ['code'],
-  area_sqft: ['square_footage'],
-  is_serviceable: ['is_active'],
-  map_ref: ['display_order'],
-  assignment_role: ['role'],
-  assignment_status: ['status'],
-  sort_order: ['sequence_order', 'display_order'],
-  assigned_at: ['created_at'],
-};
+const REQUIRED_SCHEMA = resolve(ROOT, 'docs', 'schema', 'required-schema-gleamops.json');
 
 type LiveSchema = Map<string, Set<string>>;
 type AuditMode = 'information_schema' | 'supabase_linked_dump' | 'migration_fallback';
@@ -93,48 +50,11 @@ function writeCsv(path: string, rows: string[][]): void {
 }
 
 function resolveTableCandidates(table: string): string[] {
-  const aliases = TABLE_ALIASES[table] ?? [];
-  return [table, ...aliases];
+  return [table];
 }
 
 function resolveFieldCandidates(field: string): string[] {
-  const candidates = new Set<string>([field, ...(COLUMN_ALIASES[field] ?? [])]);
-
-  if (field.endsWith('_id')) {
-    candidates.add('id');
-  }
-
-  const tokenReplacements: Array<[string, string]> = [
-    ['org_', 'tenant_'],
-    ['customer_', 'client_'],
-    ['location_', 'site_'],
-    ['employee_', 'staff_'],
-    ['job_', 'site_job_'],
-    ['asset_', 'equipment_'],
-    ['quote_', 'proposal_'],
-  ];
-
-  for (const [from, to] of tokenReplacements) {
-    if (field.includes(from)) {
-      candidates.add(field.replace(from, to));
-    }
-  }
-
-  const explicit: Record<string, string[]> = {
-    customer_number: ['client_code'],
-    customer_name: ['name'],
-    location_number: ['site_code'],
-    location_name: ['name'],
-    quote_number: ['proposal_code'],
-    contract_number: ['job_code'],
-    issue_id: ['id'],
-    conversation_id: ['id'],
-  };
-  for (const item of explicit[field] ?? []) {
-    candidates.add(item);
-  }
-
-  return Array.from(candidates);
+  return [field];
 }
 
 function extractTopLevelSelectList(selectSql: string): string {
@@ -268,7 +188,7 @@ function applySqlToSchema(schema: LiveSchema, content: string): void {
     schema.get(table)!.add(col);
   }
 
-  const viewRe = /CREATE\s+(?:OR\s+REPLACE\s+)?VIEW\s+(?:(?:public|"public")\.)?("?[a-zA-Z0-9_]+"?)(?:\s*\(([\s\S]*?)\))?\s+AS\s+SELECT\s+([\s\S]*?);/gi;
+  const viewRe = /CREATE\s+(?:OR\s+REPLACE\s+)?(?:MATERIALIZED\s+)?VIEW\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:(?:public|"public")\.)?("?[a-zA-Z0-9_]+"?)(?:\s*\(([\s\S]*?)\))?\s+AS\s+SELECT\s+([\s\S]*?);/gi;
   let viewMatch: RegExpExecArray | null;
   while ((viewMatch = viewRe.exec(content)) !== null) {
     const view = viewMatch[1].replace(/"/g, '');
@@ -392,7 +312,7 @@ function loadSchemaFromMigrations(): LiveSchema {
 function main() {
   mkdirSync(REPORT_DIR, { recursive: true });
 
-  const catalogs = [loadCatalog(REQUIRED_V1), loadCatalog(REQUIRED_V2)];
+  const catalogs = [loadCatalog(REQUIRED_SCHEMA)];
   const requiredTables = catalogs.flatMap((c) => c.tables);
 
   const { schema: liveSchema, mode } = loadLiveSchema();

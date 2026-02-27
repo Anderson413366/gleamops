@@ -10,6 +10,7 @@
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
     "test": "turbo test",
+    "generate:schema": "npx tsx scripts/generate-required-schema.ts",
     "audit:schema-parity": "npx tsx scripts/audit-schema-parity.ts",
     "audit:ui-fields": "npx tsx scripts/audit-ui-field-usage.ts",
     "db:start": "supabase start",

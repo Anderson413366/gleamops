@@ -648,6 +648,13 @@ export interface ChecklistTemplate extends StandardColumns {
   is_active: boolean;
 }
 
+export interface ChecklistTemplateSection extends StandardColumns {
+  checklist_template_id: string;
+  section_title: string;
+  sort_order: number;
+  is_active: boolean;
+}
+
 export interface ChecklistTemplateItem extends StandardColumns {
   template_id: string;
   section: string | null;
@@ -831,6 +838,15 @@ export interface TimeEntry extends StandardColumns {
   status: 'OPEN' | 'CLOSED' | 'ADJUSTED';
   approved_by: string | null;
   approved_at: string | null;
+}
+
+export interface TimePolicy extends StandardColumns {
+  policy_name: string;
+  clock_in_restriction: string; // NONE | GEOFENCE_REQUIRED | NFC_QR_REQUIRED | BOTH_REQUIRED
+  early_clock_in_minutes: number | null;
+  late_clock_out_minutes: number | null;
+  requires_photo_on_manual_edit: boolean;
+  is_active: boolean;
 }
 
 export interface TimeException extends StandardColumns {
@@ -2106,6 +2122,17 @@ export interface ProcurementApprovalStep extends StandardColumns {
   acted_by_user_id: string | null;
   acted_at: string | null;
   notes: string | null;
+}
+
+export interface ProcurementApprovalAction {
+  id: string;
+  tenant_id: string;
+  workflow_id: string;
+  step_id: string | null;
+  action: 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'COMMENTED';
+  actor_user_id: string | null;
+  notes: string | null;
+  created_at: string;
 }
 
 export interface AssetTransfer extends StandardColumns {

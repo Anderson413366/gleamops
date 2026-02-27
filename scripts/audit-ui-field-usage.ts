@@ -14,8 +14,7 @@ type RequirementCatalog = { version: string; tables: RequirementTable[] };
 
 const ROOT = resolve(__dirname, '..');
 const REPORT_DIR = resolve(ROOT, 'reports', 'schema-parity');
-const REQUIRED_V1 = resolve(ROOT, 'docs', 'schema', 'required-schema-v1.json');
-const REQUIRED_V2 = resolve(ROOT, 'docs', 'schema', 'required-schema-v2-enterprise.json');
+const REQUIRED_SCHEMA = resolve(ROOT, 'docs', 'schema', 'required-schema-gleamops.json');
 
 const SCAN_DIRS = [
   resolve(ROOT, 'apps', 'web', 'src', 'components', 'forms'),
@@ -65,7 +64,7 @@ function writeCsv(path: string, rows: string[][]): void {
 function main() {
   mkdirSync(REPORT_DIR, { recursive: true });
 
-  const catalogs = [loadCatalog(REQUIRED_V1), loadCatalog(REQUIRED_V2)];
+  const catalogs = [loadCatalog(REQUIRED_SCHEMA)];
   const required = catalogs.flatMap((c) =>
     c.tables.flatMap((table) =>
       table.fields.map((field) => ({

@@ -6,6 +6,7 @@ const API_PATH = '/api/operations/routes/generate';
 
 test('generateRoutesForDate succeeds for manager role', async () => {
   const db = {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     rpc(_name: string, _params: Record<string, unknown>) {
       return Promise.resolve({
         data: [{ id: 'route-1' }, { id: 'route-2' }],

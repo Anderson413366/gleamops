@@ -9,6 +9,7 @@ import {
 } from '@/app/(dashboard)/schedule/plan/planning-board';
 import {
   computeStaffHours,
+  buildConflictKeys,
 } from '@/app/(dashboard)/schedule/recurring/schedule-grid';
 import type { PlanningTicket } from '@/app/(dashboard)/schedule/plan/planning-card';
 import type { PlanningStatus } from '@gleamops/shared';
@@ -212,4 +213,47 @@ test('computeStaffHours returns 0 for no matching dates', () => {
   const rows = [makeScheduleRow({ scheduledDates: ['2026-03-05'] })];
   const hours = computeStaffHours(rows, ['2026-03-02']);
   assert.equal(hours, 0);
+});
+
+// ---------------------------------------------------------------------------
+// buildConflictKeys
+// ---------------------------------------------------------------------------
+
+test('buildConflictKeys detects overlapping shifts for same staff', () => {
+  const rows = [
+    makeScheduleRow({ id: 'r1', staffName: 'Alice', startTime: '09:00', endTime: '15:00', scheduledDates: ['2026-03-02'] }),
+    makeScheduleRow({ id: 'r2', staffName: 'Alice', startTime: '14:00', endTime: '18:00', scheduledDates: ['2026-03-02'] }),
+  ];
+  const conflicts = buildConflictKeys(rows);
+  assert.ok(conflicts.has('r1:2026-03-02'));
+  assert.ok(conflicts.has('r2:2026-03-02'));
+});
+
+test('buildConflictKeys does not flag non-overlapping shifts', () => {
+  const rows = [
+    makeScheduleRow({ id: 'r1', staffName: 'Alice', startTime: '09:00', endTime: '13:00', scheduledDates: ['2026-03-02'] }),
+    makeScheduleRow({ id: 'r2', staffName: 'Alice', startTime: '13:00', endTime: '17:00', scheduledDates: ['2026-03-02'] }),
+  ];
+  const conflicts = buildConflictKeys(rows);
+  assert.equal(conflicts.size, 0);
+});
+
+test('buildConflictKeys does not flag different staff with overlapping times', () => {
+  const rows = [
+    makeScheduleRow({ id: 'r1', staffName: 'Alice', startTime: '09:00', endTime: '17:00', scheduledDates: ['2026-03-02'] }),
+    makeScheduleRow({ id: 'r2', staffName: 'Bob', startTime: '09:00', endTime: '17:00', scheduledDates: ['2026-03-02'] }),
+  ];
+  const conflicts = buildConflictKeys(rows);
+  assert.equal(conflicts.size, 0);
+});
+
+test('buildConflictKeys only flags shared dates', () => {
+  const rows = [
+    makeScheduleRow({ id: 'r1', staffName: 'Alice', startTime: '09:00', endTime: '15:00', scheduledDates: ['2026-03-02', '2026-03-03'] }),
+    makeScheduleRow({ id: 'r2', staffName: 'Alice', startTime: '14:00', endTime: '18:00', scheduledDates: ['2026-03-03'] }),
+  ];
+  const conflicts = buildConflictKeys(rows);
+  assert.ok(conflicts.has('r1:2026-03-03'));
+  assert.ok(conflicts.has('r2:2026-03-03'));
+  assert.ok(!conflicts.has('r1:2026-03-02'));
 });

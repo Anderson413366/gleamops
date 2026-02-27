@@ -29,6 +29,42 @@ function formatHours(hours: number): string {
   return `${hours}h`;
 }
 
+function timeToMinutes(time: string): number {
+  const [h, m] = time.split(':').map(Number);
+  return h * 60 + m;
+}
+
+/** Build a set of row-id+date keys that have overlapping time ranges for the same staff on the same date. */
+export function buildConflictKeys(rows: RecurringScheduleRow[]): Set<string> {
+  const conflicts = new Set<string>();
+  const grouped: Record<string, RecurringScheduleRow[]> = {};
+  for (const row of rows) {
+    const key = row.staffName?.trim() || 'Unassigned';
+    grouped[key] = grouped[key] ? [...grouped[key], row] : [row];
+  }
+  for (const staffRows of Object.values(grouped)) {
+    if (staffRows.length < 2) continue;
+    for (let i = 0; i < staffRows.length; i++) {
+      for (let j = i + 1; j < staffRows.length; j++) {
+        const a = staffRows[i];
+        const b = staffRows[j];
+        const aStart = timeToMinutes(a.startTime);
+        const aEnd = timeToMinutes(a.endTime);
+        const bStart = timeToMinutes(b.startTime);
+        const bEnd = timeToMinutes(b.endTime);
+        if (aStart < bEnd && bStart < aEnd) {
+          const sharedDates = a.scheduledDates.filter((d) => b.scheduledDates.includes(d));
+          for (const date of sharedDates) {
+            conflicts.add(`${a.id}:${date}`);
+            conflicts.add(`${b.id}:${date}`);
+          }
+        }
+      }
+    }
+  }
+  return conflicts;
+}
+
 interface ScheduleGridProps {
   rows: RecurringScheduleRow[];
   visibleDates?: string[];
@@ -94,6 +130,7 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect }:
 
   const grouped = useMemo(() => groupByStaff(filtered), [filtered]);
   const staffNames = useMemo(() => Object.keys(grouped).sort((a, b) => a.localeCompare(b)), [grouped]);
+  const conflictKeys = useMemo(() => buildConflictKeys(filtered), [filtered]);
   const dateColumns = visibleDates.length > 0 ? visibleDates : fallbackWeekDates();
   const gridTemplateColumns = `220px repeat(${dateColumns.length}, minmax(128px, 1fr))`;
   const minWidthPx = 220 + dateColumns.length * 128;
@@ -109,6 +146,10 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect }:
   }
 
   return (
+    <>
+    <p className="text-xs text-muted-foreground md:hidden mb-2">
+      Tip: This grid works best on wider screens. Switch to card view on mobile.
+    </p>
     <div className="overflow-x-auto rounded-2xl border border-border">
       <div style={{ minWidth: `${minWidthPx}px` }}>
         <div
@@ -169,6 +210,7 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect }:
                             endTime={row.endTime}
                             staffName={row.staffName}
                             isOpenShift={row.status === 'open'}
+                            hasConflict={conflictKeys.has(`${row.id}:${dateKey}`)}
                           />
                         </button>
                       ))
@@ -185,5 +227,6 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect }:
         })}
       </div>
     </div>
+    </>
   );
 }

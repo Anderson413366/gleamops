@@ -1,4 +1,4 @@
-import { UserCircle2, MapPin, Clock4 } from 'lucide-react';
+import { UserCircle2, MapPin, Clock4, AlertTriangle } from 'lucide-react';
 import { Badge, cn } from '@gleamops/ui';
 
 const POSITION_THEME: Record<string, { label: string; block: string; badge: 'green' | 'red' | 'blue' | 'yellow' | 'gray' }> = {
@@ -51,6 +51,7 @@ interface PositionBlockProps {
   endTime: string;
   staffName?: string | null;
   isOpenShift?: boolean;
+  hasConflict?: boolean;
   className?: string;
 }
 
@@ -61,6 +62,7 @@ export function PositionBlock({
   endTime,
   staffName,
   isOpenShift = false,
+  hasConflict = false,
   className,
 }: PositionBlockProps) {
   const theme = resolveTheme(positionType);
@@ -71,6 +73,7 @@ export function PositionBlock({
         'rounded-xl border p-3 shadow-sm transition-all',
         theme.block,
         isOpenShift && 'ring-2 ring-destructive/40',
+        hasConflict && 'ring-2 ring-amber-500/60',
         className,
       )}
       role="group"
@@ -79,6 +82,9 @@ export function PositionBlock({
       <div className="mb-2 flex items-center justify-between gap-2">
         <Badge color={theme.badge}>{theme.label}</Badge>
         {isOpenShift && <Badge color="red">Open Shift</Badge>}
+        {hasConflict && (
+          <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" aria-label="Schedule conflict" />
+        )}
       </div>
 
       <div className="space-y-1 text-sm">

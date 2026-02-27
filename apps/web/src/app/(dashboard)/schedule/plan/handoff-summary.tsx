@@ -1,7 +1,7 @@
 'use client';
 
 import { CheckCircle2 } from 'lucide-react';
-import { Card, CardContent, Button } from '@gleamops/ui';
+import { Card, CardContent, Button, Badge } from '@gleamops/ui';
 import type { PlanningTicket } from './planning-card';
 
 interface HandoffSummaryProps {
@@ -53,12 +53,14 @@ export function HandoffSummary({
         <h3 className="text-lg font-semibold text-foreground">
           {dateLabel} is Ready
         </h3>
-        <p className="text-sm text-muted-foreground">
-          {totalTickets} tickets · {uniqueSites} sites · {uniqueStaff} staff assigned
-          {gapCount === 0
-            ? ' · 0 coverage gaps'
-            : ` · ${gapCount} coverage gap${gapCount > 1 ? 's' : ''}`}
-        </p>
+        <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
+          <Badge color="green">{totalTickets} tickets</Badge>
+          <Badge color="blue">{uniqueSites} sites</Badge>
+          <Badge color="purple">{uniqueStaff} staff</Badge>
+          <Badge color={gapCount === 0 ? 'green' : 'red'}>
+            {gapCount} {gapCount === 1 ? 'gap' : 'gaps'}
+          </Badge>
+        </div>
         <div className="flex items-center justify-center gap-3 pt-2">
           {onPublish && (
             <Button onClick={onPublish} disabled={busy}>

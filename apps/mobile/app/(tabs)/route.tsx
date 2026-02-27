@@ -7,18 +7,27 @@ import { useRouter } from 'expo-router';
 import StopCard from '../../src/components/stop-card';
 import SyncStatusBar from '../../src/components/sync-status-bar';
 import { useRoute } from '../../src/hooks/use-route';
+import { useShift } from '../../src/hooks/use-shift';
 import { useSyncState, syncNow } from '../../src/hooks/use-sync';
-import { Colors } from '../../src/lib/constants';
-
-function todayIso() {
-  return new Date().toISOString().split('T')[0];
-}
+import { Colors, localDateIso } from '../../src/lib/constants';
 
 export default function RouteTabScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
-  const { route, stops, nextStop, progress, loading, isOffline, refetch } = useRoute(todayIso());
+  const [travelCapturing, setTravelCapturing] = useState<string | null>(null);
+  const { route, stops, nextStop, progress, loading, isOffline, refetch } = useRoute(localDateIso());
   const { pendingCount, lastSyncAt, isSyncing } = useSyncState();
+  const { captureTravel } = useShift(route?.id ?? null);
+
+  const onCaptureTravel = async (fromStopId: string, toStopId: string) => {
+    const key = `${fromStopId}-${toStopId}`;
+    setTravelCapturing(key);
+    try {
+      await captureTravel(fromStopId, toStopId);
+    } finally {
+      setTravelCapturing(null);
+    }
+  };
 
   const progressPct = useMemo(() => {
     if (progress.total === 0) return 0;
@@ -138,14 +147,32 @@ export default function RouteTabScreen() {
 
           {route.shift_started_at && (
             <View style={styles.stopList}>
-              {stops.map((stop) => (
-                <StopCard
-                  key={stop.id}
-                  stop={stop}
-                  isNext={nextStop?.id === stop.id}
-                  onPress={() => router.push(`/route/stop/${stop.id}`)}
-                />
-              ))}
+              {stops.map((stop, stopIndex) => {
+                const prevStop = stopIndex > 0 ? stops[stopIndex - 1] : null;
+                const canLogTravel = prevStop?.stop_status === 'COMPLETED';
+                const travelKey = prevStop ? `${prevStop.id}-${stop.id}` : '';
+
+                return (
+                  <View key={stop.id}>
+                    {canLogTravel && prevStop && (
+                      <TouchableOpacity
+                        style={[styles.travelButton, travelCapturing === travelKey && styles.travelButtonDisabled]}
+                        disabled={travelCapturing === travelKey}
+                        onPress={() => void onCaptureTravel(prevStop.id, stop.id)}
+                      >
+                        <Text style={styles.travelButtonText}>
+                          {travelCapturing === travelKey ? 'Logging…' : 'Log Travel'}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                    <StopCard
+                      stop={stop}
+                      isNext={nextStop?.id === stop.id}
+                      onPress={() => router.push(`/route/stop/${stop.id}`)}
+                    />
+                  </View>
+                );
+              })}
             </View>
           )}
 
@@ -228,6 +255,17 @@ const styles = StyleSheet.create({
   stopList: {
     marginTop: 12,
   },
+  travelButton: {
+    marginBottom: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.light.info,
+    backgroundColor: `${Colors.light.info}10`,
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  travelButtonDisabled: { opacity: 0.45 },
+  travelButtonText: { color: Colors.light.info, fontWeight: '600', fontSize: 13 },
   secondaryActions: {
     marginTop: 6,
   },

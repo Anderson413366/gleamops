@@ -28,6 +28,16 @@ export const Colors = {
   },
 } as const;
 
+/**
+ * Return today's date as YYYY-MM-DD in the device's local timezone.
+ * Avoids the UTC-midnight bug where `new Date().toISOString().split('T')[0]`
+ * can return yesterday's or tomorrow's date depending on timezone offset.
+ */
+export function localDateIso(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
 export const STATUS_COLORS: Record<string, string> = {
   SCHEDULED: '#3B82F6',
   IN_PROGRESS: '#F59E0B',

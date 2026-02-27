@@ -270,6 +270,20 @@ export function useShift(routeId: string | null) {
     [queryClient, queueAndSync, routeId],
   );
 
+  const captureTravel = useCallback(
+    async (fromStopId: string, toStopId: string) => {
+      if (!routeId) return;
+
+      await queueAndSync({
+        type: 'route_travel_capture',
+        routeId,
+        fromStopId,
+        toStopId,
+      });
+    },
+    [queueAndSync, routeId],
+  );
+
   const endShift = useCallback(
     async (input: EndShiftInput) => {
       if (!routeId) return;
@@ -311,6 +325,7 @@ export function useShift(routeId: string | null) {
     addTaskPhoto,
     completeStop,
     skipStop,
+    captureTravel,
     endShift,
   };
 }

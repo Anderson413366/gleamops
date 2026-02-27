@@ -7,14 +7,10 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Linking from 'expo-linking';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import TaskItem from '../../../src/components/task-item';
-import { Colors } from '../../../src/lib/constants';
+import { Colors, localDateIso } from '../../../src/lib/constants';
 import { supabase } from '../../../src/lib/supabase';
 import { useRoute } from '../../../src/hooks/use-route';
 import { useShift } from '../../../src/hooks/use-shift';
-
-function todayIso() {
-  return new Date().toISOString().split('T')[0];
-}
 
 function formatWindow(start: string | null, end: string | null): string | null {
   if (!start && !end) return null;
@@ -37,7 +33,7 @@ function parseAddress(address: Record<string, string> | null): string {
 export default function RouteStopDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { route, stops, loading } = useRoute(todayIso());
+  const { route, stops, loading } = useRoute(localDateIso());
   const { arriveAtStop, completeTask, addTaskPhoto, completeStop, skipStop } = useShift(route?.id ?? null);
   const [savingTaskId, setSavingTaskId] = useState<string | null>(null);
 

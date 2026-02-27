@@ -4,18 +4,14 @@ import {
   ActivityIndicator, ScrollView, Switch, Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Colors } from '../../src/lib/constants';
+import { Colors, localDateIso } from '../../src/lib/constants';
 import { useRoute } from '../../src/hooks/use-route';
 import { useShift } from '../../src/hooks/use-shift';
-
-function todayIso() {
-  return new Date().toISOString().split('T')[0];
-}
 
 export default function EndShiftScreen() {
   const router = useRouter();
   const { routeId } = useLocalSearchParams<{ routeId?: string }>();
-  const { route, stops, tasks, loading } = useRoute(todayIso());
+  const { route, stops, tasks, loading } = useRoute(localDateIso());
   const activeRouteId = routeId ?? route?.id ?? null;
   const { endShift } = useShift(activeRouteId);
 

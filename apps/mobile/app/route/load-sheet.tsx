@@ -4,14 +4,10 @@ import {
   TouchableOpacity, Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Colors } from '../../src/lib/constants';
+import { Colors, localDateIso } from '../../src/lib/constants';
 import { useRoute } from '../../src/hooks/use-route';
 import { enqueue } from '../../src/lib/mutation-queue';
 import { syncNow } from '../../src/hooks/use-sync';
-
-function todayIso() {
-  return new Date().toISOString().split('T')[0];
-}
 
 interface LoadLine {
   key: string;
@@ -31,7 +27,7 @@ interface LoadLine {
 export default function LoadSheetScreen() {
   const router = useRouter();
   const { routeId } = useLocalSearchParams<{ routeId?: string }>();
-  const { route, stops, loading, nextStop } = useRoute(todayIso());
+  const { route, stops, loading, nextStop } = useRoute(localDateIso());
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const hasAutoSkipped = useRef(false);
 

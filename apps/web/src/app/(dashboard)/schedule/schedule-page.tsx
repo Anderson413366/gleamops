@@ -21,6 +21,10 @@ import PlanningBoard from './plan/planning-board';
 import { WorkOrderTable } from './work-orders/work-order-table';
 import { ChecklistAdmin } from './checklist-admin';
 import { ShiftChecklist } from './shift-checklist';
+import { ShiftTradesPanel } from './recurring/shift-trades-panel';
+import { AvailabilityPanel } from './recurring/availability-panel';
+import { SchedulePeriodsPanel } from './recurring/schedule-periods-panel';
+import { ConflictPanel } from './recurring/conflict-panel';
 
 // Re-use ticket relations type
 interface TicketWithRelations extends WorkTicket {
@@ -690,7 +694,15 @@ export default function SchedulePageClient() {
       )}
 
       {tab === 'recurring' ? (
-        <SiteBlueprintView row={selectedRecurringRow} onClear={() => setSelectedRecurringRow(null)} />
+        <>
+          <SiteBlueprintView row={selectedRecurringRow} onClear={() => setSelectedRecurringRow(null)} />
+          <div className="space-y-4">
+            <SchedulePeriodsPanel />
+            <ConflictPanel />
+            <ShiftTradesPanel />
+            <AvailabilityPanel />
+          </div>
+        </>
       ) : null}
 
       {tab === 'work-orders' && (

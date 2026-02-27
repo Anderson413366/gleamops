@@ -60,18 +60,21 @@
 | 15 | [Search & Performance](15_SEARCH_PERFORMANCE.md) | Search implementation, performance tuning |
 | 16 | [Testing & QA](16_TESTING_QA.md) | Test strategy, coverage goals |
 | 17 | [Migration Strategy](17_MIGRATION_STRATEGY.md) | Database migration approach |
-| 21 | [Messaging](21_MESSAGING.md) | Thread messaging system |
 | 22 | [Reporting & Dashboards](22_REPORTING_DASHBOARDS.md) | Dashboard widgets, reports |
 | 23 | [Mobile & Offline](23_MOBILE_OFFLINE.md) | Expo app, offline sync |
+| 27 | [Messaging](27_MESSAGING.md) | Thread messaging system |
 
 ### Operations
 
 | # | Doc | Summary |
 |---|-----|---------|
 | 18 | [AI Developer Runbook](18_AI_DEVELOPER_RUNBOOK.md) | AI-assisted development guide |
-| 18 | [Operations Runbooks](18_OPERATIONS_RUNBOOKS.md) | Production operations playbook |
+| 19 | [AI Agent Prompts](19_AI_AGENT_PROMPTS.md) | AI agent prompt library |
 | 20 | [ADR Log](20_ADR_LOG.md) | Architecture Decision Records |
-| 20 | [Verification Checklist](20_VERIFICATION_CHECKLIST.md) | Pre-deploy verification |
+| 21 | [Claude Code God Prompt](21_CLAUDE_CODE_GOD_PROMPT.md) | Claude Code configuration |
+| 24 | [Operations Runbooks](24_OPERATIONS_RUNBOOKS.md) | Production operations playbook |
+| 25 | [JIRA Backlog](25_JIRA_BACKLOG.md) | Backlog tracking and prioritization |
+| 26 | [Verification Checklist](26_VERIFICATION_CHECKLIST.md) | Pre-deploy verification |
 
 ---
 

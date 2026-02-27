@@ -82,12 +82,12 @@ gleamops_dev_pack/
 │   │   └── src/
 │   │       ├── app/
 │   │       │   ├── (auth)/        → Login page
-│   │       │   ├── (dashboard)/   → 10 navigation modules + 21 detail pages
-│   │       │   └── api/           → route handlers (thin delegates → modules)
+│   │       │   ├── (dashboard)/   → 12 navigation modules + 28 detail pages
+│   │       │   └── api/           → 102 route handlers (thin delegates → modules)
 │   │       ├── components/
-│   │       │   ├── forms/         → 29 entity form components
+│   │       │   ├── forms/         → 40 entity form components
 │   │       │   └── layout/        → AppShell, Header, Sidebar
-│   │       ├── hooks/             → 19 custom hooks
+│   │       ├── hooks/             → 22 custom hooks
 │   │       ├── lib/               → Supabase clients, auth guard, audit, utils
 │   │       └── modules/           → 27 domain service modules
 │   ├── worker/          → Background jobs (PDF generation, follow-ups)
@@ -96,12 +96,12 @@ gleamops_dev_pack/
 │   ├── shared/          → Types, Zod schemas, constants, error catalog
 │   ├── domain/          → Pure business rules (RBAC, status machine)
 │   ├── cleanflow/       → Bid math engine (pure functions, no DB deps)
-│   └── ui/              → Design system (32 components)
+│   └── ui/              → Design system (30 components)
 ├── supabase/
 │   ├── migrations/      → 111 SQL migration files (17,559 lines)
 │   └── functions/       → Edge Functions (Deno)
 ├── openapi/             → OpenAPI 3.1 contract
-├── docs/                → 74 documentation files
+├── docs/                → Numbered docs 00–27 + appendices
 └── CLAUDE.md            → AI development context
 ```
 
@@ -109,28 +109,30 @@ gleamops_dev_pack/
 
 ## Application Modules
 
-GleamOps is organized into 10 navigation modules:
+GleamOps is organized into 12 navigation modules:
 
 | Module | Route | Description |
 |--------|-------|-------------|
 | **Home** | `/home` | Dashboard with KPI widgets, alerts, and activity feed |
 | **Pipeline** | `/pipeline` | Sales pipeline — prospects, opportunities, bids (CleanFlow math), proposals |
 | **CRM** | `/crm` | Client and site management with contact directory |
-| **Operations** | `/operations` | Active jobs, work tickets, quality inspections |
-| **Workforce** | `/workforce` | Staff directory, positions, payroll, timekeeping, HR |
+| **Operations** | `/operations` | Jobs, tickets, inspections, complaints, routes, periodic tasks |
+| **Workforce** | `/workforce` | Staff directory, positions, payroll, timekeeping, field reports |
 | **Inventory** | `/inventory` | Supply catalog, kits, site assignments, counts, purchase orders |
 | **Assets** | `/assets` | Equipment tracking, key management, fleet/vehicles, maintenance |
-| **Vendors** | `/vendors` | Subcontractor directory and supply vendor management |
+| **Vendors** | `/vendors` | Subcontractor directory, supply vendor management, vendor directory |
 | **Safety** | `/safety` | Certifications, training courses, safety documents |
-| **Admin** | `/admin` | System lookups, status rules, sequences, service library |
+| **Schedule** | `/schedule` | Calendar, work orders, Monday.com-style boards, recurring schedules |
+| **Shifts & Time** | `/shifts-time` | Shifts, timesheets, clock in/out |
+| **Admin** | `/admin` | System lookups, status rules, sequences, service library, positions |
 
-Additional routes: `/reports`, `/schedule`, `/services`, `/settings`
+Additional routes: `/reports`, `/services`, `/settings`, `/team`
 
 ### Key Features
 
-- **21 detail pages** — Every major entity has a dedicated page with stats, sections, edit, and deactivate
-- **29 form components** — Create and edit forms with Zod validation and optimistic locking
-- **12 card grid views** — Toggle between list (table) and card layouts
+- **28 detail pages** — Every major entity has a dedicated page with stats, sections, edit, and deactivate
+- **40 form components** — Create and edit forms with Zod validation and optimistic locking
+- **20 card grid views** — Toggle between list (table) and card layouts
 - **Status filter chips** — Quick-filter by status with count badges on all tables
 - **CSV export** — Export filtered data from any table
 - **Dark mode** — Theme toggle with system preference detection
@@ -166,26 +168,7 @@ Service Layer (business logic, orchestration)
 Repository Layer (Supabase queries, data access)
 ```
 
-Core domain modules in `src/modules/` include:
-
-| Module | Domain | LOC Extracted |
-|--------|--------|--------------|
-| `inventory` | Approval workflows | ~336 |
-| `inventory-orders` | Proof of delivery | ~174 |
-| `webhooks` | SendGrid event processing | ~247 |
-| `proposals` | Send + signature capture | ~188 |
-| `proposals-pdf` | PDF generation | ~443 |
-| `counts` | Count submission | ~222 |
-| `public-counts` | Public count access | ~317 |
-| `public-proposals` | Public proposal access | ~241 |
-| `fleet` | DVIR inspections | ~190 |
-| `schedule` | 13 schedule routes | ~881 |
-| `messages` | Thread messaging | ~90 |
-| `timekeeping` | Clock in/out | ~89 |
-| `cron` | Scheduled jobs | ~300 |
-| `workforce-hr` | Polymorphic HR CRUD | ~157 |
-| `warehouse` | Warehouse inventory | ~105 |
-| `sites` | Site PIN codes | ~104 |
+27 domain modules in `src/modules/` include complaints, counts, cron, field-reports, fleet, inventory, inventory-orders, load-sheet, messages, night-bridge, owner-dashboard, periodic-tasks, proposals, proposals-pdf, public-counts, public-portal, public-proposals, public-work-orders, route-templates, schedule, self-service, shifts-time, sites, timekeeping, warehouse, webhooks, and workforce-hr.
 
 ### Auth Flow
 
@@ -228,7 +211,7 @@ OPP-XXXX  (opportunity) STF-XXXX  (staff)      CON-XXXX  (contact)
 
 ## Design System
 
-The `@gleamops/ui` package provides 32 reusable components built with:
+The `@gleamops/ui` package provides 30 reusable components built with:
 
 - **Semantic HSL tokens** — CSS variables for light/dark mode
 - **7-color badge system** — green, red, yellow, blue, orange, purple, gray
@@ -306,7 +289,7 @@ Deployed to **Vercel** with monorepo configuration:
 
 ## Documentation
 
-74 documentation files live in `docs/`:
+Numbered docs (00–27) plus appendices in `docs/`:
 
 | Category | Key Files |
 |----------|-----------|

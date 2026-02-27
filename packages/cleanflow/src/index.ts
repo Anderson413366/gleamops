@@ -20,7 +20,6 @@ export type { ContractProjection, ContractProjectionYear } from './contract-proj
 export { findProductionRate } from './production-rates';
 export { expressLoad } from './express-load';
 export { scopeAwareExpressLoad } from './scope-express-load';
-export { calculateSpecialization } from './specialization';
 export { calculateWeightedWage } from './weighted-wage';
 export { calculateDayPorter } from './day-porter';
 export { calculateConsumables, DEFAULT_CONSUMABLE_ITEMS } from './consumables';
@@ -47,7 +46,6 @@ export type {
   ShiftDifferentials,
   ContractTerms,
 } from './types';
-export type { SpecializationAdjustment } from './specialization';
 export type { ExpressLoadInput, ExpressLoadArea, FloorMixEntry } from './express-load';
 export type { ScopeExpressLoadInput } from './scope-express-load';
 

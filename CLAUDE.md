@@ -14,9 +14,10 @@ GleamOps is a **B2B SaaS ERP for commercial cleaning** that replaces spreadsheet
 - **Frontend**: Next.js 15 (App Router), React 19, TypeScript 5.7, Tailwind CSS 4
 - **Backend**: Supabase (PostgreSQL + RLS + Auth + Storage + Realtime)
 - **Math Engine**: CleanFlow (packages/cleanflow) — pure functions, no DB calls
-- **UI Library**: @gleamops/ui — 32 components, semantic HSL token system
+- **UI Library**: @gleamops/ui — 30 components, semantic HSL token system
+- **i18n**: EN, ES, PT-BR
 - **Deploy**: Vercel (web), worker TBD
-- **Status**: Milestones A–H complete. 10 navigation modules, 36 API routes, 21 detail pages, 29 forms, 84 migrations, 16 service modules.
+- **Status**: Milestones A–H complete + Monday.com replacement. 12 navigation modules, 102 API routes, 28 detail pages, 40 forms, 111 migrations, 27 service modules.
 
 ---
 
@@ -97,14 +98,14 @@ gleamops_dev_pack/
 │   │   └── src/
 │   │       ├── app/
 │   │       │   ├── (auth)/login/  # Login page
-│   │       │   └── (dashboard)/   # 10 nav modules + detail pages
+│   │       │   └── (dashboard)/   # 12 nav modules + detail pages
 │   │       │       ├── home/              # Dashboard widgets
 │   │       │       ├── pipeline/          # Prospects, Bids, Proposals, Opportunities
 │   │       │       │   └── admin/         # Follow-up templates, Marketing, Rates
 │   │       │       ├── crm/               # Clients, Sites, Contacts
 │   │       │       │   ├── clients/[id]/  # Client detail page
 │   │       │       │   └── sites/[id]/    # Site detail page
-│   │       │       ├── operations/        # Jobs, Tickets, Inspections
+│   │       │       ├── operations/        # Jobs, Tickets, Inspections, Complaints, Routes
 │   │       │       │   └── jobs/[id]/     # Job detail page
 │   │       │       ├── workforce/         # Staff, Payroll, Positions, Timekeeping
 │   │       │       │   └── staff/[code]/  # Staff detail page
@@ -120,73 +121,88 @@ gleamops_dev_pack/
 │   │       │       ├── admin/             # Settings, Lookups, Services admin
 │   │       │       │   └── services/tasks/[id]/ # Admin task detail
 │   │       │       ├── reports/           # Dashboards + reports
-│   │       │       ├── schedule/          # Calendar views
-│   │       │       ├── settings/          # User settings
-│   │       │       ├── people/            # Legacy redirect + staff detail route alias
-│   │       │       └── subcontractors/    # Legacy redirect to /vendors
+│   │       │       ├── schedule/          # Calendar, work orders, boards
+│   │       │       ├── shifts-time/       # Shifts & time tracking
+│   │       │       ├── team/              # Staff directory + employee detail
+│   │       │       └── settings/          # User settings
 │   │       ├── components/
-│   │       │   ├── forms/         # 29 entity form components
+│   │       │   ├── forms/         # 40 entity form components
 │   │       │   └── layout/        # AppShell, Header, Sidebar
-│   │       ├── hooks/             # 19 custom hooks
+│   │       ├── hooks/             # 22 custom hooks
 │   │       ├── lib/               # Supabase clients, auth guard, audit, utils
-│   │       └── modules/           # 16 domain service modules
+│   │       └── modules/           # 27 domain service modules
 │   ├── worker/                    # Background jobs (PDFs, follow-ups)
 │   └── mobile/                    # Expo React Native (in development)
 ├── packages/
 │   ├── shared/                    # Types, Zod schemas, constants, error catalog
 │   ├── domain/                    # Pure business rules (status machine, RBAC)
 │   ├── cleanflow/                 # Bid math engine (pure functions)
-│   └── ui/                        # Design system (32 components)
+│   └── ui/                        # Design system (30 components)
 ├── supabase/
-│   ├── migrations/                # 84 SQL migration files (13,349 lines)
+│   ├── migrations/                # 111 SQL migration files (17,559 lines)
 │   └── functions/                 # Edge Functions (Deno)
-├── docs/                          # 74 documentation files
+├── docs/                          # Numbered docs 00–27 + appendices
 ├── openapi/                       # OpenAPI 3.1 contract
 └── CLAUDE.md                      # This file
 ```
 
 ---
 
-## Navigation (10 Modules)
+## Navigation (12 Modules)
 
 | # | Module | Route | Tabs |
 |---|--------|-------|------|
 | 1 | **Home** | `/home` | Dashboard widgets |
 | 2 | **Pipeline** | `/pipeline` | Prospects, Opportunities, Bids, Proposals |
 | 3 | **CRM** | `/crm` | Clients, Sites, Contacts |
-| 4 | **Operations** | `/operations` | Jobs, Tickets, Inspections |
-| 5 | **Workforce** | `/workforce` | Staff, Positions, Payroll, Timekeeping, Timesheets |
+| 4 | **Operations** | `/operations` | Jobs, Tickets, Inspections, Complaints, Routes, Periodic Tasks |
+| 5 | **Workforce** | `/workforce` | Staff, Positions, Payroll, Timekeeping, Field Reports |
 | 6 | **Inventory** | `/inventory` | Supplies, Kits, Site Assignments, Counts, Orders |
 | 7 | **Assets** | `/assets` | Equipment, Eq. Assignments, Vehicles, Keys, Maintenance |
-| 8 | **Vendors** | `/vendors` | Subcontractors, Supply Vendors |
+| 8 | **Vendors** | `/vendors` | Subcontractors, Supply Vendors, Vendor Directory |
 | 9 | **Safety** | `/safety` | Certifications, Training Courses, Completions, Documents |
-| 10 | **Admin** | `/admin` | Lookups, Status Rules, Sequences, Services/Tasks |
+| 10 | **Schedule** | `/schedule` | Calendar, Work Orders, Boards, Recurring |
+| 11 | **Shifts & Time** | `/shifts-time` | Shifts, Timesheets, Clock In/Out |
+| 12 | **Admin** | `/admin` | Lookups, Status Rules, Sequences, Services/Tasks, Positions |
 
-Additional: `/reports`, `/schedule`, `/services`, `/settings`, `/subcontractors`, `/team`, `/workforce`
+Additional: `/reports`, `/services`, `/settings`, `/team`
 
 ---
 
-## Detail Pages (21 dynamic routes)
+## Detail Pages (28 dynamic routes)
 
 Every detail page follows the same layout: Back link → Avatar circle → Stat cards → Section cards (`<dl>` key-value) → Edit + Deactivate buttons → Metadata footer.
 
-| Entity | Route | Param | Fetches From |
-|--------|-------|-------|-------------|
-| Client | `/crm/clients/[id]` | client_code | `clients` |
-| Site | `/crm/sites/[id]` | site_code | `sites` + client join |
-| Job | `/operations/jobs/[id]` | job_code | `site_jobs` + site/client join |
-| Staff (legacy redirect) | `/people/staff/[code]` | staff_code | redirect → `/workforce/staff/[code]` |
-| Supply | `/inventory/supplies/[id]` | code | `supply_catalog` |
-| Vehicle | `/assets/vehicles/[id]` | vehicle_code | `vehicles` + assigned join |
-| Key | `/assets/keys/[id]` | key_code | `key_inventory` + site/assigned join |
-| Task | `/services/tasks/[id]` | task_code | `tasks` + service_tasks count |
-| Task (admin) | `/admin/services/tasks/[id]` | task_code | `tasks` + service_tasks count |
-| Staff (workforce) | `/workforce/staff/[code]` | staff_code | `staff` |
-| Prospect | `/pipeline/prospects/[id]` | prospect_code | `sales_prospects` |
-| Opportunity | `/pipeline/opportunities/[id]` | opportunity_code | `sales_opportunities` + prospect join |
-| Equipment | `/assets/equipment/[code]` | equipment_code | `equipment` + staff/site joins |
-| Subcontractor | `/vendors/subcontractors/[code]` | subcontractor_code | `subcontractors` |
-| Supply Vendor | `/vendors/supply-vendors/[slug]` | slug | `subcontractors` (VEN-* supplier records) |
+| Entity | Route | Param |
+|--------|-------|-------|
+| Client | `/crm/clients/[id]` | client_code |
+| Client (alt) | `/clients/[id]` | client_code |
+| Site | `/crm/sites/[id]` | site_code |
+| Site (alt) | `/clients/sites/[id]` | site_code |
+| Contact | `/crm/contacts/[code]` | contact_code |
+| Contact (alt) | `/clients/contacts/[code]` | contact_code |
+| Prospect | `/pipeline/prospects/[id]` | prospect_code |
+| Opportunity | `/pipeline/opportunities/[id]` | opportunity_code |
+| Bid | `/pipeline/bids/[id]` | bid_code |
+| Proposal | `/pipeline/proposals/[id]` | proposal_code |
+| Job | `/operations/jobs/[id]` | job_code |
+| Ticket | `/operations/tickets/[id]` | ticket_code |
+| Complaint | `/operations/complaints/[code]` | complaint_code |
+| Periodic Task | `/operations/periodic/[code]` | periodic_code |
+| Task Catalog | `/operations/task-catalog/[id]` | task_code |
+| Staff (workforce) | `/workforce/staff/[code]` | staff_code |
+| Staff (team) | `/team/staff/[code]` | staff_code |
+| Employee | `/team/employees/[code]` | staff_code |
+| Field Report | `/workforce/field-reports/[code]` | report_code |
+| Supply | `/inventory/supplies/[id]` | code |
+| Inventory Count | `/inventory/counts/[id]` | count_code |
+| Equipment | `/assets/equipment/[code]` | equipment_code |
+| Vehicle | `/assets/vehicles/[id]` | vehicle_code |
+| Key | `/assets/keys/[id]` | key_code |
+| Task | `/services/tasks/[id]` | task_code |
+| Task (admin) | `/admin/services/tasks/[id]` | task_code |
+| Subcontractor | `/vendors/subcontractors/[code]` | subcontractor_code |
+| Supply Vendor | `/vendors/supply-vendors/[slug]` | slug |
 
 ---
 
@@ -404,27 +420,26 @@ export function EntityForm({ open, onClose, initialData, onSuccess }) {
 
 ---
 
-## UI Components (@gleamops/ui — 32 components)
+## UI Components (@gleamops/ui — 30 components)
+
+30 component files in `packages/ui/src/components/`. 27 are exported from the barrel (`index.ts`); 3 are design-system-only (access-denied, bulk-actions, csv-import — kept for future use but not currently consumed by the app).
 
 | Component | Purpose |
 |-----------|---------|
-| `access-denied` | Role-gated access denied screen |
 | `archive-dialog` | Archive confirmation with reason field |
 | `badge` | Status badges (7-color system: green/red/yellow/blue/orange/purple/gray) |
-| `bulk-actions` | Bulk action toolbar |
 | `button` | Button with size/variant system |
 | `card` | Card, CardHeader, CardTitle, CardContent |
 | `chip-tabs` | Pill-style tab navigation with counts |
 | `collapsible-card` | Collapsible card with localStorage persistence |
 | `command-palette` | Global search (Cmd+K) |
 | `confirm-dialog` | Confirmation dialog |
-| `csv-import` | CSV import component |
 | `data-table` | Table, TableHeader, TableHead, TableBody, TableRow, TableCell |
 | `density-toggle` | Comfortable/compact density toggle |
 | `empty-state` | Empty state placeholder |
 | `export-button` | CSV export with toast feedback |
-| `file-dropzone.tsx` | File upload zone |
-| `form-section.tsx` | Form section layout |
+| `file-dropzone` | File upload zone |
+| `form-section` | Form section layout |
 | `form-wizard` | Multi-step form wizard with step indicator |
 | `input` | Text input |
 | `pagination` | Pagination with prev/next, item count |
@@ -434,86 +449,118 @@ export function EntityForm({ open, onClose, initialData, onSuccess }) {
 | `slide-over` | Slide-over panel (right drawer or centered modal) |
 | `stat-card` | Dashboard stat display card |
 | `status-pill` | Status pill badge |
-| `table-row-visuals.tsx` | Table row styling utilities |
+| `table-row-visuals` | Table row styling utilities (StatusDot, resolveStatusColor) |
 | `textarea` | Textarea input |
 | `tooltip` | Help icon tooltip |
-| `utils.ts` | Component utilities (`cn`) |
+| `utils` | Component utilities (`cn`) |
 | `view-toggle` | List/Card view toggle |
 
 ---
 
-## Form Components (29 forms)
+## Form Components (40 forms)
 
 Located at `apps/web/src/components/forms/`:
 
 | Form | Entity Table | Notes |
 |------|-------------|-------|
+| `biohazard-report-form` | `biohazard_reports` | |
 | `client-form` | `clients` | Wizard in create mode |
+| `complaint-form` | `complaints` | |
+| `completion-template-form` | `completion_templates` | |
 | `contact-form` | `contacts` | Client/site contacts |
-| `equipment-assignment-form.tsx` | `equipment_assignments` | |
+| `equipment-assignment-form` | `equipment_assignments` | |
 | `equipment-form` | `equipment` | |
-| `geofence-form.tsx` | `geofences` | |
+| `equipment-issue-form` | `equipment_issues` | |
+| `geofence-form` | `geofences` | |
 | `inventory-count-form` | `inventory_counts` | |
 | `job-form` | `site_jobs` | Wizard in create mode |
 | `job-log-form` | `job_logs` | |
 | `key-form` | `key_inventory` | |
 | `lookup-form` | `lookups` | |
 | `maintenance-form` | `vehicle_maintenance` | |
-| `message-form.tsx` | `message_threads` | |
+| `message-form` | `message_threads` | |
 | `opportunity-form` | `opportunities` | |
+| `periodic-task-form` | `periodic_tasks` | |
 | `position-form` | `staff_positions` | |
 | `production-rate-form` | `production_rates` | |
 | `prospect-form` | `prospects` | |
+| `route-template-form` | `route_templates` | |
+| `route-template-stop-form` | `route_template_stops` | |
+| `route-template-task-form` | `route_template_tasks` | |
 | `service-form` | `services` | |
 | `site-form` | `sites` | |
-| `site-pin-form.tsx` | `site_pin_codes` | |
+| `site-issue-form` | `site_issues` | |
+| `site-pin-form` | `site_pin_codes` | |
 | `staff-form` | `staff` | |
 | `subcontractor-form` | `subcontractors` | |
 | `supply-form` | `supply_catalog` | |
 | `supply-order-form` | `supply_orders` | |
-| `supply-vendor-form.tsx` | `supply vendors` | |
+| `supply-request-form` | `supply_requests` | |
+| `supply-usage-form` | `supply_usage` | |
+| `supply-vendor-form` | `supply vendors` | |
 | `task-form` | `tasks` | |
-| `training-course-form.tsx` | `training_courses` | |
+| `time-off-request-form` | `time_off_requests` | |
+| `training-course-form` | `training_courses` | |
 | `vehicle-form` | `vehicles` | |
+| `work-order-form` | `work_orders` | |
 
 ---
 
-## Custom Hooks (19 hooks)
+## Custom Hooks (22 hooks)
 
 Located at `apps/web/src/hooks/`:
 
 | Hook | Returns | Purpose |
 |------|---------|---------|
-| `useAuth` | `{ user, tenantId, role, loading, signOut }` | Auth state from Supabase |
-| `useBulkSelect` | `{ selected, toggle, selectAll, clear }` | Multi-row selection |
-| `useDensity` | `{ density, setDensity }` | Comfortable/compact toggle |
-| `use-feature-flag.ts` | `boolean` | Feature flag management |
-| `useForm` | `{ values, errors, loading, setValue, handleSubmit, onBlur }` | Form state + Zod validation |
-| `use-keyboard-shortcuts.ts` | — | Keyboard shortcut handling |
-| `use-locale.ts` | `{ locale, setLocale, t }` | Internationalization |
-| `usePagination` | `{ page, currentPage, totalPages, ... }` | Client-side pagination (default 25/page) |
-| `useRealtime` | — | Supabase realtime channel subscriptions |
-| `useRole` | `{ can, isAtLeast, isAdmin, isManager }` | RBAC permission checks |
-| `useServerPagination` | `{ ... }` | Server-side pagination |
-| `useTableSort` | `{ sorted, sortKey, sortDir, onSort }` | Client-side column sorting |
-| `useTheme` | `{ theme, resolvedTheme, setTheme }` | Dark/light/system theme |
-| `use-ui-preferences.ts` | `{ preferences, setPreference }` | UI state preferences |
-| `useViewPreference` | `{ view, setView }` | List/card view (localStorage) |
+| `use-auth` | `{ user, tenantId, role, loading, signOut }` | Auth state from Supabase |
+| `use-barcode-scanner` | `{ scan }` | Barcode scanning (mobile) |
+| `use-bulk-select` | `{ selected, toggle, selectAll, clear }` | Multi-row selection |
+| `use-camera` | `{ capture }` | Camera access (mobile) |
+| `use-density` | `{ density, setDensity }` | Comfortable/compact toggle |
+| `use-feature-flag` | `boolean` | Feature flag management |
+| `use-form` | `{ values, errors, loading, setValue, handleSubmit, onBlur }` | Form state + Zod validation |
+| `use-geolocation` | `{ coords }` | GPS location (mobile) |
+| `use-keyboard-shortcuts` | — | Keyboard shortcut handling |
+| `use-locale` | `{ locale, setLocale, t }` | Internationalization (EN, ES, PT-BR) |
+| `use-lookups` | `{ lookups }` | Lookup data fetching |
+| `use-media-query` | `boolean` | CSS media query matching |
+| `use-offline-mutation-sync` | — | Offline mutation queue + sync |
+| `use-pagination` | `{ page, currentPage, totalPages, ... }` | Client-side pagination (default 25/page) |
+| `use-realtime` | — | Supabase realtime channel subscriptions |
+| `use-role` | `{ can, isAtLeast, isAdmin, isManager }` | RBAC permission checks |
+| `use-server-pagination` | `{ ... }` | Server-side pagination |
+| `use-synced-tab` | `{ tab, setTab }` | URL-synced tab state |
+| `use-table-sort` | `{ sorted, sortKey, sortDir, onSort }` | Client-side column sorting |
+| `use-theme` | `{ theme, resolvedTheme, setTheme }` | Dark/light/system theme |
+| `use-ui-preferences` | `{ preferences, setPreference }` | UI state preferences |
+| `use-view-preference` | `{ view, setView }` | List/card view (localStorage) |
 
 ---
 
-## Card Grids (12 entities)
+## Card Grids (20 entities)
 
 | Entity | File |
 |--------|------|
 | Clients | `crm/clients/clients-card-grid.tsx` |
 | Sites | `crm/sites/sites-card-grid.tsx` |
+| Contacts | `crm/contacts/contacts-card-grid.tsx` |
 | Staff | `workforce/staff/staff-card-grid.tsx` |
+| Field Reports | `workforce/field-reports/field-reports-card-grid.tsx` |
 | Subcontractors | `vendors/subcontractors/subcontractors-card-grid.tsx` |
+| Vendor Directory | `vendors/vendor-directory/vendors-card-grid.tsx` |
 | Jobs | `operations/jobs/jobs-card-grid.tsx` |
+| Complaints | `operations/complaints/complaint-card-grid.tsx` |
+| Periodic Tasks | `operations/periodic/periodic-task-card-grid.tsx` |
+| Route Templates | `operations/templates/route-template-card-grid.tsx` |
+| Task Catalog | `operations/task-catalog/task-catalog-card-grid.tsx` |
 | Equipment | `assets/equipment/equipment-card-grid.tsx` |
 | Vehicles | `assets/vehicles/vehicles-card-grid.tsx` |
 | Supplies | `inventory/supplies/supplies-card-grid.tsx` |
+| Prospects | `pipeline/prospects/prospects-card-grid.tsx` |
+| Opportunities | `pipeline/opportunities/opportunities-card-grid.tsx` |
+| Positions | `admin/positions/position-type-card-grid.tsx` |
+| Work Orders | `schedule/work-orders/work-order-card-grid.tsx` |
+| Recurring Schedules | `schedule/recurring/schedule-card-grid.tsx` |
 
 ---
 
@@ -560,7 +607,7 @@ prospectSchema, bidSchema, convertBidSchema, loginSchema
 
 ---
 
-## Migration Files (84 SQL files, 13,349 lines)
+## Migration Files (111 SQL files, 17,559 lines)
 
 | Range | What |
 |-------|------|
@@ -572,6 +619,8 @@ prospectSchema, bidSchema, convertBidSchema, loginSchema
 | 00044–00049 | Storage hardening, new modules, follow-up worker, constraint relaxation, photo URLs |
 | 00050–00060 | HR tables, fleet DVIR, messaging, schedule availability, inventory counts |
 | 00061–00084 | Safety certs, training, production rates, geofences, mobile sync, warehouse, PIN codes |
+| 00085–00097 | Complaints, periodic tasks, route templates, field reports, night bridge, customer portal |
+| 00098–00111 | Shifts & time, schedule boards, work orders, payroll export, access windows |
 
 ---
 
@@ -592,30 +641,41 @@ prospectSchema, bidSchema, convertBidSchema, loginSchema
 
 ---
 
-## Service Modules (16 domains)
+## Service Modules (27 domains)
 
-All 36 API routes follow the **thin delegate** pattern: `auth → validate → service → respond`.
+All 102 API routes follow the **thin delegate** pattern: `auth → validate → service → respond`.
 
 Located at `apps/web/src/modules/`:
 
 | Module | Domain | Pattern |
 |--------|--------|---------|
+| `complaints` | Customer complaints | service + repository |
+| `counts` | Count submission | service + repository |
+| `cron` | Scheduled jobs | service + repository |
+| `field-reports` | Field inspection reports | service + repository |
+| `fleet` | DVIR inspections | service + repository |
 | `inventory` | Approval workflows | service + repository |
 | `inventory-orders` | Proof of delivery | service + repository |
-| `webhooks` | SendGrid event processing | service + repository |
+| `load-sheet` | Load sheet generation | service + repository |
+| `messages` | Thread messaging | service + repository |
+| `night-bridge` | Overnight shift handoffs | service + repository |
+| `owner-dashboard` | Owner analytics dashboard | service + repository |
+| `periodic-tasks` | Recurring task management | service + repository |
 | `proposals` | Send + signature capture | service + repository |
 | `proposals-pdf` | PDF generation | service + repository |
-| `counts` | Count submission | service + repository |
 | `public-counts` | Public count access | service + repository |
+| `public-portal` | Customer portal | service + repository |
 | `public-proposals` | Public proposal access | service + repository |
-| `fleet` | DVIR inspections | service + repository |
-| `schedule` | 13 schedule routes (dual-client) | service + repository + permissions |
-| `messages` | Thread messaging | service + repository |
-| `timekeeping` | Clock in/out | service + repository |
-| `cron` | Scheduled jobs | service + repository |
-| `workforce-hr` | Polymorphic HR CRUD (6 entities) | service + repository |
-| `warehouse` | Warehouse inventory | service + repository |
+| `public-work-orders` | Public work order access | service + repository |
+| `route-templates` | Route template management | service + repository |
+| `schedule` | Schedule routes (dual-client) | service + repository + permissions |
+| `self-service` | Employee self-service | service + repository |
+| `shifts-time` | Shifts & time tracking | service + repository |
 | `sites` | Site PIN codes | service + repository |
+| `timekeeping` | Clock in/out | service + repository |
+| `warehouse` | Warehouse inventory | service + repository |
+| `webhooks` | SendGrid event processing | service + repository |
+| `workforce-hr` | Polymorphic HR CRUD (6 entities) | service + repository |
 
 Each module follows the **golden module** pattern:
 - `{domain}.service.ts` — Business logic, returns `ServiceResult<T>`
@@ -654,22 +714,23 @@ Each module follows the **golden module** pattern:
 | F | Proposals send + tracking + follow-ups | DONE (PDF gen + send worker + webhooks) |
 | G | Won conversion → contracts → tickets | DONE (convert RPC v2) |
 | H+ | Schedule, Inspections, Timekeeping, Safety | DONE (tables + forms) |
+| P1–P8 | Monday.com replacement (boards, scheduling, shifts, routes, complaints, field reports, night bridge, customer portal) | DONE |
 
 ---
 
 ## Git History (Key Commits)
 
 ```
-43d135f batch-12: standardize row-click navigation with router.push
-c1e9f9f batch-12: isolate VEN-coded supply vendors from subcontractor flows
-8718087 batch-12: refactor supply vendor form to standard useForm pattern
-d399fad batch-12: fix staff row navigation to detail pages
-9029da0 batch-12: enrich detail pages layout and data coverage
-6dd149e batch-12: navigation naming consistency + reports + tab sync
-234c772 batch-12: supabase data population fixes + null-state standardization
-7918bd2 batch-12: directory column layouts redesign + scannability metrics
-f2494f8 batch-12b: fix system-wide filter trap and persistent table chrome
-3b52e5b batch-12: filter-trap hardening + liquid forms + soft deactivate
+2ee5fbf feat(schedule): fix Humanity-style UX gaps — copy-week, day timeline DnD, month labels
+b602afd chore(i18n): remove unused FR and RO locales — keep EN/ES/PT-BR
+4a3af57 feat(schedule): redesign boards with Monday.com visual language
+6cc6048 feat(schedule): add Humanity-style scheduling + Monday.com-style boards
+2412c17 feat(schedule): cross-cutting polish — forms empty state, checklist progress bar
+7c8a61a feat(schedule): add export and print buttons to planning board
+3295fa5 feat(schedule): add board activity log, grouping, and inline notes
+171000e chore: architecture handoff doc + lint cleanup
+ea9e5d8 feat(schedule): add React.memo wrapping and deduplicate formatTime
+ebc4130 feat(schedule): add conflict highlighting, mobile hint, handoff badges
 ```
 
 ---

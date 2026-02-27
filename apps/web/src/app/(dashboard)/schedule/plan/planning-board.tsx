@@ -10,6 +10,25 @@ import { useMediaQuery } from '@/hooks/use-media-query';
 import { PlanningCard, type PlanningTicket } from './planning-card';
 import { StaffingGapPanel } from './staffing-gap-panel';
 import { HandoffSummary } from './handoff-summary';
+import { BoardActivityLog } from './board-activity-log';
+
+type GroupByOption = 'none' | 'site' | 'position';
+
+function groupTickets(tickets: PlanningTicket[], groupBy: GroupByOption): { key: string; label: string; items: PlanningTicket[] }[] {
+  if (groupBy === 'none') return [{ key: '__all', label: '', items: tickets }];
+  const groups = new Map<string, PlanningTicket[]>();
+  for (const t of tickets) {
+    const gk = groupBy === 'site'
+      ? (t.site?.name ?? 'Unassigned Site')
+      : (t.position_code ?? 'General');
+    const existing = groups.get(gk);
+    if (existing) existing.push(t);
+    else groups.set(gk, [t]);
+  }
+  return Array.from(groups.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, items]) => ({ key, label: key, items }));
+}
 
 interface StaffOption {
   id: string;
@@ -163,6 +182,7 @@ export default function PlanningBoard({ search = '', openCreateToken = 0 }: Plan
   const [createEndTime, setCreateEndTime] = useState('');
   const [dragOverColumn, setDragOverColumn] = useState<PlanningStatus | null>(null);
   const [mobileColumn, setMobileColumn] = useState<PlanningStatus>('NOT_STARTED');
+  const [groupBy, setGroupBy] = useState<GroupByOption>('none');
   const isMobile = useMediaQuery('(max-width: 767px)');
 
   useEffect(() => {
@@ -436,6 +456,25 @@ export default function PlanningBoard({ search = '', openCreateToken = 0 }: Plan
     [supabase, loadTickets]
   );
 
+  const handleUpdateNotes = useCallback(
+    async (ticketId: string, notes: string) => {
+      const { error } = await supabase
+        .from('work_tickets')
+        .update({ notes: notes || null })
+        .eq('id', ticketId);
+
+      if (error) {
+        toast.error('Failed to save notes');
+        return;
+      }
+
+      setTickets((prev) =>
+        prev.map((t) => (t.id === ticketId ? { ...t, notes: notes || null } : t))
+      );
+    },
+    [supabase]
+  );
+
   const openCreateTicket = useCallback(() => {
     setCreateError(null);
     setCreateDate(selectedDate || today());
@@ -673,6 +712,18 @@ export default function PlanningBoard({ search = '', openCreateToken = 0 }: Plan
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
+          <span className="border-l border-border h-5 mx-1" />
+          <label className="sr-only" htmlFor="group-by">Group by</label>
+          <select
+            id="group-by"
+            value={groupBy}
+            onChange={(e) => setGroupBy(e.target.value as GroupByOption)}
+            className="h-8 rounded-md border border-border bg-background px-2 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="none">No grouping</option>
+            <option value="site">Group by Site</option>
+            <option value="position">Group by Position</option>
+          </select>
         </div>
       </div>
 
@@ -725,6 +776,7 @@ export default function PlanningBoard({ search = '', openCreateToken = 0 }: Plan
                 ticket={ticket}
                 onMarkReady={handleMarkReady}
                 onAssign={() => toast.info('Use the Staffing Gaps panel to assign staff.')}
+                onUpdateNotes={handleUpdateNotes}
               />
             ))}
             {columnTickets[mobileColumn].length === 0 && (
@@ -779,17 +831,28 @@ export default function PlanningBoard({ search = '', openCreateToken = 0 }: Plan
                   {stats.gaps > 0 && <span className="text-destructive"> · {stats.gaps} {stats.gaps === 1 ? 'gap' : 'gaps'}</span>}
                 </p>
 
-                {/* Cards */}
+                {/* Cards (with optional grouping) */}
                 <div className="space-y-2">
-                  {items.map((ticket) => (
-                    <PlanningCard
-                      key={ticket.id}
-                      ticket={ticket}
-                      onMarkReady={handleMarkReady}
-                      onAssign={() => toast.info('Use the Staffing Gaps panel to assign staff.')}
-                      draggable
-                      onDragStart={handleDragStart}
-                    />
+                  {groupTickets(items, groupBy).map((group) => (
+                    <div key={group.key}>
+                      {group.label && (
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground px-1 pt-2 pb-1 border-b border-border/50 mb-1">
+                          {group.label} ({group.items.length})
+                        </p>
+                      )}
+                      {group.items.map((ticket) => (
+                        <div key={ticket.id} className="mb-2">
+                          <PlanningCard
+                            ticket={ticket}
+                            onMarkReady={handleMarkReady}
+                            onAssign={() => toast.info('Use the Staffing Gaps panel to assign staff.')}
+                            onUpdateNotes={handleUpdateNotes}
+                            draggable
+                            onDragStart={handleDragStart}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   ))}
                   {items.length === 0 && (
                     <p className="text-xs text-muted-foreground text-center py-4">
@@ -812,6 +875,9 @@ export default function PlanningBoard({ search = '', openCreateToken = 0 }: Plan
         onQuickAssign={handleQuickAssign}
         busy={busy}
       />
+
+      {/* Board activity log */}
+      <BoardActivityLog tickets={filteredTickets} />
 
       <SlideOver
         open={createOpen}

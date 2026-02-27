@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, memo } from 'react';
-import { ClipboardList, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useState, useCallback, memo } from 'react';
+import { ClipboardList, CheckCircle2, AlertCircle, MessageSquare } from 'lucide-react';
 import { Badge, cn } from '@gleamops/ui';
 import type { PlanningStatus } from '@gleamops/shared';
 import { formatScheduleTime } from './format-schedule-time';
@@ -62,6 +62,7 @@ interface PlanningCardProps {
   ticket: PlanningTicket;
   onMarkReady: (ticketId: string) => void;
   onAssign: (ticketId: string) => void;
+  onUpdateNotes?: (ticketId: string, notes: string) => void;
   draggable?: boolean;
   onDragStart?: (e: React.DragEvent, ticketId: string) => void;
 }
@@ -70,10 +71,22 @@ export const PlanningCard = memo(function PlanningCard({
   ticket,
   onMarkReady,
   onAssign,
+  onUpdateNotes,
   draggable = false,
   onDragStart,
 }: PlanningCardProps) {
   const [isDragging, setIsDragging] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [notesValue, setNotesValue] = useState(ticket.notes ?? '');
+  const [notesSaving, setNotesSaving] = useState(false);
+
+  const handleSaveNotes = useCallback(() => {
+    if (!onUpdateNotes) return;
+    setNotesSaving(true);
+    onUpdateNotes(ticket.id, notesValue);
+    setNotesSaving(false);
+    setNotesOpen(false);
+  }, [onUpdateNotes, ticket.id, notesValue]);
   const activeAssignments = (ticket.assignments ?? []).filter(
     (a) => !a.assignment_status || a.assignment_status === 'ASSIGNED'
   );
@@ -175,13 +188,40 @@ export const PlanningCard = memo(function PlanningCard({
         </span>
       </div>
 
-      {/* Notes / supplies indicator */}
-      {ticket.notes && (
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
+      {/* Notes */}
+      {notesOpen ? (
+        <div className="mb-2 space-y-1">
+          <textarea
+            className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground resize-none outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            rows={2}
+            value={notesValue}
+            onChange={(e) => setNotesValue(e.target.value)}
+            placeholder="Add notes..."
+          />
+          <div className="flex items-center gap-1">
+            <button type="button" onClick={handleSaveNotes} disabled={notesSaving}
+              className="text-[10px] font-medium text-primary hover:underline px-1">
+              Save
+            </button>
+            <button type="button" onClick={() => { setNotesOpen(false); setNotesValue(ticket.notes ?? ''); }}
+              className="text-[10px] text-muted-foreground hover:underline px-1">
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : ticket.notes ? (
+        <button type="button" onClick={() => setNotesOpen(true)}
+          className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2 hover:text-foreground w-full text-left">
           <ClipboardList className="h-3 w-3 shrink-0" aria-hidden />
           <span className="truncate">{ticket.notes}</span>
-        </div>
-      )}
+        </button>
+      ) : onUpdateNotes ? (
+        <button type="button" onClick={() => setNotesOpen(true)}
+          className="flex items-center gap-1.5 text-[10px] text-muted-foreground mb-2 hover:text-foreground">
+          <MessageSquare className="h-3 w-3 shrink-0" aria-hidden />
+          Add notes
+        </button>
+      ) : null}
 
       {/* Actions */}
       <div className="flex items-center gap-2 pt-1 border-t border-border/50">

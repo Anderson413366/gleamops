@@ -312,6 +312,10 @@ const en: Translations = {
   'shiftsTime.payroll.fieldsLoadError': 'Unable to load mapping fields.',
   'shiftsTime.payroll.fieldsSaveError': 'Unable to save mapping fields.',
   'shiftsTime.payroll.fieldsSaveSuccess': 'Mapping fields saved.',
+  'shiftsTime.travel.logTravel': 'Log Travel',
+  'shiftsTime.travel.capturing': 'Logging...',
+  'shiftsTime.travel.captureSuccess': 'Travel segment captured.',
+  'shiftsTime.travel.captureError': 'Unable to capture travel segment.',
   'shiftsTime.routeStatus.DRAFT': 'Draft',
   'shiftsTime.routeStatus.PUBLISHED': 'Published',
   'shiftsTime.routeStatus.LOCKED': 'Locked',
@@ -990,6 +994,10 @@ const es: Translations = {
   'shiftsTime.payroll.fieldsLoadError': 'No se pudieron cargar los campos de mapeo.',
   'shiftsTime.payroll.fieldsSaveError': 'No se pudieron guardar los campos de mapeo.',
   'shiftsTime.payroll.fieldsSaveSuccess': 'Campos de mapeo guardados.',
+  'shiftsTime.travel.logTravel': 'Registrar viaje',
+  'shiftsTime.travel.capturing': 'Registrando...',
+  'shiftsTime.travel.captureSuccess': 'Segmento de viaje registrado.',
+  'shiftsTime.travel.captureError': 'No se pudo registrar el segmento de viaje.',
   'shiftsTime.routeStatus.DRAFT': 'Borrador',
   'shiftsTime.routeStatus.PUBLISHED': 'Publicado',
   'shiftsTime.routeStatus.LOCKED': 'Bloqueado',
@@ -1637,6 +1645,12 @@ const fr: Translations = {
   'shiftsTime.coverage.offerStatus.EXPIRED': 'Expiré',
   'shiftsTime.coverage.offerStatus.CANCELED': 'Annulé',
 
+  // -- Shifts & Time (travel capture) --
+  'shiftsTime.travel.logTravel': 'Enregistrer le trajet',
+  'shiftsTime.travel.capturing': 'Enregistrement...',
+  'shiftsTime.travel.captureSuccess': 'Segment de trajet enregistré.',
+  'shiftsTime.travel.captureError': "Impossible d'enregistrer le segment de trajet.",
+
   // -- Subcontractors --
   'subs.title': 'Sous-traitants',
   'subs.vendors': 'Fournisseurs',
@@ -2233,6 +2247,10 @@ const ptBR: Translations = {
   'shiftsTime.payroll.fieldsLoadError': 'Nao foi possivel carregar os campos de mapeamento.',
   'shiftsTime.payroll.fieldsSaveError': 'Nao foi possivel salvar os campos de mapeamento.',
   'shiftsTime.payroll.fieldsSaveSuccess': 'Campos de mapeamento salvos.',
+  'shiftsTime.travel.logTravel': 'Registrar deslocamento',
+  'shiftsTime.travel.capturing': 'Registrando...',
+  'shiftsTime.travel.captureSuccess': 'Segmento de deslocamento registrado.',
+  'shiftsTime.travel.captureError': 'Nao foi possivel registrar o segmento de deslocamento.',
   'shiftsTime.routeStatus.DRAFT': 'Rascunho',
   'shiftsTime.routeStatus.PUBLISHED': 'Publicado',
   'shiftsTime.routeStatus.LOCKED': 'Travado',
@@ -2402,6 +2420,12 @@ const ro: Translations = {
   'shiftsTime.coverage.offerStatus.DECLINED': 'Refuzat',
   'shiftsTime.coverage.offerStatus.EXPIRED': 'Expirat',
   'shiftsTime.coverage.offerStatus.CANCELED': 'Anulat',
+
+  // -- Shifts & Time (travel capture) --
+  'shiftsTime.travel.logTravel': 'Înregistrează deplasarea',
+  'shiftsTime.travel.capturing': 'Se înregistrează...',
+  'shiftsTime.travel.captureSuccess': 'Segmentul de deplasare a fost înregistrat.',
+  'shiftsTime.travel.captureError': 'Nu s-a putut înregistra segmentul de deplasare.',
 };
 
 // ---------------------------------------------------------------------------

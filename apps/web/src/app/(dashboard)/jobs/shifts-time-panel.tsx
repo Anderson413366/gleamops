@@ -527,6 +527,31 @@ export default function ShiftsTimePanel({ search }: ShiftsTimePanelProps) {
     }
   }, [load, t]);
 
+  const [travelCapturing, setTravelCapturing] = useState<string | null>(null);
+
+  const captureTravel = useCallback(async (routeId: string, fromStopId: string, toStopId: string) => {
+    const key = `${fromStopId}-${toStopId}`;
+    setTravelCapturing(key);
+    try {
+      const headers = await authHeaders();
+      headers['Content-Type'] = 'application/json';
+      const response = await fetch('/api/operations/shifts-time/travel/capture', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ route_id: routeId, from_stop_id: fromStopId, to_stop_id: toStopId }),
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok || !body?.success) {
+        throw new Error(body?.detail ?? body?.title ?? t('shiftsTime.travel.captureError'));
+      }
+      toast.success(t('shiftsTime.travel.captureSuccess'));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('shiftsTime.travel.captureError'));
+    } finally {
+      setTravelCapturing(null);
+    }
+  }, [t]);
+
   const previewPayroll = useCallback(async () => {
     if (!mappingId) {
       toast.error(t('shiftsTime.payroll.noMappings'));
@@ -1010,30 +1035,49 @@ export default function ShiftsTimePanel({ search }: ShiftsTimePanelProps) {
                         </div>
 
                         <div className="mt-3 space-y-2">
-                          {route.stops.map((stop) => {
+                          {route.stops.map((stop, stopIndex) => {
                             const actionable = stop.stop_status === 'PENDING' || stop.stop_status === 'ARRIVED' || stop.stop_status === 'IN_PROGRESS';
+                            const prevStop = stopIndex > 0 ? route.stops[stopIndex - 1] : null;
+                            const canLogTravel = prevStop?.stop_status === 'COMPLETED' && routeExecutionEnabled;
+                            const travelKey = prevStop ? `${prevStop.stop_id}-${stop.stop_id}` : '';
                             return (
-                              <div key={stop.stop_id} className="rounded-md border border-border px-3 py-2">
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                  <div>
-                                    <p className="text-sm font-medium text-foreground">{stop.stop_order}. {stop.site_code ?? '--'} - {stop.site_name ?? t('shiftsTime.unknown')}</p>
-                                    <p className="text-xs text-muted-foreground">{formatWindow(stop.planned_start_at, stop.planned_end_at, localeCode)} · {stop.job_code ?? t('shiftsTime.unknown')}</p>
-                                  </div>
-                                  <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${stopStatusClasses(stop.stop_status)}`}>
-                                    {t(`shiftsTime.stopStatus.${stop.stop_status}`)}
-                                  </span>
-                                </div>
-                                {actionable && (
-                                  <div className="mt-2">
+                              <div key={stop.stop_id}>
+                                {canLogTravel && prevStop && (
+                                  <div className="flex items-center justify-center py-1">
                                     <Button
+                                      type="button"
                                       size="sm"
-                                      onClick={() => void executeStopAction(stop.stop_id, stop.primary_action, stop.execution_source, stop.work_ticket_id)}
-                                      disabled={actionSaving || !routeExecutionEnabled}
+                                      variant="secondary"
+                                      onClick={() => void captureTravel(route.route_id, prevStop.stop_id, stop.stop_id)}
+                                      disabled={travelCapturing === travelKey}
                                     >
-                                      {stop.primary_action === 'complete' ? t('shiftsTime.action.complete') : t('shiftsTime.action.arrive')}
+                                      <MapPin className="mr-1 h-3 w-3" />
+                                      {travelCapturing === travelKey ? t('shiftsTime.travel.capturing') : t('shiftsTime.travel.logTravel')}
                                     </Button>
                                   </div>
                                 )}
+                                <div className="rounded-md border border-border px-3 py-2">
+                                  <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <div>
+                                      <p className="text-sm font-medium text-foreground">{stop.stop_order}. {stop.site_code ?? '--'} - {stop.site_name ?? t('shiftsTime.unknown')}</p>
+                                      <p className="text-xs text-muted-foreground">{formatWindow(stop.planned_start_at, stop.planned_end_at, localeCode)} · {stop.job_code ?? t('shiftsTime.unknown')}</p>
+                                    </div>
+                                    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${stopStatusClasses(stop.stop_status)}`}>
+                                      {t(`shiftsTime.stopStatus.${stop.stop_status}`)}
+                                    </span>
+                                  </div>
+                                  {actionable && (
+                                    <div className="mt-2">
+                                      <Button
+                                        size="sm"
+                                        onClick={() => void executeStopAction(stop.stop_id, stop.primary_action, stop.execution_source, stop.work_ticket_id)}
+                                        disabled={actionSaving || !routeExecutionEnabled}
+                                      >
+                                        {stop.primary_action === 'complete' ? t('shiftsTime.action.complete') : t('shiftsTime.action.arrive')}
+                                      </Button>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             );
                           })}

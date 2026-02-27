@@ -17,6 +17,7 @@ import {
   listActivePayrollMappings,
   listAllPayrollMappings,
   listCoverageCandidates,
+  listCoverageOffersForCallouts,
   listRecentCalloutEvents,
   listRecentPayrollRuns,
   listAssignedTicketsForDate,
@@ -177,6 +178,19 @@ type CoverageCandidate = {
   staff_id: string;
   staff_code: string | null;
   full_name: string | null;
+};
+
+export type CoverageOfferSummary = {
+  id: string;
+  callout_event_id: string;
+  candidate_staff_id: string;
+  candidate_name: string | null;
+  candidate_code: string | null;
+  status: string;
+  offered_at: string;
+  expires_at: string | null;
+  responded_at: string | null;
+  response_note: string | null;
 };
 
 type PayrollMappingSummary = {
@@ -434,6 +448,22 @@ function toRouteSummaries(routes: ShiftsTimeRouteRow[], stops: TonightBoardStop[
     });
 }
 
+export function toCoverageOfferSummary(row: Record<string, unknown>): CoverageOfferSummary {
+  const candidate = firstRelation(row.candidate as { full_name?: string; staff_code?: string } | null);
+  return {
+    id: String(row.id ?? ''),
+    callout_event_id: String(row.callout_event_id ?? ''),
+    candidate_staff_id: String(row.candidate_staff_id ?? ''),
+    candidate_name: candidate?.full_name ?? null,
+    candidate_code: candidate?.staff_code ?? null,
+    status: String(row.status ?? 'PENDING'),
+    offered_at: String(row.offered_at ?? ''),
+    expires_at: row.expires_at ? String(row.expires_at) : null,
+    responded_at: row.responded_at ? String(row.responded_at) : null,
+    response_note: row.response_note ? String(row.response_note) : null,
+  };
+}
+
 function toCalloutSummary(row: ShiftsTimeCalloutEventRow): CalloutSummary {
   const affectedStaff = firstRelation(row.affected_staff);
   const coveredByStaff = firstRelation(row.covered_by_staff);
@@ -519,6 +549,7 @@ function emptyTonightBoardPayload(date: string, pilotEnabled: boolean, myStaffId
     my_next_stop: null,
     route_summaries: [] as RouteSummary[],
     recent_callouts: [] as CalloutSummary[],
+    coverage_offers: [] as CoverageOfferSummary[],
     coverage_candidates: [] as CoverageCandidate[],
     payroll_mappings: [] as PayrollMappingSummary[],
     payroll_runs: [] as PayrollRunSummary[],
@@ -1281,6 +1312,7 @@ export async function getTonightBoard(
     : null;
 
   let recentCallouts: CalloutSummary[] = [];
+  let coverageOffers: CoverageOfferSummary[] = [];
   let coverageCandidates: CoverageCandidate[] = [];
   if (isCalloutEnabled()) {
     const [calloutsResult, candidatesResult] = await Promise.all([
@@ -1294,6 +1326,14 @@ export async function getTonightBoard(
 
     if (!candidatesResult.error) {
       coverageCandidates = ((candidatesResult.data ?? []) as ShiftsTimeCoverageCandidateRow[]).map(toCoverageCandidate);
+    }
+
+    if (recentCallouts.length > 0) {
+      const calloutIds = recentCallouts.map((c) => c.id);
+      const offersResult = await listCoverageOffersForCallouts(userDb, calloutIds);
+      if (!offersResult.error) {
+        coverageOffers = ((offersResult.data ?? []) as Record<string, unknown>[]).map(toCoverageOfferSummary);
+      }
     }
   }
 
@@ -1330,6 +1370,7 @@ export async function getTonightBoard(
       my_next_stop: myNextStop,
       route_summaries: routeSummaries,
       recent_callouts: recentCallouts,
+      coverage_offers: coverageOffers,
       coverage_candidates: coverageCandidates,
       payroll_mappings: payrollMappings,
       payroll_runs: payrollRuns,

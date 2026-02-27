@@ -123,6 +123,19 @@ type PayrollRunSummary = {
   mapping_name: string | null;
 };
 
+type CoverageOfferSummary = {
+  id: string;
+  callout_event_id: string;
+  candidate_staff_id: string;
+  candidate_name: string | null;
+  candidate_code: string | null;
+  status: string;
+  offered_at: string;
+  expires_at: string | null;
+  responded_at: string | null;
+  response_note: string | null;
+};
+
 type TonightBoardData = {
   pilot_enabled: boolean;
   features?: {
@@ -135,6 +148,7 @@ type TonightBoardData = {
   my_next_stop: NextStop | null;
   route_summaries?: RouteSummary[];
   recent_callouts?: CalloutSummary[];
+  coverage_offers?: CoverageOfferSummary[];
   coverage_candidates?: CoverageCandidate[];
   payroll_mappings?: PayrollMappingSummary[];
   payroll_runs?: PayrollRunSummary[];
@@ -487,6 +501,31 @@ export default function ShiftsTimePanel({ search }: ShiftsTimePanelProps) {
       setOfferSaving(false);
     }
   }, [offerCandidateId, offerExpiresMinutes, offerTargetCalloutId, load, t]);
+
+  const [acceptingOfferId, setAcceptingOfferId] = useState<string | null>(null);
+
+  const acceptCoverageOffer = useCallback(async (offerId: string) => {
+    setAcceptingOfferId(offerId);
+    try {
+      const headers = await authHeaders();
+      headers['Content-Type'] = 'application/json';
+      const response = await fetch(`/api/operations/shifts-time/callouts/offers/${encodeURIComponent(offerId)}/accept`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ response_note: null }),
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok || !body?.success) {
+        throw new Error(body?.detail ?? body?.title ?? t('shiftsTime.coverage.acceptError'));
+      }
+      toast.success(t('shiftsTime.coverage.acceptSuccess'));
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('shiftsTime.coverage.acceptError'));
+    } finally {
+      setAcceptingOfferId(null);
+    }
+  }, [load, t]);
 
   const previewPayroll = useCallback(async () => {
     if (!mappingId) {
@@ -1035,7 +1074,7 @@ export default function ShiftsTimePanel({ search }: ShiftsTimePanelProps) {
                         <span>{t('shiftsTime.coverage.escalation')}: {callout.escalation_level}</span>
                       </div>
 
-                      <div className="mt-3">
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
                         <Button
                           type="button"
                           size="sm"
@@ -1051,6 +1090,42 @@ export default function ShiftsTimePanel({ search }: ShiftsTimePanelProps) {
                           {t('shiftsTime.coverage.findCover')}
                         </Button>
                       </div>
+
+                      {(() => {
+                        const offers = (data?.coverage_offers ?? []).filter((o) => o.callout_event_id === callout.id);
+                        if (offers.length === 0) return null;
+                        return (
+                          <div className="mt-3 space-y-1.5">
+                            <p className="text-xs font-medium text-muted-foreground">{t('shiftsTime.coverage.offersLabel')}</p>
+                            {offers.map((offer) => {
+                              const isExpired = offer.status === 'PENDING' && offer.expires_at && new Date(offer.expires_at) < new Date();
+                              const displayStatus = isExpired ? 'EXPIRED' : offer.status;
+                              const isPendingForMe = offer.status === 'PENDING' && !isExpired && data?.my_staff_id === offer.candidate_staff_id;
+                              return (
+                                <div key={offer.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-2 py-1.5 text-xs">
+                                  <div>
+                                    <span className="font-medium text-foreground">{offer.candidate_name ?? offer.candidate_code ?? t('shiftsTime.unknown')}</span>
+                                    <span className="ml-2 text-muted-foreground">{t(`shiftsTime.coverage.offerStatus.${displayStatus}`)}</span>
+                                    {offer.responded_at && (
+                                      <span className="ml-2 text-muted-foreground">{formatDateTime(offer.responded_at, localeCode)}</span>
+                                    )}
+                                  </div>
+                                  {isPendingForMe && (
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      onClick={() => void acceptCoverageOffer(offer.id)}
+                                      disabled={acceptingOfferId === offer.id}
+                                    >
+                                      {acceptingOfferId === offer.id ? t('shiftsTime.coverage.accepting') : t('shiftsTime.coverage.accept')}
+                                    </Button>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
                     </article>
                   ))
                 )}

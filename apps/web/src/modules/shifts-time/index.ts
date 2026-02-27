@@ -16,7 +16,10 @@ export {
   archivePayrollMappingTemplate,
   getAllPayrollMappings,
   replacePayrollMappingFieldSet,
+  toCoverageOfferSummary,
 } from './shifts-time.service';
+
+export type { CoverageOfferSummary } from './shifts-time.service';
 
 export {
   canOperateShiftsTimeRouteExecution,

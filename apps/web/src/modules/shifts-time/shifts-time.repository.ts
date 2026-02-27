@@ -470,6 +470,32 @@ export async function listCoverageCandidates(
     .limit(Math.max(1, Math.min(limit, 500)));
 }
 
+export async function listCoverageOffersForCallouts(
+  db: SupabaseClient,
+  calloutIds: string[],
+) {
+  if (calloutIds.length === 0) {
+    return { data: [], error: null };
+  }
+  return db
+    .from('coverage_offers')
+    .select(`
+      id,
+      callout_event_id,
+      candidate_staff_id,
+      status,
+      offered_at,
+      expires_at,
+      responded_at,
+      response_note,
+      candidate:candidate_staff_id(id, staff_code, full_name)
+    `)
+    .in('callout_event_id', calloutIds)
+    .is('archived_at', null)
+    .order('offered_at', { ascending: false })
+    .limit(200);
+}
+
 export async function listActivePayrollMappings(
   db: SupabaseClient,
   limit = 50,

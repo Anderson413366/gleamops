@@ -116,6 +116,22 @@ test('tonight board includes route, coverage, and payroll enrichment for manager
         ]);
       }
 
+      if (table === 'coverage_offers') {
+        return queryResult([
+          {
+            id: 'offer-1',
+            callout_event_id: 'callout-1',
+            candidate_staff_id: 'staff-1',
+            status: 'PENDING',
+            offered_at: `${today}T20:05:00.000Z`,
+            expires_at: `${today}T21:05:00.000Z`,
+            responded_at: null,
+            response_note: null,
+            candidate: { id: 'staff-1', staff_code: 'STF-1', full_name: 'Maria Rivera' },
+          },
+        ]);
+      }
+
       if (table === 'payroll_export_mappings') {
         return queryResult([
           {
@@ -171,6 +187,7 @@ test('tonight board includes route, coverage, and payroll enrichment for manager
       my_next_stop: { stop_id: string } | null;
       route_summaries: unknown[];
       recent_callouts: unknown[];
+      coverage_offers: Array<{ id: string; candidate_name: string | null; status: string }>;
       coverage_candidates: unknown[];
       payroll_mappings: unknown[];
       payroll_runs: unknown[];
@@ -183,6 +200,9 @@ test('tonight board includes route, coverage, and payroll enrichment for manager
     assert.equal(payload.my_next_stop?.stop_id, 'stop-1');
     assert.equal(payload.route_summaries.length, 1);
     assert.equal(payload.recent_callouts.length, 1);
+    assert.equal(payload.coverage_offers.length, 1);
+    assert.equal(payload.coverage_offers[0]?.candidate_name, 'Maria Rivera');
+    assert.equal(payload.coverage_offers[0]?.status, 'PENDING');
     assert.equal(payload.coverage_candidates.length, 2);
     assert.equal(payload.payroll_mappings.length, 1);
     assert.equal(payload.payroll_runs.length, 1);

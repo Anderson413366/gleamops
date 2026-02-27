@@ -230,6 +230,10 @@ const en: Translations = {
   'shiftsTime.routes.empty': 'No routes available for this view.',
   'shiftsTime.routes.routeBy': 'Route owner: {owner}',
   'shiftsTime.routes.stopsCount': '{count} stops',
+  'shiftsTime.routes.generate': 'Generate Tonight\'s Routes',
+  'shiftsTime.routes.generating': 'Generating...',
+  'shiftsTime.routes.generateSuccess': '{count} routes generated.',
+  'shiftsTime.routes.generateError': 'Unable to generate routes.',
   'shiftsTime.coverage.title': 'Coverage Automation',
   'shiftsTime.coverage.help': 'Track call-outs and send cover offers quickly.',
   'shiftsTime.coverage.featureOff': 'Call-out automation is currently disabled by feature flags.',
@@ -912,6 +916,10 @@ const es: Translations = {
   'shiftsTime.routes.empty': 'No hay rutas disponibles para esta vista.',
   'shiftsTime.routes.routeBy': 'Responsable de ruta: {owner}',
   'shiftsTime.routes.stopsCount': '{count} paradas',
+  'shiftsTime.routes.generate': 'Generar rutas de esta noche',
+  'shiftsTime.routes.generating': 'Generando...',
+  'shiftsTime.routes.generateSuccess': '{count} rutas generadas.',
+  'shiftsTime.routes.generateError': 'No se pudieron generar las rutas.',
   'shiftsTime.coverage.title': 'Automatización de cobertura',
   'shiftsTime.coverage.help': 'Sigue ausencias y envía ofertas de cobertura rápidamente.',
   'shiftsTime.coverage.featureOff': 'La automatización de ausencias está desactivada por banderas de funciones.',
@@ -1651,6 +1659,12 @@ const fr: Translations = {
   'shiftsTime.travel.captureSuccess': 'Segment de trajet enregistré.',
   'shiftsTime.travel.captureError': "Impossible d'enregistrer le segment de trajet.",
 
+  // -- Shifts & Time (route generation) --
+  'shiftsTime.routes.generate': 'Générer les itinéraires de ce soir',
+  'shiftsTime.routes.generating': 'Génération...',
+  'shiftsTime.routes.generateSuccess': '{count} itinéraires générés.',
+  'shiftsTime.routes.generateError': 'Impossible de générer les itinéraires.',
+
   // -- Subcontractors --
   'subs.title': 'Sous-traitants',
   'subs.vendors': 'Fournisseurs',
@@ -2165,6 +2179,10 @@ const ptBR: Translations = {
   'shiftsTime.routes.empty': 'Nenhuma rota disponivel para esta visualizacao.',
   'shiftsTime.routes.routeBy': 'Responsavel da rota: {owner}',
   'shiftsTime.routes.stopsCount': '{count} paradas',
+  'shiftsTime.routes.generate': 'Gerar rotas de hoje a noite',
+  'shiftsTime.routes.generating': 'Gerando...',
+  'shiftsTime.routes.generateSuccess': '{count} rotas geradas.',
+  'shiftsTime.routes.generateError': 'Nao foi possivel gerar as rotas.',
   'shiftsTime.coverage.title': 'Automacao de cobertura',
   'shiftsTime.coverage.help': 'Acompanhe faltas e envie ofertas de cobertura rapidamente.',
   'shiftsTime.coverage.featureOff': 'A automacao de faltas esta desativada por flags de recurso.',
@@ -2426,6 +2444,12 @@ const ro: Translations = {
   'shiftsTime.travel.capturing': 'Se înregistrează...',
   'shiftsTime.travel.captureSuccess': 'Segmentul de deplasare a fost înregistrat.',
   'shiftsTime.travel.captureError': 'Nu s-a putut înregistra segmentul de deplasare.',
+
+  // -- Shifts & Time (route generation) --
+  'shiftsTime.routes.generate': 'Generează rutele de diseară',
+  'shiftsTime.routes.generating': 'Se generează...',
+  'shiftsTime.routes.generateSuccess': '{count} rute generate.',
+  'shiftsTime.routes.generateError': 'Nu s-au putut genera rutele.',
 };
 
 // ---------------------------------------------------------------------------

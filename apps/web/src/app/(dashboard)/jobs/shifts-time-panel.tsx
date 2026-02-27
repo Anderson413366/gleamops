@@ -552,6 +552,34 @@ export default function ShiftsTimePanel({ search }: ShiftsTimePanelProps) {
     }
   }, [t]);
 
+  const [generateSaving, setGenerateSaving] = useState(false);
+
+  const generateTonightRoutes = useCallback(async () => {
+    setGenerateSaving(true);
+    try {
+      const now = new Date();
+      const targetDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const headers = await authHeaders();
+      headers['Content-Type'] = 'application/json';
+      const response = await fetch('/api/operations/routes/generate', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ target_date: targetDate }),
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok || !body?.success) {
+        throw new Error(body?.detail ?? body?.title ?? t('shiftsTime.routes.generateError'));
+      }
+      const count = Array.isArray(body.data) ? body.data.length : 0;
+      toast.success(t('shiftsTime.routes.generateSuccess', { count }));
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('shiftsTime.routes.generateError'));
+    } finally {
+      setGenerateSaving(false);
+    }
+  }, [load, t]);
+
   const previewPayroll = useCallback(async () => {
     if (!mappingId) {
       toast.error(t('shiftsTime.payroll.noMappings'));
@@ -1015,7 +1043,19 @@ export default function ShiftsTimePanel({ search }: ShiftsTimePanelProps) {
               </CardHeader>
               <CardContent>
                 {filteredRoutes.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">{t('shiftsTime.routes.empty')}</p>
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground">{t('shiftsTime.routes.empty')}</p>
+                    {routeExecutionEnabled && !isFieldRole && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => void generateTonightRoutes()}
+                        disabled={generateSaving}
+                      >
+                        {generateSaving ? t('shiftsTime.routes.generating') : t('shiftsTime.routes.generate')}
+                      </Button>
+                    )}
+                  </div>
                 ) : (
                   <div className="space-y-3">
                     {filteredRoutes.map((route) => (

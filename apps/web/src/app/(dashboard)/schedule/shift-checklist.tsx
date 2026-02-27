@@ -431,9 +431,21 @@ export function ShiftChecklist({ search = '' }: ShiftChecklistProps) {
             onChange={(event) => setSelectedTicketId(event.target.value)}
             options={ticketOptions.map((ticket) => ({ value: ticket.id, label: ticket.label }))}
           />
-          <div className="rounded-lg border border-border/70 bg-muted/15 px-3 py-2 text-sm">
-            <p className="text-xs text-muted-foreground">Progress</p>
-            <p className="font-semibold">{checkedCount}/{filteredItems.length} checklist items completed</p>
+          <div className="rounded-lg border border-border/70 bg-muted/15 px-3 py-2 text-sm space-y-1.5">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">Progress</p>
+              <p className="text-xs font-semibold">{checkedCount}/{filteredItems.length}</p>
+            </div>
+            <div className="h-2 rounded-full bg-muted overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${
+                  checkedCount === filteredItems.length && filteredItems.length > 0
+                    ? 'bg-success'
+                    : 'bg-primary'
+                }`}
+                style={{ width: `${filteredItems.length > 0 ? (checkedCount / filteredItems.length) * 100 : 0}%` }}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>

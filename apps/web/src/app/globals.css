@@ -511,3 +511,32 @@ html[data-focus-mode="true"] .app-shell-focus-fab {
 html[data-focus-mode="true"] .app-shell-main {
   padding-top: 1.25rem;
 }
+
+/* ═══════════════════════════════════════════════════════
+   Print Styles — Planning Board
+   ═══════════════════════════════════════════════════════ */
+@media print {
+  /* Hide nav, header, toolbars */
+  .app-shell-sidebar,
+  .app-shell-header,
+  .app-shell-focus-fab,
+  nav,
+  button,
+  select,
+  [role="tablist"] {
+    display: none !important;
+  }
+
+  .app-shell-content {
+    margin-left: 0 !important;
+  }
+
+  .app-shell-main {
+    padding: 0 !important;
+  }
+
+  body {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}

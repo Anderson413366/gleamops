@@ -8,6 +8,7 @@ import {
   Clock3,
   Filter,
   FlaskConical,
+  Inbox,
   Package,
   ShieldAlert,
   Wrench,
@@ -22,6 +23,7 @@ import {
   CardHeader,
   CardTitle,
   ChipTabs,
+  EmptyState,
   Input,
   Select,
   Textarea,
@@ -731,12 +733,28 @@ export function FormsHub({ search }: FormsHubProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Recent Field Requests</CardTitle>
-          <CardDescription>Live request alerts from submitted specialist forms.</CardDescription>
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <CardTitle className="text-base">Recent Field Requests</CardTitle>
+              <CardDescription>Live request alerts from submitted specialist forms.</CardDescription>
+            </div>
+            {recentRequests.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Badge color="blue">{recentRequests.length} open</Badge>
+                <Badge color="gray">
+                  {recentRequests.filter((r) => r.urgency === 'asap').length} critical
+                </Badge>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-2">
           {!filteredRecent.length ? (
-            <p className="text-sm text-muted-foreground">No recent requests for the current filter.</p>
+            <EmptyState
+              icon={<Inbox className="h-8 w-8 text-muted-foreground" />}
+              title="No field requests"
+              description={search.trim() ? 'No requests match your search filter.' : 'Submitted requests will appear here.'}
+            />
           ) : (
             filteredRecent.map((request) => (
               <div key={request.id} className="rounded-lg border border-border/70 bg-muted/40 p-3">
@@ -754,10 +772,12 @@ export function FormsHub({ search }: FormsHubProps) {
             ))
           )}
 
-          <p className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-            <AlertTriangle className="h-3.5 w-3.5" />
-            Requests submitted with `ASAP` urgency are surfaced as critical command-center alerts.
-          </p>
+          {filteredRecent.length > 0 && (
+            <p className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              Requests submitted with ASAP urgency are surfaced as critical command-center alerts.
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>

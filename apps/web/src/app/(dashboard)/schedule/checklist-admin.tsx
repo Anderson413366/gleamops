@@ -74,7 +74,7 @@ export function ChecklistAdmin({ search = '' }: ChecklistAdminProps) {
   const [sections, setSections] = useState<SectionRow[]>([]);
   const [items, setItems] = useState<TemplateItemRow[]>([]);
   const [ticketOptions, setTicketOptions] = useState<TicketOption[]>([]);
-  const [targetTicketId, setTargetTicketId] = useState('');
+  const [targetTicketIds, setTargetTicketIds] = useState<Set<string>>(new Set());
 
   const [newTemplateName, setNewTemplateName] = useState('');
   const [newItemLabel, setNewItemLabel] = useState('');
@@ -215,10 +215,10 @@ export function ChecklistAdmin({ search = '' }: ChecklistAdminProps) {
     });
 
     setTicketOptions(options);
-    if (!targetTicketId && options.length > 0) {
-      setTargetTicketId(options[0].id);
+    if (targetTicketIds.size === 0 && options.length > 0) {
+      setTargetTicketIds(new Set([options[0].id]));
     }
-  }, [supabase, targetTicketId]);
+  }, [supabase, targetTicketIds.size]);
 
   useEffect(() => {
     async function bootstrap() {
@@ -338,7 +338,7 @@ export function ChecklistAdmin({ search = '' }: ChecklistAdminProps) {
     await loadTemplateDetail(selectedTemplateId);
   }, [items, loadTemplateDetail, newItemLabel, newItemRequiresPhoto, newItemSection, selectedTemplateId, supabase, tenantId]);
 
-  const applyTemplateToShift = useCallback(async () => {
+  const applyTemplateToShifts = useCallback(async () => {
     if (!tenantId) {
       toast.error('Tenant context is required.');
       return;
@@ -347,8 +347,8 @@ export function ChecklistAdmin({ search = '' }: ChecklistAdminProps) {
       toast.error('Choose a checklist template first.');
       return;
     }
-    if (!targetTicketId) {
-      toast.error('Choose a shift to apply this checklist.');
+    if (targetTicketIds.size === 0) {
+      toast.error('Choose at least one shift to apply this checklist.');
       return;
     }
 
@@ -374,79 +374,82 @@ export function ChecklistAdmin({ search = '' }: ChecklistAdminProps) {
       return;
     }
 
-    const { data: existingChecklist } = await supabase
-      .from('ticket_checklists')
-      .select('id')
-      .eq('ticket_id', targetTicketId)
-      .is('archived_at', null)
-      .maybeSingle();
-
-    let ticketChecklistId = existingChecklist?.id ?? null;
-
-    if (!ticketChecklistId) {
-      const { data: createdChecklist, error: createChecklistError } = await supabase
+    let applied = 0;
+    for (const ticketId of targetTicketIds) {
+      const { data: existingChecklist } = await supabase
         .from('ticket_checklists')
-        .insert({
-          tenant_id: tenantId,
-          ticket_id: targetTicketId,
-          template_id: selectedTemplateId,
-          status: 'PENDING',
-        })
         .select('id')
-        .single();
+        .eq('ticket_id', ticketId)
+        .is('archived_at', null)
+        .maybeSingle();
 
-      if (createChecklistError || !createdChecklist) {
-        setSaving(false);
-        toast.error(createChecklistError?.message ?? 'Could not create ticket checklist.');
-        return;
+      let ticketChecklistId = existingChecklist?.id ?? null;
+
+      if (!ticketChecklistId) {
+        const { data: createdChecklist, error: createChecklistError } = await supabase
+          .from('ticket_checklists')
+          .insert({
+            tenant_id: tenantId,
+            ticket_id: ticketId,
+            template_id: selectedTemplateId,
+            status: 'PENDING',
+          })
+          .select('id')
+          .single();
+
+        if (createChecklistError || !createdChecklist) {
+          toast.error(createChecklistError?.message ?? `Could not create checklist for shift.`);
+          continue;
+        }
+
+        ticketChecklistId = createdChecklist.id;
+      } else {
+        await supabase
+          .from('ticket_checklists')
+          .update({
+            template_id: selectedTemplateId,
+            status: 'PENDING',
+            completed_at: null,
+            completed_by: null,
+          })
+          .eq('id', ticketChecklistId);
       }
 
-      ticketChecklistId = createdChecklist.id;
-    } else {
       await supabase
-        .from('ticket_checklists')
-        .update({
-          template_id: selectedTemplateId,
-          status: 'PENDING',
-          completed_at: null,
-          completed_by: null,
-        })
-        .eq('id', ticketChecklistId);
+        .from('ticket_checklist_items')
+        .delete()
+        .eq('checklist_id', ticketChecklistId);
+
+      const itemPayload = normalizedTemplateItems.map((item, index) => ({
+        tenant_id: tenantId,
+        checklist_id: ticketChecklistId,
+        template_item_id: item.id,
+        section: item.section,
+        label: item.label,
+        sort_order: index,
+        is_required: item.is_required,
+        requires_photo: item.requires_photo,
+        is_checked: false,
+        checked_at: null,
+        checked_by: null,
+        notes: null,
+      }));
+
+      const { error: insertItemsError } = await supabase
+        .from('ticket_checklist_items')
+        .insert(itemPayload);
+
+      if (!insertItemsError) applied++;
     }
-
-    await supabase
-      .from('ticket_checklist_items')
-      .delete()
-      .eq('checklist_id', ticketChecklistId);
-
-    const itemPayload = normalizedTemplateItems.map((item, index) => ({
-      tenant_id: tenantId,
-      checklist_id: ticketChecklistId,
-      template_item_id: item.id,
-      section: item.section,
-      label: item.label,
-      sort_order: index,
-      is_required: item.is_required,
-      requires_photo: item.requires_photo,
-      is_checked: false,
-      checked_at: null,
-      checked_by: null,
-      notes: null,
-    }));
-
-    const { error: insertItemsError } = await supabase
-      .from('ticket_checklist_items')
-      .insert(itemPayload);
 
     setSaving(false);
 
-    if (insertItemsError) {
-      toast.error(insertItemsError.message);
-      return;
+    if (applied > 0) {
+      toast.success(`Checklist applied to ${applied} shift${applied > 1 ? 's' : ''}.`);
+    } else {
+      toast.error('Failed to apply checklist to any shifts.');
     }
-
-    toast.success('Checklist template applied to shift.');
-  }, [selectedTemplateId, supabase, targetTicketId, tenantId]);
+  }, [selectedTemplateId, supabase, targetTicketIds, tenantId]);
 
   if (loading) {
     return (
@@ -564,22 +567,45 @@ export function ChecklistAdmin({ search = '' }: ChecklistAdminProps) {
                 </label>
               </div>
 
-              <div className="grid gap-3 rounded-lg border border-border p-3 md:grid-cols-[1fr_auto] md:items-end">
-                <Select
-                  label="Apply template to shift"
-                  value={targetTicketId}
-                  onChange={(event) => setTargetTicketId(event.target.value)}
-                  options={ticketOptions.map((ticket) => ({ value: ticket.id, label: ticket.label }))}
-                />
-                <Button type="button" onClick={applyTemplateToShift} loading={saving}>
-                  Apply Template
+              <div className="rounded-lg border border-border p-3 space-y-2">
+                <p className="text-xs font-medium text-foreground">
+                  Apply template to shifts ({targetTicketIds.size} selected)
+                </p>
+                <div className="max-h-[160px] overflow-y-auto space-y-1 pr-1">
+                  {ticketOptions.map((ticket) => (
+                    <label key={ticket.id} className="flex items-center gap-2 text-sm text-foreground cursor-pointer hover:bg-muted/40 rounded px-1 py-0.5">
+                      <input
+                        type="checkbox"
+                        checked={targetTicketIds.has(ticket.id)}
+                        onChange={() => {
+                          setTargetTicketIds((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(ticket.id)) next.delete(ticket.id);
+                            else next.add(ticket.id);
+                            return next;
+                          });
+                        }}
+                        className="h-4 w-4 rounded border border-border"
+                      />
+                      <span className="truncate">{ticket.label}</span>
+                    </label>
+                  ))}
+                  {ticketOptions.length === 0 && (
+                    <p className="text-xs text-muted-foreground py-2">No shifts in the next 7 days.</p>
+                  )}
+                </div>
+                <Button type="button" onClick={applyTemplateToShifts} loading={saving} disabled={targetTicketIds.size === 0}>
+                  Apply to {targetTicketIds.size} Shift{targetTicketIds.size !== 1 ? 's' : ''}
                 </Button>
               </div>
 
               <div className="space-y-3">
                 {groupedItems.map((group) => (
                   <div key={group.sectionTitle} className="rounded-lg border border-border/70 bg-muted/15 p-3">
-                    <h4 className="text-sm font-semibold text-foreground">{group.sectionTitle}</h4>
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-semibold text-foreground">{group.sectionTitle}</h4>
+                      <Badge color="gray">{group.rows.length} item{group.rows.length !== 1 ? 's' : ''}</Badge>
+                    </div>
                     <div className="mt-2 space-y-1.5">
                       {group.rows.map((item) => (
                         <div key={item.id} className="flex items-center justify-between gap-2 text-sm">

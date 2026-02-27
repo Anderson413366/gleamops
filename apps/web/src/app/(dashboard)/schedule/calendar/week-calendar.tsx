@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useMemo, useState, type DragEvent, type MouseEvent } from 'react';
 import { BriefcaseBusiness, CalendarDays, ChevronLeft, ChevronRight, Clock, GripVertical, Plus, Sparkles, Users } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { Button, ChipTabs, Input, Select, Skeleton, SlideOver } from '@gleamops/ui';
+import { Button, ChipTabs, Input, Select, Skeleton, SlideOver, cn } from '@gleamops/ui';
 import type { WorkTicket } from '@gleamops/shared';
+// Position bar colors are inlined via POSITION_BAR_COLORS constant
 
 interface TicketWithRelations extends WorkTicket {
   job?: { job_code: string; frequency?: string | null; job_type?: string | null } | null;
@@ -174,6 +175,29 @@ function classifySource(ticket: TicketWithRelations): TicketSource {
   }
 
   return 'recurring';
+}
+
+const POSITION_BAR_COLORS: Record<string, string> = {
+  FLOOR_SPECIALIST: 'bg-green-400',
+  RESTROOM_SPECIALIST: 'bg-red-400',
+  VACUUM_SPECIALIST: 'bg-blue-400',
+  UTILITY_SPECIALIST: 'bg-yellow-400',
+  DAY_PORTER: 'bg-slate-400',
+};
+
+function getPositionBarColor(positionCode: string | null | undefined): string {
+  if (!positionCode) return 'bg-slate-300';
+  return POSITION_BAR_COLORS[positionCode.trim()] ?? 'bg-slate-300';
+}
+
+const TIMELINE_START_HOUR = 6;
+const TIMELINE_END_HOUR = 24;
+const HOUR_HEIGHT = 60; // px per hour
+
+function timeToDecimal(time: string | null): number {
+  if (!time) return 0;
+  const parts = time.split(':');
+  return parseInt(parts[0], 10) + parseInt(parts[1] ?? '0', 10) / 60;
 }
 
 const STATUS_BG: Record<string, string> = {
@@ -834,7 +858,82 @@ export default function WeekCalendar({ onSelectTicket, onCreatedTicket }: WeekCa
             <Skeleton key={index} className="h-48 w-full" />
           ))}
         </div>
-      ) : viewMode === 'month' ? (
+      ) : viewMode === 'day' ? (() => {
+        const dateStr = toDateInput(anchorDate);
+        const dayTickets = ticketsByDate.get(dateStr) ?? [];
+        const totalHeight = (TIMELINE_END_HOUR - TIMELINE_START_HOUR) * HOUR_HEIGHT;
+        const hours = Array.from({ length: TIMELINE_END_HOUR - TIMELINE_START_HOUR }, (_, i) => TIMELINE_START_HOUR + i);
+
+        return (
+          <div
+            className="rounded-xl border border-border overflow-hidden"
+            onClick={(event) => {
+              const target = event.target as HTMLElement;
+              if (target.closest('[data-ticket-card="true"]')) return;
+              const rect = event.currentTarget.getBoundingClientRect();
+              const yOffset = event.clientY - rect.top;
+              const clickedHour = Math.floor(yOffset / HOUR_HEIGHT) + TIMELINE_START_HOUR;
+              const startHour = String(Math.min(clickedHour, 23)).padStart(2, '0');
+              openCreateTicket({ date: dateStr, startTime: `${startHour}:00`, endTime: null });
+            }}
+          >
+            <div className="relative" style={{ height: `${totalHeight}px` }}>
+              {hours.map((hour) => (
+                <div
+                  key={hour}
+                  className="absolute left-0 right-0 border-b border-border/40 flex items-start"
+                  style={{ top: `${(hour - TIMELINE_START_HOUR) * HOUR_HEIGHT}px`, height: `${HOUR_HEIGHT}px` }}
+                >
+                  <span className="w-16 shrink-0 px-2 py-1 text-[10px] text-muted-foreground font-medium bg-muted/30">
+                    {hour === 0 ? '12am' : hour < 12 ? `${hour}am` : hour === 12 ? '12pm' : `${hour - 12}pm`}
+                  </span>
+                  <div className="flex-1 h-full" />
+                </div>
+              ))}
+
+              {dayTickets.map((ticket) => {
+                const start = timeToDecimal(ticket.start_time);
+                const end = ticket.end_time ? timeToDecimal(ticket.end_time) : start + 1;
+                const duration = end > start ? end - start : (end + 24) - start;
+                const topPx = Math.max(0, (start - TIMELINE_START_HOUR) * HOUR_HEIGHT);
+                const heightPx = Math.max(HOUR_HEIGHT * 0.5, duration * HOUR_HEIGHT);
+                const names = assignedNames(ticket);
+                const barColor = getPositionBarColor(ticket.position_code);
+
+                return (
+                  <div
+                    key={ticket.id}
+                    data-ticket-card="true"
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, ticket.id)}
+                    onDragEnd={handleDragEnd}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelectTicket?.(ticket);
+                    }}
+                    className={cn(
+                      'absolute left-16 right-2 rounded-lg border px-2 py-1 cursor-grab active:cursor-grabbing transition-all text-xs shadow-sm',
+                      barColor.replace('bg-', 'border-').replace('400', '300/70'),
+                      barColor.replace('400', '50'),
+                      'text-foreground',
+                      dragTicketId === ticket.id && 'opacity-40 scale-95',
+                    )}
+                    style={{ top: `${topPx}px`, height: `${heightPx}px`, minHeight: '30px' }}
+                  >
+                    <p className="font-medium truncate">{ticket.site?.name ?? ticket.ticket_code}</p>
+                    <p className="text-muted-foreground truncate">
+                      {formatTime(ticket.start_time)}{ticket.end_time ? ` - ${formatTime(ticket.end_time)}` : ''}
+                    </p>
+                    {names.length > 0 && (
+                      <p className="text-muted-foreground truncate">{names.join(', ')}</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })() : viewMode === 'month' ? (
         <div className="space-y-2">
           <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-muted-foreground">
             {DAY_NAMES.map((dayName) => (
@@ -873,19 +972,28 @@ export default function WeekCalendar({ onSelectTicket, onCreatedTicket }: WeekCa
                       <span className="text-[10px] text-muted-foreground">{dayTickets.length}</span>
                     ) : null}
                   </div>
-                  <div className="space-y-1">
-                    {dayTickets.slice(0, 3).map((ticket) => (
-                      <TicketCard
+                  <div className="space-y-0.5">
+                    {dayTickets.slice(0, 5).map((ticket) => (
+                      <div
                         key={ticket.id}
-                        ticket={ticket}
-                        onSelectTicket={onSelectTicket}
-                        dragTicketId={dragTicketId}
-                        onDragStart={handleDragStart}
+                        data-ticket-card="true"
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, ticket.id)}
                         onDragEnd={handleDragEnd}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectTicket?.(ticket);
+                        }}
+                        className={cn(
+                          'h-1 rounded-full cursor-pointer transition-all hover:h-1.5',
+                          getPositionBarColor(ticket.position_code),
+                          dragTicketId === ticket.id && 'opacity-40',
+                        )}
+                        title={`${ticket.site?.name ?? ticket.ticket_code} · ${formatTime(ticket.start_time)}${ticket.end_time ? `-${formatTime(ticket.end_time)}` : ''}`}
                       />
                     ))}
-                    {dayTickets.length > 3 ? (
-                      <p className="text-[10px] text-muted-foreground">+{dayTickets.length - 3} more</p>
+                    {dayTickets.length > 5 ? (
+                      <p className="text-[10px] text-muted-foreground text-center">+{dayTickets.length - 5}</p>
                     ) : null}
                   </div>
                 </div>

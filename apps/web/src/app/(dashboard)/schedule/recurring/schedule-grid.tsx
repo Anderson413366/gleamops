@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState, type DragEvent } from 'react';
 import { CalendarClock } from 'lucide-react';
-import { EmptyState, cn } from '@gleamops/ui';
+import { EmptyState, Tooltip, cn } from '@gleamops/ui';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { PositionBlock } from './position-block';
 import type { RecurringScheduleRow } from './schedule-list';
 
@@ -65,11 +66,19 @@ export function buildConflictKeys(rows: RecurringScheduleRow[]): Set<string> {
   return conflicts;
 }
 
+interface AvailabilityRule {
+  staff_name: string;
+  day_of_week: number;
+  is_available: boolean;
+  reason?: string | null;
+}
+
 interface ScheduleGridProps {
   rows: RecurringScheduleRow[];
   visibleDates?: string[];
   search?: string;
   onSelect?: (row: RecurringScheduleRow) => void;
+  onReassign?: (ticketId: string, newDate: string, newStaffName: string) => void;
 }
 
 function groupByStaff(rows: RecurringScheduleRow[]) {
@@ -115,7 +124,59 @@ function isToday(dateKey: string) {
   return normalizeDateKey(new Date()) === dateKey;
 }
 
-export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect }: ScheduleGridProps) {
+function dayOfWeekFromDateKey(dateKey: string): number {
+  return new Date(`${dateKey}T12:00:00`).getDay();
+}
+
+export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect, onReassign }: ScheduleGridProps) {
+  const [dragData, setDragData] = useState<{ rowId: string; staffName: string; dateKey: string } | null>(null);
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
+  const [availability, setAvailability] = useState<AvailabilityRule[]>([]);
+
+  // Fetch availability rules
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchAvailability() {
+      const supabase = getSupabaseBrowserClient();
+      const { data } = await supabase
+        .from('staff_availability_rules')
+        .select('id, staff_id, day_of_week, is_available, reason, staff:staff_id(full_name)')
+        .eq('is_available', false);
+
+      if (!cancelled && data) {
+        setAvailability(
+          (data as unknown as Array<{
+            staff_id: string;
+            day_of_week: number;
+            is_available: boolean;
+            reason?: string | null;
+            staff?: { full_name?: string | null } | null;
+          }>).map((r) => ({
+            staff_name: r.staff?.full_name?.trim() ?? '',
+            day_of_week: r.day_of_week,
+            is_available: r.is_available,
+            reason: r.reason,
+          })),
+        );
+      }
+    }
+
+    void fetchAvailability();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Build unavailability lookup: "staffName:dayOfWeek" → reason
+  const unavailableMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const rule of availability) {
+      if (!rule.is_available && rule.staff_name) {
+        map.set(`${rule.staff_name}:${rule.day_of_week}`, rule.reason ?? 'Unavailable');
+      }
+    }
+    return map;
+  }, [availability]);
+
   const filtered = useMemo(() => {
     if (!search.trim()) return rows;
     const query = search.toLowerCase();
@@ -134,6 +195,83 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect }:
   const dateColumns = visibleDates.length > 0 ? visibleDates : fallbackWeekDates();
   const gridTemplateColumns = `220px repeat(${dateColumns.length}, minmax(128px, 1fr))`;
   const minWidthPx = 220 + dateColumns.length * 128;
+
+  const handleDragStart = useCallback((event: DragEvent, rowId: string, staffName: string, dateKey: string) => {
+    setDragData({ rowId, staffName, dateKey });
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', JSON.stringify({ rowId, staffName, dateKey }));
+  }, []);
+
+  const handleDragOver = useCallback((event: DragEvent, cellKey: string) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    setDropTarget(cellKey);
+  }, []);
+
+  const handleDragLeave = useCallback(() => {
+    setDropTarget(null);
+  }, []);
+
+  const handleDrop = useCallback(async (event: DragEvent, targetStaffName: string, targetDateKey: string) => {
+    event.preventDefault();
+    setDropTarget(null);
+
+    let data = dragData;
+    if (!data) {
+      try {
+        data = JSON.parse(event.dataTransfer.getData('text/plain'));
+      } catch {
+        return;
+      }
+    }
+    if (!data) return;
+
+    const { rowId, dateKey: sourceDate } = data;
+    if (targetStaffName === data.staffName && targetDateKey === sourceDate) return;
+
+    // Find the matching ticket to get the actual ticket ID
+    const row = filtered.find((r) => r.id === rowId);
+    if (!row) return;
+
+    // Extract ticket ID from the row - the first segment before the first dash compound
+    // The row ID is a composite, so we need to look up the actual ticket
+    const supabase = getSupabaseBrowserClient();
+
+    // Find the work_ticket for this row's staff+site+date+time combination
+    const { data: tickets } = await supabase
+      .from('work_tickets')
+      .select('id, assignments:ticket_assignments(id, staff:staff_id(full_name))')
+      .eq('scheduled_date', sourceDate)
+      .is('archived_at', null);
+
+    if (!tickets) return;
+
+    const matchingTicket = (tickets as unknown as Array<{
+      id: string;
+      assignments?: Array<{ id: string; staff?: { full_name?: string | null } | null }>;
+    }>).find((t) => {
+      const assignedStaff = t.assignments?.map((a) => a.staff?.full_name?.trim()).filter(Boolean) ?? [];
+      return assignedStaff.includes(data!.staffName) || (data!.staffName === 'Open Shift' && assignedStaff.length === 0);
+    });
+
+    if (!matchingTicket) return;
+
+    // Reschedule to new date
+    if (targetDateKey !== sourceDate) {
+      await supabase
+        .from('work_tickets')
+        .update({ scheduled_date: targetDateKey })
+        .eq('id', matchingTicket.id);
+    }
+
+    onReassign?.(matchingTicket.id, targetDateKey, targetStaffName);
+    setDragData(null);
+  }, [dragData, filtered, onReassign]);
+
+  const handleDragEnd = useCallback(() => {
+    setDragData(null);
+    setDropTarget(null);
+  }, []);
 
   if (!filtered.length) {
     return (
@@ -193,8 +331,36 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect }:
 
               {dateColumns.map((dateKey) => {
                 const dayRows = rowsForDate(staffRows, dateKey);
+                const cellKey = `${staffName}:${dateKey}`;
+                const isDragOver = dropTarget === cellKey;
+                const dow = dayOfWeekFromDateKey(dateKey);
+                const unavailableReason = unavailableMap.get(`${staffName}:${dow}`);
+                const isUnavailable = Boolean(unavailableReason);
+
                 return (
-                  <div key={`${staffName}-${dateKey}`} className="space-y-2 px-2 py-2">
+                  <div
+                    key={cellKey}
+                    className={cn(
+                      'space-y-2 px-2 py-2 transition-colors relative',
+                      isDragOver && 'border-dashed border-2 border-primary bg-primary/5 rounded-lg',
+                      isUnavailable && 'unavailable-cell',
+                    )}
+                    onDragOver={(e) => handleDragOver(e, cellKey)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, staffName, dateKey)}
+                    style={isUnavailable ? {
+                      backgroundImage: 'repeating-linear-gradient(135deg, transparent, transparent 5px, hsl(var(--muted)) 5px, hsl(var(--muted)) 6px)',
+                      backgroundSize: '8px 8px',
+                    } : undefined}
+                    title={isUnavailable ? `Unavailable: ${unavailableReason}` : undefined}
+                  >
+                    {isUnavailable && dayRows.length === 0 && (
+                      <Tooltip content={`Unavailable: ${unavailableReason}`}>
+                        <div className="rounded-lg border border-dashed border-amber-300/70 bg-amber-50/50 px-2 py-2 text-center text-[10px] text-amber-700 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-400">
+                          Unavailable
+                        </div>
+                      </Tooltip>
+                    )}
                     {dayRows.length ? (
                       dayRows.map((row) => (
                         <button
@@ -211,14 +377,17 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect }:
                             staffName={row.staffName}
                             isOpenShift={row.status === 'open'}
                             hasConflict={conflictKeys.has(`${row.id}:${dateKey}`)}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, row.id, staffName, dateKey)}
+                            onDragEnd={handleDragEnd}
                           />
                         </button>
                       ))
-                    ) : (
+                    ) : !isUnavailable ? (
                       <div className="rounded-lg border border-dashed border-border/70 px-2 py-3 text-center text-[11px] text-muted-foreground">
                         OFF
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 );
               })}

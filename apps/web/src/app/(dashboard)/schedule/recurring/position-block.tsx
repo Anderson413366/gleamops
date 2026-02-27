@@ -54,6 +54,9 @@ interface PositionBlockProps {
   isOpenShift?: boolean;
   hasConflict?: boolean;
   className?: string;
+  draggable?: boolean;
+  onDragStart?: (event: React.DragEvent) => void;
+  onDragEnd?: (event: React.DragEvent) => void;
 }
 
 export const PositionBlock = memo(function PositionBlock({
@@ -65,16 +68,23 @@ export const PositionBlock = memo(function PositionBlock({
   isOpenShift = false,
   hasConflict = false,
   className,
+  draggable,
+  onDragStart,
+  onDragEnd,
 }: PositionBlockProps) {
   const theme = resolveTheme(positionType);
 
   return (
     <article
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
       className={cn(
         'rounded-xl border p-3 shadow-sm transition-all',
         theme.block,
         isOpenShift && 'ring-2 ring-destructive/40',
         hasConflict && 'ring-2 ring-amber-500/60',
+        draggable && 'cursor-grab active:cursor-grabbing',
         className,
       )}
       role="group"
@@ -106,4 +116,5 @@ export const PositionBlock = memo(function PositionBlock({
   );
 });
 
+export { POSITION_THEME, resolveTheme };
 export type { PositionBlockProps };

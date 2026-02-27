@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Calendar, ClipboardList, Briefcase, FileText, ListTodo, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
-import { ChipTabs, SearchInput, Card, CardContent, Button } from '@gleamops/ui';
+import { Calendar, ClipboardList, Briefcase, FileText, ListTodo, Plus, ChevronLeft, ChevronRight, Copy, LayoutDashboard, Route, Shield } from 'lucide-react';
+import { ChipTabs, SearchInput, Card, CardContent, Button, ConfirmDialog } from '@gleamops/ui';
 import { normalizeRoleCode, type WorkTicket } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
@@ -25,6 +25,10 @@ import { ShiftTradesPanel } from './recurring/shift-trades-panel';
 import { AvailabilityPanel } from './recurring/availability-panel';
 import { SchedulePeriodsPanel } from './recurring/schedule-periods-panel';
 import { ConflictPanel } from './recurring/conflict-panel';
+import { ScheduleFilters, applyScheduleFilters, type ScheduleFilterState } from './recurring/schedule-filters';
+import { MasterBoard } from './boards/master-board';
+import { FloaterBoard } from './boards/floater-board';
+import { SupervisorDashboard } from './boards/supervisor-dashboard';
 
 // Re-use ticket relations type
 interface TicketWithRelations extends WorkTicket {
@@ -38,14 +42,19 @@ interface TicketWithRelations extends WorkTicket {
   assignments?: { staff?: { full_name: string } | null }[];
 }
 
-const TABS = [
+const BASE_TABS = [
   { key: 'recurring', label: 'Employee Schedule', icon: <ClipboardList className="h-4 w-4" /> },
   { key: 'work-orders', label: 'Work Schedule', icon: <Briefcase className="h-4 w-4" /> },
   { key: 'calendar', label: 'Calendar', icon: <Calendar className="h-4 w-4" /> },
   { key: 'planning', label: 'Planning Board', icon: <ListTodo className="h-4 w-4" /> },
+  { key: 'master', label: 'Master Board', icon: <LayoutDashboard className="h-4 w-4" /> },
+  { key: 'floater', label: 'My Route', icon: <Route className="h-4 w-4" /> },
+  { key: 'supervisor', label: 'Supervisor', icon: <Shield className="h-4 w-4" /> },
   { key: 'forms', label: 'Forms', icon: <FileText className="h-4 w-4" /> },
   { key: 'checklists', label: 'Checklists', icon: <ClipboardList className="h-4 w-4" /> },
 ];
+
+const ALL_TAB_KEYS = BASE_TABS.map((t) => t.key);
 
 const WEEKDAY_ORDER = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 type RecurringHorizon = '1w' | '2w' | '4w' | '1m';
@@ -164,18 +173,21 @@ export default function SchedulePageClient() {
   const searchParams = useSearchParams();
   const { role } = useRole();
   const [tab, setTab] = useSyncedTab({
-    tabKeys: TABS.map((entry) => entry.key),
+    tabKeys: ALL_TAB_KEYS,
     defaultTab: 'recurring',
     aliases: {
       plan: 'planning',
       board: 'planning',
-      monday: 'planning',
+      monday: 'master',
       'planning-board': 'planning',
       'daily-planning': 'planning',
       'employee-schedule': 'recurring',
       jobs: 'work-orders',
       'work-schedule': 'work-orders',
       'work-orders': 'work-orders',
+      'master-board': 'master',
+      'floater-board': 'floater',
+      'my-route': 'floater',
     },
   });
   const [search, setSearch] = useState('');
@@ -188,12 +200,28 @@ export default function SchedulePageClient() {
   const [recurringRows, setRecurringRows] = useState<RecurringScheduleRow[]>([]);
   const [recurringLoading, setRecurringLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [scheduleFilters, setScheduleFilters] = useState<ScheduleFilterState>({ site: '', position: '', staff: '' });
+  const [copyWeekOpen, setCopyWeekOpen] = useState(false);
+  const [copyWeekLoading, setCopyWeekLoading] = useState(false);
   const [, setSelectedTicket] = useState<TicketWithRelations | null>(null);
   const [selectedRecurringRow, setSelectedRecurringRow] = useState<RecurringScheduleRow | null>(null);
   const normalizedRole = normalizeRoleCode(role);
   const showChecklistAdmin = normalizedRole === 'OWNER_ADMIN' || normalizedRole === 'MANAGER' || normalizedRole === 'SUPERVISOR';
   const showShiftChecklist = normalizedRole === 'SUPERVISOR' || normalizedRole === 'CLEANER' || normalizedRole === 'INSPECTOR';
   const canCreateRecurringShift = normalizedRole === 'OWNER_ADMIN' || normalizedRole === 'MANAGER' || normalizedRole === 'SUPERVISOR';
+  const showMasterBoard = normalizedRole === 'OWNER_ADMIN' || normalizedRole === 'MANAGER';
+  const showFloaterBoard = normalizedRole === 'CLEANER' || normalizedRole === 'SUPERVISOR' || normalizedRole === 'OWNER_ADMIN' || normalizedRole === 'MANAGER';
+  const showSupervisorTab = normalizedRole === 'SUPERVISOR' || normalizedRole === 'MANAGER' || normalizedRole === 'OWNER_ADMIN';
+
+  const visibleTabs = useMemo(() => {
+    return BASE_TABS.filter((t) => {
+      if (t.key === 'master') return showMasterBoard;
+      if (t.key === 'floater') return showFloaterBoard;
+      if (t.key === 'supervisor') return showSupervisorTab;
+      return true;
+    });
+  }, [showMasterBoard, showFloaterBoard, showSupervisorTab]);
+
   const [kpis, setKpis] = useState({
     todayTickets: 0,
     coverageGaps: 0,
@@ -297,6 +325,77 @@ export default function SchedulePageClient() {
     }
     setRecurringAnchorDate(startOfWeek(today));
   }, [recurringHorizon]);
+
+  const canCopyWeek = normalizedRole === 'OWNER_ADMIN' || normalizedRole === 'MANAGER';
+
+  const handleCopyPreviousWeek = useCallback(async () => {
+    setCopyWeekLoading(true);
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const prevStart = shiftDate(recurringRange.start, -7);
+      const prevEnd = shiftDate(recurringRange.end, -7);
+
+      const { data: prevTickets } = await supabase
+        .from('work_tickets')
+        .select('job_id, site_id, position_code, start_time, end_time, scheduled_date')
+        .gte('scheduled_date', toDateKey(prevStart))
+        .lte('scheduled_date', toDateKey(prevEnd))
+        .is('archived_at', null);
+
+      if (!prevTickets || prevTickets.length === 0) {
+        setCopyWeekOpen(false);
+        setCopyWeekLoading(false);
+        return;
+      }
+
+      const { data: auth } = await supabase.auth.getUser();
+      const tenantId = auth.user?.app_metadata?.tenant_id ?? null;
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+
+      const inserts = [];
+      for (const ticket of prevTickets) {
+        let ticketCode = `TKT-COPY-${Date.now()}`;
+        if (accessToken) {
+          try {
+            const res = await fetch('/api/codes/next', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+              body: JSON.stringify({ prefix: 'TKT' }),
+            });
+            if (res.ok) {
+              const payload = await res.json() as { data?: string };
+              if (payload.data) ticketCode = payload.data;
+            }
+          } catch { /* use fallback code */ }
+        }
+
+        const oldDate = new Date(`${ticket.scheduled_date}T12:00:00`);
+        const newDate = shiftDate(oldDate, 7);
+
+        inserts.push({
+          tenant_id: tenantId,
+          ticket_code: ticketCode,
+          job_id: ticket.job_id,
+          site_id: ticket.site_id,
+          position_code: ticket.position_code,
+          start_time: ticket.start_time,
+          end_time: ticket.end_time,
+          scheduled_date: toDateKey(newDate),
+          status: 'SCHEDULED',
+        });
+      }
+
+      if (inserts.length > 0) {
+        await supabase.from('work_tickets').insert(inserts);
+      }
+
+      setRefreshKey((k) => k + 1);
+    } finally {
+      setCopyWeekLoading(false);
+      setCopyWeekOpen(false);
+    }
+  }, [recurringRange]);
 
   useEffect(() => {
     let cancelled = false;
@@ -460,10 +559,18 @@ export default function SchedulePageClient() {
           </p>
         </div>
         {tab === 'recurring' && canCreateRecurringShift ? (
-          <Button onClick={() => setShiftFormOpen(true)}>
-            <Plus className="h-4 w-4" />
-            New Shift
-          </Button>
+          <div className="flex items-center gap-2">
+            {canCopyWeek && (
+              <Button variant="secondary" onClick={() => setCopyWeekOpen(true)}>
+                <Copy className="h-4 w-4" />
+                Copy Previous Week
+              </Button>
+            )}
+            <Button onClick={() => setShiftFormOpen(true)}>
+              <Plus className="h-4 w-4" />
+              New Shift
+            </Button>
+          </div>
         ) : null}
       </div>
 
@@ -546,7 +653,7 @@ export default function SchedulePageClient() {
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0 lg:flex-1">
-          <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
+          <ChipTabs tabs={visibleTabs} active={tab} onChange={setTab} />
         </div>
 
         {(tab === 'recurring' || tab === 'work-orders' || tab === 'planning' || tab === 'checklists') && (
@@ -671,26 +778,30 @@ export default function SchedulePageClient() {
       )}
 
       {tab === 'recurring' && (
-        recurringLoading ? (
-          <Card>
-            <CardContent className="py-12 text-center text-sm text-muted-foreground">
-              Loading recurring schedule...
-            </CardContent>
-          </Card>
-        ) : (
-          recurringView === 'list' ? (
-            <ScheduleList rows={recurringRows} search={search} onSelect={setSelectedRecurringRow} />
-          ) : recurringView === 'card' ? (
-            <ScheduleCardGrid rows={recurringRows} search={search} onSelect={setSelectedRecurringRow} />
+        <>
+          <ScheduleFilters filters={scheduleFilters} onChange={setScheduleFilters} rows={recurringRows} />
+          {recurringLoading ? (
+            <Card>
+              <CardContent className="py-12 text-center text-sm text-muted-foreground">
+                Loading recurring schedule...
+              </CardContent>
+            </Card>
           ) : (
-            <ScheduleGrid
-              rows={recurringRows}
-              visibleDates={recurringRange.visibleDates}
-              search={search}
-              onSelect={setSelectedRecurringRow}
-            />
-          )
-        )
+            recurringView === 'list' ? (
+              <ScheduleList rows={applyScheduleFilters(recurringRows, scheduleFilters)} search={search} onSelect={setSelectedRecurringRow} />
+            ) : recurringView === 'card' ? (
+              <ScheduleCardGrid rows={applyScheduleFilters(recurringRows, scheduleFilters)} search={search} onSelect={setSelectedRecurringRow} />
+            ) : (
+              <ScheduleGrid
+                rows={applyScheduleFilters(recurringRows, scheduleFilters)}
+                visibleDates={recurringRange.visibleDates}
+                search={search}
+                onSelect={setSelectedRecurringRow}
+                onReassign={() => setRefreshKey((k) => k + 1)}
+              />
+            )
+          )}
+        </>
       )}
 
       {tab === 'recurring' ? (
@@ -721,6 +832,18 @@ export default function SchedulePageClient() {
         />
       )}
 
+      {tab === 'master' && showMasterBoard && (
+        <MasterBoard key={`master-${refreshKey}`} />
+      )}
+
+      {tab === 'floater' && showFloaterBoard && (
+        <FloaterBoard key={`floater-${refreshKey}`} />
+      )}
+
+      {tab === 'supervisor' && showSupervisorTab && (
+        <SupervisorDashboard key={`supervisor-${refreshKey}`} />
+      )}
+
       {tab === 'forms' && (
         <FormsHub key={`forms-${refreshKey}`} search={search} />
       )}
@@ -743,6 +866,16 @@ export default function SchedulePageClient() {
         open={shiftFormOpen}
         onClose={() => setShiftFormOpen(false)}
         onCreated={() => setRefreshKey((current) => current + 1)}
+      />
+
+      <ConfirmDialog
+        open={copyWeekOpen}
+        onClose={() => setCopyWeekOpen(false)}
+        onConfirm={handleCopyPreviousWeek}
+        title="Copy Previous Week"
+        description={`Copy all shifts from the previous week into the current range (${recurringRange.label})? This will create new tickets with the same assignments shifted forward by 7 days.`}
+        confirmLabel={copyWeekLoading ? 'Copying...' : 'Copy Shifts'}
+        variant="default"
       />
     </div>
   );

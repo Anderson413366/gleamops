@@ -14,7 +14,13 @@ function fakeRequest(headers: Record<string, string> = {}): Parameters<typeof ex
         return headers[name.toLowerCase()] ?? null;
       },
     },
-  } as Parameters<typeof extractAuth>[0];
+    cookies: {
+      getAll() {
+        return [];
+      },
+      set() {},
+    },
+  } as unknown as Parameters<typeof extractAuth>[0];
 }
 
 test('extractAuth rejects request without authorization header', async () => {

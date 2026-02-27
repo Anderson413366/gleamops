@@ -245,7 +245,25 @@ export type ShiftsTimePayrollMappingRow = {
   id: string;
   template_name: string;
   provider_code: string | null;
+  delimiter: string;
+  include_header: boolean;
+  quote_all: boolean;
+  decimal_separator: string;
+  date_format: string;
   is_default: boolean;
+  is_active: boolean;
+};
+
+export type ShiftsTimePayrollMappingFieldRow = {
+  id: string;
+  mapping_id: string;
+  sort_order: number;
+  output_column_name: string;
+  source_field: string | null;
+  static_value: string | null;
+  transform_config: Record<string, unknown> | null;
+  is_required: boolean;
+  is_enabled: boolean;
 };
 
 export type ShiftsTimePayrollRunRow = {
@@ -458,12 +476,159 @@ export async function listActivePayrollMappings(
 ) {
   return db
     .from('payroll_export_mappings')
-    .select('id, template_name, provider_code, is_default')
+    .select('id, template_name, provider_code, delimiter, include_header, quote_all, decimal_separator, date_format, is_default, is_active')
     .is('archived_at', null)
     .eq('is_active', true)
     .order('is_default', { ascending: false })
     .order('template_name', { ascending: true })
     .limit(Math.max(1, Math.min(limit, 200)));
+}
+
+export async function listPayrollMappingFields(
+  db: SupabaseClient,
+  mappingId: string,
+) {
+  return db
+    .from('payroll_export_mapping_fields')
+    .select(`
+      id,
+      mapping_id,
+      sort_order,
+      output_column_name,
+      source_field,
+      static_value,
+      transform_config,
+      is_required,
+      is_enabled
+    `)
+    .eq('mapping_id', mappingId)
+    .is('archived_at', null)
+    .order('sort_order', { ascending: true })
+    .limit(500);
+}
+
+export async function createPayrollMapping(
+  db: SupabaseClient,
+  payload: {
+    tenant_id: string;
+    template_name: string;
+    provider_code?: string | null;
+    delimiter?: string;
+    include_header?: boolean;
+    quote_all?: boolean;
+    decimal_separator?: string;
+    date_format?: string;
+    is_default?: boolean;
+    notes?: string | null;
+  },
+) {
+  return db
+    .from('payroll_export_mappings')
+    .insert(payload)
+    .select('id, template_name, provider_code, delimiter, include_header, quote_all, decimal_separator, date_format, is_default, is_active')
+    .single<ShiftsTimePayrollMappingRow>();
+}
+
+export async function patchPayrollMapping(
+  db: SupabaseClient,
+  mappingId: string,
+  payload: Partial<{
+    template_name: string;
+    provider_code: string | null;
+    delimiter: string;
+    include_header: boolean;
+    quote_all: boolean;
+    decimal_separator: string;
+    date_format: string;
+    is_default: boolean;
+    is_active: boolean;
+    notes: string | null;
+  }>,
+) {
+  return db
+    .from('payroll_export_mappings')
+    .update(payload)
+    .eq('id', mappingId)
+    .is('archived_at', null)
+    .select('id, template_name, provider_code, delimiter, include_header, quote_all, decimal_separator, date_format, is_default, is_active')
+    .maybeSingle<ShiftsTimePayrollMappingRow>();
+}
+
+export async function archivePayrollMappingFields(
+  db: SupabaseClient,
+  mappingId: string,
+  userId: string,
+  reason: string,
+) {
+  return db
+    .from('payroll_export_mapping_fields')
+    .update({
+      archived_at: new Date().toISOString(),
+      archived_by: userId,
+      archive_reason: reason,
+    })
+    .eq('mapping_id', mappingId)
+    .is('archived_at', null);
+}
+
+export async function archivePayrollMappingFieldsExcept(
+  db: SupabaseClient,
+  mappingId: string,
+  keepIds: string[],
+  userId: string,
+  reason: string,
+) {
+  const keepList = keepIds
+    .map((id) => id.trim())
+    .filter((id) => id.length > 0)
+    .map((id) => `"${id.replace(/"/g, '\\"')}"`)
+    .join(',');
+
+  let query = db
+    .from('payroll_export_mapping_fields')
+    .update({
+      archived_at: new Date().toISOString(),
+      archived_by: userId,
+      archive_reason: reason,
+    })
+    .eq('mapping_id', mappingId)
+    .is('archived_at', null);
+
+  if (keepList.length > 0) {
+    query = query.not('id', 'in', `(${keepList})`);
+  }
+
+  return query;
+}
+
+export async function insertPayrollMappingFields(
+  db: SupabaseClient,
+  rows: Array<{
+    tenant_id: string;
+    mapping_id: string;
+    sort_order: number;
+    output_column_name: string;
+    source_field?: string | null;
+    static_value?: string | null;
+    transform_config?: Record<string, unknown> | null;
+    is_required?: boolean;
+    is_enabled?: boolean;
+  }>,
+) {
+  return db
+    .from('payroll_export_mapping_fields')
+    .insert(rows)
+    .select(`
+      id,
+      mapping_id,
+      sort_order,
+      output_column_name,
+      source_field,
+      static_value,
+      transform_config,
+      is_required,
+      is_enabled
+    `);
 }
 
 export async function listRecentPayrollRuns(

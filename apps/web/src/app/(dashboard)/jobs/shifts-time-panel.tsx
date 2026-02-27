@@ -92,7 +92,25 @@ type PayrollMappingSummary = {
   id: string;
   template_name: string;
   provider_code: string | null;
+  delimiter: string;
+  include_header: boolean;
+  quote_all: boolean;
+  decimal_separator: string;
+  date_format: string;
   is_default: boolean;
+  is_active: boolean;
+};
+
+type PayrollMappingField = {
+  id: string;
+  mapping_id: string;
+  sort_order: number;
+  output_column_name: string;
+  source_field: string | null;
+  static_value: string | null;
+  transform_config: Record<string, unknown> | null;
+  is_required: boolean;
+  is_enabled: boolean;
 };
 
 type PayrollRunSummary = {
@@ -138,6 +156,22 @@ const PAYROLL_MANAGER_ROLES = new Set(['OWNER_ADMIN', 'MANAGER']);
 const CALLOUT_REASONS = ['SICK', 'PERSONAL', 'EMERGENCY', 'NO_SHOW', 'WEATHER', 'TRANSPORT', 'OTHER'] as const;
 type CalloutReason = (typeof CALLOUT_REASONS)[number];
 type ManagerTab = 'board' | 'routes' | 'coverage' | 'payroll';
+const PAYROLL_SOURCE_FIELDS = [
+  'staff_code',
+  'full_name',
+  'period_start',
+  'period_end',
+  'regular_hours',
+  'overtime_hours',
+  'pto_hours',
+  'sick_hours',
+  'vacation_hours',
+  'holiday_hours',
+  'travel_hours',
+  'on_call_stipend',
+  'hourly_rate',
+  'gross_pay',
+] as const;
 
 async function authHeaders() {
   const supabase = getSupabaseBrowserClient();
@@ -214,6 +248,17 @@ export default function ShiftsTimePanel({ search }: ShiftsTimePanelProps) {
   const [exportedChecksum, setExportedChecksum] = useState('');
   const [previewSaving, setPreviewSaving] = useState(false);
   const [finalizeSaving, setFinalizeSaving] = useState(false);
+  const [createMappingSaving, setCreateMappingSaving] = useState(false);
+  const [mappingFieldsLoading, setMappingFieldsLoading] = useState(false);
+  const [mappingFieldsSaving, setMappingFieldsSaving] = useState(false);
+  const [mappingFields, setMappingFields] = useState<PayrollMappingField[]>([]);
+  const [newMappingName, setNewMappingName] = useState('');
+  const [newMappingProvider, setNewMappingProvider] = useState('');
+  const [newMappingDelimiter, setNewMappingDelimiter] = useState(',');
+  const [newMappingIncludeHeader, setNewMappingIncludeHeader] = useState(true);
+  const [newMappingQuoteAll, setNewMappingQuoteAll] = useState(false);
+  const [newMappingDecimalSeparator, setNewMappingDecimalSeparator] = useState('.');
+  const [newMappingDateFormat, setNewMappingDateFormat] = useState('YYYY-MM-DD');
 
   const localeCode = getIntlLocale(locale);
   const roleCode = normalizeRoleCode(role ?? '') ?? (role ?? '').toUpperCase();
@@ -268,6 +313,46 @@ export default function ShiftsTimePanel({ search }: ShiftsTimePanelProps) {
       setMappingId(preferred.id);
     }
   }, [data?.payroll_mappings, mappingId]);
+
+  useEffect(() => {
+    if (!canManagePayroll || !mappingId) {
+      setMappingFields([]);
+      return;
+    }
+
+    let canceled = false;
+    async function loadFields() {
+      setMappingFieldsLoading(true);
+      try {
+        const headers = await authHeaders();
+        const response = await fetch(`/api/operations/shifts-time/payroll/mappings/${encodeURIComponent(mappingId)}/fields`, {
+          headers,
+          cache: 'no-store',
+        });
+        const body = await response.json().catch(() => null);
+        if (!response.ok || !body?.success) {
+          throw new Error(body?.detail ?? body?.title ?? t('shiftsTime.payroll.fieldsLoadError'));
+        }
+        if (!canceled) {
+          setMappingFields((body.data as PayrollMappingField[]) ?? []);
+        }
+      } catch (error) {
+        if (!canceled) {
+          setMappingFields([]);
+          toast.error(error instanceof Error ? error.message : t('shiftsTime.payroll.fieldsLoadError'));
+        }
+      } finally {
+        if (!canceled) {
+          setMappingFieldsLoading(false);
+        }
+      }
+    }
+
+    void loadFields();
+    return () => {
+      canceled = true;
+    };
+  }, [canManagePayroll, mappingId, t]);
 
   useEffect(() => {
     if (isFieldRole) return;
@@ -476,6 +561,136 @@ export default function ShiftsTimePanel({ search }: ShiftsTimePanelProps) {
       setFinalizeSaving(false);
     }
   }, [exportedChecksum, exportedFilePath, load, previewRunId, t]);
+
+  const createPayrollMapping = useCallback(async () => {
+    if (!newMappingName.trim()) {
+      toast.error(t('shiftsTime.payroll.mappingNameRequired'));
+      return;
+    }
+
+    setCreateMappingSaving(true);
+    try {
+      const headers = await authHeaders();
+      headers['Content-Type'] = 'application/json';
+      const response = await fetch('/api/operations/shifts-time/payroll/mappings', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          template_name: newMappingName.trim(),
+          provider_code: newMappingProvider.trim() || null,
+          delimiter: newMappingDelimiter,
+          include_header: newMappingIncludeHeader,
+          quote_all: newMappingQuoteAll,
+          decimal_separator: newMappingDecimalSeparator,
+          date_format: newMappingDateFormat.trim() || 'YYYY-MM-DD',
+        }),
+      });
+
+      const body = await response.json().catch(() => null);
+      if (!response.ok || !body?.success) {
+        throw new Error(body?.detail ?? body?.title ?? t('shiftsTime.payroll.mappingCreateError'));
+      }
+
+      const createdMappingId = (body.data as { id?: string } | null)?.id ?? '';
+      toast.success(t('shiftsTime.payroll.mappingCreateSuccess'));
+      setNewMappingName('');
+      setNewMappingProvider('');
+      setNewMappingDelimiter(',');
+      setNewMappingIncludeHeader(true);
+      setNewMappingQuoteAll(false);
+      setNewMappingDecimalSeparator('.');
+      setNewMappingDateFormat('YYYY-MM-DD');
+      await load();
+      if (createdMappingId) {
+        setMappingId(createdMappingId);
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('shiftsTime.payroll.mappingCreateError'));
+    } finally {
+      setCreateMappingSaving(false);
+    }
+  }, [
+    load,
+    newMappingDateFormat,
+    newMappingDecimalSeparator,
+    newMappingDelimiter,
+    newMappingIncludeHeader,
+    newMappingName,
+    newMappingProvider,
+    newMappingQuoteAll,
+    t,
+  ]);
+
+  const addMappingField = useCallback(() => {
+    setMappingFields((current) => ([
+      ...current,
+      {
+        id: `draft-${crypto.randomUUID()}`,
+        mapping_id: mappingId,
+        sort_order: current.length + 1,
+        output_column_name: '',
+        source_field: PAYROLL_SOURCE_FIELDS[0] ?? null,
+        static_value: null,
+        transform_config: null,
+        is_required: false,
+        is_enabled: true,
+      },
+    ]));
+  }, [mappingId]);
+
+  const updateMappingField = useCallback((index: number, patch: Partial<PayrollMappingField>) => {
+    setMappingFields((current) => current.map((field, idx) => (idx === index ? { ...field, ...patch } : field)));
+  }, []);
+
+  const removeMappingField = useCallback((index: number) => {
+    setMappingFields((current) => current
+      .filter((_, idx) => idx !== index)
+      .map((field, idx) => ({ ...field, sort_order: idx + 1 })));
+  }, []);
+
+  const saveMappingFields = useCallback(async () => {
+    if (!mappingId) {
+      toast.error(t('shiftsTime.payroll.noMappings'));
+      return;
+    }
+    if (!mappingFields.length) {
+      toast.error(t('shiftsTime.payroll.fieldsRequired'));
+      return;
+    }
+
+    setMappingFieldsSaving(true);
+    try {
+      const headers = await authHeaders();
+      headers['Content-Type'] = 'application/json';
+      const payload = {
+        fields: mappingFields.map((field) => ({
+          output_column_name: field.output_column_name,
+          source_field: field.source_field,
+          static_value: field.static_value,
+          transform_config: field.transform_config,
+          is_required: field.is_required,
+          is_enabled: field.is_enabled,
+        })),
+      };
+      const response = await fetch(`/api/operations/shifts-time/payroll/mappings/${encodeURIComponent(mappingId)}/fields`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(payload),
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok || !body?.success) {
+        throw new Error(body?.detail ?? body?.title ?? t('shiftsTime.payroll.fieldsSaveError'));
+      }
+
+      setMappingFields((body.data as PayrollMappingField[]) ?? []);
+      toast.success(t('shiftsTime.payroll.fieldsSaveSuccess'));
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('shiftsTime.payroll.fieldsSaveError'));
+    } finally {
+      setMappingFieldsSaving(false);
+    }
+  }, [load, mappingFields, mappingId, t]);
 
   const filteredSites = useMemo(() => {
     const rows = data?.site_summaries ?? [];
@@ -899,6 +1114,107 @@ export default function ShiftsTimePanel({ search }: ShiftsTimePanelProps) {
                 <p className="text-xs text-muted-foreground">{payrollEnabled ? t('shiftsTime.payroll.help') : t('shiftsTime.payroll.featureOff')}</p>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="rounded-lg border border-border bg-background p-3 space-y-3">
+                  <p className="text-sm font-medium text-foreground">{t('shiftsTime.payroll.mappingCreateTitle')}</p>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <label htmlFor="payroll-new-mapping-name" className="block text-xs font-medium text-muted-foreground">
+                        {t('shiftsTime.payroll.mappingName')}
+                      </label>
+                      <input
+                        id="payroll-new-mapping-name"
+                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                        value={newMappingName}
+                        onChange={(event) => setNewMappingName(event.target.value)}
+                        disabled={createMappingSaving}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label htmlFor="payroll-new-mapping-provider" className="block text-xs font-medium text-muted-foreground">
+                        {t('shiftsTime.payroll.mappingProvider')}
+                      </label>
+                      <input
+                        id="payroll-new-mapping-provider"
+                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                        value={newMappingProvider}
+                        onChange={(event) => setNewMappingProvider(event.target.value)}
+                        disabled={createMappingSaving}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+                    <div className="space-y-2">
+                      <label htmlFor="payroll-new-mapping-delimiter" className="block text-xs font-medium text-muted-foreground">
+                        {t('shiftsTime.payroll.delimiter')}
+                      </label>
+                      <select
+                        id="payroll-new-mapping-delimiter"
+                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                        value={newMappingDelimiter}
+                        onChange={(event) => setNewMappingDelimiter(event.target.value)}
+                        disabled={createMappingSaving}
+                      >
+                        <option value=",">,</option>
+                        <option value=";">;</option>
+                        <option value={'\t'}>{t('shiftsTime.payroll.tabDelimiter')}</option>
+                        <option value="|">|</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label htmlFor="payroll-new-mapping-decimal" className="block text-xs font-medium text-muted-foreground">
+                        {t('shiftsTime.payroll.decimalSeparator')}
+                      </label>
+                      <select
+                        id="payroll-new-mapping-decimal"
+                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                        value={newMappingDecimalSeparator}
+                        onChange={(event) => setNewMappingDecimalSeparator(event.target.value)}
+                        disabled={createMappingSaving}
+                      >
+                        <option value=".">.</option>
+                        <option value=",">,</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label htmlFor="payroll-new-mapping-date-format" className="block text-xs font-medium text-muted-foreground">
+                        {t('shiftsTime.payroll.dateFormat')}
+                      </label>
+                      <input
+                        id="payroll-new-mapping-date-format"
+                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                        value={newMappingDateFormat}
+                        onChange={(event) => setNewMappingDateFormat(event.target.value)}
+                        disabled={createMappingSaving}
+                      />
+                    </div>
+                    <div className="flex flex-col justify-end gap-2">
+                      <label className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                        <input
+                          type="checkbox"
+                          checked={newMappingIncludeHeader}
+                          onChange={(event) => setNewMappingIncludeHeader(event.target.checked)}
+                          disabled={createMappingSaving}
+                        />
+                        {t('shiftsTime.payroll.includeHeader')}
+                      </label>
+                      <label className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                        <input
+                          type="checkbox"
+                          checked={newMappingQuoteAll}
+                          onChange={(event) => setNewMappingQuoteAll(event.target.checked)}
+                          disabled={createMappingSaving}
+                        />
+                        {t('shiftsTime.payroll.quoteAll')}
+                      </label>
+                    </div>
+                  </div>
+                  <div>
+                    <Button type="button" onClick={() => void createPayrollMapping()} disabled={createMappingSaving || !payrollEnabled}>
+                      {createMappingSaving ? t('shiftsTime.payroll.mappingCreating') : t('shiftsTime.payroll.mappingCreate')}
+                    </Button>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                   <div className="space-y-2">
                     <label htmlFor="payroll-mapping" className="block text-xs font-medium text-muted-foreground">
@@ -1000,6 +1316,94 @@ export default function ShiftsTimePanel({ search }: ShiftsTimePanelProps) {
                   <Button type="button" variant="secondary" onClick={() => void finalizePayroll()} disabled={finalizeSaving || !payrollEnabled}>
                     {finalizeSaving ? t('shiftsTime.payroll.finalizing') : t('shiftsTime.payroll.finalize')}
                   </Button>
+                </div>
+
+                <div className="rounded-lg border border-border bg-background p-3 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-medium text-foreground">{t('shiftsTime.payroll.fieldsTitle')}</p>
+                    <div className="flex items-center gap-2">
+                      <Button type="button" variant="secondary" size="sm" onClick={addMappingField} disabled={!mappingId || mappingFieldsSaving || mappingFieldsLoading}>
+                        {t('shiftsTime.payroll.fieldAdd')}
+                      </Button>
+                      <Button type="button" size="sm" onClick={() => void saveMappingFields()} disabled={!mappingId || mappingFieldsSaving || mappingFieldsLoading || !payrollEnabled}>
+                        {mappingFieldsSaving ? t('shiftsTime.payroll.fieldsSaving') : t('shiftsTime.payroll.fieldsSave')}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {mappingFieldsLoading ? (
+                    <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
+                  ) : !mappingId ? (
+                    <p className="text-sm text-muted-foreground">{t('shiftsTime.payroll.noMappings')}</p>
+                  ) : mappingFields.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">{t('shiftsTime.payroll.fieldsEmpty')}</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {mappingFields.map((field, index) => (
+                        <div key={field.id} className="rounded-md border border-border px-3 py-3 space-y-2">
+                          <div className="grid grid-cols-1 gap-2 md:grid-cols-4">
+                            <div className="space-y-1">
+                              <label className="block text-xs text-muted-foreground">{t('shiftsTime.payroll.columnLabel')}</label>
+                              <input
+                                className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                                value={field.output_column_name}
+                                onChange={(event) => updateMappingField(index, { output_column_name: event.target.value })}
+                                disabled={mappingFieldsSaving}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="block text-xs text-muted-foreground">{t('shiftsTime.payroll.sourceLabel')}</label>
+                              <select
+                                className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                                value={field.source_field ?? ''}
+                                onChange={(event) => updateMappingField(index, { source_field: event.target.value || null })}
+                                disabled={mappingFieldsSaving}
+                              >
+                                <option value="">{t('shiftsTime.payroll.sourceNone')}</option>
+                                {PAYROLL_SOURCE_FIELDS.map((sourceField) => (
+                                  <option key={sourceField} value={sourceField}>{sourceField}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="space-y-1">
+                              <label className="block text-xs text-muted-foreground">{t('shiftsTime.payroll.staticLabel')}</label>
+                              <input
+                                className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                                value={field.static_value ?? ''}
+                                onChange={(event) => updateMappingField(index, { static_value: event.target.value || null })}
+                                disabled={mappingFieldsSaving}
+                              />
+                            </div>
+                            <div className="flex items-end justify-end">
+                              <Button type="button" variant="secondary" size="sm" onClick={() => removeMappingField(index)} disabled={mappingFieldsSaving}>
+                                {t('shiftsTime.payroll.fieldRemove')}
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-3">
+                            <label className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                              <input
+                                type="checkbox"
+                                checked={field.is_required}
+                                onChange={(event) => updateMappingField(index, { is_required: event.target.checked })}
+                                disabled={mappingFieldsSaving}
+                              />
+                              {t('shiftsTime.payroll.requiredLabel')}
+                            </label>
+                            <label className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                              <input
+                                type="checkbox"
+                                checked={field.is_enabled}
+                                onChange={(event) => updateMappingField(index, { is_enabled: event.target.checked })}
+                                disabled={mappingFieldsSaving}
+                              />
+                              {t('shiftsTime.payroll.enabledLabel')}
+                            </label>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">

@@ -32,6 +32,8 @@ test('protected schedule and timekeeping APIs still require auth', () => {
   assert.equal(isPublicRoutePath('/api/operations/shifts-time/tickets/123/complete'), false);
   assert.equal(isPublicRoutePath('/api/operations/shifts-time/callouts/report'), false);
   assert.equal(isPublicRoutePath('/api/operations/shifts-time/payroll/preview'), false);
+  assert.equal(isPublicRoutePath('/api/operations/shifts-time/payroll/mappings'), false);
+  assert.equal(isPublicRoutePath('/api/operations/shifts-time/payroll/mappings/123/fields'), false);
   assert.equal(isPublicRoutePath('/api/operations/shifts-time/tonight-board'), false);
   assert.equal(isPublicRoutePath('/api/timekeeping/pin-checkin'), false);
 });

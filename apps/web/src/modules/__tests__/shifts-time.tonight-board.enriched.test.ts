@@ -190,3 +190,64 @@ test('tonight board includes route, coverage, and payroll enrichment for manager
     resetShiftsTimeFlags();
   }
 });
+
+test('tonight board excludes payroll mappings for supervisor role', async () => {
+  setShiftsTimeFlags();
+  let staffLookupCalls = 0;
+  let payrollReadCalls = 0;
+
+  const db = {
+    from(table: string) {
+      if (table === 'staff') {
+        if (staffLookupCalls === 0) {
+          staffLookupCalls += 1;
+          const base = queryResult<{ id: string } | null>({ id: 'staff-supervisor' });
+          return {
+            ...base,
+            maybeSingle: async () => ({ data: { id: 'staff-supervisor' }, error: null }),
+          };
+        }
+        return queryResult([]);
+      }
+
+      if (table === 'routes' || table === 'route_stops' || table === 'work_tickets' || table === 'callout_events') {
+        return queryResult([]);
+      }
+
+      if (table === 'payroll_export_mappings' || table === 'payroll_export_runs') {
+        payrollReadCalls += 1;
+        return queryResult([]);
+      }
+
+      throw new Error(`unexpected table query: ${table}`);
+    },
+  };
+
+  try {
+    const result = await getTonightBoard(
+      db as never,
+      {
+        userId: 'user-2',
+        tenantId: 'tenant-1',
+        roles: ['SUPERVISOR'],
+      },
+      API_PATH,
+    );
+
+    assert.equal(result.success, true);
+    if (!result.success) {
+      return;
+    }
+
+    const payload = result.data as {
+      payroll_mappings: unknown[];
+      payroll_runs: unknown[];
+    };
+
+    assert.equal(payload.payroll_mappings.length, 0);
+    assert.equal(payload.payroll_runs.length, 0);
+    assert.equal(payrollReadCalls, 0);
+  } finally {
+    resetShiftsTimeFlags();
+  }
+});

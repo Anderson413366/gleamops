@@ -19,8 +19,13 @@ import {
   listRecentCalloutEvents,
   listRecentPayrollRuns,
   listAssignedTicketsForDate,
+  listPayrollMappingFields,
   listRouteStopsByRouteIds,
   listRoutesForDate,
+  createPayrollMapping,
+  patchPayrollMapping,
+  archivePayrollMappingFieldsExcept,
+  insertPayrollMappingFields,
   getWorkTicketForExecution,
   isStaffAssignedToTicket,
   updateWorkTicketExecutionStatus,
@@ -32,6 +37,7 @@ import {
   type ShiftsTimeCalloutEventRow,
   type ShiftsTimeCoverageCandidateRow,
   type ShiftsTimePayrollMappingRow,
+  type ShiftsTimePayrollMappingFieldRow,
   type ShiftsTimePayrollRunRow,
   type ShiftsTimeRouteRow,
   type ShiftsTimeRouteStopRow,
@@ -173,7 +179,25 @@ type PayrollMappingSummary = {
   id: string;
   template_name: string;
   provider_code: string | null;
+  delimiter: string;
+  include_header: boolean;
+  quote_all: boolean;
+  decimal_separator: string;
+  date_format: string;
   is_default: boolean;
+  is_active: boolean;
+};
+
+type PayrollMappingFieldSummary = {
+  id: string;
+  mapping_id: string;
+  sort_order: number;
+  output_column_name: string;
+  source_field: string | null;
+  static_value: string | null;
+  transform_config: Record<string, unknown> | null;
+  is_required: boolean;
+  is_enabled: boolean;
 };
 
 type PayrollRunSummary = {
@@ -441,7 +465,13 @@ function toPayrollMappingSummary(row: ShiftsTimePayrollMappingRow): PayrollMappi
     id: row.id,
     template_name: row.template_name,
     provider_code: row.provider_code ?? null,
+    delimiter: row.delimiter ?? ',',
+    include_header: row.include_header ?? true,
+    quote_all: row.quote_all ?? false,
+    decimal_separator: row.decimal_separator ?? '.',
+    date_format: row.date_format ?? 'YYYY-MM-DD',
     is_default: row.is_default,
+    is_active: row.is_active ?? true,
   };
 }
 
@@ -455,6 +485,20 @@ function toPayrollRunSummary(row: ShiftsTimePayrollRunRow): PayrollRunSummary {
     created_at: row.created_at,
     exported_at: row.exported_at ?? null,
     mapping_name: mapping?.template_name ?? null,
+  };
+}
+
+function toPayrollMappingFieldSummary(row: ShiftsTimePayrollMappingFieldRow): PayrollMappingFieldSummary {
+  return {
+    id: row.id,
+    mapping_id: row.mapping_id,
+    sort_order: Number(row.sort_order ?? 1),
+    output_column_name: row.output_column_name,
+    source_field: row.source_field ?? null,
+    static_value: row.static_value ?? null,
+    transform_config: row.transform_config ?? null,
+    is_required: Boolean(row.is_required),
+    is_enabled: Boolean(row.is_enabled),
   };
 }
 
@@ -783,6 +827,192 @@ export async function finalizePayrollExportRpc(
   return { success: true, data };
 }
 
+export async function getPayrollMappingFields(
+  userDb: SupabaseClient,
+  auth: AuthContext,
+  mappingId: string,
+  apiPath: string,
+): Promise<ServiceResult> {
+  if (!isPayrollEnabled()) {
+    return { success: false, error: featureDisabled(apiPath, 'Shifts & Time payroll export is not enabled.') };
+  }
+  if (!canManageShiftsTimePayroll(auth.roles)) {
+    return { success: false, error: AUTH_002(apiPath) };
+  }
+
+  const { data, error } = await listPayrollMappingFields(userDb, mappingId);
+  if (error) {
+    return { success: false, error: SYS_002(error.message, apiPath) };
+  }
+
+  return {
+    success: true,
+    data: ((data ?? []) as ShiftsTimePayrollMappingFieldRow[]).map(toPayrollMappingFieldSummary),
+  };
+}
+
+export async function createPayrollMappingTemplate(
+  userDb: SupabaseClient,
+  auth: AuthContext,
+  payload: {
+    template_name: string;
+    provider_code?: string | null;
+    delimiter?: string;
+    include_header?: boolean;
+    quote_all?: boolean;
+    decimal_separator?: string;
+    date_format?: string;
+    is_default?: boolean;
+    notes?: string | null;
+  },
+  apiPath: string,
+): Promise<ServiceResult> {
+  if (!isPayrollEnabled()) {
+    return { success: false, error: featureDisabled(apiPath, 'Shifts & Time payroll export is not enabled.') };
+  }
+  if (!canManageShiftsTimePayroll(auth.roles)) {
+    return { success: false, error: AUTH_002(apiPath) };
+  }
+
+  const { data, error } = await createPayrollMapping(userDb, {
+    tenant_id: auth.tenantId,
+    template_name: payload.template_name.trim(),
+    provider_code: payload.provider_code ?? null,
+    delimiter: payload.delimiter ?? ',',
+    include_header: payload.include_header ?? true,
+    quote_all: payload.quote_all ?? false,
+    decimal_separator: payload.decimal_separator ?? '.',
+    date_format: payload.date_format ?? 'YYYY-MM-DD',
+    is_default: payload.is_default ?? false,
+    notes: payload.notes ?? null,
+  });
+  if (error) {
+    return { success: false, error: SYS_002(error.message, apiPath) };
+  }
+
+  return { success: true, data: toPayrollMappingSummary(data as ShiftsTimePayrollMappingRow), status: 201 };
+}
+
+export async function patchPayrollMappingTemplate(
+  userDb: SupabaseClient,
+  auth: AuthContext,
+  mappingId: string,
+  payload: Partial<{
+    template_name: string;
+    provider_code: string | null;
+    delimiter: string;
+    include_header: boolean;
+    quote_all: boolean;
+    decimal_separator: string;
+    date_format: string;
+    is_default: boolean;
+    is_active: boolean;
+    notes: string | null;
+  }>,
+  apiPath: string,
+): Promise<ServiceResult> {
+  if (!isPayrollEnabled()) {
+    return { success: false, error: featureDisabled(apiPath, 'Shifts & Time payroll export is not enabled.') };
+  }
+  if (!canManageShiftsTimePayroll(auth.roles)) {
+    return { success: false, error: AUTH_002(apiPath) };
+  }
+
+  const { data, error } = await patchPayrollMapping(userDb, mappingId, payload);
+  if (error) {
+    return { success: false, error: SYS_002(error.message, apiPath) };
+  }
+  if (!data) {
+    return {
+      success: false,
+      error: createProblemDetails('SHIFT_004', 'Payroll mapping not found', 404, 'Mapping not found', apiPath),
+    };
+  }
+
+  return { success: true, data: toPayrollMappingSummary(data as ShiftsTimePayrollMappingRow) };
+}
+
+export async function replacePayrollMappingFieldSet(
+  userDb: SupabaseClient,
+  auth: AuthContext,
+  mappingId: string,
+  payload: {
+    fields: Array<{
+      output_column_name: string;
+      source_field?: string | null;
+      static_value?: string | null;
+      transform_config?: Record<string, unknown> | null;
+      is_required?: boolean;
+      is_enabled?: boolean;
+    }>;
+  },
+  apiPath: string,
+): Promise<ServiceResult> {
+  if (!isPayrollEnabled()) {
+    return { success: false, error: featureDisabled(apiPath, 'Shifts & Time payroll export is not enabled.') };
+  }
+  if (!canManageShiftsTimePayroll(auth.roles)) {
+    return { success: false, error: AUTH_002(apiPath) };
+  }
+
+  const normalizedFields = payload.fields
+    .map((field) => ({
+      output_column_name: field.output_column_name.trim(),
+      source_field: field.source_field?.trim() || null,
+      static_value: field.static_value?.trim() || null,
+      transform_config: field.transform_config ?? null,
+      is_required: Boolean(field.is_required),
+      is_enabled: field.is_enabled !== false,
+    }))
+    .filter((field) => field.output_column_name.length > 0)
+    .filter((field) => field.source_field !== null || field.static_value !== null);
+
+  if (normalizedFields.length === 0) {
+    return {
+      success: false,
+      error: createProblemDetails('VALIDATION_001', 'Validation failed', 400, 'At least one mapped field is required.', apiPath),
+    };
+  }
+
+  const archiveReason = 'Replaced via shifts-time payroll mapping editor';
+  const insertResult = await insertPayrollMappingFields(userDb, normalizedFields.map((field, index) => ({
+    tenant_id: auth.tenantId,
+    mapping_id: mappingId,
+    sort_order: index + 1,
+    output_column_name: field.output_column_name,
+    source_field: field.source_field,
+    static_value: field.static_value,
+    transform_config: field.transform_config,
+    is_required: field.is_required,
+    is_enabled: field.is_enabled,
+  })));
+
+  if (insertResult.error) {
+    return { success: false, error: SYS_002(insertResult.error.message, apiPath) };
+  }
+
+  const insertedRows = (insertResult.data ?? []) as ShiftsTimePayrollMappingFieldRow[];
+  const insertedIds = insertedRows.map((row) => row.id);
+
+  const archiveResult = await archivePayrollMappingFieldsExcept(
+    userDb,
+    mappingId,
+    insertedIds,
+    auth.userId,
+    archiveReason,
+  );
+  if (archiveResult.error) {
+    // Keep both generations active rather than risking destructive field loss.
+    return { success: false, error: SYS_002(archiveResult.error.message, apiPath) };
+  }
+
+  return {
+    success: true,
+    data: insertedRows.map(toPayrollMappingFieldSummary),
+    status: 201,
+  };
+}
+
 export async function getTonightBoard(
   userDb: SupabaseClient,
   auth: AuthContext,
@@ -958,7 +1188,7 @@ export async function getTonightBoard(
 
   let payrollMappings: PayrollMappingSummary[] = [];
   let payrollRuns: PayrollRunSummary[] = [];
-  if (managerTier && isPayrollEnabled()) {
+  if (canManageShiftsTimePayroll(auth.roles) && isPayrollEnabled()) {
     const [mappingsResult, runsResult] = await Promise.all([
       listActivePayrollMappings(userDb, 50),
       listRecentPayrollRuns(userDb, 20),

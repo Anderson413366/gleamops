@@ -10,6 +10,10 @@ export {
   acceptCoverageRpc,
   previewPayrollExportRpc,
   finalizePayrollExportRpc,
+  getPayrollMappingFields,
+  createPayrollMappingTemplate,
+  patchPayrollMappingTemplate,
+  replacePayrollMappingFieldSet,
 } from './shifts-time.service';
 
 export {

@@ -7,8 +7,12 @@ import {
 import {
   computeColumnStats,
 } from '@/app/(dashboard)/schedule/plan/planning-board';
+import {
+  computeStaffHours,
+} from '@/app/(dashboard)/schedule/recurring/schedule-grid';
 import type { PlanningTicket } from '@/app/(dashboard)/schedule/plan/planning-card';
 import type { PlanningStatus } from '@gleamops/shared';
+import type { RecurringScheduleRow } from '@/app/(dashboard)/schedule/recurring/schedule-list';
 
 // ---------------------------------------------------------------------------
 // computeDuration
@@ -162,4 +166,50 @@ test('computeColumnStats excludes non-ASSIGNED staff from gap check', () => {
   const stats = computeColumnStats(tickets, grouped);
 
   assert.equal(stats.IN_PROGRESS.gaps, 1); // CANCELLED doesn't count
+});
+
+// ---------------------------------------------------------------------------
+// computeStaffHours
+// ---------------------------------------------------------------------------
+
+function makeScheduleRow(overrides: Partial<RecurringScheduleRow> = {}): RecurringScheduleRow {
+  return {
+    id: overrides.id ?? 'row-1',
+    staffName: 'John Doe',
+    positionType: 'FLOOR_SPECIALIST',
+    siteName: 'Office A',
+    startTime: '09:00',
+    endTime: '17:00',
+    scheduledDates: ['2026-03-02', '2026-03-03', '2026-03-04'],
+    scheduleDays: ['MON', 'TUE', 'WED'],
+    status: 'assigned',
+    ...overrides,
+  };
+}
+
+test('computeStaffHours sums hours for visible dates only', () => {
+  const rows = [makeScheduleRow({ startTime: '09:00', endTime: '17:00', scheduledDates: ['2026-03-02', '2026-03-03', '2026-03-04'] })];
+  const hours = computeStaffHours(rows, ['2026-03-02', '2026-03-03']);
+  assert.equal(hours, 16); // 8h * 2 days
+});
+
+test('computeStaffHours handles overnight shifts', () => {
+  const rows = [makeScheduleRow({ startTime: '22:00', endTime: '06:00', scheduledDates: ['2026-03-02'] })];
+  const hours = computeStaffHours(rows, ['2026-03-02']);
+  assert.equal(hours, 8);
+});
+
+test('computeStaffHours sums multiple assignments', () => {
+  const rows = [
+    makeScheduleRow({ id: 'r1', startTime: '09:00', endTime: '13:00', scheduledDates: ['2026-03-02'] }),
+    makeScheduleRow({ id: 'r2', startTime: '14:00', endTime: '18:00', scheduledDates: ['2026-03-02'] }),
+  ];
+  const hours = computeStaffHours(rows, ['2026-03-02']);
+  assert.equal(hours, 8); // 4h + 4h
+});
+
+test('computeStaffHours returns 0 for no matching dates', () => {
+  const rows = [makeScheduleRow({ scheduledDates: ['2026-03-05'] })];
+  const hours = computeStaffHours(rows, ['2026-03-02']);
+  assert.equal(hours, 0);
 });

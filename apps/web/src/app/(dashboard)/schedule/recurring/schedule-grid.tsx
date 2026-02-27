@@ -2,9 +2,32 @@
 
 import { useMemo } from 'react';
 import { CalendarClock } from 'lucide-react';
-import { EmptyState } from '@gleamops/ui';
+import { EmptyState, cn } from '@gleamops/ui';
 import { PositionBlock } from './position-block';
 import type { RecurringScheduleRow } from './schedule-list';
+
+/** Compute total hours for a staff member across visible dates. */
+export function computeStaffHours(
+  staffRows: RecurringScheduleRow[],
+  dateColumns: string[],
+): number {
+  let totalMinutes = 0;
+  const dateSet = new Set(dateColumns);
+  for (const row of staffRows) {
+    const [sh, sm] = row.startTime.split(':').map(Number);
+    const [eh, em] = row.endTime.split(':').map(Number);
+    let shiftMinutes = (eh * 60 + em) - (sh * 60 + sm);
+    if (shiftMinutes <= 0) shiftMinutes += 24 * 60;
+    const daysInRange = row.scheduledDates.filter((d) => dateSet.has(d)).length;
+    totalMinutes += shiftMinutes * daysInRange;
+  }
+  return Math.round((totalMinutes / 60) * 10) / 10;
+}
+
+function formatHours(hours: number): string {
+  if (hours === Math.floor(hours)) return `${hours}h`;
+  return `${hours}h`;
+}
 
 interface ScheduleGridProps {
   rows: RecurringScheduleRow[];
@@ -92,7 +115,7 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect }:
           className="grid border-b border-border bg-muted/40 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
           style={{ gridTemplateColumns }}
         >
-          <div className="px-4 py-3">Specialist</div>
+          <div className="sticky left-0 z-10 bg-muted/40 border-r border-border px-4 py-3">Specialist</div>
           {dateColumns.map((dateKey) => {
             const heading = formatDateHeading(dateKey);
             return (
@@ -108,15 +131,23 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect }:
 
         {staffNames.map((staffName) => {
           const staffRows = grouped[staffName];
+          const hours = computeStaffHours(staffRows, dateColumns);
           return (
             <div
               key={staffName}
               className="grid border-b border-border last:border-b-0"
               style={{ gridTemplateColumns }}
             >
-              <div className="px-4 py-3">
+              <div className="sticky left-0 z-10 bg-card border-r border-border px-4 py-3">
                 <p className="text-sm font-semibold text-foreground">{staffName}</p>
-                <p className="text-xs text-muted-foreground">{staffRows.length} assignment(s)</p>
+                <p className="text-xs text-muted-foreground">
+                  {staffRows.length} assignment(s)
+                  {hours > 0 && (
+                    <span className={cn('ml-1', hours > 40 && 'text-destructive font-medium')}>
+                      · {formatHours(hours)} this period
+                    </span>
+                  )}
+                </p>
               </div>
 
               {dateColumns.map((dateKey) => {

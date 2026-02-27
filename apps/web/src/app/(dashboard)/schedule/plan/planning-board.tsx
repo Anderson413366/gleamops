@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, CalendarDays, Plus, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
-import { Button, Card, CardContent, Input, Select, SlideOver } from '@gleamops/ui';
+import { Button, Card, CardContent, Input, Select, SlideOver, cn } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { PlanningStatus } from '@gleamops/shared';
 import { useMediaQuery } from '@/hooks/use-media-query';
@@ -78,6 +78,38 @@ function formatDateLabel(date: string): string {
     day: 'numeric',
     year: 'numeric',
   });
+}
+
+export interface ColumnStat {
+  pct: number;
+  staffNeeded: number;
+  gaps: number;
+}
+
+/** Compute column progress/stats from tickets grouped by planning status. */
+export function computeColumnStats(
+  allTickets: PlanningTicket[],
+  columnTickets: Record<PlanningStatus, PlanningTicket[]>,
+): Record<PlanningStatus, ColumnStat> {
+  const total = allTickets.length || 1;
+  const stats: Record<PlanningStatus, ColumnStat> = {
+    NOT_STARTED: { pct: 0, staffNeeded: 0, gaps: 0 },
+    IN_PROGRESS: { pct: 0, staffNeeded: 0, gaps: 0 },
+    READY: { pct: 0, staffNeeded: 0, gaps: 0 },
+  };
+  for (const key of Object.keys(stats) as PlanningStatus[]) {
+    const items = columnTickets[key];
+    stats[key].pct = Math.round((items.length / total) * 100);
+    for (const t of items) {
+      const req = t.required_staff_count ?? 1;
+      const active = (t.assignments ?? []).filter(
+        (a) => !a.assignment_status || a.assignment_status === 'ASSIGNED'
+      ).length;
+      stats[key].staffNeeded += req;
+      if (active < req) stats[key].gaps += 1;
+    }
+  }
+  return stats;
 }
 
 function isPlanningSchemaMissing(message: string | undefined): boolean {
@@ -298,6 +330,23 @@ export default function PlanningBoard({ search = '', openCreateToken = 0 }: Plan
     }
     return map;
   }, [filteredTickets]);
+
+  const columnStats = useMemo(
+    () => computeColumnStats(filteredTickets, columnTickets),
+    [filteredTickets, columnTickets],
+  );
+
+  const COLUMN_PROGRESS_COLOR: Record<PlanningStatus, string> = {
+    NOT_STARTED: 'bg-muted-foreground/40',
+    IN_PROGRESS: 'bg-primary',
+    READY: 'bg-success',
+  };
+
+  const COLUMN_DRAG_STYLE: Record<PlanningStatus, string> = {
+    NOT_STARTED: 'border-muted-foreground/50 bg-muted/30',
+    IN_PROGRESS: 'border-primary/50 bg-primary/5',
+    READY: 'border-success/50 bg-success/5',
+  };
 
   // ----- mutations -----
   const updatePlanningStatus = useCallback(
@@ -692,6 +741,7 @@ export default function PlanningBoard({ search = '', openCreateToken = 0 }: Plan
         <div className="grid gap-4 md:grid-cols-3">
           {COLUMNS.map((col) => {
             const items = columnTickets[col.key];
+            const stats = columnStats[col.key];
             const isOver = dragOverColumn === col.key;
 
             return (
@@ -700,19 +750,34 @@ export default function PlanningBoard({ search = '', openCreateToken = 0 }: Plan
                 onDragOver={(e) => handleDragOver(e, col.key)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, col.key)}
-                className={`rounded-xl border-2 border-dashed p-3 min-h-[200px] transition-colors ${
+                className={cn(
+                  'rounded-xl border-2 border-dashed p-3 min-h-[200px] transition-colors',
                   isOver
-                    ? 'border-primary/50 bg-primary/5'
-                    : 'border-transparent bg-muted/20'
-                }`}
+                    ? COLUMN_DRAG_STYLE[col.key]
+                    : 'border-transparent bg-muted/20',
+                )}
               >
+                {/* Progress bar */}
+                <div className="h-1 rounded-full bg-muted mb-2 overflow-hidden">
+                  <div
+                    className={cn('h-full rounded-full transition-all', COLUMN_PROGRESS_COLOR[col.key])}
+                    style={{ width: `${stats.pct}%` }}
+                  />
+                </div>
+
                 {/* Column header */}
-                <div className="flex items-center justify-between mb-3 px-1">
+                <div className="flex items-center justify-between mb-1 px-1">
                   <h3 className="text-sm font-semibold text-foreground">{col.label}</h3>
                   <span className="text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">
                     {items.length}
                   </span>
                 </div>
+
+                {/* Summary stats */}
+                <p className="text-[10px] text-muted-foreground px-1 mb-3">
+                  {stats.staffNeeded} staff needed
+                  {stats.gaps > 0 && <span className="text-destructive"> · {stats.gaps} {stats.gaps === 1 ? 'gap' : 'gaps'}</span>}
+                </p>
 
                 {/* Cards */}
                 <div className="space-y-2">

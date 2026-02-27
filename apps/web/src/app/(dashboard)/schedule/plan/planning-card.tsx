@@ -1,8 +1,35 @@
 'use client';
 
+import { useState } from 'react';
 import { ClipboardList, CheckCircle2, AlertCircle } from 'lucide-react';
-import { Badge } from '@gleamops/ui';
+import { Badge, cn } from '@gleamops/ui';
 import type { PlanningStatus } from '@gleamops/shared';
+
+const POSITION_BADGE_COLOR: Record<string, 'green' | 'red' | 'blue' | 'yellow' | 'gray'> = {
+  FLOOR_SPECIALIST: 'green',
+  RESTROOM_SPECIALIST: 'red',
+  VACUUM_SPECIALIST: 'blue',
+  UTILITY_SPECIALIST: 'yellow',
+  DAY_PORTER: 'gray',
+};
+
+export function formatPositionLabel(code: string): string {
+  return code.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/** Compute human-readable duration between HH:MM(:SS) time strings. Handles overnight (end < start). */
+export function computeDuration(start: string | null, end: string | null): string | null {
+  if (!start || !end) return null;
+  const [sh, sm] = start.split(':').map(Number);
+  const [eh, em] = end.split(':').map(Number);
+  let totalMinutes = (eh * 60 + em) - (sh * 60 + sm);
+  if (totalMinutes <= 0) totalMinutes += 24 * 60; // overnight shift
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours === 0) return `${minutes}m`;
+  if (minutes === 0) return `${hours}h`;
+  return `${hours}h ${minutes}m`;
+}
 
 interface AssignmentInfo {
   id: string;
@@ -55,6 +82,7 @@ export function PlanningCard({
   draggable = false,
   onDragStart,
 }: PlanningCardProps) {
+  const [isDragging, setIsDragging] = useState(false);
   const activeAssignments = (ticket.assignments ?? []).filter(
     (a) => !a.assignment_status || a.assignment_status === 'ASSIGNED'
   );
@@ -66,14 +94,23 @@ export function PlanningCard({
   const timeWindow = [formatTime(ticket.start_time), formatTime(ticket.end_time)]
     .filter(Boolean)
     .join(' – ');
+  const duration = computeDuration(ticket.start_time, ticket.end_time);
+  const positionBadgeColor = POSITION_BADGE_COLOR[ticket.position_code ?? ''] ?? 'gray';
 
   return (
     <div
       draggable={draggable}
-      onDragStart={(e) => onDragStart?.(e, ticket.id)}
-      className={`rounded-lg border p-3 bg-card text-card-foreground shadow-sm transition-shadow hover:shadow-md ${
-        draggable ? 'cursor-grab active:cursor-grabbing' : ''
-      } ${isReady ? 'border-success/40 bg-success/5' : hasGap ? 'border-destructive/40' : 'border-border'}`}
+      onDragStart={(e) => {
+        setIsDragging(true);
+        onDragStart?.(e, ticket.id);
+      }}
+      onDragEnd={() => setIsDragging(false)}
+      className={cn(
+        'rounded-lg border p-3 bg-card text-card-foreground shadow-sm transition-all hover:shadow-md',
+        draggable && 'cursor-grab active:cursor-grabbing',
+        isDragging && 'opacity-50 scale-[0.97]',
+        isReady ? 'border-success/40 bg-success/5' : hasGap ? 'border-destructive/40' : 'border-border',
+      )}
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-2 mb-2">
@@ -90,12 +127,28 @@ export function PlanningCard({
         )}
       </div>
 
-      {/* Time */}
-      {timeWindow && (
-        <p className="text-xs text-muted-foreground mb-2">{timeWindow}</p>
+      {/* Position badge */}
+      {ticket.position_code && (
+        <div className="mb-2">
+          <Badge color={positionBadgeColor} className="text-[10px]">
+            {formatPositionLabel(ticket.position_code)}
+          </Badge>
+        </div>
       )}
 
-      {/* Staff */}
+      {/* Time + duration */}
+      {(timeWindow || duration) && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+          {timeWindow && <span>{timeWindow}</span>}
+          {duration && (
+            <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+              {duration}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Staff list */}
       <div className="space-y-1 mb-2">
         {activeAssignments.map((a) => (
           <div key={a.id} className="flex items-center gap-1.5 text-xs">
@@ -111,6 +164,24 @@ export function PlanningCard({
             <span>{required - assigned} more needed</span>
           </div>
         )}
+      </div>
+
+      {/* Staffing dots */}
+      <div className="flex items-center gap-1.5 mb-2">
+        <div className="flex items-center gap-0.5">
+          {Array.from({ length: required }, (_, i) => (
+            <span
+              key={i}
+              className={cn(
+                'inline-block h-2 w-2 rounded-full',
+                i < assigned ? 'bg-success' : 'border border-muted-foreground',
+              )}
+            />
+          ))}
+        </div>
+        <span className="text-[10px] text-muted-foreground font-medium">
+          {assigned}/{required}
+        </span>
       </div>
 
       {/* Notes / supplies indicator */}

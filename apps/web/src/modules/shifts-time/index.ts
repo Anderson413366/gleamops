@@ -13,6 +13,8 @@ export {
   getPayrollMappingFields,
   createPayrollMappingTemplate,
   patchPayrollMappingTemplate,
+  archivePayrollMappingTemplate,
+  getAllPayrollMappings,
   replacePayrollMappingFieldSet,
 } from './shifts-time.service';
 

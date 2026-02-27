@@ -484,6 +484,20 @@ export async function listActivePayrollMappings(
     .limit(Math.max(1, Math.min(limit, 200)));
 }
 
+export async function listAllPayrollMappings(
+  db: SupabaseClient,
+  limit = 100,
+) {
+  return db
+    .from('payroll_export_mappings')
+    .select('id, template_name, provider_code, delimiter, include_header, quote_all, decimal_separator, date_format, is_default, is_active')
+    .is('archived_at', null)
+    .order('is_active', { ascending: false })
+    .order('is_default', { ascending: false })
+    .order('template_name', { ascending: true })
+    .limit(Math.max(1, Math.min(limit, 500)));
+}
+
 export async function listPayrollMappingFields(
   db: SupabaseClient,
   mappingId: string,
@@ -552,6 +566,40 @@ export async function patchPayrollMapping(
     .is('archived_at', null)
     .select('id, template_name, provider_code, delimiter, include_header, quote_all, decimal_separator, date_format, is_default, is_active')
     .maybeSingle<ShiftsTimePayrollMappingRow>();
+}
+
+export async function archivePayrollMapping(
+  db: SupabaseClient,
+  mappingId: string,
+  userId: string,
+  reason: string,
+) {
+  return db
+    .from('payroll_export_mappings')
+    .update({
+      archived_at: new Date().toISOString(),
+      archived_by: userId,
+      archive_reason: reason,
+      is_active: false,
+    })
+    .eq('id', mappingId)
+    .is('archived_at', null)
+    .select('id, template_name')
+    .maybeSingle<{ id: string; template_name: string }>();
+}
+
+export async function countEnabledPayrollMappingFields(
+  db: SupabaseClient,
+  mappingId: string,
+): Promise<{ count: number; error: { message: string } | null }> {
+  const { count, error } = await db
+    .from('payroll_export_mapping_fields')
+    .select('id', { count: 'exact', head: true })
+    .eq('mapping_id', mappingId)
+    .eq('is_enabled', true)
+    .is('archived_at', null);
+
+  return { count: count ?? 0, error };
 }
 
 export async function archivePayrollMappingFields(

@@ -44,6 +44,38 @@ export const acceptCoverageSchema = z.object({
   response_note: z.string().max(2000).nullable().optional(),
 });
 
+/** Allowed source_field values for payroll export mapping fields. */
+export const PAYROLL_SOURCE_FIELDS = [
+  'staff_code',
+  'full_name',
+  'employee_id',
+  'regular_hours',
+  'overtime_hours',
+  'double_time_hours',
+  'total_hours',
+  'pto_hours',
+  'sick_hours',
+  'vacation_hours',
+  'holiday_hours',
+  'on_call_hours',
+  'travel_hours',
+  'break_hours',
+  'pay_rate',
+  'gross_pay',
+  'shift_date',
+  'period_start',
+  'period_end',
+  'site_code',
+  'site_name',
+  'job_code',
+  'position_code',
+  'department',
+  'clock_in_time',
+  'clock_out_time',
+] as const;
+
+export type PayrollSourceField = (typeof PAYROLL_SOURCE_FIELDS)[number];
+
 export const payrollExportPreviewSchema = z.object({
   mapping_id: z.string().uuid(),
   period_start: isoDate,

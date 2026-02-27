@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { AUTH_002, SYS_002, createProblemDetails, isFeatureEnabled } from '@gleamops/shared';
+import { AUTH_002, SYS_002, createProblemDetails, isFeatureEnabled, PAYROLL_SOURCE_FIELDS } from '@gleamops/shared';
 import type { AuthContext } from '@/lib/api/auth-guard';
 import {
   canManageShiftsTimeCoverage,
@@ -15,6 +15,7 @@ import {
   rpcGeneratePayrollPreview,
   findStaffIdByUserId,
   listActivePayrollMappings,
+  listAllPayrollMappings,
   listCoverageCandidates,
   listRecentCalloutEvents,
   listRecentPayrollRuns,
@@ -24,8 +25,11 @@ import {
   listRoutesForDate,
   createPayrollMapping,
   patchPayrollMapping,
+  archivePayrollMapping,
   archivePayrollMappingFieldsExcept,
+  archivePayrollMappingFields,
   insertPayrollMappingFields,
+  countEnabledPayrollMappingFields,
   getWorkTicketForExecution,
   isStaffAssignedToTicket,
   updateWorkTicketExecutionStatus,
@@ -794,6 +798,23 @@ export async function previewPayrollExportRpc(
     return { success: false, error: AUTH_002(apiPath) };
   }
 
+  const fieldCheck = await countEnabledPayrollMappingFields(userDb, payload.mapping_id);
+  if (fieldCheck.error) {
+    return { success: false, error: SYS_002(fieldCheck.error.message, apiPath) };
+  }
+  if (fieldCheck.count === 0) {
+    return {
+      success: false,
+      error: createProblemDetails(
+        'SHIFT_005',
+        'Mapping has no enabled fields',
+        400,
+        'Cannot preview export: the selected mapping has no enabled fields. Add at least one enabled field before previewing.',
+        apiPath,
+      ),
+    };
+  }
+
   const { data, error } = await rpcGeneratePayrollPreview(userDb, payload);
   if (error) {
     return { success: false, error: SYS_002(error.message, apiPath) };
@@ -955,6 +976,7 @@ export async function replacePayrollMappingFieldSet(
     return { success: false, error: AUTH_002(apiPath) };
   }
 
+  const allowedSet = new Set<string>(PAYROLL_SOURCE_FIELDS);
   const normalizedFields = payload.fields
     .map((field) => ({
       output_column_name: field.output_column_name.trim(),
@@ -971,6 +993,30 @@ export async function replacePayrollMappingFieldSet(
     return {
       success: false,
       error: createProblemDetails('VALIDATION_001', 'Validation failed', 400, 'At least one mapped field is required.', apiPath),
+    };
+  }
+
+  const invalidSourceFields = normalizedFields
+    .filter((field) => field.source_field !== null && !allowedSet.has(field.source_field))
+    .map((field) => field.source_field);
+  if (invalidSourceFields.length > 0) {
+    return {
+      success: false,
+      error: createProblemDetails(
+        'VALIDATION_001',
+        'Validation failed',
+        400,
+        `Invalid source_field values: ${invalidSourceFields.join(', ')}. Allowed: ${PAYROLL_SOURCE_FIELDS.join(', ')}`,
+        apiPath,
+      ),
+    };
+  }
+
+  const enabledCount = normalizedFields.filter((field) => field.is_enabled).length;
+  if (enabledCount === 0) {
+    return {
+      success: false,
+      error: createProblemDetails('VALIDATION_001', 'Validation failed', 400, 'At least one field must be enabled.', apiPath),
     };
   }
 
@@ -1010,6 +1056,71 @@ export async function replacePayrollMappingFieldSet(
     success: true,
     data: insertedRows.map(toPayrollMappingFieldSummary),
     status: 201,
+  };
+}
+
+export async function archivePayrollMappingTemplate(
+  userDb: SupabaseClient,
+  auth: AuthContext,
+  mappingId: string,
+  apiPath: string,
+): Promise<ServiceResult> {
+  if (!isPayrollEnabled()) {
+    return { success: false, error: featureDisabled(apiPath, 'Shifts & Time payroll export is not enabled.') };
+  }
+  if (!canManageShiftsTimePayroll(auth.roles)) {
+    return { success: false, error: AUTH_002(apiPath) };
+  }
+
+  // Two-step archive: parent first, then children. A transactional RPC would be
+  // ideal but is blocked by the backend-lock rule (Supabase is read-only contract).
+  // Parent-first ordering is safe: an archived mapping won't appear in active
+  // queries, so orphaned active fields cause no behavioral issues.
+  const { data, error } = await archivePayrollMapping(userDb, mappingId, auth.userId, 'Archived via payroll mapping editor');
+  if (error) {
+    return { success: false, error: SYS_002(error.message, apiPath) };
+  }
+  if (!data) {
+    return {
+      success: false,
+      error: createProblemDetails('SHIFT_004', 'Payroll mapping not found', 404, 'Mapping not found or already archived.', apiPath),
+    };
+  }
+
+  // Archive child fields after parent succeeds
+  const archiveFieldsResult = await archivePayrollMappingFields(
+    userDb,
+    mappingId,
+    auth.userId,
+    'Parent mapping archived',
+  );
+  if (archiveFieldsResult.error) {
+    return { success: false, error: SYS_002(archiveFieldsResult.error.message, apiPath) };
+  }
+
+  return { success: true, data: { id: data.id, template_name: data.template_name, archived: true } };
+}
+
+export async function getAllPayrollMappings(
+  userDb: SupabaseClient,
+  auth: AuthContext,
+  apiPath: string,
+): Promise<ServiceResult> {
+  if (!isPayrollEnabled()) {
+    return { success: false, error: featureDisabled(apiPath, 'Shifts & Time payroll export is not enabled.') };
+  }
+  if (!canManageShiftsTimePayroll(auth.roles)) {
+    return { success: false, error: AUTH_002(apiPath) };
+  }
+
+  const { data, error } = await listAllPayrollMappings(userDb, 100);
+  if (error) {
+    return { success: false, error: SYS_002(error.message, apiPath) };
+  }
+
+  return {
+    success: true,
+    data: ((data ?? []) as ShiftsTimePayrollMappingRow[]).map(toPayrollMappingSummary),
   };
 }
 

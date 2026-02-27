@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { extractAuth, isAuthError } from '@/lib/api/auth-guard';
 import { getUserClient } from '@/lib/api/user-client';
 import { validateBody } from '@/lib/api/validate-request';
-import { canManageShiftsTimePayroll, createPayrollMappingTemplate, getTonightBoard } from '@/modules/shifts-time';
+import { canManageShiftsTimePayroll, createPayrollMappingTemplate, getAllPayrollMappings, getTonightBoard } from '@/modules/shifts-time';
 
 const API_PATH = '/api/operations/shifts-time/payroll/mappings';
 const CONTENT_TYPE_PROBLEM = 'application/problem+json';
@@ -35,6 +35,19 @@ export async function GET(request: NextRequest) {
       },
       { status: 403, headers: { 'Content-Type': CONTENT_TYPE_PROBLEM } },
     );
+  }
+
+  const includeInactive = request.nextUrl.searchParams.get('include_inactive') === 'true';
+
+  if (includeInactive) {
+    const result = await getAllPayrollMappings(getUserClient(request), auth, API_PATH);
+    if (!result.success) {
+      return NextResponse.json(result.error, {
+        status: result.error.status,
+        headers: { 'Content-Type': CONTENT_TYPE_PROBLEM },
+      });
+    }
+    return NextResponse.json({ success: true, data: { mappings: result.data } });
   }
 
   const result = await getTonightBoard(getUserClient(request), auth, API_PATH);

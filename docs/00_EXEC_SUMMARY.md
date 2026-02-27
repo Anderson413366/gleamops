@@ -29,11 +29,13 @@ Last updated: 2026-02-26
   - `00107_shifts_time_functions.sql`
   - `00108_shifts_time_rpc_compat.sql`
   - `00109_shifts_time_payroll_export_grants.sql`
+  - `00110_sites_access_windows.sql`
+  - `00111_fix_sites_access_window_constraint.sql`
 
 ## Deployment status
 
 - Web production is live on `https://gleamops.vercel.app`.
-- Linked Supabase project is in migration parity through `00109`.
+- Linked Supabase project is in migration parity through `00111`.
 - Expo/EAS setup is complete for `@anderson860/gleamops-mobile`.
 - Android production build requested: `6e45a8e0-4161-4304-a4a3-a136f22837eb`.
 - iOS production build + App Store submission remain pending Apple Developer account completion.
@@ -46,6 +48,9 @@ Last updated: 2026-02-26
   - `pnpm build`
 - Production smoke suite passed for core public + API routes (0 failures / 0 5xx in latest run).
 - Public customer portal middleware access path was fixed and revalidated in production.
+- Monday cutover bootstrap executed for tenant `TNT-0001`:
+  - weekday route template skeleton inserted (MON-SAT),
+  - cutover workbook package generated under `reports/cutover/`.
 
 ## Ready-for-next-phase assessment
 

@@ -44,7 +44,7 @@ For each phase below:
 
 ### Existing Migration Count
 Plan baseline: 88 migration files (`00001` through `00088`), with this implementation plan starting at `00089`.
-Current repository state: 109 migration files (`00001` through `00109`), including Monday replacement migrations (`00089`-`00099`) plus shifts/time migrations (`00100`-`00109`).
+Current repository state: 111 migration files (`00001` through `00111`), including Monday replacement migrations (`00089`-`00099`), shifts/time migrations (`00100`-`00109`), and site access window migrations (`00110`-`00111`).
 
 ### Project Root
 ```
@@ -57,11 +57,11 @@ Current repository state: 109 migration files (`00001` through `00109`), includi
 
 - Phases 1 through 8 in this plan are implemented.
 - PT-BR i18n backfill is complete (EN/ES/PT-BR parity in `packages/shared/src/i18n.ts`).
-- Migration train for this plan is complete through `00099` (overall linked project parity currently through `00109`).
+- Migration train for this plan is complete through `00099` (overall linked project parity currently through `00111`).
 - Web deployment is live on `https://gleamops.vercel.app`.
 - Mobile deployment status:
   - Android production build requested (`6e45a8e0-4161-4304-a4a3-a136f22837eb`).
-  - iOS release is pending Apple Developer account setup.
+  - App store releases (Android/iOS) are intentionally deferred until post-stabilization stage.
 
 ### Execution Ledger (Completed)
 
@@ -75,14 +75,15 @@ Current repository state: 109 migration files (`00001` through `00109`), includi
 - Phase 8 complete: owner dashboard APIs/views, supply cost tracking tables/flows, microfiber enrollment/export APIs.
 - PT-BR backfill complete: EN/ES/PT-BR key parity in `packages/shared/src/i18n.ts`.
 - Migration sequencing fixed: duplicate migration versions removed by resequencing shifts/time series to `00100`-`00109`.
-- Supabase linked deployment complete through `00109` (local/remote parity confirmed).
+- Supabase linked deployment complete through `00111` (local/remote parity confirmed).
+- Operational cutover bootstrap executed for `TNT-0001`:
+  - route template skeleton rows created (MON-SAT),
+  - cutover CSV workbook set generated in `reports/cutover/`.
 - Release quality gates passed on current tree: `pnpm lint`, `pnpm typecheck`, `pnpm build`.
 
 ### Remaining Work (Code/Release/Ops)
 
-- Apple Developer enrollment/account acceptance must be completed.
-- iOS EAS production build + App Store submission must be executed after Apple account readiness.
-- Android EAS build status should be finalized and Play Console release flow completed (internal/prod rollout decision).
+- App store release work (Play Console + App Store) is intentionally deferred to later program stage.
 - Manual migration/cutover data entry from Monday.com is still required (see `Migration Data Strategy` section):
   - site verification + procedures/access windows,
   - route template population by weekday,

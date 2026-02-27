@@ -45,11 +45,15 @@ Branch: main
 
 ## Mobile deployment follow-up
 - [x] Android production EAS build requested (`6e45a8e0-4161-4304-a4a3-a136f22837eb`).
-- [ ] iOS production build + App Store submission pending Apple Developer account setup/acceptance.
+- [ ] iOS production build + App Store submission (explicitly deferred until broader app stabilization and post-UAT hardening).
 
 ## Remaining cutover tasks (non-code)
-- [ ] Complete Apple Developer enrollment/account acceptance.
-- [ ] Run iOS EAS production build and submit to App Store.
-- [ ] Confirm Android release completion path in Play Console (internal vs production rollout).
+- [ ] Mobile store releases (Play Console + App Store) are intentionally deferred for later program stage.
 - [ ] Execute Monday.com manual migration/cutover data entry (sites, route templates, periodic tasks, supply assignments, microfiber enrollments).
 - [ ] Run UAT sign-off with operations stakeholders (owner, managers, supervisors, floaters, specialists).
+
+## Cutover package generated
+- [x] `scripts/cutover/execute-monday-cutover.ts` created to generate cutover sheets from live Supabase data.
+- [x] UAT sign-off template added at `docs/execution/monday-cutover-uat-signoff.md`.
+- [x] Cutover workbook generated for tenant `TNT-0001` at `reports/cutover/TNT-0001-2026-02-27T01-18-31.550Z`.
+- [x] Weekday route template skeleton (MON-SAT) auto-created for `TNT-0001`.

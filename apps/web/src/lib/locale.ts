@@ -3,17 +3,13 @@ import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type Locale } from '@gleamops/shared
 const BASE_LANGUAGE_MAP: Record<string, Locale> = {
   en: 'en',
   es: 'es',
-  fr: 'fr',
   pt: 'pt-BR',
-  ro: 'ro',
 };
 
 const INTL_LOCALE_MAP: Record<Locale, string> = {
   en: 'en-US',
   es: 'es-ES',
-  fr: 'fr-FR',
   'pt-BR': 'pt-BR',
-  ro: 'ro-RO',
 };
 
 export function toSupportedLocale(candidate: string | null | undefined): Locale | null {

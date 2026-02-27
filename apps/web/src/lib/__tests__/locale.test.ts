@@ -5,9 +5,7 @@ import { getIntlLocale, resolvePreferredLocale, toSupportedLocale } from '@/lib/
 test('toSupportedLocale resolves direct locale values and base fallbacks', () => {
   assert.equal(toSupportedLocale('en'), 'en');
   assert.equal(toSupportedLocale('ES'), 'es');
-  assert.equal(toSupportedLocale('fr-CA'), 'fr');
   assert.equal(toSupportedLocale('pt-PT'), 'pt-BR');
-  assert.equal(toSupportedLocale('ro-RO'), 'ro');
 });
 
 test('resolvePreferredLocale picks the first supported browser locale', () => {
@@ -18,5 +16,4 @@ test('resolvePreferredLocale picks the first supported browser locale', () => {
 test('getIntlLocale maps app locales to BCP-47 values', () => {
   assert.equal(getIntlLocale('en'), 'en-US');
   assert.equal(getIntlLocale('pt-BR'), 'pt-BR');
-  assert.equal(getIntlLocale('ro'), 'ro-RO');
 });

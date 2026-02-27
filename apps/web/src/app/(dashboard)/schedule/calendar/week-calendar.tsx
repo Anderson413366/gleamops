@@ -642,6 +642,38 @@ export default function WeekCalendar({ onSelectTicket, onCreatedTicket }: WeekCa
     setDropTarget(null);
   };
 
+  const handleTimelineDrop = async (event: DragEvent) => {
+    event.preventDefault();
+    setDropTarget(null);
+    const ticketId = event.dataTransfer.getData('text/plain') || dragTicketId;
+    if (!ticketId) return;
+
+    const ticket = tickets.find((row) => row.id === ticketId);
+    if (!ticket) return;
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const yOffset = event.clientY - rect.top;
+    const droppedHour = Math.max(TIMELINE_START_HOUR, Math.min(TIMELINE_END_HOUR - 1, Math.floor(yOffset / HOUR_HEIGHT) + TIMELINE_START_HOUR));
+    const newStartTime = `${String(droppedHour).padStart(2, '0')}:00`;
+
+    if (ticket.start_time === newStartTime) return;
+
+    // Preserve shift duration
+    const oldStart = timeToDecimal(ticket.start_time);
+    const oldEnd = ticket.end_time ? timeToDecimal(ticket.end_time) : oldStart + 1;
+    const duration = oldEnd > oldStart ? oldEnd - oldStart : (oldEnd + 24) - oldStart;
+    const newEndDecimal = droppedHour + duration;
+    const endHour = Math.floor(newEndDecimal) % 24;
+    const endMin = Math.round((newEndDecimal - Math.floor(newEndDecimal)) * 60);
+    const newEndTime = `${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}`;
+
+    setTickets((prev) => prev.map((row) => (row.id === ticketId ? { ...row, start_time: newStartTime, end_time: newEndTime } : row)));
+
+    const supabase = getSupabaseBrowserClient();
+    await supabase.from('work_tickets').update({ start_time: newStartTime, end_time: newEndTime }).eq('id', ticketId);
+    setDragTicketId(null);
+  };
+
   const sourceCounts = useMemo(() => ({
     recurring: tickets.filter((ticket) => ticket.source === 'recurring').length,
     'work-orders': tickets.filter((ticket) => ticket.source === 'work-orders').length,
@@ -866,7 +898,10 @@ export default function WeekCalendar({ onSelectTicket, onCreatedTicket }: WeekCa
 
         return (
           <div
-            className="rounded-xl border border-border overflow-hidden"
+            className={cn(
+              'rounded-xl border border-border overflow-hidden',
+              dropTarget === `time:${dateStr}` && 'border-brand-500 border-dashed border-2',
+            )}
             onClick={(event) => {
               const target = event.target as HTMLElement;
               if (target.closest('[data-ticket-card="true"]')) return;
@@ -876,6 +911,9 @@ export default function WeekCalendar({ onSelectTicket, onCreatedTicket }: WeekCa
               const startHour = String(Math.min(clickedHour, 23)).padStart(2, '0');
               openCreateTicket({ date: dateStr, startTime: `${startHour}:00`, endTime: null });
             }}
+            onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; setDropTarget(`time:${dateStr}`); }}
+            onDragLeave={handleDragLeave}
+            onDrop={handleTimelineDrop}
           >
             <div className="relative" style={{ height: `${totalHeight}px` }}>
               {hours.map((hour) => (
@@ -973,27 +1011,35 @@ export default function WeekCalendar({ onSelectTicket, onCreatedTicket }: WeekCa
                     ) : null}
                   </div>
                   <div className="space-y-0.5">
-                    {dayTickets.slice(0, 5).map((ticket) => (
-                      <div
-                        key={ticket.id}
-                        data-ticket-card="true"
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, ticket.id)}
-                        onDragEnd={handleDragEnd}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onSelectTicket?.(ticket);
-                        }}
-                        className={cn(
-                          'h-1 rounded-full cursor-pointer transition-all hover:h-1.5',
-                          getPositionBarColor(ticket.position_code),
-                          dragTicketId === ticket.id && 'opacity-40',
-                        )}
-                        title={`${ticket.site?.name ?? ticket.ticket_code} · ${formatTime(ticket.start_time)}${ticket.end_time ? `-${formatTime(ticket.end_time)}` : ''}`}
-                      />
-                    ))}
-                    {dayTickets.length > 5 ? (
-                      <p className="text-[10px] text-muted-foreground text-center">+{dayTickets.length - 5}</p>
+                    {dayTickets.slice(0, 4).map((ticket) => {
+                      const barColor = getPositionBarColor(ticket.position_code);
+                      const siteName = ticket.site?.name ?? ticket.ticket_code;
+                      const timeLabel = `${formatTime(ticket.start_time)}${ticket.end_time ? `-${formatTime(ticket.end_time)}` : ''}`;
+                      return (
+                        <div
+                          key={ticket.id}
+                          data-ticket-card="true"
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, ticket.id)}
+                          onDragEnd={handleDragEnd}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelectTicket?.(ticket);
+                          }}
+                          className={cn(
+                            'h-5 rounded px-1 cursor-pointer transition-all flex items-center gap-1 text-white text-[10px] leading-tight font-medium overflow-hidden',
+                            barColor,
+                            dragTicketId === ticket.id && 'opacity-40',
+                          )}
+                          title={`${siteName} · ${timeLabel}`}
+                        >
+                          <span className="truncate">{siteName}</span>
+                          <span className="shrink-0 opacity-75 hidden sm:inline">{formatTime(ticket.start_time)}</span>
+                        </div>
+                      );
+                    })}
+                    {dayTickets.length > 4 ? (
+                      <p className="text-[10px] text-muted-foreground text-center">+{dayTickets.length - 4} more</p>
                     ) : null}
                   </div>
                 </div>

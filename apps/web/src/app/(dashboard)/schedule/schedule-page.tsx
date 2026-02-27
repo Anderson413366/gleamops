@@ -337,7 +337,7 @@ export default function SchedulePageClient() {
 
       const { data: prevTickets } = await supabase
         .from('work_tickets')
-        .select('job_id, site_id, position_code, start_time, end_time, scheduled_date')
+        .select('id, job_id, site_id, position_code, start_time, end_time, scheduled_date')
         .gte('scheduled_date', toDateKey(prevStart))
         .lte('scheduled_date', toDateKey(prevEnd))
         .is('archived_at', null);
@@ -348,12 +348,29 @@ export default function SchedulePageClient() {
         return;
       }
 
+      // Fetch assignments for the previous week's tickets so we can duplicate them
+      const prevTicketIds = prevTickets.map((t) => t.id);
+      const { data: prevAssignments } = await supabase
+        .from('ticket_assignments')
+        .select('ticket_id, staff_id, role')
+        .in('ticket_id', prevTicketIds);
+
+      const assignmentsByTicket = new Map<string, Array<{ staff_id: string; role: string }>>();
+      if (prevAssignments) {
+        for (const a of prevAssignments) {
+          const list = assignmentsByTicket.get(a.ticket_id) ?? [];
+          list.push({ staff_id: a.staff_id, role: a.role });
+          assignmentsByTicket.set(a.ticket_id, list);
+        }
+      }
+
       const { data: auth } = await supabase.auth.getUser();
       const tenantId = auth.user?.app_metadata?.tenant_id ?? null;
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData.session?.access_token;
 
       const inserts = [];
+      const oldIdToIndex = new Map<string, number>();
       for (const ticket of prevTickets) {
         let ticketCode = `TKT-COPY-${Date.now()}`;
         if (accessToken) {
@@ -373,6 +390,7 @@ export default function SchedulePageClient() {
         const oldDate = new Date(`${ticket.scheduled_date}T12:00:00`);
         const newDate = shiftDate(oldDate, 7);
 
+        oldIdToIndex.set(ticket.id, inserts.length);
         inserts.push({
           tenant_id: tenantId,
           ticket_code: ticketCode,
@@ -387,7 +405,28 @@ export default function SchedulePageClient() {
       }
 
       if (inserts.length > 0) {
-        await supabase.from('work_tickets').insert(inserts);
+        const { data: newTickets } = await supabase.from('work_tickets').insert(inserts).select('id');
+
+        // Duplicate assignments for the newly created tickets
+        if (newTickets && newTickets.length === inserts.length) {
+          const assignmentInserts: Array<{ tenant_id: string | null; ticket_id: string; staff_id: string; role: string }> = [];
+          for (const [oldId, idx] of oldIdToIndex) {
+            const assignments = assignmentsByTicket.get(oldId);
+            if (assignments && newTickets[idx]) {
+              for (const a of assignments) {
+                assignmentInserts.push({
+                  tenant_id: tenantId,
+                  ticket_id: newTickets[idx].id,
+                  staff_id: a.staff_id,
+                  role: a.role,
+                });
+              }
+            }
+          }
+          if (assignmentInserts.length > 0) {
+            await supabase.from('ticket_assignments').insert(assignmentInserts);
+          }
+        }
       }
 
       setRefreshKey((k) => k + 1);

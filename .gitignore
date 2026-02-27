@@ -68,3 +68,4 @@ blob-report/
 # OpenClaw local runtime/watch artifacts
 .openclaw/
 .openclaw-watch/
+.aider*

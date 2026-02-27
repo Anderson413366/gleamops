@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { UserCircle2, MapPin, Clock4, AlertTriangle } from 'lucide-react';
 import { Badge, cn } from '@gleamops/ui';
 
@@ -55,7 +56,7 @@ interface PositionBlockProps {
   className?: string;
 }
 
-export function PositionBlock({
+export const PositionBlock = memo(function PositionBlock({
   positionType,
   siteName,
   startTime,
@@ -103,6 +104,6 @@ export function PositionBlock({
       </div>
     </article>
   );
-}
+});
 
 export type { PositionBlockProps };

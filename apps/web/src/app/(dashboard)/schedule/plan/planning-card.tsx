@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { ClipboardList, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Badge, cn } from '@gleamops/ui';
 import type { PlanningStatus } from '@gleamops/shared';
+import { formatScheduleTime } from './format-schedule-time';
 
 const POSITION_BADGE_COLOR: Record<string, 'green' | 'red' | 'blue' | 'yellow' | 'gray'> = {
   FLOOR_SPECIALIST: 'green',
@@ -65,17 +66,7 @@ interface PlanningCardProps {
   onDragStart?: (e: React.DragEvent, ticketId: string) => void;
 }
 
-function formatTime(value: string | null): string {
-  if (!value) return '';
-  const [hourRaw, minuteRaw] = value.split(':');
-  const hour = Number(hourRaw);
-  const minute = minuteRaw ?? '00';
-  const suffix = hour >= 12 ? 'PM' : 'AM';
-  const hour12 = hour % 12 || 12;
-  return `${hour12}:${minute} ${suffix}`;
-}
-
-export function PlanningCard({
+export const PlanningCard = memo(function PlanningCard({
   ticket,
   onMarkReady,
   onAssign,
@@ -91,7 +82,7 @@ export function PlanningCard({
   const hasGap = assigned < required;
   const isReady = ticket.planning_status === 'READY';
 
-  const timeWindow = [formatTime(ticket.start_time), formatTime(ticket.end_time)]
+  const timeWindow = [formatScheduleTime(ticket.start_time), formatScheduleTime(ticket.end_time)]
     .filter(Boolean)
     .join(' – ');
   const duration = computeDuration(ticket.start_time, ticket.end_time);
@@ -218,4 +209,4 @@ export function PlanningCard({
       </div>
     </div>
   );
-}
+});

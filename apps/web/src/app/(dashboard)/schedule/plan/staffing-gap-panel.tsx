@@ -1,8 +1,10 @@
 'use client';
 
+import { useMemo } from 'react';
 import { AlertCircle, UserPlus } from 'lucide-react';
 import { CollapsibleCard, Button } from '@gleamops/ui';
 import type { PlanningTicket } from './planning-card';
+import { formatScheduleTime } from './format-schedule-time';
 
 interface StaffOption {
   id: string;
@@ -17,40 +19,30 @@ interface StaffingGapPanelProps {
   busy?: boolean;
 }
 
-function formatTime(value: string | null): string {
-  if (!value) return '';
-  const [hourRaw, minuteRaw] = value.split(':');
-  const hour = Number(hourRaw);
-  const minute = minuteRaw ?? '00';
-  const suffix = hour >= 12 ? 'PM' : 'AM';
-  const hour12 = hour % 12 || 12;
-  return `${hour12}:${minute} ${suffix}`;
-}
-
 export function StaffingGapPanel({
   tickets,
   availableStaff,
   onQuickAssign,
   busy = false,
 }: StaffingGapPanelProps) {
-  const gapTickets = tickets.filter((t) => {
+  const gapTickets = useMemo(() => tickets.filter((t) => {
     const active = (t.assignments ?? []).filter(
       (a) => !a.assignment_status || a.assignment_status === 'ASSIGNED'
     );
     return active.length < (t.required_staff_count ?? 1);
-  });
-
-  if (gapTickets.length === 0) return null;
+  }), [tickets]);
 
   // Collect staff IDs already assigned across all tickets for this date
-  const assignedStaffIds = new Set(
+  const assignedStaffIds = useMemo(() => new Set(
     tickets.flatMap((t) =>
       (t.assignments ?? [])
         .filter((a) => !a.assignment_status || a.assignment_status === 'ASSIGNED')
         .map((a) => a.staff_id)
         .filter(Boolean)
     )
-  );
+  ), [tickets]);
+
+  if (gapTickets.length === 0) return null;
 
   return (
     <CollapsibleCard
@@ -69,7 +61,7 @@ export function StaffingGapPanel({
             (a) => !a.assignment_status || a.assignment_status === 'ASSIGNED'
           );
           const needed = (ticket.required_staff_count ?? 1) - active.length;
-          const timeWindow = [formatTime(ticket.start_time), formatTime(ticket.end_time)]
+          const timeWindow = [formatScheduleTime(ticket.start_time), formatScheduleTime(ticket.end_time)]
             .filter(Boolean)
             .join(' – ');
 

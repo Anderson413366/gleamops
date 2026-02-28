@@ -2,13 +2,13 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { KeyRound, Plus } from 'lucide-react';
+import { KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
   EmptyState, Badge, Pagination, TableSkeleton,
-  ExportButton, StatusDot, statusRowAccentClass, cn, Button,
+  ExportButton, StatusDot, statusRowAccentClass, cn,
 } from '@gleamops/ui';
 import type { KeyInventory } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
@@ -121,10 +121,7 @@ export default function KeysTable({ search, formOpen, onFormClose, onRefresh }: 
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <Button size="sm" onClick={() => setCreateOpen(true)}>
-          <Plus className="h-4 w-4" /> New Key
-        </Button>
+      <div className="mb-4 flex items-center justify-end gap-3">
         <ExportButton
           data={filtered as unknown as Record<string, unknown>[]}
           filename="keys"

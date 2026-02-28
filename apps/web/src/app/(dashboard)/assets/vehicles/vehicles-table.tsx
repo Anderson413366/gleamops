@@ -2,13 +2,13 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Truck, Plus } from 'lucide-react';
+import { Truck } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
   EmptyState, Pagination, TableSkeleton,
-  ExportButton, ViewToggle, StatusDot, statusRowAccentClass, cn, Button,
+  ExportButton, ViewToggle, StatusDot, statusRowAccentClass, cn,
 } from '@gleamops/ui';
 import type { Vehicle } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
@@ -125,10 +125,7 @@ export default function VehiclesTable({ search, formOpen, onFormClose, onRefresh
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <Button size="sm" onClick={() => setCreateOpen(true)}>
-          <Plus className="h-4 w-4" /> New Vehicle
-        </Button>
+      <div className="mb-4 flex items-center justify-end gap-3">
         <div className="flex items-center gap-3">
           <ViewToggle view={view} onChange={setView} />
           <ExportButton

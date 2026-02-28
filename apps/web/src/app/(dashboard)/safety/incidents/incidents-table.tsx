@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Siren, PlusCircle } from 'lucide-react';
-import { Badge, Button, Card, CardContent, CardHeader } from '@gleamops/ui';
+import { Badge, Button, Card, CardContent, CardHeader, CollapsibleCard } from '@gleamops/ui';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
@@ -43,7 +43,21 @@ const ISSUE_TYPES = [
   'OTHER',
 ] as const;
 
+const ISSUE_TYPE_LABELS: Record<string, string> = {
+  SAFETY_ISSUE: 'Safety Issue',
+  MAINTENANCE_REPAIR: 'Maintenance / Repair',
+  ACCESS_PROBLEM: 'Access Problem',
+  OTHER: 'Other',
+};
+
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] as const;
+
+const PRIORITY_LABELS: Record<string, string> = {
+  LOW: 'Low',
+  MEDIUM: 'Medium',
+  HIGH: 'High',
+  CRITICAL: 'Critical',
+};
 
 function colorForPriority(priority: string): 'gray' | 'blue' | 'yellow' | 'orange' | 'red' {
   switch (priority) {
@@ -90,7 +104,7 @@ export default function IncidentsTable({ search }: Props) {
   const [description, setDescription] = useState('');
   const [siteId, setSiteId] = useState('');
   const [issueType, setIssueType] = useState<(typeof ISSUE_TYPES)[number]>('SAFETY_ISSUE');
-  const [priority, setPriority] = useState<(typeof PRIORITIES)[number]>('HIGH');
+  const [priority, setPriority] = useState<(typeof PRIORITIES)[number]>('MEDIUM');
   const [dueDate, setDueDate] = useState('');
 
   const load = useCallback(async () => {
@@ -197,71 +211,6 @@ export default function IncidentsTable({ search }: Props) {
 
   return (
     <div className="space-y-4">
-      <Card className="border-red-200 bg-red-50/40 dark:border-red-900/40 dark:bg-red-950/20">
-        <CardHeader className="pb-2">
-          <div className="flex items-center gap-2">
-            <Siren className="h-4 w-4 text-red-600" />
-            <h3 className="text-sm font-semibold text-foreground">Report Safety Incident</h3>
-          </div>
-          <p className="text-xs text-muted-foreground">Capture near-miss, hazard, and safety defects with immediate traceability.</p>
-        </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-2">
-          <select
-            value={siteId}
-            onChange={(e) => setSiteId(e.target.value)}
-            className="w-full rounded-md border border-border bg-background px-2 py-2 text-sm"
-          >
-            <option value="">Select site...</option>
-            {sites.map((site) => (
-              <option key={site.id} value={site.id}>{site.name} ({site.site_code})</option>
-            ))}
-          </select>
-          <select
-            value={issueType}
-            onChange={(e) => setIssueType(e.target.value as (typeof ISSUE_TYPES)[number])}
-            className="w-full rounded-md border border-border bg-background px-2 py-2 text-sm"
-          >
-            {ISSUE_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
-          </select>
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Incident title"
-            className="w-full rounded-md border border-border bg-background px-2 py-2 text-sm md:col-span-2"
-          />
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Describe what happened, immediate risk, and containment action"
-            rows={3}
-            className="w-full rounded-md border border-border bg-background px-2 py-2 text-sm md:col-span-2"
-          />
-          <select
-            value={priority}
-            onChange={(e) => setPriority(e.target.value as (typeof PRIORITIES)[number])}
-            className="w-full rounded-md border border-border bg-background px-2 py-2 text-sm"
-          >
-            {PRIORITIES.map((level) => <option key={level} value={level}>{level}</option>)}
-          </select>
-          <input
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            className="w-full rounded-md border border-border bg-background px-2 py-2 text-sm"
-          />
-          <div className="md:col-span-2">
-            <Button
-              onClick={createIncident}
-              disabled={saving}
-              className="w-full bg-red-600 hover:bg-red-700"
-            >
-              <PlusCircle className="h-4 w-4" />
-              {saving ? 'Submitting...' : 'Report Incident'}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
       <Card>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between gap-2">
@@ -289,7 +238,7 @@ export default function IncidentsTable({ search }: Props) {
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {row.issue_type} · {row.site?.name ?? 'Unknown Site'} ({row.site?.site_code ?? '—'})
+                    {ISSUE_TYPE_LABELS[row.issue_type] ?? row.issue_type} · {row.site?.name ?? 'Unknown Site'} ({row.site?.site_code ?? '—'})
                   </p>
                   <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{row.description}</p>
                   <p className="mt-1 text-xs text-muted-foreground">
@@ -302,6 +251,70 @@ export default function IncidentsTable({ search }: Props) {
           )}
         </CardContent>
       </Card>
+
+      <CollapsibleCard
+        id="report-safety-incident"
+        title="Report Safety Incident"
+        description="Capture near-miss, hazard, and safety defects with immediate traceability."
+        icon={<Siren className="h-4 w-4" />}
+        defaultOpen={false}
+      >
+        <div className="grid gap-3 md:grid-cols-2">
+          <select
+            value={siteId}
+            onChange={(e) => setSiteId(e.target.value)}
+            className="w-full rounded-md border border-border bg-background px-2 py-2 text-sm"
+          >
+            <option value="">Select site...</option>
+            {sites.map((site) => (
+              <option key={site.id} value={site.id}>{site.name} ({site.site_code})</option>
+            ))}
+          </select>
+          <select
+            value={issueType}
+            onChange={(e) => setIssueType(e.target.value as (typeof ISSUE_TYPES)[number])}
+            className="w-full rounded-md border border-border bg-background px-2 py-2 text-sm"
+          >
+            {ISSUE_TYPES.map((type) => <option key={type} value={type}>{ISSUE_TYPE_LABELS[type] ?? type}</option>)}
+          </select>
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Incident title"
+            className="w-full rounded-md border border-border bg-background px-2 py-2 text-sm md:col-span-2"
+          />
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Describe what happened, immediate risk, and containment action"
+            rows={3}
+            className="w-full rounded-md border border-border bg-background px-2 py-2 text-sm md:col-span-2"
+          />
+          <select
+            value={priority}
+            onChange={(e) => setPriority(e.target.value as (typeof PRIORITIES)[number])}
+            className="w-full rounded-md border border-border bg-background px-2 py-2 text-sm"
+          >
+            {PRIORITIES.map((level) => <option key={level} value={level}>{PRIORITY_LABELS[level] ?? level}</option>)}
+          </select>
+          <input
+            type="date"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+            className="w-full rounded-md border border-border bg-background px-2 py-2 text-sm"
+          />
+          <div className="md:col-span-2">
+            <Button
+              onClick={createIncident}
+              disabled={saving}
+              className="w-full"
+            >
+              <PlusCircle className="h-4 w-4" />
+              {saving ? 'Submitting...' : 'Report Incident'}
+            </Button>
+          </div>
+        </div>
+      </CollapsibleCard>
     </div>
   );
 }

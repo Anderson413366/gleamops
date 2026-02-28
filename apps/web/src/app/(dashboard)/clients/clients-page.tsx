@@ -184,7 +184,7 @@ export default function ClientsPageClient() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Clients</h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -192,7 +192,7 @@ export default function ClientsPageClient() {
           </p>
         </div>
         {addLabel && (
-          <Button onClick={handleAdd}>
+          <Button className="w-full sm:w-auto" onClick={handleAdd}>
             <Plus className="h-4 w-4" />
             {addLabel}
           </Button>

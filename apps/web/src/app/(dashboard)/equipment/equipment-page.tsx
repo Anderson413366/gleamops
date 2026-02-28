@@ -21,11 +21,11 @@ const TABS = [
 ];
 
 const ADD_LABELS: Record<string, string> = {
-  equipment: 'Add Equipment',
-  assignments: 'Add Assignment',
-  keys: 'Add Key',
-  vehicles: 'Add Vehicle',
-  maintenance: 'Add Maintenance',
+  equipment: 'New Equipment',
+  assignments: 'New Assignment',
+  keys: 'New Key',
+  vehicles: 'New Vehicle',
+  maintenance: 'New Maintenance',
 };
 
 export default function EquipmentPageClient() {
@@ -84,7 +84,7 @@ export default function EquipmentPageClient() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Equipment</h1>
           <p className="text-sm text-muted-foreground mt-1">

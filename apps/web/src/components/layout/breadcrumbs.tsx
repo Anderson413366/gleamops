@@ -38,6 +38,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   positions: 'Positions',
   safety: 'Safety',
   customers: 'Clients',
+  'shifts-time': 'Shifts & Time',
 };
 
 // Context-aware overrides for segments that differ based on parent path

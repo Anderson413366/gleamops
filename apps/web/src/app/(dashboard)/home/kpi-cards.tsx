@@ -76,7 +76,10 @@ export function KpiCards({ kpis, loading = false }: KpiCardsProps) {
                   <p className="text-xs text-muted-foreground">{item.label}</p>
                   {item.icon}
                 </div>
-                <p className="text-xl font-semibold leading-tight">
+                <p
+                  className="text-xl font-semibold leading-tight"
+                  title={!loading && (value == null || Number.isNaN(value)) ? 'No data available for this period' : undefined}
+                >
                   {loading ? '...' : item.format(value)}
                 </p>
               </CardContent>

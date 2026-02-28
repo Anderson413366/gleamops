@@ -7,7 +7,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { InventoryCount } from '@gleamops/shared';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Pagination, TableSkeleton, Button, cn, StatusDot, statusRowAccentClass, Select,
+  EmptyState, Pagination, TableSkeleton, cn, StatusDot, statusRowAccentClass, Select,
 } from '@gleamops/ui';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
@@ -214,10 +214,7 @@ export default function CountsTable({ search, formOpen, onFormClose, onRefresh }
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <Button size="sm" onClick={() => setCreateOpen(true)}>
-          New Count
-        </Button>
+      <div className="mb-4 flex items-center justify-end gap-3">
         <div className="grid w-full max-w-3xl grid-cols-1 gap-3 sm:grid-cols-3">
           <Select
             label="Site"

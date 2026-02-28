@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Clock3 } from 'lucide-react';
 import { SearchInput } from '@gleamops/ui';
 import { normalizeRoleCode } from '@gleamops/shared';
 import { useRouter } from 'next/navigation';
@@ -54,10 +53,7 @@ export default function ShiftsTimePageClient() {
   return (
     <div className="space-y-6">
       <div>
-        <div className="flex items-center gap-2">
-          <Clock3 className="h-5 w-5 text-module-accent" />
-          <h1 className="text-2xl font-bold text-foreground">{t('shiftsTime.tab')}</h1>
-        </div>
+        <h1 className="text-2xl font-bold text-foreground">{t('shiftsTime.tab')}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{t('shiftsTime.subtitle')}</p>
       </div>
 

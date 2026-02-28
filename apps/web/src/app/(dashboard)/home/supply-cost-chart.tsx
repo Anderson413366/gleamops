@@ -167,7 +167,9 @@ export function SupplyCostChart() {
         ) : error ? (
           <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-center">
             <p className="text-sm font-medium text-destructive">Could not load supply costs</p>
-            <p className="mt-1 text-xs text-muted-foreground">{error}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              There was a problem loading cost data. Please try again or check back later.
+            </p>
             <Button variant="secondary" size="sm" className="mt-3" onClick={() => void loadSummary()}>
               Retry
             </Button>

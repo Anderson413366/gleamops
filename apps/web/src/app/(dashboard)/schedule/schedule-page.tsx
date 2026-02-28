@@ -602,7 +602,7 @@ export default function SchedulePageClient() {
             {canCopyWeek && (
               <Button variant="secondary" onClick={() => setCopyWeekOpen(true)}>
                 <Copy className="h-4 w-4" />
-                Copy Previous Week
+                Copy Week
               </Button>
             )}
             <Button onClick={() => setShiftFormOpen(true)}>

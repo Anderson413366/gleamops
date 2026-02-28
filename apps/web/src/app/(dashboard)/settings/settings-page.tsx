@@ -8,16 +8,11 @@
 import { useState, useCallback, useEffect } from 'react';
 import {
   Settings,
-  ClipboardList,
-  Layers,
-  Link2,
   BookOpen,
   Hash,
   GitBranch,
   Upload,
   Database,
-  FileCog,
-  FileText,
   MapPin,
   Plus,
 } from 'lucide-react';
@@ -33,23 +28,11 @@ import LookupsTable from '../admin/lookups/lookups-table';
 import SequencesTable from '../admin/sequences/sequences-table';
 import StatusRulesTable from '../admin/rules/status-rules-table';
 import ImportPage from '../admin/import/import-page';
-import TasksTable from '../services/tasks/tasks-table';
-import ServiceConfig from '../services/services/service-config';
-import ServiceTaskMapping from '../services/mapping/service-task-mapping';
 import DataHubPanel from '../admin/data-hub/data-hub-panel';
-
-// Absorbed from Operations (Epic 1.6)
-import CustomFormsBuilder from '../operations/custom-forms/custom-forms-builder';
-import TemplatesTable from '../operations/inspections/templates-table';
 import GeofenceTable from '../operations/geofence/geofence-table';
 
 const TABS = [
   { key: 'general', label: 'General', icon: <Settings className="h-4 w-4" /> },
-  { key: 'services', label: 'Services', icon: <Layers className="h-4 w-4" /> },
-  { key: 'tasks', label: 'Tasks', icon: <ClipboardList className="h-4 w-4" /> },
-  { key: 'mapping', label: 'Mapping', icon: <Link2 className="h-4 w-4" /> },
-  { key: 'forms', label: 'Forms', icon: <FileCog className="h-4 w-4" /> },
-  { key: 'templates', label: 'Templates', icon: <FileText className="h-4 w-4" /> },
   { key: 'lookups', label: 'Lookups', icon: <BookOpen className="h-4 w-4" /> },
   { key: 'geofences', label: 'Geofences', icon: <MapPin className="h-4 w-4" /> },
   { key: 'rules', label: 'Rules', icon: <GitBranch className="h-4 w-4" /> },
@@ -64,17 +47,16 @@ export default function SettingsPageClient() {
     defaultTab: 'general',
     aliases: {
       profile: 'general',
-      'task-catalog': 'tasks',
     },
   });
   const [search, setSearch] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
   const [autoCreate, setAutoCreate] = useState(false);
   const [kpis, setKpis] = useState({
-    activeTasks: 0,
-    activeServices: 0,
     lookupRows: 0,
     transitionRules: 0,
+    geofences: 0,
+    sequences: 0,
   });
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
@@ -82,27 +64,23 @@ export default function SettingsPageClient() {
     setAutoCreate(true);
   };
 
-  const addLabel =
-    tab === 'tasks' ? 'New Task'
-    : tab === 'services' ? 'New Service'
-    : tab === 'lookups' ? 'New Lookup'
-    : '';
+  const addLabel = tab === 'lookups' ? 'New Lookup' : '';
 
   useEffect(() => {
     async function fetchKpis() {
       const supabase = getSupabaseBrowserClient();
-      const [tasksRes, servicesRes, lookupsRes, rulesRes] = await Promise.all([
-        supabase.from('tasks').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('is_active', true),
-        supabase.from('services').select('id', { count: 'exact', head: true }).is('archived_at', null),
+      const [lookupsRes, rulesRes, geofencesRes, sequencesRes] = await Promise.all([
         supabase.from('lookups').select('id', { count: 'exact', head: true }).eq('is_active', true),
         supabase.from('status_transitions').select('id', { count: 'exact', head: true }),
+        supabase.from('geofences').select('id', { count: 'exact', head: true }).is('archived_at', null),
+        supabase.from('entity_sequences').select('id', { count: 'exact', head: true }),
       ]);
 
       setKpis({
-        activeTasks: tasksRes.count ?? 0,
-        activeServices: servicesRes.count ?? 0,
         lookupRows: lookupsRes.count ?? 0,
         transitionRules: rulesRes.count ?? 0,
+        geofences: geofencesRes.count ?? 0,
+        sequences: sequencesRes.count ?? 0,
       });
     }
     fetchKpis();
@@ -125,10 +103,10 @@ export default function SettingsPageClient() {
 
       {tab !== 'general' && (
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Tasks</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.activeTasks}</p></CardContent></Card>
-          <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Services</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.activeServices}</p></CardContent></Card>
           <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Lookup Values</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.lookupRows}</p></CardContent></Card>
-          <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Status Transition Rules</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.transitionRules}</p></CardContent></Card>
+          <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Status Rules</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.transitionRules}</p></CardContent></Card>
+          <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Geofences</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.geofences}</p></CardContent></Card>
+          <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Sequences</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.sequences}</p></CardContent></Card>
         </div>
       )}
 
@@ -147,27 +125,6 @@ export default function SettingsPageClient() {
       </div>
 
       {tab === 'general' && <UserPreferencesPanel />}
-      {tab === 'services' && (
-        <ServiceConfig
-          key={`services-${refreshKey}`}
-          search={search}
-          autoCreate={autoCreate}
-          onAutoCreateHandled={() => setAutoCreate(false)}
-          onRefresh={refresh}
-        />
-      )}
-      {tab === 'tasks' && (
-        <TasksTable
-          key={`tasks-${refreshKey}`}
-          search={search}
-          autoCreate={autoCreate}
-          onAutoCreateHandled={() => setAutoCreate(false)}
-          onRefresh={refresh}
-        />
-      )}
-      {tab === 'mapping' && <ServiceTaskMapping key={`mapping-${refreshKey}`} search={search} />}
-      {tab === 'forms' && <CustomFormsBuilder key={`forms-${refreshKey}`} search={search} />}
-      {tab === 'templates' && <TemplatesTable key={`templates-${refreshKey}`} search={search} />}
       {tab === 'lookups' && (
         <LookupsTable
           key={`lookups-${refreshKey}`}

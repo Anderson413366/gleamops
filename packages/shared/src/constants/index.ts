@@ -21,6 +21,103 @@ export const NAV_ITEMS: NavItem[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// Hierarchical navigation tree — v2 sidebar with collapsible children
+// ---------------------------------------------------------------------------
+export const NAV_TREE: NavItem[] = [
+  { id: 'home', label: 'Home', href: '/home', icon: 'Home' },
+  {
+    id: 'schedule', label: 'Schedule', href: '/schedule', icon: 'Calendar',
+    children: [
+      { id: 'schedule', label: 'Recurring', href: '/schedule?tab=recurring', icon: 'RefreshCw' },
+      { id: 'schedule', label: 'Work Orders', href: '/schedule?tab=work-orders', icon: 'FileText' },
+      { id: 'schedule', label: 'Calendar', href: '/schedule?tab=calendar', icon: 'CalendarDays' },
+      { id: 'schedule', label: 'Planning', href: '/schedule?tab=planning', icon: 'LayoutDashboard' },
+      { id: 'schedule', label: 'Boards', href: '/schedule?tab=master', icon: 'Columns3' },
+    ],
+  },
+  {
+    id: 'jobs', label: 'Jobs', href: '/jobs', icon: 'ClipboardCheck',
+    children: [
+      { id: 'jobs', label: 'Service Plans', href: '/jobs?tab=service-plans', icon: 'Briefcase' },
+      { id: 'jobs', label: 'Job Log', href: '/jobs?tab=tickets', icon: 'ClipboardList' },
+      { id: 'jobs', label: 'Inspections', href: '/jobs?tab=inspections', icon: 'ClipboardCheck' },
+      { id: 'jobs', label: 'Time', href: '/jobs?tab=time', icon: 'Clock' },
+      { id: 'jobs', label: 'Routes', href: '/jobs?tab=routes', icon: 'Route' },
+    ],
+  },
+  {
+    id: 'clients', label: 'Clients', href: '/clients', icon: 'Building2',
+    children: [
+      { id: 'clients', label: 'Clients', href: '/clients?tab=clients', icon: 'Building2' },
+      { id: 'clients', label: 'Sites', href: '/clients?tab=sites', icon: 'MapPin' },
+      { id: 'clients', label: 'Contacts', href: '/clients?tab=contacts', icon: 'Contact' },
+      { id: 'clients', label: 'Requests', href: '/clients?tab=requests', icon: 'Inbox' },
+    ],
+  },
+  {
+    id: 'pipeline', label: 'Pipeline', href: '/pipeline', icon: 'TrendingUp',
+    children: [
+      { id: 'pipeline', label: 'Prospects', href: '/pipeline?tab=prospects', icon: 'UserSearch' },
+      { id: 'pipeline', label: 'Opportunities', href: '/pipeline?tab=opportunities', icon: 'Target' },
+      { id: 'pipeline', label: 'Bids', href: '/pipeline?tab=bids', icon: 'FileSpreadsheet' },
+      { id: 'pipeline', label: 'Proposals', href: '/pipeline?tab=proposals', icon: 'FileCheck' },
+    ],
+  },
+  {
+    id: 'catalog', label: 'Catalog', href: '/catalog', icon: 'BookOpen',
+    children: [
+      { id: 'catalog', label: 'Tasks', href: '/catalog?tab=tasks', icon: 'ClipboardList' },
+      { id: 'catalog', label: 'Services', href: '/catalog?tab=services', icon: 'Layers' },
+      { id: 'catalog', label: 'Mapping', href: '/catalog?tab=mapping', icon: 'Link2' },
+      { id: 'catalog', label: 'Scope Library', href: '/catalog?tab=scope-library', icon: 'BookOpen' },
+    ],
+  },
+  {
+    id: 'team', label: 'Team', href: '/team', icon: 'Users',
+    children: [
+      { id: 'team', label: 'Staff', href: '/team?tab=staff', icon: 'Users' },
+      { id: 'team', label: 'Positions', href: '/team?tab=positions', icon: 'BriefcaseBusiness' },
+      { id: 'team', label: 'Attendance', href: '/team?tab=attendance', icon: 'Clock' },
+      { id: 'team', label: 'Timesheets', href: '/team?tab=timesheets', icon: 'FileText' },
+      { id: 'team', label: 'Payroll', href: '/team?tab=payroll', icon: 'DollarSign' },
+      { id: 'team', label: 'HR', href: '/team?tab=hr', icon: 'UserRoundCheck' },
+    ],
+  },
+  {
+    id: 'inventory', label: 'Inventory', href: '/inventory', icon: 'Package',
+    children: [
+      { id: 'inventory', label: 'Supplies', href: '/inventory?tab=supplies', icon: 'Package' },
+      { id: 'inventory', label: 'Kits', href: '/inventory?tab=kits', icon: 'Box' },
+      { id: 'inventory', label: 'Site Assignments', href: '/inventory?tab=site-assignments', icon: 'MapPin' },
+      { id: 'inventory', label: 'Counts', href: '/inventory?tab=counts', icon: 'ClipboardList' },
+      { id: 'inventory', label: 'Orders', href: '/inventory?tab=orders', icon: 'ShoppingCart' },
+      { id: 'inventory', label: 'Vendors', href: '/inventory?tab=vendors', icon: 'Store' },
+    ],
+  },
+  {
+    id: 'equipment', label: 'Equipment', href: '/equipment', icon: 'Wrench',
+    children: [
+      { id: 'equipment', label: 'Equipment', href: '/equipment?tab=equipment', icon: 'Wrench' },
+      { id: 'equipment', label: 'Assignments', href: '/equipment?tab=assignments', icon: 'Link2' },
+      { id: 'equipment', label: 'Keys', href: '/equipment?tab=keys', icon: 'KeyRound' },
+      { id: 'equipment', label: 'Vehicles', href: '/equipment?tab=vehicles', icon: 'Truck' },
+      { id: 'equipment', label: 'Maintenance', href: '/equipment?tab=maintenance', icon: 'Settings' },
+    ],
+  },
+  {
+    id: 'safety', label: 'Safety', href: '/safety', icon: 'ShieldCheck',
+    children: [
+      { id: 'safety', label: 'Certifications', href: '/safety?tab=certifications', icon: 'Award' },
+      { id: 'safety', label: 'Training', href: '/safety?tab=training', icon: 'GraduationCap' },
+      { id: 'safety', label: 'Incidents', href: '/safety?tab=incidents', icon: 'AlertTriangle' },
+      { id: 'safety', label: 'Calendar', href: '/safety?tab=calendar', icon: 'CalendarDays' },
+    ],
+  },
+  { id: 'reports', label: 'Reports', href: '/reports', icon: 'BarChart3' },
+  { id: 'settings', label: 'Settings', href: '/settings', icon: 'Settings' },
+];
+
+// ---------------------------------------------------------------------------
 // Module accent colors (single source of truth for module-level theming)
 // ---------------------------------------------------------------------------
 export const MODULE_ACCENTS: Record<ModuleKey, ModuleAccent> = {
@@ -42,6 +139,7 @@ export const MODULE_ACCENTS: Record<ModuleKey, ModuleAccent> = {
   admin: { name: 'Charcoal', hex: '#334155', hsl: '215 25% 27%' },
   reports: { name: 'Cerulean', hex: '#0284C7', hsl: '199 98% 39%' },
   settings: { name: 'Steel Gray', hex: '#64748B', hsl: '215 16% 47%' },
+  catalog: { name: 'Teal', hex: '#0D9488', hsl: '173 82% 32%' },
 };
 
 export const DEFAULT_MODULE_KEY: ModuleKey = 'home';
@@ -59,13 +157,15 @@ export function getModuleFromPathname(pathname: string): ModuleKey {
   if (pathname.startsWith('/safety')) return 'safety';
   if (pathname.startsWith('/reports')) return 'reports';
   if (pathname.startsWith('/settings')) return 'settings';
+  if (pathname.startsWith('/catalog')) return 'catalog';
   // Legacy routes → map to new module keys
   if (pathname.startsWith('/crm') || pathname.startsWith('/customers')) return 'clients';
   if (pathname.startsWith('/operations')) return 'jobs';
   if (pathname.startsWith('/workforce') || pathname.startsWith('/people')) return 'team';
   if (pathname.startsWith('/assets')) return 'equipment';
   if (pathname.startsWith('/vendors') || pathname.startsWith('/subcontractors')) return 'clients';
-  if (pathname.startsWith('/admin') || pathname.startsWith('/services')) return 'settings';
+  if (pathname.startsWith('/admin')) return 'settings';
+  if (pathname.startsWith('/services')) return 'catalog';
   if (pathname.startsWith('/financial-intelligence')) return 'reports';
   if (pathname.startsWith('/financial')) return 'reports';
   if (pathname.startsWith('/money')) return 'reports';

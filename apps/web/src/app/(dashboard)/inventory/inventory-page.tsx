@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   Package, Box, MapPin, ClipboardList, ShoppingCart, BrainCircuit,
-  Plus, Sparkles,
+  Plus, Sparkles, Store,
 } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -17,6 +17,7 @@ import CountsTable from './counts/counts-table';
 import OrdersTable from './orders/orders-table';
 import ForecastingPanel from './forecasting/forecasting-panel';
 import WarehousePanel from './warehouse/warehouse-panel';
+import VendorsTable from '../vendors/vendor-directory/vendors-table';
 
 const TABS = [
   { key: 'supplies', label: 'Supply Catalog', icon: <Package className="h-4 w-4" /> },
@@ -26,6 +27,7 @@ const TABS = [
   { key: 'orders', label: 'Orders', icon: <ShoppingCart className="h-4 w-4" /> },
   { key: 'forecasting', label: 'Forecasting', icon: <BrainCircuit className="h-4 w-4" /> },
   { key: 'warehouse', label: 'Warehouse', icon: <Box className="h-4 w-4" /> },
+  { key: 'vendors', label: 'Vendors', icon: <Store className="h-4 w-4" /> },
 ];
 
 const ADD_LABELS: Record<string, string> = {
@@ -267,6 +269,12 @@ export default function InventoryPageClient() {
       {tab === 'warehouse' && (
         <WarehousePanel
           key={`warehouse-${refreshKey}`}
+          search={search}
+        />
+      )}
+      {tab === 'vendors' && (
+        <VendorsTable
+          key={`vendors-${refreshKey}`}
           search={search}
         />
       )}

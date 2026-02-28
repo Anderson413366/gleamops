@@ -40,7 +40,8 @@ export type NavSpace =
   | 'safety'
   | 'admin'
   | 'reports'
-  | 'settings';
+  | 'settings'
+  | 'catalog';
 
 export type ModuleKey = NavSpace;
 
@@ -55,6 +56,8 @@ export interface NavItem {
   label: string;
   href: string;
   icon: string; // lucide icon name
+  description?: string;
+  children?: NavItem[];
 }
 
 // Status pill colors

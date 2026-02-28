@@ -11,6 +11,8 @@ import {
   Eye,
   EyeOff,
   Plus,
+  CheckSquare,
+  FileCog,
 } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import type { WorkTicket, Inspection } from '@gleamops/shared';
@@ -25,6 +27,8 @@ import { CreateInspectionForm } from '../operations/inspections/create-inspectio
 import JobsTable from '../operations/jobs/jobs-table';
 import AlertsTable from '../operations/geofence/alerts-table';
 import RoutesFleetPanel from '../operations/routes/routes-fleet-panel';
+import { ChecklistAdmin } from '../schedule/checklist-admin';
+import { FormsHub } from '../schedule/forms/forms-hub';
 
 interface TicketWithRelations extends WorkTicket {
   job?: { job_code: string; billing_amount?: number | null } | null;
@@ -50,6 +54,8 @@ const BASE_TABS = [
   { key: 'inspections', label: 'Inspections', icon: <ClipboardCheck className="h-4 w-4" /> },
   { key: 'time', label: 'Time', icon: <Clock className="h-4 w-4" /> },
   { key: 'routes', label: 'Routes', icon: <Route className="h-4 w-4" /> },
+  { key: 'checklists', label: 'Checklists', icon: <CheckSquare className="h-4 w-4" /> },
+  { key: 'forms', label: 'Forms', icon: <FileCog className="h-4 w-4" /> },
 ] as const;
 
 export default function JobsPageClient() {
@@ -321,6 +327,14 @@ export default function JobsPageClient() {
 
       {tab === 'routes' && (
         <RoutesFleetPanel key={`routes-${refreshKey}`} search={search} />
+      )}
+
+      {tab === 'checklists' && (
+        <ChecklistAdmin key={`checklists-${refreshKey}`} search={search} />
+      )}
+
+      {tab === 'forms' && (
+        <FormsHub key={`forms-${refreshKey}`} search={search} />
       )}
 
       <TicketDetail

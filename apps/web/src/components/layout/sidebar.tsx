@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   Home,
   TrendingUp,
   Building2,
   Calendar,
+  CalendarDays,
   Users,
   BarChart3,
   Package,
@@ -25,10 +26,36 @@ import {
   MapPin,
   Briefcase,
   ClipboardCheck,
+  ClipboardList,
+  Clock,
   Clock3,
   AlertTriangle,
+  ChevronDown,
+  RefreshCw,
+  FileText,
+  LayoutDashboard,
+  Columns3,
+  Route,
+  Contact,
+  Inbox,
+  UserSearch,
+  Target,
+  FileSpreadsheet,
+  FileCheck,
+  BookOpen,
+  Layers,
+  Link2,
+  BriefcaseBusiness,
+  DollarSign,
+  UserRoundCheck,
+  Box,
+  ShoppingCart,
+  Store,
+  KeyRound,
+  Award,
+  GraduationCap,
 } from 'lucide-react';
-import { getModuleFromPathname, NAV_ITEMS, normalizeRoleCode, roleDisplayName, type NavItem } from '@gleamops/shared';
+import { getModuleFromPathname, NAV_TREE, normalizeRoleCode, roleDisplayName, type NavItem } from '@gleamops/shared';
 import { useAuth } from '@/hooks/use-auth';
 import { useFeatureFlag } from '@/hooks/use-feature-flag';
 import { useLocale } from '@/hooks/use-locale';
@@ -40,6 +67,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   TrendingUp,
   Building2,
   Calendar,
+  CalendarDays,
   Users,
   BarChart3,
   Package,
@@ -48,6 +76,34 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Settings,
   ShieldCheck,
   ClipboardCheck,
+  ClipboardList,
+  Clock,
+  Briefcase,
+  Route,
+  Contact,
+  Inbox,
+  UserSearch,
+  Target,
+  FileSpreadsheet,
+  FileCheck,
+  BookOpen,
+  Layers,
+  Link2,
+  BriefcaseBusiness,
+  DollarSign,
+  UserRoundCheck,
+  FileText,
+  Box,
+  MapPin,
+  ShoppingCart,
+  Store,
+  KeyRound,
+  Award,
+  GraduationCap,
+  AlertTriangle,
+  RefreshCw,
+  LayoutDashboard,
+  Columns3,
 };
 
 const QUICK_ACTION_ITEMS = [
@@ -80,6 +136,8 @@ const SHIFTS_TIME_SIDEBAR_ROLES = new Set([
   'INSPECTOR',
 ]);
 
+const EXPANDED_STORAGE_KEY = 'gleamops-nav-expanded';
+
 function getInitials(email: string): string {
   const name = email.split('@')[0];
   if (!name) return '?';
@@ -90,17 +148,32 @@ function getInitials(email: string): string {
   return name.slice(0, 2).toUpperCase();
 }
 
+function loadExpandedState(): Set<string> {
+  try {
+    const stored = localStorage.getItem(EXPANDED_STORAGE_KEY);
+    if (stored) return new Set(JSON.parse(stored));
+  } catch { /* ignore */ }
+  return new Set<string>();
+}
+
+function saveExpandedState(expanded: Set<string>) {
+  try {
+    localStorage.setItem(EXPANDED_STORAGE_KEY, JSON.stringify([...expanded]));
+  } catch { /* ignore */ }
+}
+
 export function Sidebar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const activeModule = getModuleFromPathname(pathname);
   const v2NavigationEnabled = useFeatureFlag('v2_navigation');
   const shiftsTimeV1Enabled = useFeatureFlag('shifts_time_v1');
   const shiftsTimeRouteExecutionEnabled = useFeatureFlag('shifts_time_route_execution');
-  const navItems = v2NavigationEnabled ? NAV_ITEMS : LEGACY_NAV_ITEMS;
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
   const [badgeCounts, setBadgeCounts] = useState<Record<string, number>>({});
+  const [expanded, setExpanded] = useState<Set<string>>(() => loadExpandedState());
   const quickRef = useRef<HTMLDivElement>(null);
   const { user, role, signOut } = useAuth();
   const { t } = useLocale();
@@ -113,6 +186,33 @@ export function Sidebar() {
       || roleCode === 'MANAGER'
     );
   const shiftsTimeActive = pathname.startsWith('/shifts-time');
+
+  // Auto-expand the active module's parent on mount
+  useEffect(() => {
+    if (!v2NavigationEnabled) return;
+    const active = NAV_TREE.find((item) => item.children && item.id === activeModule);
+    if (active) {
+      setExpanded((prev) => {
+        const next = new Set(prev);
+        next.add(active.id);
+        saveExpandedState(next);
+        return next;
+      });
+    }
+  }, [activeModule, v2NavigationEnabled]);
+
+  const toggleExpanded = useCallback((id: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      saveExpandedState(next);
+      return next;
+    });
+  }, []);
 
   // Fetch badge counts
   useEffect(() => {
@@ -158,6 +258,172 @@ export function Sidebar() {
       return () => document.removeEventListener('keydown', handleEscape);
     }
   }, [quickOpen]);
+
+  // Flat nav rendering (legacy + v2 flat fallback)
+  const renderFlatNav = (items: NavItem[]) =>
+    items.map((item) => {
+      const Icon = ICON_MAP[item.icon] ?? Building2;
+      const isJobsNavItem = item.id === 'jobs' || item.href === '/jobs';
+      const suppressJobsActive = showShiftsTimeNav && shiftsTimeActive && isJobsNavItem;
+      const isActive = (activeModule === item.id || pathname.startsWith(item.href)) && !suppressJobsActive;
+      const badgeCount = badgeCounts[item.id] ?? 0;
+
+      return (
+        <Link
+          key={`${item.id}-${item.href}`}
+          href={item.href}
+          data-nav-id={item.id}
+          onClick={() => setMobileOpen(false)}
+          aria-current={isActive ? 'page' : undefined}
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 ease-in-out group ${
+            isActive
+              ? 'border-module-accent/30 bg-module-accent/15 text-module-accent'
+              : 'border-transparent text-sidebar-text hover:bg-sidebar-hover hover:text-white'
+          }`}
+        >
+          <Icon
+            className={`h-[18px] w-[18px] shrink-0 transition-colors duration-200 ${
+              isActive ? 'text-module-accent' : 'text-sidebar-text group-hover:text-white'
+            }`}
+          />
+          {item.label}
+          {isActive && badgeCount === 0 && (
+            <span className="ml-auto h-1.5 w-1.5 rounded-full bg-module-accent" />
+          )}
+          {badgeCount > 0 && (
+            <span className={`ml-auto inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-semibold ${
+              isActive
+                ? 'bg-module-accent/20 text-module-accent'
+                : 'bg-destructive/20 text-destructive'
+            }`}>
+              {badgeCount}
+            </span>
+          )}
+        </Link>
+      );
+    });
+
+  // Hierarchical nav rendering (v2 with accordion)
+  const renderTreeNav = (items: NavItem[]) =>
+    items.map((item) => {
+      const Icon = ICON_MAP[item.icon] ?? Building2;
+      const hasChildren = item.children && item.children.length > 0;
+      const isJobsNavItem = item.id === 'jobs' || item.href === '/jobs';
+      const suppressJobsActive = showShiftsTimeNav && shiftsTimeActive && isJobsNavItem;
+      const isParentActive = (activeModule === item.id || pathname.startsWith(item.href)) && !suppressJobsActive;
+      const isExpanded = expanded.has(item.id);
+      const badgeCount = badgeCounts[item.id] ?? 0;
+
+      if (!hasChildren) {
+        // Leaf node — same rendering as flat nav
+        return (
+          <Link
+            key={`${item.id}-${item.href}`}
+            href={item.href}
+            data-nav-id={item.id}
+            onClick={() => setMobileOpen(false)}
+            aria-current={isParentActive ? 'page' : undefined}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 ease-in-out group ${
+              isParentActive
+                ? 'border-module-accent/30 bg-module-accent/15 text-module-accent'
+                : 'border-transparent text-sidebar-text hover:bg-sidebar-hover hover:text-white'
+            }`}
+          >
+            <Icon
+              className={`h-[18px] w-[18px] shrink-0 transition-colors duration-200 ${
+                isParentActive ? 'text-module-accent' : 'text-sidebar-text group-hover:text-white'
+              }`}
+            />
+            {item.label}
+            {isParentActive && badgeCount === 0 && (
+              <span className="ml-auto h-1.5 w-1.5 rounded-full bg-module-accent" />
+            )}
+            {badgeCount > 0 && (
+              <span className={`ml-auto inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-semibold ${
+                isParentActive
+                  ? 'bg-module-accent/20 text-module-accent'
+                  : 'bg-destructive/20 text-destructive'
+              }`}>
+                {badgeCount}
+              </span>
+            )}
+          </Link>
+        );
+      }
+
+      // Parent with children — accordion
+      return (
+        <div key={`${item.id}-${item.href}`}>
+          <button
+            type="button"
+            data-nav-id={item.id}
+            onClick={() => toggleExpanded(item.id)}
+            className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 ease-in-out group ${
+              isParentActive
+                ? 'border-module-accent/30 bg-module-accent/15 text-module-accent'
+                : 'border-transparent text-sidebar-text hover:bg-sidebar-hover hover:text-white'
+            }`}
+          >
+            <Icon
+              className={`h-[18px] w-[18px] shrink-0 transition-colors duration-200 ${
+                isParentActive ? 'text-module-accent' : 'text-sidebar-text group-hover:text-white'
+              }`}
+            />
+            {item.label}
+            {badgeCount > 0 && (
+              <span className={`ml-auto inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-semibold ${
+                isParentActive
+                  ? 'bg-module-accent/20 text-module-accent'
+                  : 'bg-destructive/20 text-destructive'
+              }`}>
+                {badgeCount}
+              </span>
+            )}
+            <ChevronDown
+              className={`ml-auto h-4 w-4 shrink-0 transition-transform duration-200 ${
+                isExpanded ? 'rotate-180' : ''
+              } ${isParentActive ? 'text-module-accent' : 'text-sidebar-text group-hover:text-white'}`}
+            />
+          </button>
+          {isExpanded && (
+            <div className="ml-4 mt-0.5 space-y-0.5 border-l border-white/5 pl-3">
+              {item.children!.map((child, idx) => {
+                const ChildIcon = ICON_MAP[child.icon] ?? Building2;
+                // Check if the child's tab matches the current URL
+                const childTabParam = new URL(child.href, 'http://localhost').searchParams.get('tab');
+                const currentTab = searchParams.get('tab');
+                const isChildActive = isParentActive && (
+                  childTabParam ? currentTab === childTabParam : !currentTab
+                );
+
+                return (
+                  <Link
+                    key={`${child.id}-child-${idx}`}
+                    href={child.href}
+                    onClick={() => setMobileOpen(false)}
+                    className={`flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] transition-all duration-200 ease-in-out group ${
+                      isChildActive
+                        ? 'text-module-accent font-medium'
+                        : 'text-sidebar-text hover:text-white hover:bg-sidebar-hover'
+                    }`}
+                  >
+                    <ChildIcon
+                      className={`h-3.5 w-3.5 shrink-0 transition-colors duration-200 ${
+                        isChildActive ? 'text-module-accent' : 'text-sidebar-text group-hover:text-white'
+                      }`}
+                    />
+                    {child.label}
+                    {isChildActive && (
+                      <span className="ml-auto h-1 w-1 rounded-full bg-module-accent" />
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      );
+    });
 
   return (
     <>
@@ -224,47 +490,10 @@ export function Sidebar() {
 
         {/* Nav items */}
         <nav className="flex-1 py-3 px-3 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const Icon = ICON_MAP[item.icon] ?? Building2;
-            const isJobsNavItem = item.id === 'jobs' || item.href === '/jobs';
-            const suppressJobsActive = showShiftsTimeNav && shiftsTimeActive && isJobsNavItem;
-            const isActive = (activeModule === item.id || pathname.startsWith(item.href)) && !suppressJobsActive;
-            const badgeCount = badgeCounts[item.id] ?? 0;
-
-            return (
-              <Link
-                key={`${item.id}-${item.href}`}
-                href={item.href}
-                data-nav-id={item.id}
-                onClick={() => setMobileOpen(false)}
-                aria-current={isActive ? 'page' : undefined}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 ease-in-out group ${
-                  isActive
-                    ? 'border-module-accent/30 bg-module-accent/15 text-module-accent'
-                    : 'border-transparent text-sidebar-text hover:bg-sidebar-hover hover:text-white'
-                }`}
-              >
-                <Icon
-                  className={`h-[18px] w-[18px] shrink-0 transition-colors duration-200 ${
-                    isActive ? 'text-module-accent' : 'text-sidebar-text group-hover:text-white'
-                  }`}
-                />
-                {item.label}
-                {isActive && badgeCount === 0 && (
-                  <span className="ml-auto h-1.5 w-1.5 rounded-full bg-module-accent" />
-                )}
-                {badgeCount > 0 && (
-                  <span className={`ml-auto inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-semibold ${
-                    isActive
-                      ? 'bg-module-accent/20 text-module-accent'
-                      : 'bg-destructive/20 text-destructive'
-                  }`}>
-                    {badgeCount}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
+          {v2NavigationEnabled
+            ? renderTreeNav(NAV_TREE)
+            : renderFlatNav(LEGACY_NAV_ITEMS)
+          }
           {showShiftsTimeNav && (
             <Link
               href="/shifts-time"

@@ -6,7 +6,7 @@
  */
 
 import { useState, useMemo, useEffect } from 'react';
-import { Users, FileText, BriefcaseBusiness, DollarSign, Plus, MessageSquare, UserRoundCheck, Clock, Droplets } from 'lucide-react';
+import { Users, FileText, BriefcaseBusiness, DollarSign, Plus, MessageSquare, UserRoundCheck, Clock, Droplets, HardHat } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import { useFeatureFlag } from '@/hooks/use-feature-flag';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -21,6 +21,7 @@ import MessagesTab from '../workforce/messages/messages-tab';
 import HrLitePanel from '../workforce/hr/hr-lite-panel';
 import MicrofiberTable from '../workforce/microfiber/microfiber-table';
 import MicrofiberExport from '../workforce/microfiber/microfiber-export';
+import SubcontractorsTable from '../vendors/subcontractors/subcontractors-table';
 
 const BASE_TABS = [
   { key: 'staff', label: 'Staff', icon: <Users className="h-4 w-4" /> },
@@ -30,6 +31,7 @@ const BASE_TABS = [
   { key: 'payroll', label: 'Payroll', icon: <DollarSign className="h-4 w-4" /> },
   { key: 'hr', label: 'HR', icon: <UserRoundCheck className="h-4 w-4" /> },
   { key: 'microfiber', label: 'Microfiber', icon: <Droplets className="h-4 w-4" /> },
+  { key: 'subcontractors', label: 'Subcontractors', icon: <HardHat className="h-4 w-4" /> },
 ];
 
 export default function TeamPageClient() {
@@ -143,6 +145,7 @@ export default function TeamPageClient() {
         </div>
       )}
       {tab === 'messages' && messagingEnabled && <MessagesTab key={`msg-${refreshKey}`} search={search} />}
+      {tab === 'subcontractors' && <SubcontractorsTable key={`subs-${refreshKey}`} search={search} />}
     </div>
   );
 }

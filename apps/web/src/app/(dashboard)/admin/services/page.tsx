@@ -20,6 +20,9 @@ function toQueryString(searchParams?: SearchParams) {
 export default async function AdminServicesRedirect({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const sp = searchParams ? await searchParams : {};
   const params = new URLSearchParams(toQueryString(sp).replace(/^\?/, ''));
-  params.set('tab', 'services');
-  redirect(`/settings?${params.toString()}`);
+  // Preserve any incoming tab param (e.g., ?tab=tasks); default to services if none
+  if (!params.has('tab')) {
+    params.set('tab', 'services');
+  }
+  redirect(`/catalog?${params.toString()}`);
 }

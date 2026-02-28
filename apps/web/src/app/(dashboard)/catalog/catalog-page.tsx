@@ -26,6 +26,7 @@ export default function CatalogPageClient() {
   const [search, setSearch] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
   const [autoCreate, setAutoCreate] = useState(false);
+  const [kpisLoaded, setKpisLoaded] = useState(false);
   const [kpis, setKpis] = useState({
     activeTasks: 0,
     activeServices: 0,
@@ -68,6 +69,7 @@ export default function CatalogPageClient() {
         mappedTasks: mappingsRes.count ?? 0,
         unmappedActiveTasks: Math.max(activeTaskIds.size - mappedTaskIds.size, 0),
       });
+      setKpisLoaded(true);
     }
     fetchKpis();
   }, [refreshKey]);
@@ -88,10 +90,10 @@ export default function CatalogPageClient() {
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Tasks</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.activeTasks}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Services</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.activeServices}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Task-Service Mappings</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.mappedTasks}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Unmapped Active Tasks</p><p className="text-lg font-semibold sm:text-xl leading-tight text-warning">{kpis.unmappedActiveTasks}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Tasks</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpisLoaded ? kpis.activeTasks : '—'}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Services</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpisLoaded ? kpis.activeServices : '—'}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Task-Service Mappings</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpisLoaded ? kpis.mappedTasks : '—'}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Unmapped Active Tasks</p><p className="text-lg font-semibold sm:text-xl leading-tight text-warning">{kpisLoaded ? kpis.unmappedActiveTasks : '—'}</p></CardContent></Card>
       </div>
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

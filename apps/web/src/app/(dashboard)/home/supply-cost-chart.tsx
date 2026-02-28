@@ -56,6 +56,7 @@ export function SupplyCostChart() {
   const [dateFrom, setDateFrom] = useState(monthStartKey);
   const [dateTo, setDateTo] = useState(todayKey);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<SupplyCostsResponse | null>(null);
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
   const [siteLoading, setSiteLoading] = useState(false);
@@ -63,6 +64,7 @@ export function SupplyCostChart() {
 
   const loadSummary = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const params = new URLSearchParams({
         date_from: dateFrom,
@@ -83,6 +85,8 @@ export function SupplyCostChart() {
       if (selectedSiteId && !nextData.by_site.some((site) => site.site_id === selectedSiteId)) {
         setSelectedSiteId(nextData.by_site[0]?.site_id ?? null);
       }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load supply costs');
     } finally {
       setLoading(false);
     }
@@ -160,6 +164,14 @@ export function SupplyCostChart() {
 
         {loading ? (
           <p className="text-sm text-muted-foreground">Loading supply costs...</p>
+        ) : error ? (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-center">
+            <p className="text-sm font-medium text-destructive">Could not load supply costs</p>
+            <p className="mt-1 text-xs text-muted-foreground">{error}</p>
+            <Button variant="secondary" size="sm" className="mt-3" onClick={() => void loadSummary()}>
+              Retry
+            </Button>
+          </div>
         ) : !data || data.by_site.length === 0 ? (
           <EmptyState
             icon={<TrendingUp className="h-12 w-12" />}

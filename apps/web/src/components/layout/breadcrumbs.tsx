@@ -22,7 +22,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   inventory: 'Inventory',
   supplies: 'Supplies',
   equipment: 'Equipment',
-  assets: 'Assets',
+  assets: 'Equipment',
   reports: 'Reports',
   money: 'Financial',
   financial: 'Financial',
@@ -40,7 +40,16 @@ const SEGMENT_LABELS: Record<string, string> = {
   customers: 'Clients',
 };
 
-function humanize(segment: string): string {
+// Context-aware overrides for segments that differ based on parent path
+const PATH_OVERRIDES: Record<string, Record<string, string>> = {
+  'pipeline/admin': { admin: 'Sales Admin' },
+};
+
+function humanize(segment: string, parentPath?: string): string {
+  if (parentPath) {
+    const override = PATH_OVERRIDES[parentPath]?.[segment];
+    if (override) return override;
+  }
   if (SEGMENT_LABELS[segment]) return SEGMENT_LABELS[segment];
   // If it looks like a code (e.g. CLI-1001, BID-0042), show it uppercase
   if (/^[A-Z]{2,4}-\d+$/i.test(segment)) return segment.toUpperCase();
@@ -62,7 +71,7 @@ export function Breadcrumbs() {
   const rawCrumbs = [
     { label: 'Home', href: '/' },
     ...normalized.map((seg, i) => ({
-      label: humanize(seg),
+      label: humanize(seg, i > 0 ? normalized.slice(0, i).join('/') : undefined),
       href: '/' + normalized.slice(0, i + 1).join('/'),
     })),
   ];

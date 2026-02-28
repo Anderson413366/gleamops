@@ -361,10 +361,10 @@ export default function ClientDetailPage() {
         <AlertTriangle className="h-12 w-12 text-muted-foreground" />
         <p className="text-lg text-muted-foreground">Client not found.</p>
         <Link
-          href="/crm"
+          href="/clients"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
-          <ArrowLeft className="h-4 w-4" /> Back to CRM
+          <ArrowLeft className="h-4 w-4" /> Back to Clients
         </Link>
       </div>
     );
@@ -431,16 +431,16 @@ export default function ClientDetailPage() {
     <div className="space-y-6">
       {/* Back Link */}
       <Link
-        href="/crm"
+        href="/clients"
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to CRM
+        Back to Clients
       </Link>
       <div className="text-xs text-muted-foreground">
         <Link href="/home" className="hover:text-foreground transition-colors">Home</Link>
         <span className="mx-1">›</span>
-        <Link href="/crm" className="hover:text-foreground transition-colors">CRM</Link>
+        <Link href="/clients" className="hover:text-foreground transition-colors">Clients</Link>
         <span className="mx-1">›</span>
         <span>Clients</span>
         <span className="mx-1">›</span>
@@ -836,7 +836,7 @@ export default function ClientDetailPage() {
           <div className="flex items-center gap-3">
             <Badge color="blue">{`${siteCount} site${siteCount === 1 ? '' : 's'}`}</Badge>
             <Link
-              href={`/crm?tab=sites&client=${encodeURIComponent(client.client_code)}`}
+              href={`/clients?tab=sites&client=${encodeURIComponent(client.client_code)}`}
               className="text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
             >
               View All Sites →

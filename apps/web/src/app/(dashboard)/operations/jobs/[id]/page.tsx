@@ -585,7 +585,7 @@ export default function JobDetailPage() {
         <AlertTriangle className="h-12 w-12 text-muted-foreground" />
         <p className="text-lg text-muted-foreground">Service plan not found.</p>
         <Link
-          href="/operations?tab=jobs"
+          href="/jobs"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-4 w-4" /> Back to Service Plans
@@ -647,7 +647,7 @@ export default function JobDetailPage() {
     <div className="space-y-6">
       {/* Back Link */}
       <Link
-        href="/operations?tab=jobs"
+        href="/jobs"
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
@@ -656,7 +656,7 @@ export default function JobDetailPage() {
       <div className="text-xs text-muted-foreground">
         <Link href="/home" className="hover:text-foreground transition-colors">Home</Link>
         <span className="mx-1">›</span>
-        <Link href="/operations?tab=jobs" className="hover:text-foreground transition-colors">Operations</Link>
+        <Link href="/jobs" className="hover:text-foreground transition-colors">Jobs</Link>
         <span className="mx-1">›</span>
         <span>Service Plans</span>
         <span className="mx-1">›</span>

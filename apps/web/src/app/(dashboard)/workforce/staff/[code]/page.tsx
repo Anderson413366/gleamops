@@ -486,11 +486,11 @@ export default function StaffDetailPage() {
         <AlertTriangle className="h-12 w-12 text-muted-foreground" />
         <p className="text-lg text-muted-foreground">Staff member not found.</p>
         <Link
-          href="/workforce"
+          href="/team"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Workforce
+          Back to Team
         </Link>
       </div>
     );
@@ -538,16 +538,16 @@ export default function StaffDetailPage() {
       )}
 
       <Link
-        href="/workforce"
+        href="/team"
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to Workforce
+        Back to Team
       </Link>
       <div className="text-xs text-muted-foreground">
         <Link href="/home" className="hover:text-foreground transition-colors">Home</Link>
         <span className="mx-1">›</span>
-        <Link href="/workforce" className="hover:text-foreground transition-colors">Workforce</Link>
+        <Link href="/team" className="hover:text-foreground transition-colors">Team</Link>
         <span className="mx-1">›</span>
         <span>Staff</span>
         <span className="mx-1">›</span>

@@ -717,10 +717,10 @@ export default function SiteDetailPage() {
         <AlertTriangle className="h-12 w-12 text-muted-foreground" />
         <p className="text-lg text-muted-foreground">Site not found.</p>
         <Link
-          href="/crm"
+          href="/clients"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
-          <ArrowLeft className="h-4 w-4" /> Back to CRM
+          <ArrowLeft className="h-4 w-4" /> Back to Clients
         </Link>
       </div>
     );
@@ -790,16 +790,16 @@ export default function SiteDetailPage() {
     <div className="space-y-6">
       {/* Back Link */}
       <Link
-        href="/crm"
+        href="/clients"
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to CRM
+        Back to Clients
       </Link>
       <div className="text-xs text-muted-foreground">
         <Link href="/home" className="hover:text-foreground transition-colors">Home</Link>
         <span className="mx-1">›</span>
-        <Link href="/crm" className="hover:text-foreground transition-colors">CRM</Link>
+        <Link href="/clients" className="hover:text-foreground transition-colors">Clients</Link>
         <span className="mx-1">›</span>
         <span>Sites</span>
         <span className="mx-1">›</span>

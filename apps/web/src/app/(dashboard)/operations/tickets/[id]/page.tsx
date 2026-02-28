@@ -213,11 +213,11 @@ export default function TicketDetailPage() {
         <AlertTriangle className="h-10 w-10 text-muted-foreground" />
         <p className="text-base text-muted-foreground">Work ticket not found.</p>
         <Link
-          href="/operations?tab=tickets"
+          href="/jobs?tab=tickets"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Operations
+          Back to Tickets
         </Link>
       </div>
     );
@@ -228,11 +228,11 @@ export default function TicketDetailPage() {
   return (
     <div className="space-y-6">
       <Link
-        href="/operations?tab=tickets"
+        href="/jobs?tab=tickets"
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to Operations
+        Back to Tickets
       </Link>
 
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">

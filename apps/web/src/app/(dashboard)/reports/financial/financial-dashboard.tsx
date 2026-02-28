@@ -160,8 +160,8 @@ export default function FinancialDashboard(props: { rangeDays: number; refreshKe
           title="Top Clients by Revenue"
           subtitle="Monthly revenue per client based on active jobs."
           action={
-            <Button size="sm" variant="secondary" onClick={() => router.push('/crm')}>
-              View CRM <ArrowRight className="h-4 w-4" />
+            <Button size="sm" variant="secondary" onClick={() => router.push('/clients')}>
+              View Clients <ArrowRight className="h-4 w-4" />
             </Button>
           }
         >

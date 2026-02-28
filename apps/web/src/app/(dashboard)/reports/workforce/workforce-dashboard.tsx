@@ -228,8 +228,8 @@ export default function WorkforceDashboard(props: { rangeDays: number; refreshKe
           title="Timesheets by Status"
           subtitle={`Status breakdown (last ${props.rangeDays} days)`}
           action={
-            <Button size="sm" variant="secondary" onClick={() => router.push('/workforce')}>
-              View Workforce <ArrowRight className="h-4 w-4" />
+            <Button size="sm" variant="secondary" onClick={() => router.push('/team')}>
+              View Team <ArrowRight className="h-4 w-4" />
             </Button>
           }
         >

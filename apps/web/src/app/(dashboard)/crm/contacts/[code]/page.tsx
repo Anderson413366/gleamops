@@ -92,11 +92,11 @@ export default function ContactDetailPage() {
       <div className="space-y-4">
         <p className="text-lg font-semibold text-foreground">Contact not found.</p>
         <Link
-          href="/crm?tab=contacts"
+          href="/clients?tab=contacts"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to CRM Contacts
+          Back to Contacts
         </Link>
       </div>
     );
@@ -105,19 +105,19 @@ export default function ContactDetailPage() {
   return (
     <div className="space-y-6">
       <Link
-        href="/crm?tab=contacts"
+        href="/clients?tab=contacts"
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to CRM Contacts
+        Back to Contacts
       </Link>
 
       <nav className="text-xs text-muted-foreground">
         <Link href="/home" className="hover:text-foreground transition-colors">Home</Link>
         <span className="mx-1.5">/</span>
-        <Link href="/crm" className="hover:text-foreground transition-colors">CRM</Link>
+        <Link href="/clients" className="hover:text-foreground transition-colors">Clients</Link>
         <span className="mx-1.5">/</span>
-        <Link href="/crm?tab=contacts" className="hover:text-foreground transition-colors">Contacts</Link>
+        <Link href="/clients?tab=contacts" className="hover:text-foreground transition-colors">Contacts</Link>
         <span className="mx-1.5">/</span>
         <span className="font-mono text-foreground">{contact.contact_code}</span>
       </nav>

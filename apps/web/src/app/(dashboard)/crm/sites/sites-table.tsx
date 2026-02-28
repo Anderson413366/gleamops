@@ -237,7 +237,7 @@ export default function SitesTable({ search }: SitesTableProps) {
           </span>
           <button
             type="button"
-            onClick={() => router.replace('/crm?tab=sites')}
+            onClick={() => router.replace('/clients?tab=sites')}
             className="text-blue-600 hover:underline dark:text-blue-400"
           >
             Clear filter

@@ -293,7 +293,7 @@ export default function ProposalDetailPage() {
               <dd className="font-medium">
                 {bid?.client?.client_code ? (
                   <Link
-                    href={`/crm/clients/${encodeURIComponent(bid.client.client_code)}`}
+                    href={`/clients/${encodeURIComponent(bid.client.client_code)}`}
                     className="text-blue-600 hover:text-blue-800 hover:underline"
                   >
                     {bid.client.name} ({bid.client.client_code})

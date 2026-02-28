@@ -150,7 +150,7 @@ export function SiteBlueprintReview({ filter }: SiteBlueprintReviewProps) {
                 Missing: {missing.map((field) => readableField(field)).join(', ')}
               </p>
               <Link
-                href={`/crm/sites/${encodeURIComponent(site.site_code ?? site.id)}`}
+                href={`/clients/sites/${encodeURIComponent(site.site_code ?? site.id)}`}
                 className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-module-accent hover:underline"
               >
                 <MapPin className="h-3.5 w-3.5" aria-hidden="true" />

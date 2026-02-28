@@ -279,7 +279,7 @@ export default function OpportunityDetailPage() {
               <dd className="font-medium">
                 {opportunity.client ? (
                   <Link
-                    href={`/crm/clients/${encodeURIComponent(opportunity.client.client_code)}`}
+                    href={`/clients/${encodeURIComponent(opportunity.client.client_code)}`}
                     className="text-blue-600 hover:text-blue-800 hover:underline"
                   >
                     {opportunity.client.name} ({opportunity.client.client_code})

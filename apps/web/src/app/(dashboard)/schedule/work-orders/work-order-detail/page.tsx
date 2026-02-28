@@ -58,7 +58,7 @@ function toTableRow(row: WorkOrderTicket): WorkOrderTableRow {
 }
 
 function formatTime(value: string | null) {
-  if (!value) return 'TBD';
+  if (!value) return 'Not Set';
   const [hourText, minuteText] = value.split(':');
   const hour = Number(hourText);
   if (!Number.isFinite(hour)) return value;
@@ -228,15 +228,27 @@ export default function WorkOrderDetailPage() {
           <CardContent className="space-y-3 text-sm">
             <p>
               <span className="text-muted-foreground">Client:</span>{' '}
-              {row.site?.client?.name || '—'}
+              {row.site?.client?.client_code ? (
+                <Link href={`/clients/${encodeURIComponent(row.site.client.client_code)}`} className="text-blue-600 hover:underline dark:text-blue-400">
+                  {row.site.client.name || row.site.client.client_code}
+                </Link>
+              ) : '—'}
             </p>
             <p>
               <span className="text-muted-foreground">Client code:</span>{' '}
-              {row.site?.client?.client_code || '—'}
+              {row.site?.client?.client_code ? (
+                <Link href={`/clients/${encodeURIComponent(row.site.client.client_code)}`} className="text-blue-600 hover:underline dark:text-blue-400">
+                  {row.site.client.client_code}
+                </Link>
+              ) : '—'}
             </p>
             <p>
               <span className="text-muted-foreground">Site code:</span>{' '}
-              {row.site?.site_code || '—'}
+              {row.site?.site_code ? (
+                <Link href={`/clients/sites/${encodeURIComponent(row.site.site_code)}`} className="text-blue-600 hover:underline dark:text-blue-400">
+                  {row.site.site_code}
+                </Link>
+              ) : '—'}
             </p>
             <div>
               <p className="text-muted-foreground">Operational summary</p>

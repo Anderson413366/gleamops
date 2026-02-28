@@ -246,7 +246,7 @@ export default function ClientsTable({ search }: ClientsTableProps) {
   if (loading) return <TableSkeleton rows={8} cols={6} />;
 
   const handleRowClick = (row: Client) => {
-    router.push(`/crm/clients/${row.client_code}`);
+    router.push(`/clients/${row.client_code}`);
   };
   const handleAdd = () => setFormOpen(true);
   const selectedStatusLabel = statusFilter === 'all'

@@ -157,7 +157,7 @@ export default function SitesTable({ search }: SitesTableProps) {
   const pag = usePagination(sortedRows, 25);
 
   const handleRowClick = (row: SiteWithClient) => {
-    router.push(`/crm/sites/${row.site_code}`);
+    router.push(`/clients/sites/${row.site_code}`);
   };
   const handleAdd = () => setFormOpen(true);
   const priorityValue = (row: SiteWithClient) => row.priority_level ?? row.priority ?? null;

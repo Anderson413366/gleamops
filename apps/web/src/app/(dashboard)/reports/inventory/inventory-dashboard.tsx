@@ -234,7 +234,7 @@ export default function InventoryDashboard(props: { rangeDays: number; refreshKe
             )}
         </ChartCard>
 
-        <ChartCard title="Supply Spend Trend" subtitle={`Order spend by day (last ${Math.min(14, Math.max(7, props.rangeDays))} days)`}>
+        <ChartCard title="Supply Spend Trend" subtitle={`Order spend by day (last ${props.rangeDays} days)`}>
           {orderSpendSeries.length === 0 ? (
             <p className="text-sm text-muted-foreground">No orders recorded in this range.</p>
           ) : (

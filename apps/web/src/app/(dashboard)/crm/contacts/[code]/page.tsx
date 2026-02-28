@@ -197,7 +197,7 @@ export default function ContactDetailPage() {
             <p>
               <span className="text-muted-foreground">Client:</span>{' '}
               {contact.client ? (
-                <Link href={`/crm/clients/${encodeURIComponent(contact.client.client_code)}`} className="text-blue-600 hover:underline dark:text-blue-400">
+                <Link href={`/clients/${encodeURIComponent(contact.client.client_code)}`} className="text-blue-600 hover:underline dark:text-blue-400">
                   {contact.client.name} ({contact.client.client_code})
                 </Link>
               ) : <span className="italic text-muted-foreground">Not Set</span>}
@@ -205,7 +205,7 @@ export default function ContactDetailPage() {
             <p>
               <span className="text-muted-foreground">Site:</span>{' '}
               {contact.site ? (
-                <Link href={`/crm/sites/${encodeURIComponent(contact.site.site_code)}`} className="text-blue-600 hover:underline dark:text-blue-400">
+                <Link href={`/clients/sites/${encodeURIComponent(contact.site.site_code)}`} className="text-blue-600 hover:underline dark:text-blue-400">
                   {contact.site.name} ({contact.site.site_code})
                 </Link>
               ) : <span className="italic text-muted-foreground">Not Set</span>}

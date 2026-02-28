@@ -133,7 +133,7 @@ export default function CoursesTable({ search, formOpen, onFormClose, onRefresh 
     ? 'Try a different search term.'
     : statusFilter === 'all'
       ? 'Build your training catalog for onboarding and recurring compliance.'
-      : 'All training courses are currently in the other requirement group.';
+      : 'No courses in this category. Create your first training course to get started.';
 
   return (
     <div>

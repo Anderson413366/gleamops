@@ -52,7 +52,7 @@ const KPI_META = [
     label: 'Specialist Turnover (90d)',
     icon: <Users className="h-4 w-4 text-muted-foreground" />,
     format: (value: number | null | undefined) => formatNumber(value != null ? Math.round(value * 100) / 100 : null, '%'),
-    href: '/workforce?tab=staff',
+    href: '/team?tab=staff',
   },
   {
     key: 'supply_cost_mtd',

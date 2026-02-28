@@ -205,7 +205,7 @@ export default function BidDetailPage() {
               <Badge color={BID_STATUS_COLORS[bid.status] ?? 'gray'}>{bid.status}</Badge>
               {bid.client?.client_code ? (
                 <Link
-                  href={`/crm/clients/${encodeURIComponent(bid.client.client_code)}`}
+                  href={`/clients/${encodeURIComponent(bid.client.client_code)}`}
                   className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
                 >
                   {bid.client.name} ({bid.client.client_code})

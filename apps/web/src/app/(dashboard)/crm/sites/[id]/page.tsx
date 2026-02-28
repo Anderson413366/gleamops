@@ -335,6 +335,7 @@ export default function SiteDetailPage() {
   const [proceduresDraft, setProceduresDraft] = useState('');
   const [proceduresPhotoDraft, setProceduresPhotoDraft] = useState('');
   const [proceduresSaving, setProceduresSaving] = useState(false);
+  const [proceduresEditing, setProceduresEditing] = useState(false);
 
   const fetchSite = async () => {
     setLoading(true);
@@ -1226,69 +1227,119 @@ export default function SiteDetailPage() {
               This content is shown to specialists on their phones.
             </p>
           </div>
-        </div>
-
-        <div className="mt-4 space-y-4">
-          <div>
-            <label htmlFor="cleaning-procedures" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Procedure Steps
-            </label>
-            <textarea
-              id="cleaning-procedures"
-              value={proceduresDraft}
-              onChange={(event) => setProceduresDraft(event.target.value)}
-              placeholder="Step 1: Unlock janitorial closet...
-Step 2: Restock restroom supplies...
-Step 3: Mop lobby and hallways..."
-              className="min-h-40 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="cleaning-procedures-photos" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Reference Photo URLs (one per line)
-            </label>
-            <textarea
-              id="cleaning-procedures-photos"
-              value={proceduresPhotoDraft}
-              onChange={(event) => setProceduresPhotoDraft(event.target.value)}
-              placeholder="https://...
-https://..."
-              className="min-h-28 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-            />
-          </div>
-
-          {proceduresPhotoDraft.trim() ? (
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {proceduresPhotoDraft
-                .split('\n')
-                .map((line) => line.trim())
-                .filter(Boolean)
-                .map((url, index) => (
-                  <a
-                    key={`${url}-${index}`}
-                    href={url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="rounded-lg border border-border bg-background p-2 text-xs text-primary underline-offset-2 hover:underline"
-                  >
-                    Procedure Photo {index + 1}
-                  </a>
-                ))}
-            </div>
-          ) : null}
-
-          <div className="flex justify-end">
+          {!proceduresEditing && (
             <button
               type="button"
-              onClick={() => void handleSaveProcedures()}
-              disabled={proceduresSaving}
-              className="inline-flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-all duration-200 ease-in-out hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={() => setProceduresEditing(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out"
             >
-              {proceduresSaving ? 'Saving...' : 'Save Procedures'}
+              <Pencil className="h-3.5 w-3.5" />
+              Edit
             </button>
-          </div>
+          )}
         </div>
+
+        {proceduresEditing ? (
+          <div className="mt-4 space-y-4">
+            <div>
+              <label htmlFor="cleaning-procedures" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Procedure Steps
+              </label>
+              <textarea
+                id="cleaning-procedures"
+                value={proceduresDraft}
+                onChange={(event) => setProceduresDraft(event.target.value)}
+                placeholder="Step 1: Unlock janitorial closet...
+Step 2: Restock restroom supplies...
+Step 3: Mop lobby and hallways..."
+                className="min-h-40 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="cleaning-procedures-photos" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Reference Photo URLs (one per line)
+              </label>
+              <textarea
+                id="cleaning-procedures-photos"
+                value={proceduresPhotoDraft}
+                onChange={(event) => setProceduresPhotoDraft(event.target.value)}
+                placeholder="https://...
+https://..."
+                className="min-h-28 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              />
+            </div>
+
+            {proceduresPhotoDraft.trim() ? (
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {proceduresPhotoDraft
+                  .split('\n')
+                  .map((line) => line.trim())
+                  .filter(Boolean)
+                  .map((url, index) => (
+                    <a
+                      key={`${url}-${index}`}
+                      href={url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-lg border border-border bg-background p-2 text-xs text-primary underline-offset-2 hover:underline"
+                    >
+                      Procedure Photo {index + 1}
+                    </a>
+                  ))}
+              </div>
+            ) : null}
+
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setProceduresEditing(false)}
+                className="inline-flex items-center rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted transition-all duration-200 ease-in-out"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => { void handleSaveProcedures(); setProceduresEditing(false); }}
+                disabled={proceduresSaving}
+                className="inline-flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-all duration-200 ease-in-out hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {proceduresSaving ? 'Saving...' : 'Save Procedures'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-4 space-y-3">
+            <div>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Procedure Steps</p>
+              <p className="whitespace-pre-wrap rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-foreground">
+                {proceduresDraft.trim() || 'No procedures documented yet.'}
+              </p>
+            </div>
+            {proceduresPhotoDraft.trim() ? (
+              <div>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Reference Photos</p>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {proceduresPhotoDraft
+                    .split('\n')
+                    .map((line) => line.trim())
+                    .filter(Boolean)
+                    .map((url, index) => (
+                      <a
+                        key={`${url}-${index}`}
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-lg border border-border bg-background p-2 text-xs text-primary underline-offset-2 hover:underline"
+                      >
+                        Procedure Photo {index + 1}
+                      </a>
+                    ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        )}
       </div>
 
       {/* Service Plans & Scope of Work */}

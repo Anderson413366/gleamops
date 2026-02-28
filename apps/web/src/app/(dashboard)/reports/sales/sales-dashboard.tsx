@@ -240,7 +240,7 @@ export default function SalesDashboard(props: { rangeDays: number; refreshKey: n
           )}
         </ChartCard>
 
-        <ChartCard title="Proposals Sent Trend" subtitle={`Sends per day (last ${Math.min(14, Math.max(7, props.rangeDays))} days)`}>
+        <ChartCard title="Proposals Sent Trend" subtitle={`Sends per day (last ${props.rangeDays} days)`}>
           {proposalSendSeries.length === 0 ? (
             <p className="text-sm text-muted-foreground">No proposal sends recorded in this range.</p>
           ) : (

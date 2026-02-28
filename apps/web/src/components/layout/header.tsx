@@ -633,7 +633,7 @@ export function Header() {
           sublabel: c.client_code,
           category: 'Clients',
           icon: <Building2 className="h-4 w-4" />,
-          href: `/clients?client=${c.client_code}`,
+          href: `/clients/${c.client_code}`,
         });
       }
     }
@@ -646,7 +646,7 @@ export function Header() {
           sublabel: s.address?.street || '',
           category: 'Sites',
           icon: <MapPin className="h-4 w-4" />,
-          href: `/clients?site=${s.site_code}`,
+          href: `/clients/sites/${s.site_code}`,
         });
       }
     }
@@ -659,7 +659,7 @@ export function Header() {
           sublabel: p.prospect_code,
           category: 'Prospects',
           icon: <TrendingUp className="h-4 w-4" />,
-          href: `/pipeline?prospect=${p.prospect_code}`,
+          href: `/pipeline/prospects/${p.prospect_code}`,
         });
       }
     }
@@ -672,7 +672,7 @@ export function Header() {
           sublabel: b.status,
           category: 'Bids',
           icon: <FileText className="h-4 w-4" />,
-          href: `/pipeline?bid=${b.bid_code}`,
+          href: `/pipeline/bids/${b.bid_code}`,
         });
       }
     }

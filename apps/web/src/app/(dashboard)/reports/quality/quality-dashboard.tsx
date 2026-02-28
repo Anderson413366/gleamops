@@ -192,7 +192,7 @@ export default function QualityDashboard(props: { rangeDays: number; refreshKey:
           tone="accent"
           label="Avg Pass (Trend)"
           value={`${Math.round(passSeries.reduce((a, b) => a + b, 0) / Math.max(1, passSeries.length))}%`}
-          helper={`last ${Math.min(14, Math.max(7, props.rangeDays))} days`}
+          helper={`last ${props.rangeDays} days`}
         />
       </div>
 
@@ -223,7 +223,7 @@ export default function QualityDashboard(props: { rangeDays: number; refreshKey:
             )}
         </ChartCard>
 
-        <ChartCard title="Quality Trend" subtitle={`Score and pass rate (last ${Math.min(14, Math.max(7, props.rangeDays))} days)`}>
+        <ChartCard title="Quality Trend" subtitle={`Score and pass rate (last ${props.rangeDays} days)`}>
           {scoreSeries.length === 0 && passSeries.length === 0 ? (
             <p className="text-sm text-muted-foreground">No inspection activity in this range.</p>
           ) : (

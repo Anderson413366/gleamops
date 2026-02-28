@@ -186,7 +186,7 @@ export default function OpsDashboard(props: { rangeDays: number; refreshKey: num
           tone="accent"
           label={`Tickets Trend`}
           value={ticketSeries.values.reduce((a, b) => a + b, 0)}
-          helper={`last ${Math.min(14, Math.max(7, props.rangeDays))} days`}
+          helper={`last ${props.rangeDays} days`}
         />
       </div>
 
@@ -217,7 +217,7 @@ export default function OpsDashboard(props: { rangeDays: number; refreshKey: num
           )}
         </ChartCard>
 
-        <ChartCard title="Tickets Trend" subtitle={`Tickets per day (last ${Math.min(14, Math.max(7, props.rangeDays))} days)`}>
+        <ChartCard title="Tickets Trend" subtitle={`Tickets per day (last ${props.rangeDays} days)`}>
           {ticketSeries.values.length === 0 ? (
             <p className="text-sm text-muted-foreground">No ticket history available for this range.</p>
           ) : (
@@ -231,7 +231,7 @@ export default function OpsDashboard(props: { rangeDays: number; refreshKey: num
           )}
         </ChartCard>
 
-        <ChartCard title="Hours Logged Trend" subtitle={`Hours per day (last ${Math.min(14, Math.max(7, props.rangeDays))} days)`}>
+        <ChartCard title="Hours Logged Trend" subtitle={`Hours per day (last ${props.rangeDays} days)`}>
           {hoursSeries.values.length === 0 ? (
             <p className="text-sm text-muted-foreground">No time entry history available for this range.</p>
           ) : (

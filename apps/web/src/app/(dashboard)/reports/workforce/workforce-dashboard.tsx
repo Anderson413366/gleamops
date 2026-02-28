@@ -252,7 +252,7 @@ export default function WorkforceDashboard(props: { rangeDays: number; refreshKe
             )}
         </ChartCard>
 
-        <ChartCard title="Hours Trend" subtitle={`Hours per day (last ${Math.min(14, Math.max(7, props.rangeDays))} days)`}>
+        <ChartCard title="Hours Trend" subtitle={`Hours per day (last ${props.rangeDays} days)`}>
           {hoursSeries.length === 0 ? (
             <p className="text-sm text-muted-foreground">No time entry activity in this range.</p>
           ) : (

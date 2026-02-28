@@ -27,6 +27,7 @@ import { ActivityHistorySection } from '@/components/activity/activity-history-s
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
 import { StatusToggleDialog } from '@/components/detail/status-toggle-dialog';
 import { EntityLink } from '@/components/links/entity-link';
+import { formatZip } from '@/lib/utils/format-zip';
 import { toast } from 'sonner';
 
 function formatCurrency(n: number | null) {
@@ -699,7 +700,7 @@ export default function ClientDetailPage() {
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">ZIP</dt>
-              <dd className="font-medium">{addr?.zip ?? renderNotSet()}</dd>
+              <dd className="font-medium">{formatZip(addr?.zip) || renderNotSet()}</dd>
             </div>
           </dl>
         </div>

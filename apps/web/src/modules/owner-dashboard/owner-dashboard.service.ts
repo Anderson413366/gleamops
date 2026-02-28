@@ -111,19 +111,19 @@ export async function getOwnerDashboard(
     listOpenComplaints(userDb),
   ]);
 
-  const failures = [
+  // Supply costs are non-critical — don't fail the whole dashboard if that table is inaccessible
+  const criticalFailures = [
     complaintRowsRes.error,
     inventoryRowsRes.error,
     specialistRowsRes.error,
-    supplyRowsRes.error,
     pendingDayOffRes.error,
     tonightRoutesRes.error,
     overduePeriodicRes.error,
     unreviewedBridgeRes.error,
     openComplaintsRes.error,
   ].filter(Boolean);
-  if (failures.length > 0) {
-    return { success: false, error: SYS_002(failures[0]?.message ?? 'Failed to load owner dashboard', apiPath) };
+  if (criticalFailures.length > 0) {
+    return { success: false, error: SYS_002(criticalFailures[0]?.message ?? 'Failed to load owner dashboard', apiPath) };
   }
 
   const complaintRows = (complaintRowsRes.data ?? []) as Array<{
@@ -207,7 +207,17 @@ export async function getSupplyCosts(
   const { from, to } = sanitizeDateRange(query.date_from, query.date_to);
   const { data, error } = await listSupplyCostsForRange(userDb, from, to, query.site_id);
   if (error) {
-    return { success: false, error: SYS_002(error.message, apiPath) };
+    // Gracefully return empty data if the table is inaccessible or doesn't exist
+    return {
+      success: true,
+      data: {
+        rows: [],
+        by_site: [],
+        monthly_trend: [],
+        total_cost: 0,
+        date_range: { from, to },
+      },
+    };
   }
 
   const rows = (data ?? []) as unknown as SiteSupplyCostListItem[];
@@ -274,7 +284,17 @@ export async function getSupplyCostsBySite(
 
   const { from, to } = sanitizeDateRange(query.date_from, query.date_to);
   const { data, error } = await listSupplyCostsForRange(userDb, from, to, siteId);
-  if (error) return { success: false, error: SYS_002(error.message, apiPath) };
+  if (error) {
+    return {
+      success: true,
+      data: {
+        rows: [],
+        by_supply: [],
+        monthly_trend: [],
+        total_cost: 0,
+      },
+    };
+  }
 
   const rows = (data ?? []) as unknown as SiteSupplyCostListItem[];
   const bySupplyMap = new Map<string, { supply_id: string; supply_name: string; supply_code: string | null; quantity: number; total_cost: number }>();

@@ -301,9 +301,9 @@ export function JobDetail({ job, open, onClose, onEdit }: JobDetailProps) {
               <Card>
                 <CardHeader><CardTitle>Specs & Notes</CardTitle></CardHeader>
                 <CardContent className="space-y-3 text-sm">
-                  {job.specifications && <div><dt className="text-xs text-muted-foreground">Specifications</dt><dd>{job.specifications}</dd></div>}
-                  {job.special_requirements && <div><dt className="text-xs text-muted-foreground">Special Requirements</dt><dd>{job.special_requirements}</dd></div>}
-                  {job.notes && <div><dt className="text-xs text-muted-foreground">Notes</dt><dd>{job.notes}</dd></div>}
+                  {job.specifications && <div><dt className="text-xs text-muted-foreground">Specifications</dt><dd className="mt-1 whitespace-pre-wrap">{job.specifications}</dd></div>}
+                  {job.special_requirements && <div><dt className="text-xs text-muted-foreground">Special Requirements</dt><dd className="mt-1 whitespace-pre-wrap">{job.special_requirements}</dd></div>}
+                  {job.notes && <div><dt className="text-xs text-muted-foreground">Notes</dt><dd className="mt-1 whitespace-pre-wrap">{job.notes}</dd></div>}
                 </CardContent>
               </Card>
             )}

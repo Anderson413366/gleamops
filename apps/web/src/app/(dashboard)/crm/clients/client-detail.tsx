@@ -16,6 +16,7 @@ import {
 } from '@gleamops/ui';
 import type { Client, Site, Contact } from '@gleamops/shared';
 import { CLIENT_STATUS_COLORS, JOB_STATUS_COLORS } from '@gleamops/shared';
+import { formatZip } from '@/lib/utils/format-zip';
 
 interface SiteJobRow {
   id: string;
@@ -204,7 +205,7 @@ export function ClientDetail({ client, open, onClose, onEdit }: ClientDetailProp
                 <CardContent>
                   <p className="text-sm text-foreground">
                     {addr.street && <span className="block">{addr.street}</span>}
-                    {[addr.city, addr.state, addr.zip].filter(Boolean).join(', ')}
+                    {[addr.city, addr.state, formatZip(addr.zip)].filter(Boolean).join(', ')}
                   </p>
                 </CardContent>
               </Card>

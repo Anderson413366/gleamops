@@ -770,7 +770,22 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                               {item.label}
                               {item.is_required && <span className="text-destructive ml-1">*</span>}
                             </p>
-                            {item.notes && <p className="text-xs text-muted-foreground mt-0.5">{item.notes}</p>}
+                            {item.notes && <p className="text-xs text-muted-foreground mt-0.5 whitespace-pre-wrap">{(() => {
+                              // Handle legacy JSON-stringified notes from completion sign-off
+                              if (item.notes.startsWith('{')) {
+                                try {
+                                  const parsed = JSON.parse(item.notes) as Record<string, unknown>;
+                                  const parts = [
+                                    parsed.signer_name ? `Signed by: ${parsed.signer_name}` : null,
+                                    parsed.notes ? String(parsed.notes) : null,
+                                    parsed.supervisor_sign_off ? 'Supervisor sign-off: Yes' : null,
+                                    parsed.client_sign_off ? 'Client sign-off: Yes' : null,
+                                  ].filter(Boolean);
+                                  return parts.length > 0 ? parts.join('\n') : item.notes;
+                                } catch { return item.notes; }
+                              }
+                              return item.notes;
+                            })()}</p>}
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
                             {item.requires_photo && (

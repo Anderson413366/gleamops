@@ -13,6 +13,7 @@ interface CountWithRelations {
   count_date: string;
   status: string;
   notes: string | null;
+  counted_by_name: string | null;
   created_at: string;
   updated_at: string;
   site?: { name: string; site_code: string } | null;
@@ -180,7 +181,7 @@ export default function InventoryCountDetailPage() {
           </div>
           <div className="rounded-lg border border-border bg-muted/20 p-3">
             <p className="text-xs text-muted-foreground">Counted By</p>
-            <p className="mt-1 text-lg font-semibold text-foreground">{count.counter?.full_name ?? 'Not Set'}</p>
+            <p className="mt-1 text-lg font-semibold text-foreground">{count.counted_by_name || count.counter?.full_name || 'Not Set'}</p>
           </div>
           <div className="rounded-lg border border-border bg-muted/20 p-3">
             <p className="text-xs text-muted-foreground">Items Counted</p>

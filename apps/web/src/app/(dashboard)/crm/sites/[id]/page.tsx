@@ -33,6 +33,7 @@ import { ActivityHistorySection } from '@/components/activity/activity-history-s
 import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from '@/components/detail/profile-completeness-card';
 import { StatusToggleDialog } from '@/components/detail/status-toggle-dialog';
 import { EntityLink } from '@/components/links/entity-link';
+import { formatZip } from '@/lib/utils/format-zip';
 import { toast } from 'sonner';
 
 interface SiteWithClient extends Site {
@@ -272,7 +273,7 @@ function parseLegacySiteNotes(notes: string | null | undefined): {
 
 function mapsSearchUrl(addr: { street?: string; city?: string; state?: string; zip?: string; country?: string } | null): string | null {
   if (!addr) return null;
-  const q = [addr.street, addr.city, addr.state, addr.zip, addr.country].filter(Boolean).join(', ');
+  const q = [addr.street, addr.city, addr.state, formatZip(addr.zip), addr.country].filter(Boolean).join(', ');
   if (!q) return null;
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
 }
@@ -943,7 +944,7 @@ export default function SiteDetailPage() {
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">State / ZIP</dt>
-              <dd className="font-medium text-right">{notSet([addr?.state, addr?.zip].filter(Boolean).join(' '))}</dd>
+              <dd className="font-medium text-right">{notSet([addr?.state, formatZip(addr?.zip)].filter(Boolean).join(' '))}</dd>
             </div>
           </dl>
         </div>

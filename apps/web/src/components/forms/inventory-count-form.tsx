@@ -90,6 +90,19 @@ export function InventoryCountForm({ open, onClose, initialData, initialSiteId, 
       : DEFAULTS,
     onSubmit: async (data) => {
       if (isEdit) {
+        // Prevent marking COMPLETED without line items
+        if (data.status === 'COMPLETED') {
+          const { count: lineItemCount } = await supabase
+            .from('inventory_count_details')
+            .select('id', { count: 'exact', head: true })
+            .eq('count_id', initialData!.id)
+            .is('archived_at', null);
+          if (!lineItemCount || lineItemCount === 0) {
+            toast.error('Cannot mark as Completed — this count has no line items. Use the count form to add items first.');
+            return;
+          }
+        }
+
         const result = await supabase
           .from('inventory_counts')
           .update({

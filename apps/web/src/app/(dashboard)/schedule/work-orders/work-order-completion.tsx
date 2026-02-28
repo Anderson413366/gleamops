@@ -115,11 +115,19 @@ export function WorkOrderCompletion({ open, row, onClose, onCompleted }: WorkOrd
 
     const signoffItemId = (signoffItem as { id: string } | null)?.id ?? null;
 
+    // Build a human-readable notes string instead of raw JSON
+    const signoffNotes = [
+      `Signed by: ${payload.signer_name} (${payload.signer_email})`,
+      payload.supervisor_sign_off ? 'Supervisor sign-off: Yes' : null,
+      payload.client_sign_off ? 'Client sign-off: Yes' : null,
+      payload.notes ? `Notes: ${payload.notes}` : null,
+    ].filter(Boolean).join('\n');
+
     if (signoffItemId) {
       const { error: signoffUpdateError } = await supabase
         .from('ticket_checklist_items')
         .update({
-          notes: JSON.stringify(payload),
+          notes: signoffNotes,
           is_checked: true,
           checked_at: now,
           checked_by: null,
@@ -146,7 +154,7 @@ export function WorkOrderCompletion({ open, row, onClose, onCompleted }: WorkOrd
           is_checked: true,
           checked_at: now,
           checked_by: null,
-          notes: JSON.stringify(payload),
+          notes: signoffNotes,
         });
 
       if (signoffInsertError) {

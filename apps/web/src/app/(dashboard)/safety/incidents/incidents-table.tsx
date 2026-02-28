@@ -203,7 +203,7 @@ export default function IncidentsTable({ search }: Props) {
     setDescription('');
     setSiteId('');
     setIssueType('SAFETY_ISSUE');
-    setPriority('HIGH');
+    setPriority('MEDIUM');
     setDueDate('');
     toast.success('Incident reported.');
     await load();

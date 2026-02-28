@@ -17,14 +17,13 @@ interface ProfileCompletenessCardProps {
   onNavigateToMissing?: (item: CompletenessItem) => void;
 }
 
-function ringTone(percent: number): 'red' | 'orange' | 'yellow' | 'green' {
-  if (percent < 30) return 'red';
-  if (percent < 60) return 'orange';
-  if (percent < 85) return 'yellow';
+function ringTone(percent: number): 'red' | 'orange' | 'green' {
+  if (percent < 40) return 'red';
+  if (percent < 80) return 'orange';
   return 'green';
 }
 
-function toneClasses(tone: 'red' | 'orange' | 'yellow' | 'green') {
+function toneClasses(tone: 'red' | 'orange' | 'green') {
   if (tone === 'red') {
     return {
       bar: 'bg-red-500',
@@ -41,15 +40,6 @@ function toneClasses(tone: 'red' | 'orange' | 'yellow' | 'green') {
       text: 'text-orange-700 dark:text-orange-300',
       track: 'bg-orange-100 dark:bg-orange-900/30',
       badgeColor: 'orange' as const,
-    };
-  }
-  if (tone === 'yellow') {
-    return {
-      bar: 'bg-yellow-500',
-      ring: 'stroke-yellow-500',
-      text: 'text-yellow-700 dark:text-yellow-300',
-      track: 'bg-yellow-100 dark:bg-yellow-900/30',
-      badgeColor: 'yellow' as const,
     };
   }
   return {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { RefreshCw } from 'lucide-react';
 import { Button } from '@gleamops/ui';
 import type { OwnerDashboardResponse } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -58,6 +59,7 @@ export default function OwnerOverview() {
           </p>
         </div>
         <Button variant="secondary" onClick={() => void load()}>
+          <RefreshCw className="h-4 w-4" />
           Refresh KPIs
         </Button>
       </div>

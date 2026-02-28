@@ -17,7 +17,7 @@ GleamOps is a **B2B SaaS ERP for commercial cleaning** that replaces spreadsheet
 - **UI Library**: @gleamops/ui — 30 components, semantic HSL token system
 - **i18n**: EN, ES, PT-BR
 - **Deploy**: Vercel (web), worker TBD
-- **Status**: Milestones A–H complete + Monday.com replacement. 12 navigation modules, 102 API routes, 28 detail pages, 40 forms, 111 migrations, 27 service modules.
+- **Status**: Milestones A–H complete + Monday.com replacement + Project North Star navigation overhaul. 13 navigation modules (hierarchical sidebar with children), 108 API routes, 28 detail pages, 42 forms, 113 migrations, 28 service modules.
 
 ---
 
@@ -98,48 +98,54 @@ gleamops_dev_pack/
 │   │   └── src/
 │   │       ├── app/
 │   │       │   ├── (auth)/login/  # Login page
-│   │       │   └── (dashboard)/   # 12 nav modules + detail pages
-│   │       │       ├── home/              # Dashboard widgets
-│   │       │       ├── pipeline/          # Prospects, Bids, Proposals, Opportunities
-│   │       │       │   └── admin/         # Follow-up templates, Marketing, Rates
-│   │       │       ├── crm/               # Clients, Sites, Contacts
-│   │       │       │   ├── clients/[id]/  # Client detail page
-│   │       │       │   └── sites/[id]/    # Site detail page
-│   │       │       ├── operations/        # Jobs, Tickets, Inspections, Complaints, Routes
-│   │       │       │   └── jobs/[id]/     # Job detail page
-│   │       │       ├── workforce/         # Staff, Payroll, Positions, Timekeeping
-│   │       │       │   └── staff/[code]/  # Staff detail page
-│   │       │       ├── inventory/         # Supplies, Kits, Counts, Orders
-│   │       │       │   └── supplies/[id]/ # Supply detail page
-│   │       │       ├── assets/            # Equipment, Keys, Vehicles, Maintenance
-│   │       │       │   ├── vehicles/[id]/ # Vehicle detail page
-│   │       │       │   └── keys/[id]/     # Key detail page
-│   │       │       ├── services/          # Service library + tasks
-│   │       │       │   └── tasks/[id]/    # Task detail page
-│   │       │       ├── vendors/           # Subcontractors, Supply Vendors
-│   │       │       ├── safety/            # Certifications, Training, Documents
-│   │       │       ├── admin/             # Settings, Lookups, Services admin
-│   │       │       │   └── services/tasks/[id]/ # Admin task detail
-│   │       │       ├── reports/           # Dashboards + reports
-│   │       │       ├── schedule/          # Calendar, work orders, boards
-│   │       │       ├── shifts-time/       # Shifts & time tracking
-│   │       │       ├── team/              # Staff directory + employee detail
-│   │       │       └── settings/          # User settings
+│   │       │   └── (dashboard)/   # 20 route directories + detail pages
+│   │       │       ├── home/              # Dashboard widgets (owner KPIs)
+│   │       │       ├── schedule/          # Recurring, work orders, calendar, planning, boards
+│   │       │       ├── jobs/              # Service plans, tickets, inspections, time, routes, checklists, forms
+│   │       │       ├── clients/           # Clients, sites, contacts, requests, partners (CANONICAL)
+│   │       │       │   ├── [id]/          # Client detail
+│   │       │       │   ├── sites/[id]/    # Site detail
+│   │       │       │   └── contacts/[code]/ # Contact detail
+│   │       │       ├── pipeline/          # Prospects, opportunities, bids, proposals
+│   │       │       │   └── admin/         # Follow-up templates, marketing, rates
+│   │       │       ├── catalog/           # Tasks, services, mapping, scope library (NEW — North Star)
+│   │       │       ├── team/              # Staff, positions, attendance, timesheets, payroll, HR, subcontractors (CANONICAL)
+│   │       │       │   └── staff/[code]/  # Staff detail
+│   │       │       ├── inventory/         # Supplies, kits, site assignments, counts, orders, vendors
+│   │       │       │   ├── supplies/[id]/ # Supply detail
+│   │       │       │   └── counts/[id]/   # Inventory count detail
+│   │       │       ├── equipment/         # Equipment, assignments, keys, vehicles, maintenance
+│   │       │       ├── safety/            # Certifications, training, incidents, calendar
+│   │       │       ├── reports/           # Ops, sales, financial, quality, workforce, inventory dashboards
+│   │       │       ├── settings/          # General, lookups, geofences, rules, data hub, sequences, import
+│   │       │       ├── shifts-time/       # Shifts & time tracking (role-gated)
+│   │       │       ├── crm/               # LEGACY — redirects to /clients
+│   │       │       ├── operations/        # LEGACY — complaints, periodic, task-catalog (tabs NOT in /jobs)
+│   │       │       ├── workforce/         # LEGACY — field-reports (tab NOT in /team)
+│   │       │       ├── assets/            # LEGACY alias for /equipment
+│   │       │       ├── services/          # LEGACY alias for /catalog
+│   │       │       ├── vendors/           # Subcontractors, supply vendors, vendor directory
+│   │       │       └── admin/             # Lookups, position types, schedule settings, portal settings
 │   │       ├── components/
-│   │       │   ├── forms/         # 40 entity form components
-│   │       │   └── layout/        # AppShell, Header, Sidebar
+│   │       │   ├── forms/         # 42 entity form components
+│   │       │   ├── layout/        # AppShell, Header, Sidebar (hierarchical NAV_TREE)
+│   │       │   ├── activity/      # ActivityHistorySection
+│   │       │   ├── detail/        # ProfileCompletenessCard, StatusToggleDialog
+│   │       │   ├── directory/     # EntityAvatar, EntityCard
+│   │       │   └── links/         # EntityLink
 │   │       ├── hooks/             # 22 custom hooks
 │   │       ├── lib/               # Supabase clients, auth guard, audit, utils
-│   │       └── modules/           # 27 domain service modules
+│   │       │   └── utils/         # date.ts, job-financials.ts, format-zip.ts
+│   │       └── modules/           # 28 domain service modules
 │   ├── worker/                    # Background jobs (PDFs, follow-ups)
 │   └── mobile/                    # Expo React Native (in development)
 ├── packages/
-│   ├── shared/                    # Types, Zod schemas, constants, error catalog
+│   ├── shared/                    # Types, Zod schemas, constants, NAV_TREE, error catalog
 │   ├── domain/                    # Pure business rules (status machine, RBAC)
 │   ├── cleanflow/                 # Bid math engine (pure functions)
 │   └── ui/                        # Design system (30 components)
 ├── supabase/
-│   ├── migrations/                # 111 SQL migration files (17,559 lines)
+│   ├── migrations/                # 113 SQL migration files (17,559 lines)
 │   └── functions/                 # Edge Functions (Deno)
 ├── docs/                          # Numbered docs 00–27 + appendices
 ├── openapi/                       # OpenAPI 3.1 contract
@@ -148,61 +154,90 @@ gleamops_dev_pack/
 
 ---
 
-## Navigation (12 Modules)
+## Navigation (13 Modules — Hierarchical Sidebar)
+
+The sidebar uses **NAV_TREE** (defined in `packages/shared/src/constants/index.ts`) with collapsible children. Controlled by the `v2_navigation` feature flag. When flag is off, falls back to flat `LEGACY_NAV_ITEMS`.
+
+### Canonical Routes (Primary — used in NAV_TREE)
 
 | # | Module | Route | Tabs |
 |---|--------|-------|------|
-| 1 | **Home** | `/home` | Dashboard widgets |
-| 2 | **Pipeline** | `/pipeline` | Prospects, Opportunities, Bids, Proposals |
-| 3 | **CRM** | `/crm` | Clients, Sites, Contacts |
-| 4 | **Operations** | `/operations` | Jobs, Tickets, Inspections, Complaints, Routes, Periodic Tasks |
-| 5 | **Workforce** | `/workforce` | Staff, Positions, Payroll, Timekeeping, Field Reports |
-| 6 | **Inventory** | `/inventory` | Supplies, Kits, Site Assignments, Counts, Orders |
-| 7 | **Assets** | `/assets` | Equipment, Eq. Assignments, Vehicles, Keys, Maintenance |
-| 8 | **Vendors** | `/vendors` | Subcontractors, Supply Vendors, Vendor Directory |
-| 9 | **Safety** | `/safety` | Certifications, Training Courses, Completions, Documents |
-| 10 | **Schedule** | `/schedule` | Calendar, Work Orders, Boards, Recurring |
-| 11 | **Shifts & Time** | `/shifts-time` | Shifts, Timesheets, Clock In/Out |
-| 12 | **Admin** | `/admin` | Lookups, Status Rules, Sequences, Services/Tasks, Positions |
+| 1 | **Home** | `/home` | Owner dashboard with KPI widgets |
+| 2 | **Schedule** | `/schedule` | Recurring, Work Orders, Calendar, Planning, Boards |
+| 3 | **Jobs** | `/jobs` | Service Plans, Job Log (tickets), Inspections, Time, Routes, Checklists, Forms |
+| 4 | **Clients** | `/clients` | Clients, Sites, Contacts, Requests, Partners |
+| 5 | **Pipeline** | `/pipeline` | Prospects, Opportunities, Bids, Proposals |
+| 6 | **Catalog** | `/catalog` | Tasks, Services, Mapping, Scope Library |
+| 7 | **Team** | `/team` | Staff, Positions, Attendance, Timesheets, Payroll, HR, Microfiber, Subcontractors (+Messages flag) |
+| 8 | **Inventory** | `/inventory` | Supplies, Kits, Site Assignments, Counts, Orders, Vendors |
+| 9 | **Equipment** | `/equipment` | Equipment, Assignments, Keys, Vehicles, Maintenance |
+| 10 | **Safety** | `/safety` | Certifications, Training, Incidents, Calendar |
+| 11 | **Reports** | `/reports` | Ops, Sales, Financial, Quality, Workforce, Inventory |
+| 12 | **Settings** | `/settings` | General, Lookups, Geofences, Rules, Data Hub, Sequences, Import |
+| 13 | **Shifts & Time** | `/shifts-time` | Shifts, Timesheets, Clock In/Out (role-gated) |
 
-Additional: `/reports`, `/services`, `/settings`, `/team`
+### Legacy Routes (Still Functional — Back-compat)
+
+These routes still work but are **not** in the sidebar NAV_TREE. Some host tabs that have no canonical equivalent.
+
+| Legacy Route | Status | Notes |
+|-------------|--------|-------|
+| `/crm` | Back-links point to `/clients` | Detail pages still render at `/crm/clients/[id]`, `/crm/sites/[id]`, `/crm/contacts/[code]` |
+| `/operations` | Partially migrated to `/jobs` | **Still hosts:** complaints, periodic tasks, task-catalog, alerts, night-bridge (tabs NOT in `/jobs`) |
+| `/workforce` | Partially migrated to `/team` | **Still hosts:** field-reports (tab NOT in `/team`) |
+| `/assets` | Alias for `/equipment` | Both routes render the same content |
+| `/services` | Alias for `/catalog` | Both routes render the same content |
+| `/admin` | Standalone | Settings admin, position types, portal settings |
+| `/vendors` | Standalone | Subcontractors, supply vendors, vendor directory |
+
+### Route Migration Rules
+
+When adding back-links or cross-links in new code, use these canonical routes:
+
+| Instead of | Use |
+|-----------|-----|
+| `/crm` | `/clients` |
+| `/crm?tab=sites` | `/clients?tab=sites` |
+| `/crm?tab=contacts` | `/clients?tab=contacts` |
+| `/operations?tab=jobs` | `/jobs` |
+| `/operations?tab=tickets` | `/jobs?tab=tickets` |
+| `/workforce` (staff list) | `/team` |
+| `/operations?tab=complaints` | `/operations?tab=complaints` (no canonical — keep legacy) |
+| `/operations?tab=periodic` | `/operations?tab=periodic` (no canonical — keep legacy) |
+| `/workforce?tab=field-reports` | `/workforce?tab=field-reports` (no canonical — keep legacy) |
 
 ---
 
 ## Detail Pages (28 dynamic routes)
 
-Every detail page follows the same layout: Back link → Avatar circle → Stat cards → Section cards (`<dl>` key-value) → Edit + Deactivate buttons → Metadata footer.
+Every detail page follows the same layout: Back link → Breadcrumb → Avatar circle → Stat cards → ProfileCompletenessCard → Section cards (`<dl>` key-value) → Edit + Deactivate buttons → ActivityHistorySection → Metadata footer.
 
-| Entity | Route | Param |
-|--------|-------|-------|
-| Client | `/crm/clients/[id]` | client_code |
-| Client (alt) | `/clients/[id]` | client_code |
-| Site | `/crm/sites/[id]` | site_code |
-| Site (alt) | `/clients/sites/[id]` | site_code |
-| Contact | `/crm/contacts/[code]` | contact_code |
-| Contact (alt) | `/clients/contacts/[code]` | contact_code |
-| Prospect | `/pipeline/prospects/[id]` | prospect_code |
-| Opportunity | `/pipeline/opportunities/[id]` | opportunity_code |
-| Bid | `/pipeline/bids/[id]` | bid_code |
-| Proposal | `/pipeline/proposals/[id]` | proposal_code |
-| Job | `/operations/jobs/[id]` | job_code |
-| Ticket | `/operations/tickets/[id]` | ticket_code |
-| Complaint | `/operations/complaints/[code]` | complaint_code |
-| Periodic Task | `/operations/periodic/[code]` | periodic_code |
-| Task Catalog | `/operations/task-catalog/[id]` | task_code |
-| Staff (workforce) | `/workforce/staff/[code]` | staff_code |
-| Staff (team) | `/team/staff/[code]` | staff_code |
-| Employee | `/team/employees/[code]` | staff_code |
-| Field Report | `/workforce/field-reports/[code]` | report_code |
-| Supply | `/inventory/supplies/[id]` | code |
-| Inventory Count | `/inventory/counts/[id]` | count_code |
-| Equipment | `/assets/equipment/[code]` | equipment_code |
-| Vehicle | `/assets/vehicles/[id]` | vehicle_code |
-| Key | `/assets/keys/[id]` | key_code |
-| Task | `/services/tasks/[id]` | task_code |
-| Task (admin) | `/admin/services/tasks/[id]` | task_code |
-| Subcontractor | `/vendors/subcontractors/[code]` | subcontractor_code |
-| Supply Vendor | `/vendors/supply-vendors/[slug]` | slug |
+| Entity | Canonical Route | Legacy Route | Param |
+|--------|----------------|-------------|-------|
+| Client | `/clients/[id]` | `/crm/clients/[id]` | client_code |
+| Site | `/clients/sites/[id]` | `/crm/sites/[id]` | site_code |
+| Contact | `/clients/contacts/[code]` | `/crm/contacts/[code]` | contact_code |
+| Prospect | `/pipeline/prospects/[id]` | — | prospect_code |
+| Opportunity | `/pipeline/opportunities/[id]` | — | opportunity_code |
+| Bid | `/pipeline/bids/[id]` | — | bid_code |
+| Proposal | `/pipeline/proposals/[id]` | — | proposal_code |
+| Job (Service Plan) | `/operations/jobs/[id]` | — | job_code |
+| Ticket | `/operations/tickets/[id]` | — | ticket_code |
+| Complaint | `/operations/complaints/[code]` | — | complaint_code |
+| Periodic Task | `/operations/periodic/[code]` | — | periodic_code |
+| Task Catalog | `/operations/task-catalog/[id]` | — | task_code |
+| Staff | `/team/staff/[code]` | `/workforce/staff/[code]` | staff_code |
+| Employee | `/team/employees/[code]` | — | staff_code |
+| Field Report | `/workforce/field-reports/[code]` | — | report_code |
+| Supply | `/inventory/supplies/[id]` | — | code |
+| Inventory Count | `/inventory/counts/[id]` | — | count_code |
+| Equipment | `/assets/equipment/[code]` | — | equipment_code |
+| Vehicle | `/assets/vehicles/[id]` | — | vehicle_code |
+| Key | `/assets/keys/[id]` | — | key_code |
+| Task | `/services/tasks/[id]` | — | task_code |
+| Task (admin) | `/admin/services/tasks/[id]` | — | task_code |
+| Subcontractor | `/vendors/subcontractors/[code]` | — | subcontractor_code |
+| Supply Vendor | `/vendors/supply-vendors/[slug]` | — | slug |
 
 ---
 
@@ -248,12 +283,13 @@ RBAC = what you can do. Site scoping = where you can do it.
 
 ### 1. Module Page Pattern (Tabbed Layout)
 
-Every module uses: `ChipTabs` + `SearchInput` + conditional tab rendering.
+Every module uses: `ChipTabs` + `SearchInput` + `useSyncedTab` + conditional tab rendering.
 
 ```tsx
 'use client';
 import { useState } from 'react';
 import { ChipTabs, SearchInput } from '@gleamops/ui';
+import { useSyncedTab } from '@/hooks/use-synced-tab';
 import SectionTable from './section/section-table';
 
 const TABS = [
@@ -261,7 +297,11 @@ const TABS = [
 ];
 
 export default function ModulePage() {
-  const [tab, setTab] = useState(TABS[0].key);
+  const [tab, setTab] = useSyncedTab({
+    tabKeys: TABS.map((t) => t.key),
+    defaultTab: 'section1',
+    aliases: { oldName: 'section1' },
+  });
   const [search, setSearch] = useState('');
   return (
     <div className="space-y-6">
@@ -290,27 +330,32 @@ import {
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 import { useViewPreference } from '@/hooks/use-view-preference';
+import { EntityLink } from '@/components/links/entity-link';
 import { EntityCardGrid } from './entity-card-grid';
 
-const STATUS_OPTIONS = ['all', 'ACTIVE', 'INACTIVE'] as const;
+const STATUS_OPTIONS = ['ACTIVE', 'INACTIVE', 'all'] as const;
 
 export default function EntityTable({ search }: { search: string }) {
   const router = useRouter();
   const [rows, setRows] = useState<Entity[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('ACTIVE');
   const { view, setView } = useViewPreference('entity');
 
   // Fetch, filter by status + search, sort, paginate...
   // Row click → router.push(`/module/entity/${row.entity_code}`)
+  // Cross-links use <EntityLink entityType="client" code={code} name={name} />
 
   return (
     <div>
-      <div className="flex items-center justify-end gap-3 mb-4">
-        <ViewToggle view={view} onChange={setView} />
-        <ExportButton data={filtered} filename="entity" columns={[...]} />
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <Button size="sm" onClick={handleAdd}><Plus /> New Entity</Button>
+        <div className="flex items-center gap-3">
+          <ViewToggle view={view} onChange={setView} />
+          <ExportButton data={filtered} filename="entity" columns={[...]} />
+        </div>
       </div>
-      {/* Status filter chips */}
+      {/* Status filter chips (pill buttons with count badges) */}
       {view === 'card' ? (
         <EntityCardGrid rows={pag.page} onSelect={handleRowClick} />
       ) : (
@@ -324,39 +369,41 @@ export default function EntityTable({ search }: { search: string }) {
 
 ### 3. Detail Page Pattern
 
-Back link → Avatar → Stat cards → Section cards → Edit + Deactivate.
+Back link → Breadcrumb → Avatar → ProfileCompletenessCard → Stat cards → Section cards → ActivityHistorySection → Edit + Deactivate → Metadata footer.
 
 ```tsx
 'use client';
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import { ArrowLeft, SomeIcon } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Badge } from '@gleamops/ui';
 import { EntityForm } from '@/components/forms/entity-form';
+import { ProfileCompletenessCard, isFieldComplete } from '@/components/detail/profile-completeness-card';
+import { ActivityHistorySection } from '@/components/activity/activity-history-section';
 
 export default function EntityDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
   const [item, setItem] = useState<Entity | null>(null);
-
-  // Fetch by code...
 
   return (
     <div className="space-y-6">
-      {/* Back link */}
-      <button onClick={() => router.push('/module')} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+      {/* Back link — always use canonical route */}
+      <Link href="/module" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Back to Module
-      </button>
-
-      {/* Header: avatar + name + badges */}
+      </Link>
+      {/* Breadcrumb: Home › Module › Entity Code */}
+      {/* Header: avatar circle + name + code badge + status badges */}
+      {/* ProfileCompletenessCard: tracks field completeness */}
       {/* Stat cards: grid grid-cols-2 lg:grid-cols-4 gap-4 */}
-      {/* Section cards: grid grid-cols-1 lg:grid-cols-2 gap-6 */}
-      {/*   Each card uses <dl className="space-y-3 text-sm"> */}
-      {/*     <div className="flex justify-between"><dt>Label</dt><dd>Value</dd></div> */}
-
+      {/* Section cards: grid grid-cols-1 lg:grid-cols-2 gap-4 */}
+      {/*   Each card uses <dl className="space-y-2 text-sm"> */}
+      {/*     <p><span className="text-muted-foreground">Label:</span> Value</p> */}
+      {/* ActivityHistorySection: audit trail */}
+      {/* Metadata footer: Created / Updated dates */}
       {/* Edit button → opens EntityForm */}
-      {/* Deactivate button → outline-red variant */}
+      {/* StatusToggleDialog for Deactivate/Reactivate */}
     </div>
   );
 }
@@ -449,7 +496,7 @@ export function EntityForm({ open, onClose, initialData, onSuccess }) {
 | `slide-over` | Slide-over panel (right drawer or centered modal) |
 | `stat-card` | Dashboard stat display card |
 | `status-pill` | Status pill badge |
-| `table-row-visuals` | Table row styling utilities (StatusDot, resolveStatusColor) |
+| `table-row-visuals` | Table row styling utilities (StatusDot, resolveStatusColor, statusRowAccentClass) |
 | `textarea` | Textarea input |
 | `tooltip` | Help icon tooltip |
 | `utils` | Component utilities (`cn`) |
@@ -457,52 +504,9 @@ export function EntityForm({ open, onClose, initialData, onSuccess }) {
 
 ---
 
-## Form Components (40 forms)
+## Form Components (42 forms)
 
-Located at `apps/web/src/components/forms/`:
-
-| Form | Entity Table | Notes |
-|------|-------------|-------|
-| `biohazard-report-form` | `biohazard_reports` | |
-| `client-form` | `clients` | Wizard in create mode |
-| `complaint-form` | `complaints` | |
-| `completion-template-form` | `completion_templates` | |
-| `contact-form` | `contacts` | Client/site contacts |
-| `equipment-assignment-form` | `equipment_assignments` | |
-| `equipment-form` | `equipment` | |
-| `equipment-issue-form` | `equipment_issues` | |
-| `geofence-form` | `geofences` | |
-| `inventory-count-form` | `inventory_counts` | |
-| `job-form` | `site_jobs` | Wizard in create mode |
-| `job-log-form` | `job_logs` | |
-| `key-form` | `key_inventory` | |
-| `lookup-form` | `lookups` | |
-| `maintenance-form` | `vehicle_maintenance` | |
-| `message-form` | `message_threads` | |
-| `opportunity-form` | `opportunities` | |
-| `periodic-task-form` | `periodic_tasks` | |
-| `position-form` | `staff_positions` | |
-| `production-rate-form` | `production_rates` | |
-| `prospect-form` | `prospects` | |
-| `route-template-form` | `route_templates` | |
-| `route-template-stop-form` | `route_template_stops` | |
-| `route-template-task-form` | `route_template_tasks` | |
-| `service-form` | `services` | |
-| `site-form` | `sites` | |
-| `site-issue-form` | `site_issues` | |
-| `site-pin-form` | `site_pin_codes` | |
-| `staff-form` | `staff` | |
-| `subcontractor-form` | `subcontractors` | |
-| `supply-form` | `supply_catalog` | |
-| `supply-order-form` | `supply_orders` | |
-| `supply-request-form` | `supply_requests` | |
-| `supply-usage-form` | `supply_usage` | |
-| `supply-vendor-form` | `supply vendors` | |
-| `task-form` | `tasks` | |
-| `time-off-request-form` | `time_off_requests` | |
-| `training-course-form` | `training_courses` | |
-| `vehicle-form` | `vehicles` | |
-| `work-order-form` | `work_orders` | |
+Located at `apps/web/src/components/forms/`.
 
 ---
 
@@ -529,7 +533,7 @@ Located at `apps/web/src/hooks/`:
 | `use-realtime` | — | Supabase realtime channel subscriptions |
 | `use-role` | `{ can, isAtLeast, isAdmin, isManager }` | RBAC permission checks |
 | `use-server-pagination` | `{ ... }` | Server-side pagination |
-| `use-synced-tab` | `{ tab, setTab }` | URL-synced tab state |
+| `use-synced-tab` | `{ tab, setTab }` | URL-synced tab state with `?tab=` param and aliases |
 | `use-table-sort` | `{ sorted, sortKey, sortDir, onSort }` | Client-side column sorting |
 | `use-theme` | `{ theme, resolvedTheme, setTheme }` | Dark/light/system theme |
 | `use-ui-preferences` | `{ preferences, setPreference }` | UI state preferences |
@@ -583,6 +587,8 @@ Tailwind CSS 4 with CSS-first `@theme` configuration. Semantic HSL-channel token
 --primary: 217 91% 60%;
 ```
 
+Module accent colors are defined in `MODULE_ACCENTS` (`packages/shared/src/constants/index.ts`). Each module gets a unique accent color applied via CSS variable `--module-accent`. The `getModuleFromPathname()` function maps URL paths to module keys.
+
 Status badge colors: `green`, `red`, `yellow`, `blue`, `orange`, `purple`, `gray`
 
 ---
@@ -591,11 +597,14 @@ Status badge colors: `green`, `red`, `yellow`, `blue`, `orange`, `purple`, `gray
 
 ### Types
 All database interfaces (StandardColumns, Tenant, Client, Site, SalesBid, WorkTicket, etc.)
-App types (UserRole, NavSpace, ProblemDetails, StatusColor)
+App types (UserRole, NavSpace, NavItem, ProblemDetails, StatusColor, ModuleKey)
+NavSpace union: `home | schedule | jobs | shifts_time | pipeline | crm | clients | operations | workforce | team | inventory | assets | equipment | vendors | safety | admin | reports | settings | catalog`
 
 ### Constants
-NAV_ITEMS, PROSPECT_STATUS_COLORS, BID_STATUS_COLORS, PROPOSAL_STATUS_COLORS,
-TICKET_STATUS_COLORS, ROLES, FREQUENCIES, DIFFICULTY_MULTIPLIERS, WEEKS_PER_MONTH
+NAV_TREE, NAV_ITEMS, MODULE_ACCENTS, getModuleFromPathname(),
+PROSPECT_STATUS_COLORS, BID_STATUS_COLORS, PROPOSAL_STATUS_COLORS,
+TICKET_STATUS_COLORS, JOB_STATUS_COLORS, TIMESHEET_STATUS_COLORS,
+ROLES, FREQUENCIES, DIFFICULTY_MULTIPLIERS, WEEKS_PER_MONTH
 
 ### Errors
 createProblemDetails(), PROSPECT_001..003, BID_001..004, PROPOSAL_001..005,
@@ -607,7 +616,7 @@ prospectSchema, bidSchema, convertBidSchema, loginSchema
 
 ---
 
-## Migration Files (111 SQL files, 17,559 lines)
+## Migration Files (113 SQL files, 17,559 lines)
 
 | Range | What |
 |-------|------|
@@ -620,7 +629,7 @@ prospectSchema, bidSchema, convertBidSchema, loginSchema
 | 00050–00060 | HR tables, fleet DVIR, messaging, schedule availability, inventory counts |
 | 00061–00084 | Safety certs, training, production rates, geofences, mobile sync, warehouse, PIN codes |
 | 00085–00097 | Complaints, periodic tasks, route templates, field reports, night bridge, customer portal |
-| 00098–00111 | Shifts & time, schedule boards, work orders, payroll export, access windows |
+| 00098–00113 | Shifts & time, schedule boards, work orders, payroll export, access windows |
 
 ---
 
@@ -641,9 +650,9 @@ prospectSchema, bidSchema, convertBidSchema, loginSchema
 
 ---
 
-## Service Modules (27 domains)
+## Service Modules (28 domains)
 
-All 102 API routes follow the **thin delegate** pattern: `auth → validate → service → respond`.
+All 108 API routes follow the **thin delegate** pattern: `auth → validate → service → respond`.
 
 Located at `apps/web/src/modules/`:
 
@@ -715,22 +724,25 @@ Each module follows the **golden module** pattern:
 | G | Won conversion → contracts → tickets | DONE (convert RPC v2) |
 | H+ | Schedule, Inspections, Timekeeping, Safety | DONE (tables + forms) |
 | P1–P8 | Monday.com replacement (boards, scheduling, shifts, routes, complaints, field reports, night bridge, customer portal) | DONE |
+| NS | Project North Star — hierarchical nav, /catalog route, tab consolidation, legacy route migration | DONE |
+| QA | Full QA cycle — 24 issues fixed across 2 rounds (original 11 + supplemental 14) | DONE |
 
 ---
 
 ## Git History (Key Commits)
 
 ```
+2162581 fix(nav): update legacy route back-links to canonical module routes
+4dc2a48 fix(qa): resolve remaining 5 data/backend issues (S01, S02, S09, S10, S14)
+8948f59 fix(qa): resolve all supplemental QA issues (S03–S13)
+3bd49d4 fix(qa): hydration mismatch + mobile header responsive layout
+c5b70b0 fix(qa): address QA round 2 — root 404, supply cost errors, KPI loading, breadcrumbs, redirect
+c2af4f6 fix(qa): address QA report — 404 page, KPI links, pipeline sections, tab overflow, breadcrumbs
+ccca37a fix(nav): resolve tab bounce loop when navigating via sidebar children
+d4e239f feat(nav): implement Project North Star — hierarchical nav, /catalog route, tab consolidation
 2ee5fbf feat(schedule): fix Humanity-style UX gaps — copy-week, day timeline DnD, month labels
-b602afd chore(i18n): remove unused FR and RO locales — keep EN/ES/PT-BR
 4a3af57 feat(schedule): redesign boards with Monday.com visual language
 6cc6048 feat(schedule): add Humanity-style scheduling + Monday.com-style boards
-2412c17 feat(schedule): cross-cutting polish — forms empty state, checklist progress bar
-7c8a61a feat(schedule): add export and print buttons to planning board
-3295fa5 feat(schedule): add board activity log, grouping, and inline notes
-171000e chore: architecture handoff doc + lint cleanup
-ea9e5d8 feat(schedule): add React.memo wrapping and deduplicate formatTime
-ebc4130 feat(schedule): add conflict highlighting, mobile hint, handoff badges
 ```
 
 ---
@@ -749,7 +761,7 @@ ebc4130 feat(schedule): add conflict highlighting, mobile hint, handoff badges
 
 ### Add a detail page for an existing entity
 1. Create `[id]/page.tsx` under the entity's route folder
-2. Follow the Detail Page Pattern: back link, avatar, stat cards, section cards (`<dl>`), edit, deactivate
+2. Follow the Detail Page Pattern: back link, breadcrumb, avatar, ProfileCompletenessCard, stat cards, section cards (`<dl>`), ActivityHistorySection, edit, deactivate
 3. Update the table component: import `useRouter`, replace `onSelect` callback with `router.push`
 4. Keep form component for create-only (remove edit-via-drawer)
 
@@ -759,3 +771,11 @@ ebc4130 feat(schedule): add conflict highlighting, mobile hint, handoff badges
 3. Pipe data: `filtered → useTableSort → usePagination → render`
 4. Add filter chips row with count badges
 5. Add `ViewToggle` + `ExportButton` in the header area
+
+### Add a new navigation module
+1. Add the module key to `NavSpace` type in `packages/shared/src/types/app.ts`
+2. Add entry to `NAV_TREE` in `packages/shared/src/constants/index.ts` (with children if needed)
+3. Add accent color to `MODULE_ACCENTS` in the same file
+4. Add path mapping to `getModuleFromPathname()` in the same file
+5. Add icon to `ICON_MAP` in `apps/web/src/components/layout/sidebar.tsx`
+6. Create the route directory under `apps/web/src/app/(dashboard)/`

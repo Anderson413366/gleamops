@@ -105,13 +105,13 @@ export function Breadcrumbs() {
               <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             )}
             {isLast || !crumb.href ? (
-              <span className="text-foreground font-medium truncate max-w-[160px]">
+              <span className="text-foreground font-medium truncate max-w-[80px] sm:max-w-[120px] md:max-w-[160px]">
                 {crumb.label}
               </span>
             ) : (
               <Link
                 href={crumb.href}
-                className="text-muted-foreground hover:text-foreground transition-colors truncate max-w-[160px]"
+                className="text-muted-foreground hover:text-foreground transition-colors truncate max-w-[80px] sm:max-w-[120px] md:max-w-[160px]"
               >
                 {crumb.label}
               </Link>

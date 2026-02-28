@@ -173,7 +173,8 @@ export function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
   const [badgeCounts, setBadgeCounts] = useState<Record<string, number>>({});
-  const [expanded, setExpanded] = useState<Set<string>>(() => loadExpandedState());
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set<string>());
+  const expandedInitialized = useRef(false);
   const quickRef = useRef<HTMLDivElement>(null);
   const { user, role, signOut } = useAuth();
   const { t } = useLocale();
@@ -186,6 +187,14 @@ export function Sidebar() {
       || roleCode === 'MANAGER'
     );
   const shiftsTimeActive = pathname.startsWith('/shifts-time');
+
+  // Hydrate expanded state from localStorage after mount (avoids SSR mismatch)
+  useEffect(() => {
+    if (expandedInitialized.current) return;
+    expandedInitialized.current = true;
+    const stored = loadExpandedState();
+    if (stored.size > 0) setExpanded(stored);
+  }, []);
 
   // Auto-expand the active module's parent on mount
   useEffect(() => {

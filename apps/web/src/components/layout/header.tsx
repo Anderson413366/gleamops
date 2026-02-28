@@ -717,12 +717,12 @@ export function Header() {
         </div>
 
         {/* Right: search + theme toggle + notifications + avatar */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           {/* Search trigger */}
           <button
             type="button"
             onClick={() => setPaletteOpen(true)}
-            className="rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out inline-flex items-center gap-2"
+            className="rounded-lg p-2 sm:px-3 sm:py-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out inline-flex items-center gap-2"
             aria-label="Search"
           >
             <Search className="h-4 w-4" />
@@ -738,19 +738,21 @@ export function Header() {
               setShortcutsOpen(true);
               setPaletteOpen(false);
             }}
-            className="rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out inline-flex items-center gap-2"
+            className="hidden md:inline-flex rounded-lg px-3 py-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 ease-in-out items-center gap-2"
             aria-label="Keyboard shortcuts"
           >
             <Keyboard className="h-4 w-4" />
-            <span className="hidden sm:inline text-sm">Shortcuts</span>
-            <kbd className="hidden sm:inline-flex items-center rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+            <span className="hidden lg:inline text-sm">Shortcuts</span>
+            <kbd className="hidden lg:inline-flex items-center rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
               ?
             </kbd>
           </button>
 
-          {/* Density toggle */}
+          {/* Density toggle — hidden on mobile */}
           {densityMounted && (
-            <DensityToggle density={density} onChange={setDensity} />
+            <span className="hidden lg:inline-flex">
+              <DensityToggle density={density} onChange={setDensity} />
+            </span>
           )}
 
           {/* Theme picker */}

@@ -60,31 +60,31 @@ export function DailySnapshot({ snapshot, loading = false }: DailySnapshotProps)
             title="Pending Day-Off Requests"
             value={loading ? 0 : data.pending_day_off_requests}
             icon={<CalendarClock className="h-4 w-4 text-muted-foreground" />}
-            href="/team?tab=field-reports"
+            href="/team?tab=attendance"
           />
           <SnapshotCard
             title="Tonight Routes"
             value={loading ? 0 : data.tonight_routes}
             icon={<ClipboardList className="h-4 w-4 text-muted-foreground" />}
-            href="/operations?tab=routes"
+            href="/jobs?tab=routes"
           />
           <SnapshotCard
             title="Overdue Periodic Tasks"
             value={loading ? 0 : data.overdue_periodic_tasks}
             icon={<ClipboardCheck className="h-4 w-4 text-muted-foreground" />}
-            href="/operations?tab=periodic"
+            href="/schedule?tab=recurring"
           />
           <SnapshotCard
             title="Unreviewed Night Bridge"
             value={loading ? 0 : data.unreviewed_night_bridge}
             icon={<Moon className="h-4 w-4 text-muted-foreground" />}
-            href="/operations?tab=night-bridge"
+            href="/schedule?tab=master"
           />
           <SnapshotCard
             title="Open Complaints"
             value={loading ? 0 : data.open_complaints.total}
             icon={<AlertTriangle className="h-4 w-4 text-muted-foreground" />}
-            href="/operations?tab=complaints"
+            href="/jobs?tab=tickets"
             helper={(
               <Badge color={data.open_complaints.high_or_urgent > 0 ? 'red' : 'gray'}>
                 High/Urgent: {loading ? 0 : data.open_complaints.high_or_urgent}

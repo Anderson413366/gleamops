@@ -18,6 +18,7 @@ interface UnifiedSalesPageProps {
   actions?: ReactNode;
   kpiBar: ReactNode;
   sections: [SalesSectionSlot, SalesSectionSlot, SalesSectionSlot, SalesSectionSlot, SalesSectionSlot];
+  expandSectionId?: string;
 }
 
 const SECTION_TONE_STYLES: Record<SalesSectionTone, string> = {
@@ -36,7 +37,7 @@ function SectionCountBadge({ count }: { count?: number }) {
   );
 }
 
-export function UnifiedSalesPage({ actions, kpiBar, sections }: UnifiedSalesPageProps) {
+export function UnifiedSalesPage({ actions, kpiBar, sections, expandSectionId }: UnifiedSalesPageProps) {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -59,6 +60,7 @@ export function UnifiedSalesPage({ actions, kpiBar, sections }: UnifiedSalesPage
             title={section.title}
             description={section.description}
             headerRight={<SectionCountBadge count={section.count} />}
+            forceOpen={expandSectionId === section.id}
             className={cn(
               'overflow-hidden border shadow-sm transition-all duration-150',
               SECTION_TONE_STYLES[section.tone],

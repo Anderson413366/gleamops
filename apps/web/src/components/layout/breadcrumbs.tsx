@@ -59,13 +59,18 @@ export function Breadcrumbs() {
   const normalized = segments[0] === 'home' ? segments.slice(1) : segments;
   if (segments.length === 0) return null;
 
-  const crumbs = [
+  const rawCrumbs = [
     { label: 'Home', href: '/' },
     ...normalized.map((seg, i) => ({
       label: humanize(seg),
       href: '/' + normalized.slice(0, i + 1).join('/'),
     })),
   ];
+
+  // Deduplicate consecutive crumbs with the same label (e.g. "Jobs > Jobs")
+  const crumbs = rawCrumbs.filter(
+    (crumb, i) => i === 0 || crumb.label !== rawCrumbs[i - 1].label,
+  );
 
   // Truncate middle crumbs if path is very deep (more than 5 crumbs)
   const MAX_CRUMBS = 5;

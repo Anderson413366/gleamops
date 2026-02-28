@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Calculator, Plus } from 'lucide-react';
@@ -33,7 +33,27 @@ function UnifiedPipelinePageClient() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const action = searchParams.get('action');
+  const tabParam = searchParams.get('tab');
   const [search, setSearch] = useState('');
+
+  const TAB_TO_SECTION: Record<string, string> = useMemo(() => ({
+    prospects: 'prospects',
+    opportunities: 'opportunities',
+    bids: 'bids-pricing',
+    proposals: 'proposals',
+    analytics: 'analytics',
+  }), []);
+  const expandSectionId = tabParam ? TAB_TO_SECTION[tabParam] : undefined;
+
+  // Scroll to the targeted section when navigating via sidebar child link
+  useEffect(() => {
+    if (!expandSectionId) return;
+    const timer = setTimeout(() => {
+      const el = document.getElementById(`pipeline-section-${expandSectionId}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [expandSectionId]);
 
   // Form state
   const [prospectFormOpen, setProspectFormOpen] = useState(false);
@@ -236,6 +256,7 @@ function UnifiedPipelinePageClient() {
   return (
     <>
       <UnifiedSalesPage
+        expandSectionId={expandSectionId}
         actions={(
           <>
             <SearchInput

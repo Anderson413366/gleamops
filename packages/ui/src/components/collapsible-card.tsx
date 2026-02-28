@@ -15,6 +15,7 @@ interface CollapsibleCardProps {
   className?: string;
   defaultOpen?: boolean;
   defaultCollapsed?: boolean;
+  forceOpen?: boolean;
 }
 
 export function CollapsibleCard({
@@ -27,6 +28,7 @@ export function CollapsibleCard({
   className,
   defaultOpen = true,
   defaultCollapsed,
+  forceOpen,
 }: CollapsibleCardProps) {
   const storageKey = `collapse-${id}`;
   const initialOpen = defaultCollapsed != null ? !defaultCollapsed : defaultOpen;
@@ -45,6 +47,11 @@ export function CollapsibleCard({
     }
     setMounted(true);
   }, [storageKey]);
+
+  // External control: when forceOpen flips to true, open the card
+  useEffect(() => {
+    if (forceOpen) setIsOpen(true);
+  }, [forceOpen]);
 
   const toggle = () => {
     const next = !isOpen;

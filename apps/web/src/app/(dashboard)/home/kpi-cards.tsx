@@ -31,14 +31,14 @@ const KPI_META = [
     label: 'Complaint Response Time',
     icon: <Activity className="h-4 w-4 text-muted-foreground" />,
     format: formatHours,
-    href: '/operations?tab=complaints',
+    href: '/jobs?tab=tickets',
   },
   {
     key: 'first_time_resolution_rate_pct',
     label: 'First-Time Resolution',
     icon: <AlertTriangle className="h-4 w-4 text-muted-foreground" />,
     format: (value: number | null | undefined) => formatNumber(value != null ? Math.round(value * 100) / 100 : null, '%'),
-    href: '/operations?tab=tickets',
+    href: '/jobs?tab=tickets',
   },
   {
     key: 'inventory_on_time_rate_pct',

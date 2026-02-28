@@ -1,6 +1,6 @@
  'use client';
 
-import { useMemo } from 'react';
+import { Suspense, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import { X } from 'lucide-react';
 import { Sidebar } from './sidebar';
@@ -40,14 +40,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
          2) After preferences mount, React stops rendering the chrome entirely */}
       {!focusMode && (
         <div className="app-shell-sidebar">
-          <Sidebar />
+          <Suspense>
+            <Sidebar />
+          </Suspense>
         </div>
       )}
 
       <div className={`app-shell-content ${focusMode ? '' : 'md:ml-64'}`}>
         {!focusMode && (
           <div className="app-shell-header">
-            <Header />
+            <Suspense>
+              <Header />
+            </Suspense>
           </div>
         )}
         <main id="main-content" tabIndex={-1} className="app-shell-main w-full max-w-none px-4 py-6 sm:px-6 lg:px-8">

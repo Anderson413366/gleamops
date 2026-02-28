@@ -48,18 +48,21 @@ export function useSyncedTab({ tabKeys, defaultTab, aliases }: UseSyncedTabOptio
     setTab(resolvedUrlTab);
   }, [resolvedUrlTab]);
 
-  // Keep URL canonical only when a tab param exists (aliases/invalid tabs normalize
-  // to the resolved canonical tab). Avoid writing default tabs back to the URL on
-  // first load to prevent tab flicker/race behavior across module pages.
+  // Normalize aliased or invalid tab keys in the URL. When the URL tab is already
+  // a valid (non-aliased) key, skip the rewrite — it was set by external navigation
+  // (e.g. sidebar link) and the stale closure value of `tab` would cause a bounce loop.
   useEffect(() => {
     if (!tab) return;
     if (!rawUrlTab) return;
     if (rawUrlTab === tab) return;
+    // If the URL already contains a valid tab key, don't rewrite — let Effect 1
+    // sync state from the URL instead. Only rewrite for aliases/invalid keys.
+    if (validTabKeys.includes(rawUrlTab)) return;
     const next = new URLSearchParams(searchParamsString);
     next.set('tab', tab);
     const nextQuery = next.toString();
     router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
-  }, [pathname, rawUrlTab, router, searchParamsString, tab]);
+  }, [pathname, rawUrlTab, router, searchParamsString, tab, validTabKeys]);
 
   const setSyncedTab = useCallback((nextTab: string) => {
     const resolved = resolveTab(nextTab);

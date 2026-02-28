@@ -79,6 +79,7 @@ interface ScheduleGridProps {
   search?: string;
   onSelect?: (row: RecurringScheduleRow) => void;
   onReassign?: (ticketId: string, newDate: string, newStaffName: string) => void;
+  onQuickCreate?: (date: string, staffName: string) => void;
 }
 
 function groupByStaff(rows: RecurringScheduleRow[]) {
@@ -128,41 +129,68 @@ function dayOfWeekFromDateKey(dateKey: string): number {
   return new Date(`${dateKey}T12:00:00`).getDay();
 }
 
-export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect, onReassign }: ScheduleGridProps) {
-  const [dragData, setDragData] = useState<{ rowId: string; staffName: string; dateKey: string } | null>(null);
+export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect, onReassign, onQuickCreate }: ScheduleGridProps) {
+  const [dragData, setDragData] = useState<{ rowId: string; staffName: string; dateKey: string; positionCode?: string } | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
+  const [dropFeedback, setDropFeedback] = useState<{ cellKey: string; valid: boolean } | null>(null);
   const [availability, setAvailability] = useState<AvailabilityRule[]>([]);
+  const [eligibilityMap, setEligibilityMap] = useState<Map<string, Set<string>>>(new Map());
 
-  // Fetch availability rules
+  // Fetch availability rules and position eligibility
   useEffect(() => {
     let cancelled = false;
 
-    async function fetchAvailability() {
+    async function fetchAvailabilityAndEligibility() {
       const supabase = getSupabaseBrowserClient();
-      const { data } = await supabase
-        .from('staff_availability_rules')
-        .select('id, staff_id, day_of_week, is_available, reason, staff:staff_id(full_name)')
-        .eq('is_available', false);
 
-      if (!cancelled && data) {
-        setAvailability(
-          (data as unknown as Array<{
+      const [availRes, eligRes] = await Promise.all([
+        supabase
+          .from('staff_availability_rules')
+          .select('id, staff_id, day_of_week, is_available, reason, staff:staff_id(full_name)')
+          .eq('is_available', false),
+        supabase
+          .from('staff_eligible_positions')
+          .select('staff_id, position_code, staff:staff_id(full_name)')
+          .is('archived_at', null),
+      ]);
+
+      if (!cancelled) {
+        if (availRes.data) {
+          setAvailability(
+            (availRes.data as unknown as Array<{
+              staff_id: string;
+              day_of_week: number;
+              is_available: boolean;
+              reason?: string | null;
+              staff?: { full_name?: string | null } | null;
+            }>).map((r) => ({
+              staff_name: r.staff?.full_name?.trim() ?? '',
+              day_of_week: r.day_of_week,
+              is_available: r.is_available,
+              reason: r.reason,
+            })),
+          );
+        }
+
+        if (eligRes.data) {
+          const map = new Map<string, Set<string>>();
+          for (const row of eligRes.data as unknown as Array<{
             staff_id: string;
-            day_of_week: number;
-            is_available: boolean;
-            reason?: string | null;
+            position_code: string;
             staff?: { full_name?: string | null } | null;
-          }>).map((r) => ({
-            staff_name: r.staff?.full_name?.trim() ?? '',
-            day_of_week: r.day_of_week,
-            is_available: r.is_available,
-            reason: r.reason,
-          })),
-        );
+          }>) {
+            const name = row.staff?.full_name?.trim() ?? '';
+            if (!name) continue;
+            const existing = map.get(name) ?? new Set();
+            existing.add(row.position_code);
+            map.set(name, existing);
+          }
+          setEligibilityMap(map);
+        }
       }
     }
 
-    void fetchAvailability();
+    void fetchAvailabilityAndEligibility();
     return () => { cancelled = true; };
   }, []);
 
@@ -190,31 +218,52 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect, o
   }, [rows, search]);
 
   const grouped = useMemo(() => groupByStaff(filtered), [filtered]);
-  const staffNames = useMemo(() => Object.keys(grouped).sort((a, b) => a.localeCompare(b)), [grouped]);
+  // Pin "Open Shift" at top, then sort remaining alphabetically
+  const staffNames = useMemo(() => {
+    const names = Object.keys(grouped);
+    const openShift = names.filter((n) => n === 'Open Shift');
+    const others = names.filter((n) => n !== 'Open Shift').sort((a, b) => a.localeCompare(b));
+    return [...openShift, ...others];
+  }, [grouped]);
   const conflictKeys = useMemo(() => buildConflictKeys(filtered), [filtered]);
   const dateColumns = visibleDates.length > 0 ? visibleDates : fallbackWeekDates();
   const gridTemplateColumns = `220px repeat(${dateColumns.length}, minmax(128px, 1fr))`;
   const minWidthPx = 220 + dateColumns.length * 128;
 
-  const handleDragStart = useCallback((event: DragEvent, rowId: string, staffName: string, dateKey: string) => {
-    setDragData({ rowId, staffName, dateKey });
+  const handleDragStart = useCallback((event: DragEvent, rowId: string, staffName: string, dateKey: string, positionCode?: string) => {
+    setDragData({ rowId, staffName, dateKey, positionCode });
     event.dataTransfer.effectAllowed = 'move';
-    event.dataTransfer.setData('text/plain', JSON.stringify({ rowId, staffName, dateKey }));
+    event.dataTransfer.setData('text/plain', JSON.stringify({ rowId, staffName, dateKey, positionCode }));
   }, []);
 
   const handleDragOver = useCallback((event: DragEvent, cellKey: string) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
     setDropTarget(cellKey);
-  }, []);
+
+    // Show eligibility feedback when dragging to a different staff row
+    if (dragData) {
+      const targetStaffName = cellKey.split(':')[0];
+      if (targetStaffName !== dragData.staffName && dragData.positionCode) {
+        const targetEligible = eligibilityMap.get(targetStaffName);
+        // If no eligibility data exists, allow the drop (graceful degradation)
+        const isEligible = !targetEligible || targetEligible.size === 0 || targetEligible.has(dragData.positionCode);
+        setDropFeedback({ cellKey, valid: isEligible });
+      } else {
+        setDropFeedback(null);
+      }
+    }
+  }, [dragData, eligibilityMap]);
 
   const handleDragLeave = useCallback(() => {
     setDropTarget(null);
+    setDropFeedback(null);
   }, []);
 
   const handleDrop = useCallback(async (event: DragEvent, targetStaffName: string, targetDateKey: string) => {
     event.preventDefault();
     setDropTarget(null);
+    setDropFeedback(null);
 
     let data = dragData;
     if (!data) {
@@ -226,21 +275,35 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect, o
     }
     if (!data) return;
 
-    const { rowId, dateKey: sourceDate } = data;
-    if (targetStaffName === data.staffName && targetDateKey === sourceDate) return;
+    const { rowId, dateKey: sourceDate, positionCode } = data;
+    const isStaffChange = targetStaffName !== data.staffName;
+    if (!isStaffChange && targetDateKey === sourceDate) return;
+
+    // Check eligibility when reassigning to different staff
+    if (isStaffChange && positionCode) {
+      const targetEligible = eligibilityMap.get(targetStaffName);
+      // Only block if the target has defined eligibility that doesn't include this position
+      if (targetEligible && targetEligible.size > 0 && !targetEligible.has(positionCode)) {
+        // Show a visual indication that the drop was rejected
+        const positionLabel = positionCode.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+        window.dispatchEvent(new CustomEvent('gleamops:toast', {
+          detail: { type: 'error', message: `Cannot assign — ${targetStaffName} is not eligible for ${positionLabel}. Assign the position first.` },
+        }));
+        setDragData(null);
+        return;
+      }
+    }
 
     // Find the matching ticket to get the actual ticket ID
     const row = filtered.find((r) => r.id === rowId);
     if (!row) return;
 
-    // Extract ticket ID from the row - the first segment before the first dash compound
-    // The row ID is a composite, so we need to look up the actual ticket
     const supabase = getSupabaseBrowserClient();
 
     // Find the work_ticket for this row's staff+site+date+time combination
     const { data: tickets } = await supabase
       .from('work_tickets')
-      .select('id, assignments:ticket_assignments(id, staff:staff_id(full_name))')
+      .select('id, position_code, assignments:ticket_assignments(id, staff_id, staff:staff_id(full_name))')
       .eq('scheduled_date', sourceDate)
       .is('archived_at', null);
 
@@ -248,7 +311,8 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect, o
 
     const matchingTicket = (tickets as unknown as Array<{
       id: string;
-      assignments?: Array<{ id: string; staff?: { full_name?: string | null } | null }>;
+      position_code: string | null;
+      assignments?: Array<{ id: string; staff_id: string; staff?: { full_name?: string | null } | null }>;
     }>).find((t) => {
       const assignedStaff = t.assignments?.map((a) => a.staff?.full_name?.trim()).filter(Boolean) ?? [];
       return assignedStaff.includes(data!.staffName) || (data!.staffName === 'Open Shift' && assignedStaff.length === 0);
@@ -256,7 +320,7 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect, o
 
     if (!matchingTicket) return;
 
-    // Reschedule to new date
+    // Reschedule to new date if date changed
     if (targetDateKey !== sourceDate) {
       await supabase
         .from('work_tickets')
@@ -264,13 +328,55 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect, o
         .eq('id', matchingTicket.id);
     }
 
+    // Reassign to new staff if staff changed
+    if (isStaffChange && targetStaffName !== 'Open Shift') {
+      // Find the target staff ID
+      const { data: targetStaff } = await supabase
+        .from('staff')
+        .select('id')
+        .eq('full_name', targetStaffName)
+        .is('archived_at', null)
+        .limit(1)
+        .single();
+
+      if (targetStaff) {
+        // Find the existing assignment for this ticket from the source staff
+        const sourceAssignment = matchingTicket.assignments?.find(
+          (a) => a.staff?.full_name?.trim() === data!.staffName
+        );
+
+        if (sourceAssignment) {
+          // Release the old assignment and create a new one
+          await supabase
+            .from('ticket_assignments')
+            .update({ assignment_status: 'RELEASED', released_at: new Date().toISOString() })
+            .eq('id', sourceAssignment.id);
+
+          const { data: auth } = await supabase.auth.getUser();
+          const tenantId = auth.user?.app_metadata?.tenant_id ?? null;
+
+          await supabase
+            .from('ticket_assignments')
+            .insert({
+              tenant_id: tenantId,
+              ticket_id: matchingTicket.id,
+              staff_id: targetStaff.id,
+              assignment_status: 'ASSIGNED',
+              assignment_type: 'DIRECT',
+              role: matchingTicket.position_code,
+            });
+        }
+      }
+    }
+
     onReassign?.(matchingTicket.id, targetDateKey, targetStaffName);
     setDragData(null);
-  }, [dragData, filtered, onReassign]);
+  }, [dragData, filtered, onReassign, eligibilityMap]);
 
   const handleDragEnd = useCallback(() => {
     setDragData(null);
     setDropTarget(null);
+    setDropFeedback(null);
   }, []);
 
   if (!filtered.length) {
@@ -317,16 +423,23 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect, o
               className="grid border-b border-border last:border-b-0"
               style={{ gridTemplateColumns }}
             >
-              <div className="sticky left-0 z-10 bg-card border-r border-border px-4 py-3">
-                <p className="text-sm font-semibold text-foreground">{staffName}</p>
-                <p className="text-xs text-muted-foreground">
-                  {staffRows.length} assignment(s)
-                  {hours > 0 && (
-                    <span className={cn('ml-1', hours > 40 && 'text-destructive font-medium')}>
-                      · {formatHours(hours)} this period
-                    </span>
-                  )}
+              <div className={cn(
+                'sticky left-0 z-10 border-r border-border px-4 py-3',
+                staffName === 'Open Shift' ? 'bg-destructive/5' : 'bg-card',
+              )}>
+                <p className="text-sm font-semibold text-foreground">
+                  {staffName === 'Open Shift' ? `Empty Shifts (${staffRows.length})` : staffName}
                 </p>
+                {staffName !== 'Open Shift' && (
+                  <p className="text-xs text-muted-foreground">
+                    {staffRows.length} assignment(s)
+                    {hours > 0 && (
+                      <span className={cn('ml-1', hours > 40 && 'text-destructive font-medium')}>
+                        · {formatHours(hours)} this period
+                      </span>
+                    )}
+                  </p>
+                )}
               </div>
 
               {dateColumns.map((dateKey) => {
@@ -342,7 +455,9 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect, o
                     key={cellKey}
                     className={cn(
                       'space-y-2 px-2 py-2 transition-colors relative',
-                      isDragOver && 'border-dashed border-2 border-primary bg-primary/5 rounded-lg',
+                      isDragOver && !dropFeedback && 'border-dashed border-2 border-primary bg-primary/5 rounded-lg',
+                      isDragOver && dropFeedback?.cellKey === cellKey && dropFeedback.valid && 'border-dashed border-2 border-green-500 bg-green-50/50 rounded-lg dark:bg-green-950/20',
+                      isDragOver && dropFeedback?.cellKey === cellKey && !dropFeedback.valid && 'border-dashed border-2 border-red-500 bg-red-50/50 rounded-lg dark:bg-red-950/20',
                       isUnavailable && 'unavailable-cell',
                     )}
                     onDragOver={(e) => handleDragOver(e, cellKey)}
@@ -375,18 +490,24 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect, o
                             startTime={row.startTime}
                             endTime={row.endTime}
                             staffName={row.staffName}
+                            clientCode={row.clientCode}
                             isOpenShift={row.status === 'open'}
                             hasConflict={conflictKeys.has(`${row.id}:${dateKey}`)}
                             draggable
-                            onDragStart={(e) => handleDragStart(e, row.id, staffName, dateKey)}
+                            onDragStart={(e) => handleDragStart(e, row.id, staffName, dateKey, row.positionType)}
                             onDragEnd={handleDragEnd}
                           />
                         </button>
                       ))
                     ) : !isUnavailable ? (
-                      <div className="rounded-lg border border-dashed border-border/70 px-2 py-3 text-center text-[11px] text-muted-foreground">
-                        OFF
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onQuickCreate?.(dateKey, staffName)}
+                        className="w-full rounded-lg border border-dashed border-border/70 px-2 py-3 text-center text-[11px] text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-primary transition-colors group"
+                      >
+                        <span className="group-hover:hidden">OFF</span>
+                        <span className="hidden group-hover:inline">+ Add</span>
+                      </button>
                     ) : null}
                   </div>
                 );

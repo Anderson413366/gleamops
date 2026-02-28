@@ -529,6 +529,7 @@ export const staffPositionSchema = z.object({
   pay_grade: z.string().nullable().default(null),
   is_active: z.boolean().default(true),
   notes: z.string().nullable().default(null),
+  color_token: z.string().default('slate'),
 });
 export type StaffPositionFormData = z.infer<typeof staffPositionSchema>;
 

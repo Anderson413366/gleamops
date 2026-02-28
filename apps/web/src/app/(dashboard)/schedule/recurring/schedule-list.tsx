@@ -24,6 +24,9 @@ export interface RecurringScheduleRow {
   positionType: string;
   siteName: string;
   siteCode?: string | null;
+  clientName?: string | null;
+  clientId?: string | null;
+  clientCode?: string | null;
   startTime: string;
   endTime: string;
   scheduledDates: string[];

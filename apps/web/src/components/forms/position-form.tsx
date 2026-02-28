@@ -1,11 +1,28 @@
 'use client';
 
-import { Briefcase, StickyNote } from 'lucide-react';
+import { Briefcase, StickyNote, Palette } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { staffPositionSchema, type StaffPositionFormData } from '@gleamops/shared';
 import { SlideOver, Input, Select, Textarea, Button, FormSection } from '@gleamops/ui';
 import type { StaffPosition } from '@gleamops/shared';
+import { invalidatePositionTypesCache } from '@/hooks/use-position-types';
+
+const COLOR_TOKEN_OPTIONS = [
+  { value: 'green', label: 'Green' },
+  { value: 'red', label: 'Red' },
+  { value: 'blue', label: 'Blue' },
+  { value: 'yellow', label: 'Yellow' },
+  { value: 'pink', label: 'Pink' },
+  { value: 'purple', label: 'Purple' },
+  { value: 'indigo', label: 'Indigo' },
+  { value: 'orange', label: 'Orange' },
+  { value: 'teal', label: 'Teal' },
+  { value: 'emerald', label: 'Emerald' },
+  { value: 'amber', label: 'Amber' },
+  { value: 'cyan', label: 'Cyan' },
+  { value: 'slate', label: 'Slate (Default)' },
+];
 
 const DEFAULTS: StaffPositionFormData = {
   position_code: '',
@@ -14,6 +31,7 @@ const DEFAULTS: StaffPositionFormData = {
   pay_grade: null,
   is_active: true,
   notes: null,
+  color_token: 'slate',
 };
 
 interface PositionFormProps {
@@ -37,6 +55,7 @@ export function PositionForm({ open, onClose, initialData, onSuccess }: Position
           pay_grade: initialData.pay_grade,
           is_active: initialData.is_active,
           notes: initialData.notes,
+          color_token: initialData.color_token ?? 'slate',
         }
       : DEFAULTS,
     onSubmit: async (data) => {
@@ -49,6 +68,7 @@ export function PositionForm({ open, onClose, initialData, onSuccess }: Position
             pay_grade: data.pay_grade,
             is_active: data.is_active,
             notes: data.notes,
+            color_token: data.color_token,
           })
           .eq('id', initialData!.id)
           .eq('version_etag', initialData!.version_etag)
@@ -61,6 +81,7 @@ export function PositionForm({ open, onClose, initialData, onSuccess }: Position
         });
         if (error) throw error;
       }
+      invalidatePositionTypesCache();
       onSuccess?.();
       handleClose();
     },
@@ -118,6 +139,22 @@ export function PositionForm({ open, onClose, initialData, onSuccess }: Position
               { value: 'false', label: 'Inactive' },
             ]}
           />
+        </FormSection>
+
+        <FormSection title="Schedule Color" icon={<Palette className="h-4 w-4" />} description="Color used for this position type in the schedule grid.">
+          <Select
+            label="Color"
+            value={values.color_token}
+            onChange={(e) => setValue('color_token', e.target.value)}
+            options={COLOR_TOKEN_OPTIONS}
+          />
+          <div className="mt-2 flex items-center gap-2">
+            <div
+              className={`h-6 w-6 rounded-full border-2 border-${values.color_token}-400 bg-${values.color_token}-200`}
+              style={{ backgroundColor: `var(--color-${values.color_token}-200, #94a3b8)` }}
+            />
+            <span className="text-xs text-muted-foreground">Preview of schedule block color</span>
+          </div>
         </FormSection>
 
         <FormSection title="Notes" icon={<StickyNote className="h-4 w-4" />} description="Optional internal notes for this position.">

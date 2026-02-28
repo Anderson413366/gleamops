@@ -560,6 +560,7 @@ export interface WorkTicket extends StandardColumns {
   locked_at: string | null;
   locked_by: string | null;
   planning_status: 'NOT_STARTED' | 'IN_PROGRESS' | 'READY';
+  note: string | null;
 }
 
 export type PlanningStatus = WorkTicket['planning_status'];
@@ -581,10 +582,29 @@ export interface SchedulePeriod extends StandardColumns {
   period_start: string;
   period_end: string;
   status: 'DRAFT' | 'PUBLISHED' | 'LOCKED' | 'ARCHIVED';
+  period_type: 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY';
+  payroll_anchor_date: string | null;
   published_at: string | null;
   published_by: string | null;
   locked_at: string | null;
   locked_by: string | null;
+}
+
+export interface TenantScheduleSettings {
+  id: string;
+  tenant_id: string;
+  default_period_type: 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY';
+  payroll_anchor_date: string | null;
+  default_horizon: '1w' | '2w' | '4w' | '1m';
+  max_daily_hours: number | null;
+  max_weekly_hours: number | null;
+  max_monthly_hours: number | null;
+  min_rest_hours: number | null;
+  overtime_threshold: number | null;
+  overtime_multiplier: number | null;
+  created_at: string;
+  updated_at: string;
+  version_etag: string;
 }
 
 export interface StaffAvailabilityRule extends StandardColumns {
@@ -1123,6 +1143,15 @@ export interface StaffPosition extends StandardColumns {
   department: string | null;
   pay_grade: string | null;
   is_active: boolean;
+  notes: string | null;
+  color_token: string;
+}
+
+export interface StaffEligiblePosition extends StandardColumns {
+  staff_id: string;
+  position_code: string;
+  is_primary: boolean;
+  certified_at: string | null;
   notes: string | null;
 }
 

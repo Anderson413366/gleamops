@@ -18,7 +18,7 @@ interface ChipTabsProps {
 }
 
 const TAB_BUTTON_CLASS =
-  'inline-flex min-h-9 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-all duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background';
+  'inline-flex min-h-9 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background';
 
 const MORE_BUTTON_WIDTH = 90; // reserved space for the "More" button
 const GAP = 8; // gap-2 = 0.5rem = 8px
@@ -27,12 +27,23 @@ export function ChipTabs({ tabs, active, onChange }: ChipTabsProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const widthCache = useRef<Map<string, number>>(new Map());
+  const rafId = useRef<number>(0);
+  const lastContainerWidth = useRef<number>(0);
+  const visibleCountRef = useRef<number>(tabs.length);
   const [showLeft, setShowLeft] = useState(false);
   const [showRight, setShowRight] = useState(false);
   const [visibleCount, setVisibleCount] = useState(tabs.length);
   const [moreOpen, setMoreOpen] = useState(false);
   const [isSmallScreen, setIsSmallScreen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
+
+  // Invalidate width cache when tabs array changes
+  const prevTabCount = useRef(tabs.length);
+  if (tabs.length !== prevTabCount.current) {
+    widthCache.current.clear();
+    prevTabCount.current = tabs.length;
+  }
 
   const updateOverflow = useCallback(() => {
     const el = scrollRef.current;
@@ -41,7 +52,8 @@ export function ChipTabs({ tabs, active, onChange }: ChipTabsProps) {
     setShowRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
   }, []);
 
-  // Calculate how many tabs fit on desktop
+  // Calculate how many tabs fit on desktop — reads from widthCache, never
+  // from overflow/hidden DOM elements, so the result is deterministic.
   const calculateVisibleTabs = useCallback(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -52,21 +64,33 @@ export function ChipTabs({ tabs, active, onChange }: ChipTabsProps) {
 
     // On small screens, show all tabs with scroll
     if (small) {
-      setVisibleCount(tabs.length);
+      if (visibleCountRef.current !== tabs.length) {
+        visibleCountRef.current = tabs.length;
+        setVisibleCount(tabs.length);
+      }
       return;
     }
 
-    // Measure tab widths from refs
+    // Cache tab widths from visible refs (only when fully rendered — skip
+    // any element whose measured width is suspiciously small, e.g. mid-
+    // transition or disconnected from the DOM)
+    for (const tab of tabs) {
+      const el = tabRefs.current.get(tab.key);
+      if (el && el.offsetWidth > 10) {
+        widthCache.current.set(tab.key, el.offsetWidth);
+      }
+    }
+
+    // Calculate how many tabs fit using cached widths
     let usedWidth = 0;
     let count = 0;
 
     for (const tab of tabs) {
-      const el = tabRefs.current.get(tab.key);
-      const tabWidth = el ? el.offsetWidth : 100; // fallback estimate
+      const tabWidth = widthCache.current.get(tab.key) ?? 100; // fallback if never cached
       const nextWidth = usedWidth + tabWidth + (count > 0 ? GAP : 0);
 
-      // If adding this tab would exceed available space (minus "More" button space),
-      // and there are more tabs after this one, stop here
+      // If adding this tab would exceed available space (minus "More" button
+      // space), and there are more tabs after this one, stop here
       if (count > 0 && nextWidth > containerWidth - MORE_BUTTON_WIDTH - GAP && count < tabs.length) {
         break;
       }
@@ -75,34 +99,57 @@ export function ChipTabs({ tabs, active, onChange }: ChipTabsProps) {
       count++;
     }
 
-    // If all tabs fit, show them all
-    if (count >= tabs.length) {
-      setVisibleCount(tabs.length);
-    } else {
-      setVisibleCount(Math.max(1, count));
+    const newCount = count >= tabs.length ? tabs.length : Math.max(1, count);
+
+    // Only update state if the value actually changed — prevents re-renders
+    // that would trigger another ResizeObserver cycle
+    if (visibleCountRef.current !== newCount) {
+      visibleCountRef.current = newCount;
+      setVisibleCount(newCount);
     }
   }, [tabs]);
 
   useEffect(() => {
+    const container = containerRef.current;
     const el = scrollRef.current;
-    if (!el) return;
+    if (!el || !container) return;
+
     updateOverflow();
     el.addEventListener('scroll', updateOverflow, { passive: true });
-    const ro = new ResizeObserver(() => {
-      updateOverflow();
-      calculateVisibleTabs();
+
+    // IMPORTANT: Only observe the outer container, NOT scrollRef.
+    // scrollRef's size changes whenever visibleCount changes (tabs are
+    // added/removed from it), which would create a feedback loop.
+    // containerRef's width is set by the page layout and does not change
+    // when we adjust tab visibility.
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+
+      const newWidth = entry.contentRect.width;
+
+      // Skip if the container width hasn't meaningfully changed — avoids
+      // reacting to height-only changes (e.g. flex-wrap line changes)
+      if (Math.abs(newWidth - lastContainerWidth.current) < 1) return;
+      lastContainerWidth.current = newWidth;
+
+      cancelAnimationFrame(rafId.current);
+      rafId.current = requestAnimationFrame(() => {
+        updateOverflow();
+        calculateVisibleTabs();
+      });
     });
-    ro.observe(el);
-    if (containerRef.current) ro.observe(containerRef.current);
+    ro.observe(container);
+
     return () => {
       el.removeEventListener('scroll', updateOverflow);
+      cancelAnimationFrame(rafId.current);
       ro.disconnect();
     };
   }, [updateOverflow, calculateVisibleTabs, tabs.length]);
 
   // Initial calculation after mount
   useEffect(() => {
-    // Use requestAnimationFrame to ensure DOM measurements are ready
     const raf = requestAnimationFrame(() => {
       calculateVisibleTabs();
     });
@@ -148,7 +195,7 @@ export function ChipTabs({ tabs, active, onChange }: ChipTabsProps) {
             : 'flex-wrap'
         )}
       >
-        {/* Render all tabs (hidden measure + visible) */}
+        {/* Render visible tabs */}
         {visibleTabs.map((tab) => (
           <button
             key={tab.key}
@@ -180,23 +227,6 @@ export function ChipTabs({ tabs, active, onChange }: ChipTabsProps) {
                 {tab.count}
               </span>
             )}
-          </button>
-        ))}
-
-        {/* Hidden measure refs for overflow tabs */}
-        {overflowTabs.map((tab) => (
-          <button
-            key={`measure-${tab.key}`}
-            ref={(el) => {
-              if (el) tabRefs.current.set(tab.key, el);
-            }}
-            type="button"
-            tabIndex={-1}
-            aria-hidden="true"
-            className={cn(TAB_BUTTON_CLASS, 'sr-only pointer-events-none')}
-          >
-            {tab.icon}
-            {tab.label}
           </button>
         ))}
 

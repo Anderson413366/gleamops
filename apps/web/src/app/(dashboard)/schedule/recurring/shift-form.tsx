@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Button, Input, Select, SlideOver } from '@gleamops/ui';
+import { Button, Input, Select, SlideOver, Textarea } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 
@@ -10,6 +10,11 @@ interface ShiftFormProps {
   open: boolean;
   onClose: () => void;
   onCreated: () => void;
+  /** Pre-fill values when creating from a cell click */
+  prefill?: {
+    date?: string;
+    staffName?: string;
+  } | null;
 }
 
 interface SiteOption {
@@ -49,7 +54,17 @@ function nextDateForDay(startDate: Date, targetJsDay: number): Date {
   return base;
 }
 
-export function ShiftForm({ open, onClose, onCreated }: ShiftFormProps) {
+function computeDuration(start: string, end: string): string {
+  const [sh, sm] = start.split(':').map(Number);
+  const [eh, em] = end.split(':').map(Number);
+  let totalMinutes = (eh * 60 + em) - (sh * 60 + sm);
+  if (totalMinutes <= 0) totalMinutes += 24 * 60;
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+}
+
+export function ShiftForm({ open, onClose, onCreated, prefill }: ShiftFormProps) {
   const { tenantId } = useAuth();
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const [saving, setSaving] = useState(false);
@@ -67,6 +82,13 @@ export function ShiftForm({ open, onClose, onCreated }: ShiftFormProps) {
   const [endTime, setEndTime] = useState('22:00');
   const [weeksAhead, setWeeksAhead] = useState('1');
   const [selectedDays, setSelectedDays] = useState<string[]>(['MON', 'TUE', 'WED', 'THU', 'FRI']);
+  const [note, setNote] = useState('');
+
+  // Apply prefill when form opens
+  useEffect(() => {
+    if (!open || !prefill) return;
+    if (prefill.date) setStartDate(prefill.date);
+  }, [open, prefill]);
 
   useEffect(() => {
     if (!open) return;
@@ -196,6 +218,7 @@ export function ShiftForm({ open, onClose, onCreated }: ShiftFormProps) {
           required_staff_count: requiredStaff,
           position_code: positionCode,
           planning_status: 'NOT_STARTED',
+          note: note.trim() || null,
         });
       }
     }
@@ -286,6 +309,20 @@ export function ShiftForm({ open, onClose, onCreated }: ShiftFormProps) {
             onChange={(event) => setWeeksAhead(event.target.value)}
           />
         </div>
+
+        {startTime && endTime && (
+          <p className="text-sm text-muted-foreground">
+            Shift duration: <span className="font-medium text-foreground">{computeDuration(startTime, endTime)}</span>
+          </p>
+        )}
+
+        <Textarea
+          label="Note (optional)"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="Special instructions for this shift..."
+          rows={2}
+        />
 
         <div className="space-y-2">
           <p className="text-sm font-medium text-foreground">Recurring Days</p>

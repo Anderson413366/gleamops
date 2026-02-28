@@ -103,7 +103,7 @@ export default function MaintenanceTable({ search, formOpen, onFormClose, onRefr
         <EmptyState
           icon={<Settings2 className="h-12 w-12" />}
           title="No maintenance records"
-          description="Vehicle service history will appear here."
+          description="Equipment and vehicle service history will appear here."
         />
         <MaintenanceForm
           open={createOpen}

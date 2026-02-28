@@ -868,6 +868,18 @@ export default function ShiftsTimePanel({ search }: ShiftsTimePanelProps) {
 
   return (
     <div className="space-y-4">
+      {!isFieldRole && (
+        <ChipTabs
+          tabs={managerTabs.map((tab) => ({
+            key: tab.key,
+            label: tab.label,
+            icon: tab.icon,
+          }))}
+          active={activeTab}
+          onChange={(value) => setActiveTab(value as ManagerTab)}
+        />
+      )}
+
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
@@ -972,16 +984,6 @@ export default function ShiftsTimePanel({ search }: ShiftsTimePanelProps) {
 
       {!isFieldRole && (
         <div className="space-y-4">
-          <ChipTabs
-            tabs={managerTabs.map((tab) => ({
-              key: tab.key,
-              label: tab.label,
-              icon: tab.icon,
-            }))}
-            active={activeTab}
-            onChange={(value) => setActiveTab(value as ManagerTab)}
-          />
-
           {activeTab === 'board' && (
             <Card>
               <CardHeader className="pb-3">

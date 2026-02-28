@@ -5,6 +5,11 @@ import { Badge } from '@gleamops/ui';
 import type { SupplyCatalog } from '@gleamops/shared';
 import { EntityAvatar } from '@/components/directory/entity-avatar';
 
+function toTitleCase(str: string): string {
+  if (str !== str.toUpperCase()) return str;
+  return str.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 interface SuppliesCardGridProps {
   rows: SupplyCatalog[];
   onSelect: (item: SupplyCatalog) => void;
@@ -26,7 +31,7 @@ export function SuppliesCardGrid({ rows, onSelect }: SuppliesCardGridProps) {
             fallbackIcon={<Package className="h-8 w-8 text-white" />}
             size="xl"
           />
-          <p className="mt-3 text-sm font-semibold text-foreground leading-tight">{item.name}</p>
+          <p className="mt-3 text-sm font-semibold text-foreground leading-tight">{toTitleCase(item.name)}</p>
           <p className="mt-1 text-xs text-muted-foreground">{item.code}</p>
           <div className="mt-3 flex flex-wrap justify-center gap-1.5">
             {item.category && <Badge color="blue">{item.category}</Badge>}

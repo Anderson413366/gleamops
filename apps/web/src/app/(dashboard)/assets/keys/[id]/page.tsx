@@ -174,7 +174,7 @@ export default function KeyDetailPage() {
           <button
             type="button"
             onClick={() => setArchiveOpen(true)}
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3.5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-900/40"
+            className="inline-flex items-center gap-2 rounded-lg border border-destructive/40 px-3.5 py-2 text-sm font-medium text-destructive hover:bg-destructive/5 transition-colors dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-900/40"
           >
             <PauseCircle className="h-3.5 w-3.5" />
             Deactivate

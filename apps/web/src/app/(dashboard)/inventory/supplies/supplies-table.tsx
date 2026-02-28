@@ -49,6 +49,11 @@ function normalizeSupplyStatus(value: string | null | undefined): string {
   return value.toUpperCase();
 }
 
+function toTitleCase(str: string): string {
+  if (str !== str.toUpperCase()) return str;
+  return str.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 interface SuppliesTableProps {
   search: string;
   autoCreate?: boolean;
@@ -429,7 +434,7 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
                           fallbackIcon={<Package className="h-3.5 w-3.5" />}
                           size="sm"
                         />
-                        <span className="inline-block max-w-[220px] truncate" title={row.name}>{row.name}</span>
+                        <span className="inline-block max-w-[220px] truncate" title={row.name}>{toTitleCase(row.name)}</span>
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{row.category ?? '—'}</TableCell>

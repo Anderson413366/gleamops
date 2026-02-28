@@ -106,7 +106,7 @@ export default function ReportsPageClient() {
       activeStaff: staffRes.count ?? 0,
       activeSupplies: suppliesRes.count ?? 0,
     });
-    setUpdatedAt(new Date().toLocaleTimeString());
+    setUpdatedAt(new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }));
   }, [rangeDays]);
 
   useEffect(() => {

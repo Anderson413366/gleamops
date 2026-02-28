@@ -561,7 +561,7 @@ export function ClockInButton({ onStatusChange }: ClockInButtonProps) {
         onClick={openVerificationDrawer}
         disabled={loading || !staff || breakSubmitting}
         className={[
-          'h-16 w-full text-base font-semibold sm:text-lg',
+          'h-12 w-full text-sm font-semibold sm:text-base',
           isClockedIn
             ? 'bg-red-600 text-white hover:bg-red-500'
             : 'bg-green-600 text-white hover:bg-green-500',

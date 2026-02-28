@@ -498,7 +498,7 @@ export function Sidebar() {
         </div>
 
         {/* Nav items */}
-        <nav className="flex-1 py-3 px-3 space-y-1 overflow-y-auto">
+        <nav className="flex-1 py-3 px-3 space-y-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
           {v2NavigationEnabled
             ? renderTreeNav(NAV_TREE)
             : renderFlatNav(LEGACY_NAV_ITEMS)

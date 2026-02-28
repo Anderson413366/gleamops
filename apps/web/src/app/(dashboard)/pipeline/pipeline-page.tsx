@@ -1,16 +1,15 @@
 'use client';
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
-import { Calculator, Plus } from 'lucide-react';
-import { Button, SearchInput } from '@gleamops/ui';
+import { Plus, TrendingUp, Target, DollarSign, FileText, BarChart3 } from 'lucide-react';
+import { Button, ChipTabs, SearchInput } from '@gleamops/ui';
 import type { SalesProspect, SalesOpportunity } from '@gleamops/shared';
+import { useSyncedTab } from '@/hooks/use-synced-tab';
 
 import { BidWizard } from './bids/bid-wizard';
 import { ExpressBid } from './bids/express-bid';
 import { SalesKpiBar } from './sales-kpi-bar';
-import { UnifiedSalesPage } from './unified-sales-page';
 import LegacyPipelinePageClient from './pipeline-page-legacy';
 import { ProspectsSection } from './sections/prospects-section';
 import { OpportunitiesSection } from './sections/opportunities-section';
@@ -28,32 +27,25 @@ interface OpportunityWithRelations extends SalesOpportunity {
 
 type PipelineSectionKey = 'prospects' | 'opportunities' | 'bids' | 'proposals';
 
+const PIPELINE_TABS = [
+  { key: 'prospects', label: 'Prospects', icon: <TrendingUp className="h-4 w-4" /> },
+  { key: 'opportunities', label: 'Opportunities', icon: <Target className="h-4 w-4" /> },
+  { key: 'bids', label: 'Bids & Pricing', icon: <DollarSign className="h-4 w-4" /> },
+  { key: 'proposals', label: 'Proposals', icon: <FileText className="h-4 w-4" /> },
+  { key: 'analytics', label: 'Analytics', icon: <BarChart3 className="h-4 w-4" /> },
+];
+
 function UnifiedPipelinePageClient() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const action = searchParams.get('action');
-  const tabParam = searchParams.get('tab');
+  const [tab, setTab] = useSyncedTab({
+    tabKeys: PIPELINE_TABS.map((t) => t.key),
+    defaultTab: 'prospects',
+    aliases: { 'bids-pricing': 'bids' },
+  });
   const [search, setSearch] = useState('');
-
-  const TAB_TO_SECTION: Record<string, string> = useMemo(() => ({
-    prospects: 'prospects',
-    opportunities: 'opportunities',
-    bids: 'bids-pricing',
-    proposals: 'proposals',
-    analytics: 'analytics',
-  }), []);
-  const expandSectionId = tabParam ? TAB_TO_SECTION[tabParam] : undefined;
-
-  // Scroll to the targeted section when navigating via sidebar child link
-  useEffect(() => {
-    if (!expandSectionId) return;
-    const timer = setTimeout(() => {
-      const el = document.getElementById(`pipeline-section-${expandSectionId}`);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
-    return () => clearTimeout(timer);
-  }, [expandSectionId]);
 
   // Form state
   const [prospectFormOpen, setProspectFormOpen] = useState(false);
@@ -82,8 +74,6 @@ function UnifiedPipelinePageClient() {
     bids: 0,
     proposals: 0,
   });
-  const standaloneCalculatorEnabled = useFeatureFlag('standalone_calculator');
-
   const setSectionCount = useCallback((key: PipelineSectionKey, value: number) => {
     setSectionCounts((prev) => {
       if (prev[key] === value) return prev;
@@ -253,130 +243,111 @@ function UnifiedPipelinePageClient() {
     return () => window.removeEventListener('gleamops:quick-create', handleQuickCreate);
   }, [openQuickCreate]);
 
+  const addLabel: Record<string, string> = {
+    prospects: 'New Prospect',
+    opportunities: 'New Opportunity',
+    bids: 'New Bid',
+  };
+
+  const handleAdd = () => {
+    if (tab === 'prospects') {
+      setEditProspect(null);
+      setProspectFormOpen(true);
+    } else if (tab === 'opportunities') {
+      setEditOpportunity(null);
+      setOpportunityFormOpen(true);
+    } else if (tab === 'bids') {
+      setWizardOpen(true);
+    }
+  };
+
+  const showAddButton = ['prospects', 'opportunities', 'bids'].includes(tab);
+
   return (
     <>
-      <UnifiedSalesPage
-        expandSectionId={expandSectionId}
-        actions={(
-          <>
-            <SearchInput
-              value={search}
-              onChange={setSearch}
-              placeholder="Search pipeline..."
-              className="w-full lg:w-72"
+      <div className="space-y-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Pipeline</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Track prospects, opportunities, bids, proposals, and performance.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {showAddButton && (
+              <Button onClick={handleAdd}>
+                <Plus className="h-4 w-4" />
+                {addLabel[tab] ?? 'Add'}
+              </Button>
+            )}
+          </div>
+        </div>
+
+        <SalesKpiBar stats={pipelineStats} />
+
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0 lg:flex-1">
+            <ChipTabs
+              tabs={PIPELINE_TABS.map((t) => ({
+                ...t,
+                count: sectionCounts[t.key as PipelineSectionKey] ?? undefined,
+              }))}
+              active={tab}
+              onChange={setTab}
             />
-            {standaloneCalculatorEnabled ? (
-              <Link
-                href="/pipeline/calculator"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-card px-4 py-2.5 text-sm font-medium text-foreground ring-1 ring-inset ring-border shadow-sm transition-all hover:bg-muted hover:shadow-md"
-              >
-                <Calculator className="h-4 w-4" />
-                Sales Calculator
-              </Link>
-            ) : null}
-            <Link
-              href="/pipeline/supply-calculator"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-card px-4 py-2.5 text-sm font-medium text-foreground ring-1 ring-inset ring-border shadow-sm transition-all hover:bg-muted hover:shadow-md"
-            >
-              <Calculator className="h-4 w-4" />
-              Supply Calculator
-            </Link>
-            <Link
-              href="/pipeline/admin"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-card px-4 py-2.5 text-sm font-medium text-foreground ring-1 ring-inset ring-border shadow-sm transition-all hover:bg-muted hover:shadow-md"
-            >
-              Sales Admin
-            </Link>
-            <Button
-              onClick={() => {
-                setEditProspect(null);
-                setProspectFormOpen(true);
-              }}
-            >
-              <Plus className="h-4 w-4" />
-              New Prospect
-            </Button>
-          </>
+          </div>
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder={`Search ${tab}...`}
+            className="w-full sm:w-72 lg:w-80 lg:ml-auto"
+          />
+        </div>
+
+        {tab === 'prospects' && (
+          <ProspectsSection
+            key={`prospects-section-${refreshKey}`}
+            globalSearch={search}
+            onCreate={() => {
+              setEditProspect(null);
+              setProspectFormOpen(true);
+            }}
+            onCountChange={handleProspectsCountChange}
+          />
         )}
-        kpiBar={<SalesKpiBar stats={pipelineStats} />}
-        sections={[
-          {
-            id: 'prospects',
-            title: 'Prospects',
-            description: 'Active leads and first-touch opportunities.',
-            tone: 'blue',
-            count: sectionCounts.prospects,
-            content: (
-              <ProspectsSection
-                key={`prospects-section-${refreshKey}`}
-                globalSearch={search}
-                onCreate={() => {
-                  setEditProspect(null);
-                  setProspectFormOpen(true);
-                }}
-                onCountChange={handleProspectsCountChange}
-              />
-            ),
-          },
-          {
-            id: 'opportunities',
-            title: 'Opportunities',
-            description: 'Qualified opportunities advancing through sales stages.',
-            tone: 'blue',
-            count: sectionCounts.opportunities,
-            content: (
-              <OpportunitiesSection
-                key={`opportunities-section-${refreshKey}`}
-                globalSearch={search}
-                onCreate={() => {
-                  setEditOpportunity(null);
-                  setOpportunityFormOpen(true);
-                }}
-                onCountChange={handleOpportunitiesCountChange}
-              />
-            ),
-          },
-        {
-          id: 'bids-pricing',
-          title: 'Bids & Pricing',
-          description: 'Active bids with pricing controls and estimate workflows.',
-          tone: 'green',
-          count: sectionCounts.bids,
-          content: (
-            <BidsSection
-              key={`bids-${refreshKey}`}
-              globalSearch={search}
-              onCreateNew={() => setWizardOpen(true)}
-              onExpressBid={() => setExpressOpen(true)}
-              onCountChange={handleBidsCountChange}
-            />
-          ),
-        },
-        {
-          id: 'proposals',
-          title: 'Proposals',
-          description: 'Proposal delivery, tracking, and close outcomes.',
-          tone: 'pink',
-          count: sectionCounts.proposals,
-          content: (
-            <ProposalsSection
-              key={`proposals-${refreshKey}`}
-              globalSearch={search}
-              onGoToBids={() => setWizardOpen(true)}
-              refreshToken={refreshKey}
-              onCountChange={handleProposalsCountChange}
-            />
-          ),
-        },
-        {
-          id: 'analytics',
-          title: 'Analytics',
-          description: 'Win-rate, revenue, and conversion visibility.',
-          tone: 'neutral',
-          content: <AnalyticsSection refreshToken={refreshKey} />,
-        },
-      ]}
-    />
+        {tab === 'opportunities' && (
+          <OpportunitiesSection
+            key={`opportunities-section-${refreshKey}`}
+            globalSearch={search}
+            onCreate={() => {
+              setEditOpportunity(null);
+              setOpportunityFormOpen(true);
+            }}
+            onCountChange={handleOpportunitiesCountChange}
+          />
+        )}
+        {tab === 'bids' && (
+          <BidsSection
+            key={`bids-${refreshKey}`}
+            globalSearch={search}
+            onCreateNew={() => setWizardOpen(true)}
+            onExpressBid={() => setExpressOpen(true)}
+            onCountChange={handleBidsCountChange}
+          />
+        )}
+        {tab === 'proposals' && (
+          <ProposalsSection
+            key={`proposals-${refreshKey}`}
+            globalSearch={search}
+            onGoToBids={() => setWizardOpen(true)}
+            refreshToken={refreshKey}
+            onCountChange={handleProposalsCountChange}
+          />
+        )}
+        {tab === 'analytics' && (
+          <AnalyticsSection refreshToken={refreshKey} />
+        )}
+      </div>
 
       <BidWizard
         open={wizardOpen}

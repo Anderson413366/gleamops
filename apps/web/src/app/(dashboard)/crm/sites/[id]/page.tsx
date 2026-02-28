@@ -827,7 +827,7 @@ export default function SiteDetailPage() {
             className="h-44 w-full object-cover sm:h-56"
           />
         ) : (
-          <div className="h-44 w-full sm:h-56 bg-gradient-to-br from-muted via-muted/60 to-background" />
+          <div className="h-24 w-full sm:h-28 bg-gradient-to-br from-muted via-muted/60 to-background" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/20 to-transparent" />
         <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-4">

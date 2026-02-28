@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, ClipboardList, AlertTriangle, Package2 } from 'lucide-react';
+import { ArrowLeft, ClipboardList, AlertTriangle, Package2, Printer } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { Badge, Skeleton } from '@gleamops/ui';
+import { Badge, Button, Skeleton } from '@gleamops/ui';
 
 interface CountWithRelations {
   id: string;
@@ -163,15 +163,21 @@ export default function InventoryCountDetailPage() {
               Site: {count.site?.name ?? 'Not Set'} {count.site?.site_code ? `(${count.site.site_code})` : ''}
             </p>
           </div>
-          <Badge color={
-            count.status === 'COMPLETED' ? 'green'
-              : count.status === 'SUBMITTED' ? 'blue'
-                : count.status === 'IN_PROGRESS' ? 'yellow'
-                  : count.status === 'CANCELLED' ? 'red'
-                    : 'gray'
-          }>
-            {count.status}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" size="sm" onClick={() => window.print()}>
+              <Printer className="h-4 w-4" />
+              Print
+            </Button>
+            <Badge color={
+              count.status === 'COMPLETED' ? 'green'
+                : count.status === 'SUBMITTED' ? 'blue'
+                  : count.status === 'IN_PROGRESS' ? 'yellow'
+                    : count.status === 'CANCELLED' ? 'red'
+                      : 'gray'
+            }>
+              {count.status}
+            </Badge>
+          </div>
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">

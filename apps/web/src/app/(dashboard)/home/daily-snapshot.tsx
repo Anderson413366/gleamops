@@ -55,7 +55,7 @@ export function DailySnapshot({ snapshot, loading = false }: DailySnapshotProps)
         <p className="text-sm text-muted-foreground">What is pending right now across operations.</p>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           <SnapshotCard
             title="Pending Day-Off Requests"
             value={loading ? 0 : data.pending_day_off_requests}

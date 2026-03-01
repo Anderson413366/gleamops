@@ -48,7 +48,7 @@ export default function EquipmentTable({ search, onSelect, formOpen, onFormClose
   const [rows, setRows] = useState<EquipmentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<string>('GOOD');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const { view, setView } = useViewPreference('equipment');
 
   const fetchData = useCallback(async () => {

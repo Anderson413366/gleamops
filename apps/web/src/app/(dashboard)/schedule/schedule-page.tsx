@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Calendar, ClipboardList, Briefcase, FileText, ListTodo, Plus, ChevronLeft, ChevronRight, Copy, LayoutDashboard, Route, Shield, AlertTriangle, Send } from 'lucide-react';
+import { Calendar, ClipboardList, Briefcase, FileText, ListTodo, Plus, ChevronLeft, ChevronRight, LayoutDashboard, Route, Shield, AlertTriangle, Send } from 'lucide-react';
 import { SearchInput, Card, CardContent, Button, ConfirmDialog } from '@gleamops/ui';
 import { normalizeRoleCode, type WorkTicket } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -397,7 +397,6 @@ export default function SchedulePageClient() {
     rangeLabel: recurringRange.label,
   });
 
-  const canCopyWeek = normalizedRole === 'OWNER_ADMIN' || normalizedRole === 'MANAGER';
   const canPublish = normalizedRole === 'OWNER_ADMIN' || normalizedRole === 'MANAGER';
 
   const handleQuickPublish = useCallback(async () => {
@@ -945,24 +944,14 @@ export default function SchedulePageClient() {
                 {conflictCount} {conflictCount === 1 ? 'Conflict' : 'Conflicts'}
               </button>
             )}
-            {canCopyWeek && (
-              <Button variant="secondary" onClick={() => setCopyWeekOpen(true)}>
-                <Copy className="h-4 w-4" />
-                Copy Week
-              </Button>
-            )}
-            <Button onClick={() => setShiftFormOpen(true)}>
-              <Plus className="h-4 w-4" />
-              New Shift
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={handleAutoFill}
-              disabled={autoFillLoading}
-            >
-              {autoFillLoading ? 'Filling...' : 'Auto Fill'}
-            </Button>
+            <SearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder="Search schedule..."
+              className="w-56 sm:w-64"
+            />
             <ScheduleToolsDropdown
+              onCopyWeek={() => setCopyWeekOpen(true)}
               onSaveTemplate={() => setTemplateMode('save')}
               onLoadTemplate={() => setTemplateMode('load')}
               onAutoFill={handleAutoFill}
@@ -982,6 +971,10 @@ export default function SchedulePageClient() {
                 {publishLoading ? 'Publishing...' : 'Publish Schedule'}
               </Button>
             )}
+            <Button onClick={() => setShiftFormOpen(true)}>
+              <Plus className="h-4 w-4" />
+              New Shift
+            </Button>
           </div>
         ) : null}
       </div>
@@ -1063,20 +1056,19 @@ export default function SchedulePageClient() {
         </Card>
       </div>
 
-      {(tab === 'recurring' || tab === 'work-orders' || tab === 'planning' || tab === 'checklists') && (
+      {/* Search moved into toolbar row for recurring tab; other tabs render inline */}
+      {(tab === 'work-orders' || tab === 'planning' || tab === 'checklists') && (
         <SearchInput
           value={search}
           onChange={setSearch}
           placeholder={
-            tab === 'recurring'
-              ? 'Search employee schedule assignments, roles, and sites...'
-              : tab === 'work-orders'
-                ? 'Search work orders, services, and sites...'
-                : tab === 'planning'
-                  ? 'Search planning tickets, sites, positions, or codes...'
-                : tab === 'checklists'
-                  ? 'Search checklist templates, sections, or items...'
-                : `Search ${tab}...`
+            tab === 'work-orders'
+              ? 'Search work orders, services, and sites...'
+              : tab === 'planning'
+                ? 'Search planning tickets, sites, positions, or codes...'
+              : tab === 'checklists'
+                ? 'Search checklist templates, sections, or items...'
+              : `Search ${tab}...`
           }
           className="w-full sm:w-72 lg:w-80"
         />

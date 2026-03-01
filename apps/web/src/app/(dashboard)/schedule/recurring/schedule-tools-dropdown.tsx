@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Wrench, Save, Upload, Wand2, ChevronDown, Printer, DollarSign } from 'lucide-react';
+import { Wrench, Save, Upload, Wand2, ChevronDown, Printer, DollarSign, Copy } from 'lucide-react';
 import { Button } from '@gleamops/ui';
 
 interface ScheduleToolsDropdownProps {
+  onCopyWeek: () => void;
   onSaveTemplate: () => void;
   onLoadTemplate: () => void;
   onAutoFill: () => void;
@@ -15,6 +16,7 @@ interface ScheduleToolsDropdownProps {
 }
 
 export function ScheduleToolsDropdown({
+  onCopyWeek,
   onSaveTemplate,
   onLoadTemplate,
   onAutoFill,
@@ -56,6 +58,26 @@ export function ScheduleToolsDropdown({
 
       {open && (
         <div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-lg border border-border bg-card p-1 shadow-xl">
+          {/* Schedule manipulation */}
+          <button
+            type="button"
+            onClick={() => handleItem(onCopyWeek)}
+            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+          >
+            <Copy className="h-4 w-4 text-muted-foreground" />
+            Copy Week
+          </button>
+          <button
+            type="button"
+            onClick={() => handleItem(onAutoFill)}
+            disabled={autoFillLoading}
+            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+          >
+            <Wand2 className="h-4 w-4 text-muted-foreground" />
+            {autoFillLoading ? 'Auto-Filling...' : 'Auto-Fill Open Shifts'}
+          </button>
+          <div className="my-1 border-t border-border" />
+          {/* Template management */}
           <button
             type="button"
             onClick={() => handleItem(onSaveTemplate)}
@@ -73,16 +95,7 @@ export function ScheduleToolsDropdown({
             Load Template
           </button>
           <div className="my-1 border-t border-border" />
-          <button
-            type="button"
-            onClick={() => handleItem(onAutoFill)}
-            disabled={autoFillLoading}
-            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors disabled:opacity-50"
-          >
-            <Wand2 className="h-4 w-4 text-muted-foreground" />
-            {autoFillLoading ? 'Auto-Filling...' : 'Auto-Fill Open Shifts'}
-          </button>
-          <div className="my-1 border-t border-border" />
+          {/* Output / export */}
           <button
             type="button"
             onClick={() => handleItem(onPrint)}

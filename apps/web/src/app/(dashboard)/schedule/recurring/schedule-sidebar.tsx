@@ -176,6 +176,7 @@ export function ScheduleSidebar({
   const [collapsed, setCollapsed] = useState(false);
   const [sites, setSites] = useState<SiteOption[]>([]);
   const [clients, setClients] = useState<ClientOption[]>([]);
+  const [allStaff, setAllStaff] = useState<string[]>([]);
   const [selectedShiftTypes, setSelectedShiftTypes] = useState<string[]>([]);
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -184,18 +185,28 @@ export function ScheduleSidebar({
     let cancelled = false;
     async function fetchData() {
       const supabase = getSupabaseBrowserClient();
-      const [sitesRes, clientsRes] = await Promise.all([
+      const [sitesRes, clientsRes, staffRes] = await Promise.all([
         supabase.from('sites').select('id, name, site_code, client_id').is('archived_at', null).order('name'),
         supabase.from('clients').select('id, name, client_code').is('archived_at', null).order('name'),
+        supabase.from('staff').select('full_name').is('archived_at', null).eq('staff_status', 'ACTIVE').order('full_name'),
       ]);
       if (!cancelled) {
         if (sitesRes.data) setSites(sitesRes.data as SiteOption[]);
         if (clientsRes.data) setClients(clientsRes.data as ClientOption[]);
+        if (staffRes.data) {
+          const names = (staffRes.data as Array<{ full_name: string }>)
+            .map((s) => s.full_name)
+            .filter(Boolean);
+          setAllStaff(names);
+        }
       }
     }
     void fetchData();
     return () => { cancelled = true; };
   }, []);
+
+  // Use DB staff list, falling back to schedule-derived list
+  const employeeList = allStaff.length > 0 ? allStaff : availableEmployees;
 
   // Sites filtered by selected clients (if any clients are selected, only show their sites)
   const visibleSites = useMemo(() => {
@@ -374,13 +385,16 @@ export function ScheduleSidebar({
           />
           <span className="text-foreground font-medium">All</span>
         </label>
-        {availableEmployees.map((name) => (
+        {employeeList.length === 0 && (
+          <p className="text-[11px] text-muted-foreground italic pl-5">No active employees found.</p>
+        )}
+        {employeeList.map((name) => (
           <label key={name} className="flex items-center gap-2 text-[12px] cursor-pointer">
             <input
               type="checkbox"
               checked={selectedEmployees.includes(name)}
               onChange={() =>
-                handleToggleItem(name, selectedEmployees, availableEmployees, onSelectedEmployeesChange)
+                handleToggleItem(name, selectedEmployees, employeeList, onSelectedEmployeesChange)
               }
               className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary"
             />

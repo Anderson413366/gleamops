@@ -129,12 +129,12 @@ function FacilityTypeCard({
         <CardContent className="space-y-4">
           {/* Size Tiers */}
           <div>
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Size Tiers</h4>
+            <h4 className="text-xs font-semibold text-muted-foreground tracking-wide mb-2">Size Tiers</h4>
             <div className="grid grid-cols-3 gap-2">
               {facility.size_tiers.map((tier) => (
                 <div key={tier.code} className="rounded-lg border border-border bg-muted/30 p-2 text-center">
                   <p className="text-xs font-medium">{tier.label}</p>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-[11px] text-muted-foreground">
                     {tier.min_sqft.toLocaleString()}–{tier.max_sqft.toLocaleString()} sqft
                   </p>
                 </div>
@@ -144,7 +144,7 @@ function FacilityTypeCard({
 
           {/* Typical Areas */}
           <div>
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Typical Areas</h4>
+            <h4 className="text-xs font-semibold text-muted-foreground tracking-wide mb-2">Typical Areas</h4>
             <div className="space-y-1">
               {facility.typical_areas.map((area) => (
                 <div key={area.name} className="flex items-center justify-between text-xs">
@@ -157,7 +157,7 @@ function FacilityTypeCard({
 
           {/* Key Considerations */}
           <div>
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Key Considerations</h4>
+            <h4 className="text-xs font-semibold text-muted-foreground tracking-wide mb-2">Key Considerations</h4>
             <ul className="space-y-1">
               {facility.key_considerations.map((item, i) => (
                 <li key={i} className="text-xs text-muted-foreground flex gap-2">
@@ -215,7 +215,7 @@ function SpaceCategoryCard({ space }: { space: SpaceCategory }) {
               <div className="min-w-0">
                 <p className="text-sm font-medium">{item.name}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">{item.notes}</p>
-                <p className="text-[10px] text-muted-foreground mt-1">
+                <p className="text-[11px] text-muted-foreground mt-1">
                   Materials: {item.typical_materials.join(', ')}
                 </p>
               </div>
@@ -266,11 +266,11 @@ function ProtocolsTab({ search }: { search: string }) {
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Frequency</h4>
+              <h4 className="text-xs font-semibold text-muted-foreground tracking-wide mb-1">Frequency</h4>
               <p className="text-sm">{protocol.typical_frequency}</p>
             </div>
             <div>
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Key Procedures</h4>
+              <h4 className="text-xs font-semibold text-muted-foreground tracking-wide mb-1">Key Procedures</h4>
               <ol className="space-y-1 list-decimal list-inside">
                 {protocol.key_procedures.map((proc, i) => (
                   <li key={i} className="text-xs text-muted-foreground">{proc}</li>

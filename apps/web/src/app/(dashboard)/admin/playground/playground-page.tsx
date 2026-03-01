@@ -150,7 +150,7 @@ export default function PlaygroundPageClient() {
                 className="h-10 w-10 rounded-md border border-border shadow-sm"
                 style={{ backgroundColor: `var(${token})` }}
               />
-              <span className="text-[10px] text-muted-foreground font-mono">{label}</span>
+              <span className="text-[11px] text-muted-foreground font-mono">{label}</span>
             </div>
           ))}
         </div>
@@ -184,7 +184,7 @@ export default function PlaygroundPageClient() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Default */}
           <div className="space-y-4">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Default</p>
+            <p className="text-xs font-semibold text-muted-foreground tracking-wider">Default</p>
             <Input label="Full Name" placeholder="Jane Smith" hint="As it appears on ID" />
             <Select label="Role" options={ROLE_OPTIONS} placeholder="Select role..." />
             <Textarea label="Notes" placeholder="Any additional context..." />
@@ -192,14 +192,14 @@ export default function PlaygroundPageClient() {
           </div>
           {/* Error */}
           <div className="space-y-4">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Error</p>
+            <p className="text-xs font-semibold text-muted-foreground tracking-wider">Error</p>
             <Input label="Email" defaultValue="not-an-email" error="Invalid email address" />
             <Select label="Status" options={STATUS_OPTIONS} error="Status is required" />
             <Textarea label="Reason" error="Please provide a reason" />
           </div>
           {/* Disabled */}
           <div className="space-y-4">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Disabled</p>
+            <p className="text-xs font-semibold text-muted-foreground tracking-wider">Disabled</p>
             <Input label="Code" value="CLI-0042" disabled hint="Auto-generated" />
             <Select label="Type" options={TYPE_OPTIONS} disabled value="STANDARD" />
             <Textarea label="Locked" value="Read-only content" disabled />
@@ -212,7 +212,7 @@ export default function PlaygroundPageClient() {
         <div className="space-y-6">
           {/* Row 1: All colors with dot */}
           <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">With dot</p>
+            <p className="text-xs font-semibold text-muted-foreground tracking-wider mb-2">With dot</p>
             <div className="flex flex-wrap gap-2">
               {BADGE_COLORS.map((c) => (
                 <Badge key={c} color={c} dot>{BADGE_LABELS[c]}</Badge>
@@ -222,7 +222,7 @@ export default function PlaygroundPageClient() {
 
           {/* Row 2: All colors without dot */}
           <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Without dot</p>
+            <p className="text-xs font-semibold text-muted-foreground tracking-wider mb-2">Without dot</p>
             <div className="flex flex-wrap gap-2">
               {BADGE_COLORS.map((c) => (
                 <Badge key={`${c}-nodot`} color={c} dot={false}>{BADGE_LABELS[c]}</Badge>
@@ -232,7 +232,7 @@ export default function PlaygroundPageClient() {
 
           {/* Row 3: StatusPill — automatic label from centralized maps */}
           <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">StatusPill (centralized maps)</p>
+            <p className="text-xs font-semibold text-muted-foreground tracking-wider mb-2">StatusPill (centralized maps)</p>
             <div className="flex flex-wrap gap-2">
               <StatusPill status="ACTIVE" colorMap={CLIENT_STATUS_COLORS} />
               <StatusPill status="ON_HOLD" colorMap={CLIENT_STATUS_COLORS} />
@@ -244,7 +244,7 @@ export default function PlaygroundPageClient() {
 
           {/* Row 4: Color swatch reference */}
           <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Color reference (from BADGE_COLOR_CLASSES)</p>
+            <p className="text-xs font-semibold text-muted-foreground tracking-wider mb-2">Color reference (from BADGE_COLOR_CLASSES)</p>
             <div className="flex flex-wrap gap-3">
               {BADGE_COLORS.map((c) => {
                 const classes = BADGE_COLOR_CLASSES[c];

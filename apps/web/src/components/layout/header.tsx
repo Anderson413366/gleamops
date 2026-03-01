@@ -727,7 +727,7 @@ export function Header() {
           >
             <Search className="h-4 w-4" />
             <span className="hidden sm:inline text-sm">Search...</span>
-            <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+            <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded-md border border-border bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
               ⌘K
             </kbd>
           </button>
@@ -743,7 +743,7 @@ export function Header() {
           >
             <Keyboard className="h-4 w-4" />
             <span className="hidden lg:inline text-sm">Shortcuts</span>
-            <kbd className="hidden lg:inline-flex items-center rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+            <kbd className="hidden lg:inline-flex items-center rounded-md border border-border bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
               ?
             </kbd>
           </button>
@@ -828,7 +828,7 @@ export function Header() {
               <Bell className="h-5 w-5" />
               {unreadCount > 0 && (
                 <span
-                  className={`absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-bold ${
+                  className={`absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[11px] font-bold ${
                     unreadUrgentCount > 0
                       ? 'bg-destructive text-destructive-foreground'
                       : 'bg-info text-primary-foreground'
@@ -896,7 +896,7 @@ export function Header() {
                               )}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${getToneChipClass(tone)}`}>
+                              <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${getToneChipClass(tone)}`}>
                                 {getToneLabel(tone)}
                               </span>
                               <p className={`text-sm truncate ${!item.read_at ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>
@@ -905,7 +905,7 @@ export function Header() {
                               <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
                                 {item.body}
                               </p>
-                              <p className="text-[10px] text-muted-foreground mt-1">
+                              <p className="text-[11px] text-muted-foreground mt-1">
                                 {formatRelative(item.created_at)}
                               </p>
                             </div>

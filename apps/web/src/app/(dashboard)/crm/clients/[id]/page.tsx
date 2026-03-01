@@ -570,7 +570,7 @@ export default function ClientDetailPage() {
           <div className="mt-4 grid grid-cols-1 gap-5 lg:grid-cols-2">
             {/* Primary Contact */}
             <div className="rounded-lg border border-border bg-muted/20 p-4">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Primary Contact</p>
+              <p className="text-xs font-semibold text-muted-foreground tracking-wider">Primary Contact</p>
               {primaryContact ? (
                 <div className="mt-2 space-y-3">
                   <div>
@@ -643,7 +643,7 @@ export default function ClientDetailPage() {
 
             {/* Company Info */}
             <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Company</p>
+              <p className="text-xs font-semibold text-muted-foreground tracking-wider">Company</p>
               <dl className="mt-2 space-y-3 text-sm">
                 <div className="flex justify-between gap-4">
                   <dt className="text-muted-foreground inline-flex items-center gap-1">
@@ -901,7 +901,7 @@ export default function ClientDetailPage() {
                   </div>
 
                   <div className="mt-4">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <p className="text-xs font-semibold tracking-wider text-muted-foreground">
                       Active Jobs ({activeSiteJobs.length})
                     </p>
                     {activeSiteJobs.length === 0 ? (

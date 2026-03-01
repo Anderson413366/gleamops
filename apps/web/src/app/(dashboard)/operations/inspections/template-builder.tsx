@@ -452,7 +452,7 @@ export function TemplateBuilder({ open, onClose, templateId, onSaved }: Template
                     <div key={sectionName}>
                       {/* Section header */}
                       <div className="flex items-center gap-2 mb-2">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        <p className="text-xs font-semibold text-muted-foreground tracking-wider">
                           {sectionName}
                         </p>
                         <Badge color="gray">{sectionItems.length}</Badge>

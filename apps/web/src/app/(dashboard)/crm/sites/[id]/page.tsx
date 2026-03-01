@@ -960,7 +960,7 @@ export default function SiteDetailPage() {
           </h3>
           <div className="space-y-4 text-sm">
             <div className="rounded-lg border border-border bg-muted/20 p-4">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Primary Contact</p>
+              <p className="text-xs font-semibold text-muted-foreground tracking-wider">Primary Contact</p>
               <div className="mt-2">
                 <p className="text-sm font-semibold text-foreground">{primaryContactName ?? 'Not Set'}</p>
                 <p className="text-xs text-muted-foreground">{[site.primary_contact?.role_title, site.primary_contact?.role].filter(Boolean).join(' · ') || 'Not Set'}</p>
@@ -973,7 +973,7 @@ export default function SiteDetailPage() {
             </div>
 
             <div className="rounded-lg border border-border bg-muted/20 p-4">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Emergency Contact</p>
+              <p className="text-xs font-semibold text-muted-foreground tracking-wider">Emergency Contact</p>
               <div className="mt-2">
                 <p className="text-sm font-semibold text-foreground">{emergencyContactName ?? 'Not Set'}</p>
                 <p className="text-xs text-muted-foreground">{[site.emergency_contact?.role_title, site.emergency_contact?.role].filter(Boolean).join(' · ') || 'Not Set'}</p>
@@ -985,7 +985,7 @@ export default function SiteDetailPage() {
             </div>
 
             <div className="rounded-lg border border-border bg-muted/20 p-4">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Site Supervisor</p>
+              <p className="text-xs font-semibold text-muted-foreground tracking-wider">Site Supervisor</p>
               <div className="mt-2">
                 <p className="text-sm font-semibold text-foreground">{supervisorName ?? 'Not Set'}</p>
                 <p className="text-xs text-muted-foreground">{site.supervisor?.staff_code ? `Staff ${site.supervisor.staff_code}` : 'Not Set'}</p>
@@ -1273,7 +1273,7 @@ export default function SiteDetailPage() {
         {proceduresEditing ? (
           <div className="mt-4 space-y-4">
             <div>
-              <label htmlFor="cleaning-procedures" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <label htmlFor="cleaning-procedures" className="mb-1 block text-xs font-semibold tracking-wide text-muted-foreground">
                 Procedure Steps
               </label>
               <textarea
@@ -1288,7 +1288,7 @@ Step 3: Mop lobby and hallways..."
             </div>
 
             <div>
-              <label htmlFor="cleaning-procedures-photos" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <label htmlFor="cleaning-procedures-photos" className="mb-1 block text-xs font-semibold tracking-wide text-muted-foreground">
                 Reference Photo URLs (one per line)
               </label>
               <textarea
@@ -1342,14 +1342,14 @@ https://..."
         ) : (
           <div className="mt-4 space-y-3">
             <div>
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Procedure Steps</p>
+              <p className="mb-1 text-xs font-semibold tracking-wide text-muted-foreground">Procedure Steps</p>
               <p className="whitespace-pre-wrap rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-foreground">
                 {proceduresDraft.trim() || 'No procedures documented yet.'}
               </p>
             </div>
             {proceduresPhotoDraft.trim() ? (
               <div>
-                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Reference Photos</p>
+                <p className="mb-1 text-xs font-semibold tracking-wide text-muted-foreground">Reference Photos</p>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {proceduresPhotoDraft
                     .split('\n')
@@ -1566,7 +1566,7 @@ https://..."
           <div className="mt-4 space-y-4">
             {Object.entries(groupedSupplies).map(([category, supplies]) => (
               <div key={category} className="rounded-lg border border-border bg-muted/10 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <p className="text-xs font-semibold tracking-wider text-muted-foreground">
                   {category} ({supplies.length})
                 </p>
                 <div className="mt-2 overflow-x-auto">
@@ -1852,7 +1852,7 @@ https://..."
                     <div className="mt-2 grid gap-2 sm:grid-cols-2">
                       {detailEntries.map(([key, value]) => (
                         <div key={`${request.id}:${key}`} className="rounded-md border border-border/60 bg-background px-2 py-1.5">
-                          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          <p className="text-[11px] font-semibold tracking-wide text-muted-foreground">
                             {requestTypeLabel(key.replace(/_/g, '-'))}
                           </p>
                           <p className="text-xs text-foreground">{detailValueLabel(value)}</p>

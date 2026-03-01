@@ -192,7 +192,7 @@ export default function ComplaintsTable({ search }: ComplaintsTableProps) {
             {status}
             <span
               className={cn(
-                'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+                'rounded-full px-1.5 py-0.5 text-[11px] font-semibold',
                 statusFilter === status ? 'bg-primary-foreground/20' : 'bg-background',
               )}
             >
@@ -203,7 +203,7 @@ export default function ComplaintsTable({ search }: ComplaintsTableProps) {
       </div>
 
       <div>
-        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Priority</label>
+        <label className="mb-1 block text-xs font-semibold tracking-wide text-muted-foreground">Priority</label>
         <select
           value={priorityFilter}
           onChange={(event) => setPriorityFilter(event.target.value)}

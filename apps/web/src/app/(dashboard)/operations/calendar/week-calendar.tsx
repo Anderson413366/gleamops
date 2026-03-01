@@ -513,7 +513,7 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
     return (
       <div className="rounded-xl border border-border bg-card">
         <div className="grid border-b border-border bg-muted/40" style={{ gridTemplateColumns: gridColumns }}>
-          <div className="px-2 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Time</div>
+          <div className="px-2 py-2 text-xs font-medium tracking-wide text-muted-foreground">Time</div>
           {visibleDays.map((day) => {
             const dateKey = formatDateLocal(day);
             const isToday = formatDateLocal(startOfDay(new Date())) === dateKey;
@@ -651,7 +651,7 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
       <div className="rounded-xl border border-border bg-card p-2">
         <div className="mb-2 grid grid-cols-7 gap-2">
           {WEEK_DAY_NAMES.map((name) => (
-            <div key={name} className="px-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <div key={name} className="px-2 py-1 text-xs font-semibold tracking-wide text-muted-foreground">
               {name}
             </div>
           ))}
@@ -682,14 +682,14 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
                   {dayTickets.slice(0, 3).map((ticket) => {
                     const statusKey = normalizeStatus(ticket.status);
                     return (
-                      <div key={ticket.id} className={`rounded border px-1.5 py-1 text-[10px] ${STATUS_META[statusKey].card}`}>
+                      <div key={ticket.id} className={`rounded border px-1.5 py-1 text-[11px] ${STATUS_META[statusKey].card}`}>
                         <p className="truncate font-medium">{ticket.site?.name ?? ticket.ticket_code}</p>
                         {ticket.start_time && <p className="opacity-80">{formatShortTime(ticket.start_time)}</p>}
                       </div>
                     );
                   })}
                   {dayTickets.length > 3 && (
-                    <p className="text-[10px] text-muted-foreground">+{dayTickets.length - 3} more</p>
+                    <p className="text-[11px] text-muted-foreground">+{dayTickets.length - 3} more</p>
                   )}
                 </div>
               </button>

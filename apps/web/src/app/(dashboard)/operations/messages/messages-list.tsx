@@ -179,7 +179,7 @@ export default function MessagesList({ search, onSelectThread, onNewThread }: Me
                     <div className="flex items-center gap-2">
                       <span className="truncate max-w-[200px]">{row.subject}</span>
                       {(row.unread_count ?? 0) > 0 && (
-                        <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
+                        <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-primary text-primary-foreground text-[11px] font-bold">
                           {row.unread_count}
                         </span>
                       )}

@@ -177,7 +177,7 @@ export default function FieldReportsTable({ search }: FieldReportsTableProps) {
           >
             {status}
             <span className={cn(
-              'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+              'rounded-full px-1.5 py-0.5 text-[11px] font-semibold',
               statusFilter === status ? 'bg-primary-foreground/20' : 'bg-background',
             )}
             >
@@ -188,7 +188,7 @@ export default function FieldReportsTable({ search }: FieldReportsTableProps) {
       </div>
 
       <div>
-        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Type</label>
+        <label className="mb-1 block text-xs font-semibold tracking-wide text-muted-foreground">Type</label>
         <select
           value={typeFilter}
           onChange={(event) => setTypeFilter(event.target.value)}

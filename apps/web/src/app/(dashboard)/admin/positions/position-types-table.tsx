@@ -215,7 +215,7 @@ export default function PositionTypesTable({ search }: Props) {
 
             <Card>
               <CardContent className="pt-4">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Description</p>
+                <p className="text-xs tracking-wide text-muted-foreground">Description</p>
                 <p className="mt-2 text-sm text-foreground">{briefDescription(selected)}</p>
               </CardContent>
             </Card>

@@ -105,10 +105,10 @@ export function AvailabilityPanel() {
                   <span className="font-medium text-foreground text-xs">
                     {rule.staff?.full_name ?? rule.staff?.staff_code ?? 'Unknown Staff'}
                   </span>
-                  <Badge color={rule.availability_type === 'AVAILABLE' ? 'green' : 'red'} className="text-[10px]">
+                  <Badge color={rule.availability_type === 'AVAILABLE' ? 'green' : 'red'} className="text-[11px]">
                     {rule.availability_type}
                   </Badge>
-                  <Badge color={rule.rule_type === 'WEEKLY_RECURRING' ? 'blue' : 'purple'} className="text-[10px]">
+                  <Badge color={rule.rule_type === 'WEEKLY_RECURRING' ? 'blue' : 'purple'} className="text-[11px]">
                     {rule.rule_type === 'WEEKLY_RECURRING' ? 'Weekly' : 'One-off'}
                   </Badge>
                 </div>

@@ -201,7 +201,7 @@ export function ThreadDetail({ threadId, threadSubject, threadType, open, onClos
             <div>
               <h3 className="text-sm font-semibold">{threadSubject}</h3>
               <div className="flex items-center gap-2 mt-0.5">
-                <Badge color={THREAD_TYPE_COLORS[threadType] ?? 'gray'} className="text-[10px]">
+                <Badge color={THREAD_TYPE_COLORS[threadType] ?? 'gray'} className="text-[11px]">
                   {threadType}
                 </Badge>
                 <span className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -283,7 +283,7 @@ export function ThreadDetail({ threadId, threadSubject, threadType, open, onClos
                     >
                       <p className="whitespace-pre-wrap break-words">{msg.body}</p>
                     </div>
-                    <p className={`text-[10px] text-muted-foreground mt-0.5 ${isOwn ? 'text-right' : ''}`}>
+                    <p className={`text-[11px] text-muted-foreground mt-0.5 ${isOwn ? 'text-right' : ''}`}>
                       {formatRelative(msg.created_at)}
                     </p>
                   </div>

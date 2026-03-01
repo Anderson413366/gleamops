@@ -69,11 +69,11 @@ export function DayPorterStep({ config, onChange }: DayPorterStepProps) {
             {result && result.monthly_cost > 0 && (
               <div className="rounded-lg bg-muted/50 p-3 grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-[10px] text-muted-foreground uppercase">Monthly Hours</p>
+                  <p className="text-[11px] text-muted-foreground">Monthly Hours</p>
                   <p className="text-sm font-bold">{result.monthly_hours.toFixed(1)}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-muted-foreground uppercase">Monthly Cost</p>
+                  <p className="text-[11px] text-muted-foreground">Monthly Cost</p>
                   <p className="text-sm font-bold">{fmt(result.monthly_cost)}</p>
                 </div>
               </div>

@@ -145,10 +145,10 @@ export const PositionBlock = memo(function PositionBlock(props: PositionBlockPro
       {/* Hover action toolbar */}
       {hovered && onClick && (
         <div className="absolute -top-1 -right-1 flex items-center gap-0.5 rounded-md border border-border bg-card p-0.5 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
-          <button type="button" className="rounded p-0.5 hover:bg-muted text-muted-foreground text-[10px]" title="Edit">
+          <button type="button" className="rounded p-0.5 hover:bg-muted text-muted-foreground text-[11px]" title="Edit">
             &#9998;
           </button>
-          <button type="button" className="rounded p-0.5 hover:bg-muted text-muted-foreground text-[10px]" title="Copy">
+          <button type="button" className="rounded p-0.5 hover:bg-muted text-muted-foreground text-[11px]" title="Copy">
             &#x2398;
           </button>
         </div>

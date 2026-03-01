@@ -108,7 +108,7 @@ function MiniCalendar({ currentDate, onSelect }: { currentDate: Date; onSelect: 
 
       <div className="grid grid-cols-7 gap-0.5 text-center">
         {WEEKDAY_LABELS.map((label, i) => (
-          <div key={i} className="text-[10px] font-medium text-muted-foreground py-0.5">
+          <div key={i} className="text-[11px] font-medium text-muted-foreground py-0.5">
             {label}
           </div>
         ))}
@@ -142,7 +142,7 @@ function FilterAccordion({ title, children, defaultOpen = false }: { title: stri
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between text-xs font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground transition-colors"
+        className="flex w-full items-center justify-between text-xs font-semibold tracking-wide text-muted-foreground hover:text-foreground transition-colors"
       >
         {title}
         <ChevronDown className={cn('h-3 w-3 transition-transform', open && 'rotate-180')} />
@@ -283,7 +283,7 @@ export function ScheduleSidebar({
   return (
     <aside className="shrink-0 w-56 space-y-4 rounded-xl border border-border bg-card p-4">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Filters</span>
+        <span className="text-xs font-semibold tracking-wide text-muted-foreground">Filters</span>
         <button
           type="button"
           onClick={() => setCollapsed(true)}

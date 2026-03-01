@@ -854,7 +854,7 @@ export default function PlanningBoard({ search = '', openCreateToken = 0 }: Plan
                 </div>
 
                 {/* Summary stats */}
-                <p className="text-[10px] text-muted-foreground px-1 mb-3">
+                <p className="text-[11px] text-muted-foreground px-1 mb-3">
                   {stats.staffNeeded} staff needed
                   {stats.gaps > 0 && <span className="text-destructive"> · {stats.gaps} {stats.gaps === 1 ? 'gap' : 'gaps'}</span>}
                 </p>
@@ -864,7 +864,7 @@ export default function PlanningBoard({ search = '', openCreateToken = 0 }: Plan
                   {groupTickets(items, groupBy).map((group) => (
                     <div key={group.key}>
                       {group.label && (
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground px-1 pt-2 pb-1 border-b border-border/50 mb-1">
+                        <p className="text-[11px] font-semibold tracking-wide text-muted-foreground px-1 pt-2 pb-1 border-b border-border/50 mb-1">
                           {group.label} ({group.items.length})
                         </p>
                       )}

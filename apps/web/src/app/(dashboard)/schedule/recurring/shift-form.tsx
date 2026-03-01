@@ -573,7 +573,7 @@ export function ShiftForm({ open, onClose, onCreated, prefill, initialData }: Sh
 
           {/* Who Is Working */}
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">
+            <p className="text-xs font-medium tracking-wide text-muted-foreground mb-2">
               Who Is Working ({assignedStaff.length})
             </p>
             {assignedStaff.length === 0 ? (
@@ -583,7 +583,7 @@ export function ShiftForm({ open, onClose, onCreated, prefill, initialData }: Sh
                 {assignedStaff.map((staff) => (
                   <div key={staff.id} className="flex items-center justify-between rounded-md border border-border px-2 py-1.5">
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center text-[10px] font-medium text-green-700 shrink-0">
+                      <div className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center text-[11px] font-medium text-green-700 shrink-0">
                         {staff.full_name.charAt(0)}
                       </div>
                       <span className="text-xs text-foreground truncate">{staff.full_name}</span>
@@ -603,7 +603,7 @@ export function ShiftForm({ open, onClose, onCreated, prefill, initialData }: Sh
 
           {/* Available */}
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">
+            <p className="text-xs font-medium tracking-wide text-muted-foreground mb-2">
               Available ({filteredAvailable.length})
             </p>
             {filteredAvailable.length === 0 ? (
@@ -613,7 +613,7 @@ export function ShiftForm({ open, onClose, onCreated, prefill, initialData }: Sh
                 {filteredAvailable.map((staff) => (
                   <div key={staff.id} className="flex items-center justify-between rounded-md border border-border px-2 py-1.5">
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-medium text-muted-foreground shrink-0">
+                      <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[11px] font-medium text-muted-foreground shrink-0">
                         {staff.full_name.charAt(0)}
                       </div>
                       <div className="min-w-0">
@@ -637,19 +637,19 @@ export function ShiftForm({ open, onClose, onCreated, prefill, initialData }: Sh
           {/* Overlapping */}
           {overlappingStaff.length > 0 && (
             <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-amber-600 mb-2">
+              <p className="text-xs font-medium tracking-wide text-amber-600 mb-2">
                 Overlapping ({overlappingStaff.length})
               </p>
               <div className="space-y-1.5 max-h-32 overflow-y-auto">
                 {overlappingStaff.map((staff) => (
                   <div key={staff.id} className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-2 py-1.5">
-                    <div className="h-6 w-6 rounded-full bg-amber-100 flex items-center justify-center text-[10px] font-medium text-amber-700 shrink-0">
+                    <div className="h-6 w-6 rounded-full bg-amber-100 flex items-center justify-center text-[11px] font-medium text-amber-700 shrink-0">
                       {staff.full_name.charAt(0)}
                     </div>
                     <div className="min-w-0">
                       <span className="text-xs text-amber-800 dark:text-amber-300 truncate block">{staff.full_name}</span>
                       {staff.conflict_detail && (
-                        <span className="text-[10px] text-amber-600 dark:text-amber-400">{staff.conflict_detail}</span>
+                        <span className="text-[11px] text-amber-600 dark:text-amber-400">{staff.conflict_detail}</span>
                       )}
                     </div>
                   </div>

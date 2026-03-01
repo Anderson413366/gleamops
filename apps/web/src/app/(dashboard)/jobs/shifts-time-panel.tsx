@@ -896,7 +896,7 @@ export default function ShiftsTimePanel({ search }: ShiftsTimePanelProps) {
           )}
 
           <div className="rounded-lg border border-border bg-background px-3 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <p className="text-xs font-semibold tracking-wide text-muted-foreground">
               {t('shiftsTime.myNextStop')}
             </p>
             {data?.my_next_stop ? (

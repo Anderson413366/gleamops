@@ -1106,7 +1106,7 @@ export default function RoutesFleetPanel({ search }: Props) {
 
                           {loadSheet.special_items.length > 0 ? (
                             <div className="rounded-md border border-border bg-background px-2 py-2">
-                              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Special items</p>
+                              <p className="text-xs font-semibold tracking-wide text-muted-foreground">Special items</p>
                               <div className="mt-1 space-y-1">
                                 {loadSheet.special_items.map((item, index) => (
                                   <p key={`${item.for_stop}:${index}`} className="text-xs text-foreground">
@@ -1221,7 +1221,7 @@ export default function RoutesFleetPanel({ search }: Props) {
             required
           />
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Photo Evidence Required</label>
+            <label className="mb-1 block text-xs font-semibold tracking-wide text-muted-foreground">Photo Evidence Required</label>
             <select
               value={customTaskEvidenceRequired ? 'yes' : 'no'}
               onChange={(event) => setCustomTaskEvidenceRequired(event.target.value === 'yes')}
@@ -1251,7 +1251,7 @@ export default function RoutesFleetPanel({ search }: Props) {
         <div className="space-y-5">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Route</label>
+              <label className="mb-1 block text-xs font-semibold tracking-wide text-muted-foreground">Route</label>
               <select
                 value={fleetRouteId}
                 onChange={(event) => setFleetRouteId(event.target.value)}
@@ -1266,7 +1266,7 @@ export default function RoutesFleetPanel({ search }: Props) {
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Staff</label>
+              <label className="mb-1 block text-xs font-semibold tracking-wide text-muted-foreground">Staff</label>
               <select
                 value={fleetStaffId}
                 onChange={(event) => setFleetStaffId(event.target.value)}
@@ -1281,7 +1281,7 @@ export default function RoutesFleetPanel({ search }: Props) {
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Odometer</label>
+              <label className="mb-1 block text-xs font-semibold tracking-wide text-muted-foreground">Odometer</label>
               <input
                 type="number"
                 min={0}
@@ -1292,7 +1292,7 @@ export default function RoutesFleetPanel({ search }: Props) {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Fuel Level</label>
+              <label className="mb-1 block text-xs font-semibold tracking-wide text-muted-foreground">Fuel Level</label>
               <select
                 value={fleetFuelLevel}
                 onChange={(event) => setFleetFuelLevel(event.target.value)}
@@ -1330,7 +1330,7 @@ export default function RoutesFleetPanel({ search }: Props) {
           {fleetMode === 'return' ? (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div>
-                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Fuel Gallons</label>
+                <label className="mb-1 block text-xs font-semibold tracking-wide text-muted-foreground">Fuel Gallons</label>
                 <input
                   type="number"
                   min={0}
@@ -1342,7 +1342,7 @@ export default function RoutesFleetPanel({ search }: Props) {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Fuel Cost</label>
+                <label className="mb-1 block text-xs font-semibold tracking-wide text-muted-foreground">Fuel Cost</label>
                 <input
                   type="number"
                   min={0}
@@ -1354,7 +1354,7 @@ export default function RoutesFleetPanel({ search }: Props) {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Station</label>
+                <label className="mb-1 block text-xs font-semibold tracking-wide text-muted-foreground">Station</label>
                 <input
                   type="text"
                   value={fleetStation}

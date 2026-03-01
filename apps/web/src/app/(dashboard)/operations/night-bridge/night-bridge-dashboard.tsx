@@ -205,7 +205,7 @@ export default function NightBridgeDashboard({ search }: NightBridgeDashboardPro
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Date</label>
+            <label className="mb-1 block text-xs font-semibold tracking-wide text-muted-foreground">Date</label>
             <input
               type="date"
               value={selectedDate}

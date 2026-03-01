@@ -116,7 +116,7 @@ export function SendProposalForm({ proposal, open, onClose, onSuccess }: SendPro
       <div className="space-y-6">
         {recentSends.length > 0 && (
           <div className="space-y-2 pb-4 border-b border-border">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Recent Sends</p>
+            <p className="text-xs font-medium text-muted-foreground tracking-wider">Recent Sends</p>
             {recentSends.map((s) => (
               <div key={s.id} className="flex items-center justify-between text-sm">
                 <span className="text-foreground">{s.recipient_email}</span>

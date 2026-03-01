@@ -1159,7 +1159,7 @@ export default function SchedulePageClient() {
       {tab === 'recurring' && (
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Range</span>
+            <span className="text-xs font-medium tracking-wide text-muted-foreground">Range</span>
             <div className="inline-flex items-center rounded-lg border border-border bg-muted p-0.5">
               {([
                 { key: '1w', label: '1W' },

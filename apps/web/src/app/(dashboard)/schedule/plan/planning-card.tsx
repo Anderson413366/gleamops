@@ -134,7 +134,7 @@ export const PlanningCard = memo(function PlanningCard({
       {/* Position badge */}
       {ticket.position_code && (
         <div className="mb-2">
-          <Badge color={positionBadgeColor} className="text-[10px]">
+          <Badge color={positionBadgeColor} className="text-[11px]">
             {formatPositionLabel(ticket.position_code)}
           </Badge>
         </div>
@@ -145,7 +145,7 @@ export const PlanningCard = memo(function PlanningCard({
         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
           {timeWindow && <span>{timeWindow}</span>}
           {duration && (
-            <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+            <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
               {duration}
             </span>
           )}
@@ -183,7 +183,7 @@ export const PlanningCard = memo(function PlanningCard({
             />
           ))}
         </div>
-        <span className="text-[10px] text-muted-foreground font-medium">
+        <span className="text-[11px] text-muted-foreground font-medium">
           {assigned}/{required}
         </span>
       </div>
@@ -200,11 +200,11 @@ export const PlanningCard = memo(function PlanningCard({
           />
           <div className="flex items-center gap-1">
             <button type="button" onClick={handleSaveNotes} disabled={notesSaving}
-              className="text-[10px] font-medium text-primary hover:underline px-1">
+              className="text-[11px] font-medium text-primary hover:underline px-1">
               Save
             </button>
             <button type="button" onClick={() => { setNotesOpen(false); setNotesValue(ticket.notes ?? ''); }}
-              className="text-[10px] text-muted-foreground hover:underline px-1">
+              className="text-[11px] text-muted-foreground hover:underline px-1">
               Cancel
             </button>
           </div>
@@ -217,7 +217,7 @@ export const PlanningCard = memo(function PlanningCard({
         </button>
       ) : onUpdateNotes ? (
         <button type="button" onClick={() => setNotesOpen(true)}
-          className="flex items-center gap-1.5 text-[10px] text-muted-foreground mb-2 hover:text-foreground">
+          className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-2 hover:text-foreground">
           <MessageSquare className="h-3 w-3 shrink-0" aria-hidden />
           Add notes
         </button>
@@ -244,7 +244,7 @@ export const PlanningCard = memo(function PlanningCard({
           </button>
         )}
         {isReady && (
-          <Badge color="green" className="ml-auto text-[10px]">Ready</Badge>
+          <Badge color="green" className="ml-auto text-[11px]">Ready</Badge>
         )}
       </div>
     </div>

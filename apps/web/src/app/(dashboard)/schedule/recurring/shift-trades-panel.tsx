@@ -112,7 +112,7 @@ export function ShiftTradesPanel() {
                     {trade.ticket?.ticket_code} · {trade.ticket?.scheduled_date}
                   </span>
                 </div>
-                <Badge color="blue" className="text-[10px]">{trade.request_type}</Badge>
+                <Badge color="blue" className="text-[11px]">{trade.request_type}</Badge>
               </div>
               <div className="flex items-center gap-2 text-xs">
                 <span className="font-medium text-foreground">
@@ -176,7 +176,7 @@ export function ShiftTradesPanel() {
               <div className="space-y-2 mt-2">
                 {pastTrades.map((trade) => (
                   <div key={trade.id} className="rounded-lg border border-border/60 p-2 text-xs text-muted-foreground flex items-center gap-2">
-                    <Badge color={STATUS_BADGE[trade.status] ?? 'gray'} className="text-[10px]">{trade.status}</Badge>
+                    <Badge color={STATUS_BADGE[trade.status] ?? 'gray'} className="text-[11px]">{trade.status}</Badge>
                     <span>{trade.initiator_staff?.full_name ?? 'Unknown'}</span>
                     <ArrowRightLeft className="h-3 w-3 shrink-0" />
                     <span>{trade.target_staff?.full_name ?? 'Unknown'}</span>

@@ -337,7 +337,7 @@ export default function CertificationsTable({ search, autoCreate, onAutoCreateHa
             {status === 'all' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase()}
             <span
               className={cn(
-                'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+                'rounded-full px-1.5 py-0.5 text-[11px] font-semibold',
                 statusFilter === status ? 'bg-white/20' : 'bg-background'
               )}
             >

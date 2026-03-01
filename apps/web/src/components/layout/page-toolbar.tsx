@@ -141,7 +141,7 @@ function FilterDropdown({ content, activeCount }: { content: ReactNode; activeCo
         <Filter className="h-3.5 w-3.5" />
         Filters
         {activeCount > 0 && (
-          <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+          <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-semibold text-primary-foreground">
             {activeCount}
           </span>
         )}

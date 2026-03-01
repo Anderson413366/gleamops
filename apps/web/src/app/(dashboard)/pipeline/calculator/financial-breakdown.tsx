@@ -85,7 +85,7 @@ export function FinancialBreakdown({ pricing }: FinancialBreakdownProps) {
         <div className="overflow-x-auto">
           <table className="w-full min-w-[480px] text-sm">
             <thead>
-              <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
+              <tr className="border-b border-border text-left text-xs tracking-wide text-muted-foreground">
                 <th className="py-2 pr-4">Category</th>
                 <th className="py-2 pr-4 text-right">Monthly Value</th>
                 <th className="py-2 text-right">% Revenue</th>

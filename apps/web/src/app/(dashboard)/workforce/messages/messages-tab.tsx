@@ -169,7 +169,7 @@ export default function MessagesTab({ search }: MessagesTabProps) {
                   <Badge color={thread.thread_type === 'TICKET_CONTEXT' ? 'purple' : thread.thread_type === 'GROUP' ? 'blue' : 'gray'}>
                     {thread.thread_type === 'TICKET_CONTEXT' ? 'Ticket' : thread.thread_type === 'GROUP' ? 'Group' : 'Direct'}
                   </Badge>
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-[11px] text-muted-foreground">
                     {formatRelative(thread.last_message?.created_at ?? thread.updated_at)}
                   </span>
                 </div>

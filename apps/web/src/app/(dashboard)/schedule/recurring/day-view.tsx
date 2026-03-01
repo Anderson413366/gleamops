@@ -71,7 +71,7 @@ export function DayView({ rows, dateKey, search = '', onSelect }: DayViewProps) 
               className="absolute left-0 right-0 border-t border-border/50"
               style={{ top: `${hour * 48}px` }}
             >
-              <span className="absolute left-2 -top-2.5 text-[10px] text-muted-foreground bg-card px-1">
+              <span className="absolute left-2 -top-2.5 text-[11px] text-muted-foreground bg-card px-1">
                 {String(hour).padStart(2, '0')}:00
               </span>
             </div>

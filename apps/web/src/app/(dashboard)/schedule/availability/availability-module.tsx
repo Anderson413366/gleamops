@@ -374,7 +374,7 @@ export function AvailabilityModule() {
             return (
               <div key={dayLabel} className="relative rounded-xl border border-border bg-card">
                 <div className="border-b border-border px-2 py-2 text-center">
-                  <span className="text-xs font-bold text-foreground uppercase">{dayLabel}</span>
+                  <span className="text-xs font-bold text-foreground">{dayLabel}</span>
                 </div>
                 <div className="min-h-[200px] p-2 space-y-1.5">
                   {dayRules.map((rule) => (
@@ -393,7 +393,7 @@ export function AvailabilityModule() {
                         {formatTime12(rule.start_time)} – {formatTime12(rule.end_time)}
                       </div>
                       {!isSingleEmployee && rule.staffName && (
-                        <div className="text-[10px] opacity-80 truncate">{rule.staffName}</div>
+                        <div className="text-[11px] opacity-80 truncate">{rule.staffName}</div>
                       )}
                       {rule.notes && (
                         <MessageSquare className="inline h-2.5 w-2.5 ml-1 opacity-60" />

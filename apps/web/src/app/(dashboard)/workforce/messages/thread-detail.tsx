@@ -225,12 +225,12 @@ export function ThreadDetail({ threadId, open, onClose }: ThreadDetailProps) {
                     }`}
                   >
                     {!isMe && (
-                      <p className="text-[10px] font-semibold mb-0.5 opacity-70">
+                      <p className="text-[11px] font-semibold mb-0.5 opacity-70">
                         {msg.sender_name}
                       </p>
                     )}
                     <p className="text-sm whitespace-pre-wrap break-words">{msg.body}</p>
-                    <p className={`text-[10px] mt-1 ${isMe ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>
+                    <p className={`text-[11px] mt-1 ${isMe ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>
                       {formatRelative(msg.created_at)}
                     </p>
                   </div>
@@ -260,7 +260,7 @@ export function ThreadDetail({ threadId, open, onClose }: ThreadDetailProps) {
               <Send className="h-4 w-4" />
             </button>
           </div>
-          <p className="text-[10px] text-muted-foreground mt-1">Press Enter to send, Shift+Enter for new line</p>
+          <p className="text-[11px] text-muted-foreground mt-1">Press Enter to send, Shift+Enter for new line</p>
         </div>
       </div>
     </SlideOver>

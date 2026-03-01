@@ -144,7 +144,7 @@ export function ConsumablesStep({ items, onChange }: ConsumablesStepProps) {
             {result && (
               <div className="rounded-lg bg-muted/50 p-3">
                 <div className="flex justify-between items-center">
-                  <p className="text-[10px] text-muted-foreground uppercase">Total Monthly Consumables</p>
+                  <p className="text-[11px] text-muted-foreground">Total Monthly Consumables</p>
                   <p className="text-sm font-bold">{fmt(result.total_monthly)}</p>
                 </div>
                 <div className="mt-2 space-y-1">

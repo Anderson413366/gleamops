@@ -92,7 +92,7 @@ export function PricingConfigStep({
         <div className="space-y-5">
           {/* Customer Tier */}
           <div>
-            <label className="mb-2 block text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            <label className="mb-2 block text-xs font-medium text-muted-foreground tracking-wide">
               Customer Tier
             </label>
             <div className="grid grid-cols-3 gap-3">
@@ -119,7 +119,7 @@ export function PricingConfigStep({
 
           {/* Pricing Structure */}
           <div>
-            <label className="mb-2 block text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            <label className="mb-2 block text-xs font-medium text-muted-foreground tracking-wide">
               Pricing Structure
             </label>
             <div className="grid grid-cols-3 gap-3">
@@ -146,7 +146,7 @@ export function PricingConfigStep({
 
           {/* Pricing Method */}
           <div>
-            <label className="mb-2 block text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            <label className="mb-2 block text-xs font-medium text-muted-foreground tracking-wide">
               Pricing Method
             </label>
             <div className="flex items-center gap-3">

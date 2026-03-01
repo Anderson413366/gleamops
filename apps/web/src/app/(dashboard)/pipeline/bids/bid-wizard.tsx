@@ -1423,7 +1423,7 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
                         }))
                       }
                     />
-                    <p className="text-[10px] text-muted-foreground mt-1">Applied to Sat/Sun service days</p>
+                    <p className="text-[11px] text-muted-foreground mt-1">Applied to Sat/Sun service days</p>
                   </div>
                   <div>
                     <Input
@@ -1437,7 +1437,7 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
                         }))
                       }
                     />
-                    <p className="text-[10px] text-muted-foreground mt-1">Weekly hours before OT applies</p>
+                    <p className="text-[11px] text-muted-foreground mt-1">Weekly hours before OT applies</p>
                   </div>
                 </div>
               )}
@@ -1654,7 +1654,7 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
                       <button
                         type="button"
                         onClick={() => setDismissedSuggestions(true)}
-                        className="text-[10px] text-blue-500 hover:text-blue-700 dark:hover:text-blue-300"
+                        className="text-[11px] text-blue-500 hover:text-blue-700 dark:hover:text-blue-300"
                       >
                         Dismiss
                       </button>
@@ -1863,7 +1863,7 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
                             </div>
                           )}
                         </div>
-                        <div className="flex gap-4 mt-2 text-[10px] text-muted-foreground flex-wrap">
+                        <div className="flex gap-4 mt-2 text-[11px] text-muted-foreground flex-wrap">
                           <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-blue-500" />Labor {fmtPct(laborPct)}</span>
                           <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" />Supplies {fmtPct(suppliesPct)}</span>
                           {equipmentPct > 0 && <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-orange-500" />Equipment {fmtPct(equipmentPct)}</span>}

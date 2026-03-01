@@ -485,7 +485,7 @@ export default function SiteAssignmentsTable({ search }: Props) {
                   <span className="inline-flex items-center gap-1.5">
                     {lastCountQty != null ? lastCountQty.toLocaleString() : 'Not Counted'}
                     {lastCountQty != null && Number(row.par_level ?? enriched?.min_stock_level ?? 0) > 0 && lastCountQty < Number(row.par_level ?? enriched?.min_stock_level ?? 0) && (
-                      <span className="inline-flex items-center gap-0.5 rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-900/40 dark:text-red-300">
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-red-100 px-1.5 py-0.5 text-[11px] font-medium text-red-700 dark:bg-red-900/40 dark:text-red-300">
                         <AlertTriangle className="h-2.5 w-2.5" />
                         Below Par
                       </span>

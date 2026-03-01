@@ -258,7 +258,7 @@ function TicketCard({
         <p className="font-medium truncate">{ticket.site?.name ?? ticket.ticket_code}</p>
       </div>
       <div className="mt-0.5 flex items-center gap-1">
-        <span className={`inline-flex rounded-full border px-1.5 py-0 text-[9px] font-semibold uppercase tracking-wide ${SOURCE_META[ticket.source].chipClass}`}>
+        <span className={`inline-flex rounded-full border px-1.5 py-0 text-[9px] font-semibold tracking-wide ${SOURCE_META[ticket.source].chipClass}`}>
           {SOURCE_META[ticket.source].label}
         </span>
       </div>
@@ -276,7 +276,7 @@ function TicketCard({
           <span className="truncate">{shortNames.join(', ')}</span>
         </div>
       ) : (
-        <p className="text-destructive text-[10px] mt-0.5 font-medium">Unassigned</p>
+        <p className="text-destructive text-[11px] mt-0.5 font-medium">Unassigned</p>
       )}
     </div>
   );
@@ -757,7 +757,7 @@ export default function WeekCalendar({ onSelectTicket, onCreatedTicket }: WeekCa
             {day.getDate()}
           </p>
           {dayTickets.length > 0 && (
-            <p className="text-[10px] text-muted-foreground">{dayTickets.length} ticket{dayTickets.length > 1 ? 's' : ''}</p>
+            <p className="text-[11px] text-muted-foreground">{dayTickets.length} ticket{dayTickets.length > 1 ? 's' : ''}</p>
           )}
         </button>
 
@@ -922,7 +922,7 @@ export default function WeekCalendar({ onSelectTicket, onCreatedTicket }: WeekCa
                   className="absolute left-0 right-0 border-b border-border/40 flex items-start"
                   style={{ top: `${(hour - TIMELINE_START_HOUR) * HOUR_HEIGHT}px`, height: `${HOUR_HEIGHT}px` }}
                 >
-                  <span className="w-16 shrink-0 px-2 py-1 text-[10px] text-muted-foreground font-medium bg-muted/30">
+                  <span className="w-16 shrink-0 px-2 py-1 text-[11px] text-muted-foreground font-medium bg-muted/30">
                     {hour === 0 ? '12am' : hour < 12 ? `${hour}am` : hour === 12 ? '12pm' : `${hour - 12}pm`}
                   </span>
                   <div className="flex-1 h-full" />
@@ -1007,7 +1007,7 @@ export default function WeekCalendar({ onSelectTicket, onCreatedTicket }: WeekCa
                   <div className="mb-1 flex items-center justify-between">
                     <span className={`text-xs font-semibold ${today ? 'text-brand-600' : 'text-foreground'}`}>{day.getDate()}</span>
                     {dayTickets.length > 0 ? (
-                      <span className="text-[10px] text-muted-foreground">{dayTickets.length}</span>
+                      <span className="text-[11px] text-muted-foreground">{dayTickets.length}</span>
                     ) : null}
                   </div>
                   <div className="space-y-0.5">
@@ -1027,7 +1027,7 @@ export default function WeekCalendar({ onSelectTicket, onCreatedTicket }: WeekCa
                             onSelectTicket?.(ticket);
                           }}
                           className={cn(
-                            'h-5 rounded px-1 cursor-pointer transition-all flex items-center gap-1 text-white text-[10px] leading-tight font-medium overflow-hidden',
+                            'h-5 rounded px-1 cursor-pointer transition-all flex items-center gap-1 text-white text-[11px] leading-tight font-medium overflow-hidden',
                             barColor,
                             dragTicketId === ticket.id && 'opacity-40',
                           )}
@@ -1039,7 +1039,7 @@ export default function WeekCalendar({ onSelectTicket, onCreatedTicket }: WeekCa
                       );
                     })}
                     {dayTickets.length > 4 ? (
-                      <p className="text-[10px] text-muted-foreground text-center">+{dayTickets.length - 4} more</p>
+                      <p className="text-[11px] text-muted-foreground text-center">+{dayTickets.length - 4} more</p>
                     ) : null}
                   </div>
                 </div>

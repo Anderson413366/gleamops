@@ -756,7 +756,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
               {tab.icon}
               {tab.label}
               {tab.count && (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                <span className={`text-[11px] px-1.5 py-0.5 rounded-full font-bold ${
                   activeTab === tab.key ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
                 }`}>
                   {tab.count}
@@ -822,31 +822,31 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
             <div className="grid grid-cols-3 gap-2">
               <button type="button" onClick={() => setActiveTab('checklist')} className="p-2.5 rounded-lg border border-border hover:border-primary/30 text-center transition-colors">
                 <p className="text-lg font-bold text-foreground">{progressPct}%</p>
-                <p className="text-[10px] text-muted-foreground">Checklist</p>
+                <p className="text-[11px] text-muted-foreground">Checklist</p>
               </button>
               <button type="button" onClick={() => setActiveTab('crew')} className="p-2.5 rounded-lg border border-border hover:border-primary/30 text-center transition-colors">
                 <p className="text-lg font-bold text-foreground">{assignments.length}</p>
-                <p className="text-[10px] text-muted-foreground">Crew</p>
+                <p className="text-[11px] text-muted-foreground">Crew</p>
               </button>
               <button type="button" onClick={() => setActiveTab('time')} className="p-2.5 rounded-lg border border-border hover:border-primary/30 text-center transition-colors">
                 <p className="text-lg font-bold text-foreground">{timeEntries.length}</p>
-                <p className="text-[10px] text-muted-foreground">Time Logs</p>
+                <p className="text-[11px] text-muted-foreground">Time Logs</p>
               </button>
               <button type="button" onClick={() => setActiveTab('photos')} className="p-2.5 rounded-lg border border-border hover:border-primary/30 text-center transition-colors">
                 <p className="text-lg font-bold text-foreground">{allPhotos.length}</p>
-                <p className="text-[10px] text-muted-foreground">Photos</p>
+                <p className="text-[11px] text-muted-foreground">Photos</p>
               </button>
               <button type="button" onClick={() => setActiveTab('safety')} className={`p-2.5 rounded-lg border text-center transition-colors ${
                 safetyCount > 0 ? 'border-destructive/30 hover:border-destructive bg-destructive/10' : 'border-border hover:border-primary/30'
               }`}>
                 <p className={`text-lg font-bold ${safetyCount > 0 ? 'text-destructive' : 'text-foreground'}`}>{safetyCount}</p>
-                <p className="text-[10px] text-muted-foreground">Flags</p>
+                <p className="text-[11px] text-muted-foreground">Flags</p>
               </button>
               <button type="button" onClick={() => setActiveTab('quality')} className="p-2.5 rounded-lg border border-border hover:border-primary/30 text-center transition-colors">
                 <p className="text-lg font-bold text-foreground">
                   {latestInspection?.score_pct != null ? `${Math.round(latestInspection.score_pct)}%` : '—'}
                 </p>
-                <p className="text-[10px] text-muted-foreground">Quality</p>
+                <p className="text-[11px] text-muted-foreground">Quality</p>
               </button>
             </div>
 
@@ -883,7 +883,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                 {Array.from(sections.entries()).map(([sectionName, sectionItems]) => (
                   <div key={sectionName}>
                     {sections.size > 1 && (
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                      <p className="text-xs font-semibold text-muted-foreground tracking-wider mb-2">
                         {sectionName}
                       </p>
                     )}
@@ -947,7 +947,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                     </div>
                     <div className="p-2">
                       <p className="text-xs font-medium truncate">{photo.original_filename}</p>
-                      <p className="text-[10px] text-muted-foreground truncate">{photo.itemLabel}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">{photo.itemLabel}</p>
                       {photo.caption && <p className="text-xs text-muted-foreground mt-0.5">{photo.caption}</p>}
                     </div>
                   </div>
@@ -996,7 +996,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
             {/* Site Supplies & SDS */}
             {siteSupplies.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Site Supplies & SDS</p>
+                <p className="text-xs font-semibold text-muted-foreground tracking-wider">Site Supplies & SDS</p>
                 {siteSupplies.map((supply) => (
                   <div key={supply.id} className="p-3 rounded-lg border border-border flex items-center justify-between gap-3">
                     <div className="min-w-0">
@@ -1027,7 +1027,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
             {/* Time exceptions (geofence, late arrival, etc.) */}
             {timeExceptions.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Time Exceptions</p>
+                <p className="text-xs font-semibold text-muted-foreground tracking-wider">Time Exceptions</p>
                 {timeExceptions.map((ex) => (
                   <div key={ex.id} className={`p-3 rounded-lg border ${
                     ex.severity === 'CRITICAL' ? 'border-destructive/30 bg-destructive/10' :
@@ -1060,7 +1060,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
             {/* Inspection issues */}
             {inspectionIssues.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Inspection Issues</p>
+                <p className="text-xs font-semibold text-muted-foreground tracking-wider">Inspection Issues</p>
                 {inspectionIssues.map((issue) => (
                   <div key={issue.id} className={`p-3 rounded-lg border ${
                     issue.severity === 'CRITICAL' ? 'border-destructive/30 bg-destructive/10' :
@@ -1247,7 +1247,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                 )}
 
                 <div className="space-y-2 pt-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Trade Requests</p>
+                  <p className="text-xs font-semibold text-muted-foreground tracking-wider">Trade Requests</p>
                   {tradeRequests.length === 0 ? (
                     <p className="text-xs text-muted-foreground">No trade requests for this ticket.</p>
                   ) : (
@@ -1326,7 +1326,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
                               {req.description}
                               {req.is_required && <span className="text-destructive ml-1">*</span>}
                             </p>
-                            <p className="text-[10px] text-muted-foreground uppercase">{req.asset_type}</p>
+                            <p className="text-[11px] text-muted-foreground">{req.asset_type}</p>
                           </div>
                         </div>
                         {isCheckedOut ? (

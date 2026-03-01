@@ -1008,7 +1008,7 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
     <div>
       <div className="mb-4 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-start">
         <div className="rounded-xl border border-border bg-muted/20 p-4 sm:p-5">
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Clock-In Verification</p>
+          <p className="text-xs tracking-wide text-muted-foreground">Clock-In Verification</p>
           <h3 className="mt-1 text-base font-semibold text-foreground">
             {profileHeading}
           </h3>

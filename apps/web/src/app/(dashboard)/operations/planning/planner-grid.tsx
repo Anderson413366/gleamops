@@ -44,7 +44,7 @@ export function PlannerGrid({ tickets, emptyState }: PlannerGridProps) {
   return (
     <div className="overflow-x-auto rounded-xl border border-border">
       <table className="min-w-full text-sm">
-        <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
+        <thead className="bg-muted/40 text-xs text-muted-foreground">
           <tr>
             <th className="px-3 py-2 text-left">Ticket</th>
             <th className="px-3 py-2 text-left">Site</th>

@@ -396,7 +396,7 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect, o
     <div className="overflow-x-auto rounded-2xl border border-border">
       <div style={{ minWidth: `${minWidthPx}px` }}>
         <div
-          className="grid border-b border-border bg-muted/40 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+          className="grid border-b border-border bg-muted/40 text-xs font-semibold tracking-wide text-muted-foreground"
           style={{ gridTemplateColumns }}
         >
           <div className="sticky left-0 z-10 bg-muted/40 border-r border-border px-4 py-3">Specialist</div>
@@ -405,7 +405,7 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect, o
             return (
               <div key={dateKey} className="px-3 py-3 text-center">
                 <p>{heading.day}</p>
-                <p className={`mt-0.5 text-[10px] normal-case ${isToday(dateKey) ? 'text-primary font-semibold' : ''}`}>
+                <p className={`mt-0.5 text-[11px] normal-case ${isToday(dateKey) ? 'text-primary font-semibold' : ''}`}>
                   {heading.label}
                 </p>
               </div>
@@ -470,7 +470,7 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect, o
                   >
                     {isUnavailable && dayRows.length === 0 && (
                       <Tooltip content={`Unavailable: ${unavailableReason}`}>
-                        <div className="rounded-lg border border-dashed border-amber-300/70 bg-amber-50/50 px-2 py-2 text-center text-[10px] text-amber-700 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-400">
+                        <div className="rounded-lg border border-dashed border-amber-300/70 bg-amber-50/50 px-2 py-2 text-center text-[11px] text-amber-700 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-400">
                           Unavailable
                         </div>
                       </Tooltip>

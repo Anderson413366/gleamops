@@ -275,7 +275,7 @@ export function WorkOrderCalendar({ rows, onSelect, onCreateAtDate }: WorkOrderC
                         {day.getDate()}
                       </button>
                       <div className="flex items-center gap-1">
-                        <p className="text-[10px] text-muted-foreground">{dayRows.length}</p>
+                        <p className="text-[11px] text-muted-foreground">{dayRows.length}</p>
                         <button
                           type="button"
                           onClick={() => onCreateAtDate?.(key)}
@@ -291,18 +291,18 @@ export function WorkOrderCalendar({ rows, onSelect, onCreateAtDate }: WorkOrderC
                         key={row.id}
                         type="button"
                         onClick={() => onSelect(row)}
-                        className="w-full rounded border border-border px-1.5 py-1 text-left text-[10px] hover:bg-muted"
+                        className="w-full rounded border border-border px-1.5 py-1 text-left text-[11px] hover:bg-muted"
                       >
                         <p className="truncate font-medium text-foreground">{row.ticket_code}</p>
                         <p className="truncate text-muted-foreground">{row.site_name}</p>
                       </button>
                     ))}
-                    {dayRows.length > 3 ? <p className="text-[10px] text-muted-foreground">+{dayRows.length - 3} more</p> : null}
+                    {dayRows.length > 3 ? <p className="text-[11px] text-muted-foreground">+{dayRows.length - 3} more</p> : null}
                     {dayRows.length === 0 ? (
                       <button
                         type="button"
                         onClick={() => onCreateAtDate?.(key)}
-                        className="text-[10px] text-muted-foreground transition-colors hover:text-foreground"
+                        className="text-[11px] text-muted-foreground transition-colors hover:text-foreground"
                       >
                         New work order
                       </button>

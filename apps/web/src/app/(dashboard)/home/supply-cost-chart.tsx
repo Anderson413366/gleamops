@@ -183,7 +183,7 @@ export function SupplyCostChart() {
         ) : (
           <div className="grid gap-4 lg:grid-cols-2">
             <div className="space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Top Sites</p>
+              <p className="text-xs font-semibold tracking-wide text-muted-foreground">Top Sites</p>
               {data.by_site.map((site) => {
                 const widthPct = maxSiteCost > 0 ? Math.max(5, (site.total_cost / maxSiteCost) * 100) : 5;
                 const selected = selectedSiteId === site.site_id;
@@ -214,7 +214,7 @@ export function SupplyCostChart() {
 
             <div className="space-y-4 rounded-lg border border-border bg-background p-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Monthly Trend</p>
+                <p className="text-xs font-semibold tracking-wide text-muted-foreground">Monthly Trend</p>
                 <div className="mt-2 space-y-2">
                   {data.monthly_trend.length === 0 ? (
                     <p className="text-sm text-muted-foreground">No trend points in selected range.</p>
@@ -230,7 +230,7 @@ export function SupplyCostChart() {
               </div>
 
               <div className="border-t border-border pt-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Site Breakdown</p>
+                <p className="text-xs font-semibold tracking-wide text-muted-foreground">Site Breakdown</p>
                 {siteLoading ? (
                   <p className="mt-2 text-sm text-muted-foreground">Loading site breakdown...</p>
                 ) : !siteData || siteData.by_supply.length === 0 ? (

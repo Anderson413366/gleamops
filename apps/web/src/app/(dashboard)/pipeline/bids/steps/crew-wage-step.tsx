@@ -91,11 +91,11 @@ export function CrewWageStep({ crew, onChange }: CrewWageStepProps) {
             {wageResult && (
               <div className="rounded-lg bg-muted/50 p-3 grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-[10px] text-muted-foreground uppercase">Weighted Avg Rate</p>
+                  <p className="text-[11px] text-muted-foreground">Weighted Avg Rate</p>
                   <p className="text-sm font-bold">{fmt(wageResult.weighted_avg_rate)}/hr</p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-muted-foreground uppercase">Total Weekly Hours</p>
+                  <p className="text-[11px] text-muted-foreground">Total Weekly Hours</p>
                   <p className="text-sm font-bold">{wageResult.total_weekly_hours.toFixed(1)}</p>
                 </div>
               </div>

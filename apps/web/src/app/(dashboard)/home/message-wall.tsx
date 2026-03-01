@@ -66,12 +66,12 @@ export function MessageWall() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-medium text-foreground">{msg.author_name}</span>
-                    <span className="text-[10px] text-muted-foreground">{formatTimestamp(msg.created_at)}</span>
+                    <span className="text-[11px] text-muted-foreground">{formatTimestamp(msg.created_at)}</span>
                   </div>
                   <p className="text-sm font-medium text-foreground mt-0.5">{msg.title}</p>
                   <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{msg.body}</p>
                   {msg.comment_count > 0 && (
-                    <button type="button" className="text-[10px] text-module-accent hover:underline mt-1">
+                    <button type="button" className="text-[11px] text-module-accent hover:underline mt-1">
                       {msg.comment_count} comment{msg.comment_count !== 1 ? 's' : ''}
                     </button>
                   )}

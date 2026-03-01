@@ -109,7 +109,7 @@ export function ConflictPanel() {
                     {CONFLICT_TYPE_LABEL[conflict.conflict_type] ?? conflict.conflict_type}
                   </span>
                   {conflict.is_blocking && (
-                    <Badge color="red" className="text-[10px]">Blocking</Badge>
+                    <Badge color="red" className="text-[11px]">Blocking</Badge>
                   )}
                 </div>
                 {conflict.ticket && (

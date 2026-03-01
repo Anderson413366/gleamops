@@ -367,7 +367,7 @@ export function MasterBoard() {
                   {/* Column Header */}
                   {!isCollapsed && (
                     <>
-                      <div className="grid grid-cols-[1fr_120px_140px_160px_1fr] border-b border-border bg-muted/30 px-4 py-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                      <div className="grid grid-cols-[1fr_120px_140px_160px_1fr] border-b border-border bg-muted/30 px-4 py-1.5 text-[11px] font-medium tracking-wider text-muted-foreground">
                         <span>Site</span>
                         <span>Time</span>
                         <span>Position</span>
@@ -447,7 +447,7 @@ export function MasterBoard() {
                                       onClick={() => setAssigningTicketId(ticket.id)}
                                       className="inline-flex items-center gap-1 rounded-full border border-dashed border-destructive/40 px-2.5 py-1 text-[11px] font-medium text-destructive hover:bg-destructive/5 transition-colors"
                                     >
-                                      <span className="h-5 w-5 rounded-full border border-dashed border-destructive/40 flex items-center justify-center text-[10px]">+</span>
+                                      <span className="h-5 w-5 rounded-full border border-dashed border-destructive/40 flex items-center justify-center text-[11px]">+</span>
                                       Assign
                                     </button>
                                   )
@@ -458,14 +458,14 @@ export function MasterBoard() {
                                       {staffNames.slice(0, 3).map((name) => (
                                         <div
                                           key={name}
-                                          className="h-7 w-7 rounded-full bg-primary/15 border-2 border-card flex items-center justify-center text-[10px] font-bold text-primary"
+                                          className="h-7 w-7 rounded-full bg-primary/15 border-2 border-card flex items-center justify-center text-[11px] font-bold text-primary"
                                           title={name}
                                         >
                                           {getInitials(name)}
                                         </div>
                                       ))}
                                       {staffNames.length > 3 && (
-                                        <div className="h-7 w-7 rounded-full bg-muted border-2 border-card flex items-center justify-center text-[10px] font-medium text-muted-foreground">
+                                        <div className="h-7 w-7 rounded-full bg-muted border-2 border-card flex items-center justify-center text-[11px] font-medium text-muted-foreground">
                                           +{staffNames.length - 3}
                                         </div>
                                       )}

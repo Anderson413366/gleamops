@@ -104,7 +104,7 @@ export default function LookupsTable({ search, autoCreate, onAutoCreateHandled, 
           >
             {option.charAt(0).toUpperCase() + option.slice(1)}
             <span className={cn(
-              'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+              'rounded-full px-1.5 py-0.5 text-[11px] font-semibold',
               activeFilter === option ? 'bg-white/20' : 'bg-background'
             )}>
               {activeCounts[option]}

@@ -49,7 +49,7 @@ const EMPLOYEE_REPORTS: ReportCard[] = [
 function ReportSection({ title, reports }: { title: string; reports: ReportCard[] }) {
   return (
     <div className="space-y-2">
-      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{title}</h3>
+      <h3 className="text-sm font-semibold text-muted-foreground tracking-wide">{title}</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {reports.map((report) => (
           <Card key={report.name} className="hover:shadow-md hover:border-module-accent/40 cursor-pointer transition-all">

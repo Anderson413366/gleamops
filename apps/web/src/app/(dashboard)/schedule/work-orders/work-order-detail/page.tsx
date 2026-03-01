@@ -170,25 +170,25 @@ export default function WorkOrderDetailPage() {
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Service</p>
+            <p className="text-xs tracking-wide text-muted-foreground">Service</p>
             <p className="text-sm font-medium text-foreground">{row.job?.job_name || row.job?.job_code || 'Project Work Order'}</p>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Site</p>
+            <p className="text-xs tracking-wide text-muted-foreground">Site</p>
             <p className="text-sm font-medium text-foreground inline-flex items-center gap-1">
               <MapPin className="h-3.5 w-3.5" />
               {row.site_name}
             </p>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Date</p>
+            <p className="text-xs tracking-wide text-muted-foreground">Date</p>
             <p className="text-sm font-medium text-foreground inline-flex items-center gap-1">
               <CalendarDays className="h-3.5 w-3.5" />
               {formatDate(row.scheduled_date)}
             </p>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Status</p>
+            <p className="text-xs tracking-wide text-muted-foreground">Status</p>
             <Badge color={STATUS_BADGE_COLORS[row.status] ?? 'gray'}>{row.status}</Badge>
           </div>
         </CardContent>

@@ -39,9 +39,9 @@ export function ConflictsPanel({ conflicts }: ConflictsPanelProps) {
               {conflict.conflict_type} · {conflict.severity}
             </p>
             {conflict.is_blocking ? (
-              <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">Blocking</span>
+              <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-semibold text-destructive">Blocking</span>
             ) : (
-              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">Warning</span>
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">Warning</span>
             )}
           </div>
           <p className="mt-1 text-sm text-foreground">{conflict.message}</p>

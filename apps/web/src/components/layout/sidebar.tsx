@@ -345,7 +345,7 @@ export function Sidebar() {
             <span className="ml-auto h-1.5 w-1.5 rounded-full bg-module-accent" />
           )}
           {badgeCount > 0 && (
-            <span className={`ml-auto inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-semibold ${
+            <span className={`ml-auto inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[11px] font-semibold ${
               isActive
                 ? 'bg-module-accent/20 text-module-accent'
                 : 'bg-destructive/20 text-destructive'
@@ -401,7 +401,7 @@ export function Sidebar() {
               <span className="ml-auto h-1.5 w-1.5 rounded-full bg-module-accent" />
             )}
             {badgeCount > 0 && (
-              <span className={`ml-auto inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-semibold ${
+              <span className={`ml-auto inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[11px] font-semibold ${
                 isParentActive
                   ? 'bg-module-accent/20 text-module-accent'
                   : 'bg-destructive/20 text-destructive'
@@ -433,7 +433,7 @@ export function Sidebar() {
             />
             {item.label}
             {badgeCount > 0 && (
-              <span className={`ml-auto inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-semibold ${
+              <span className={`ml-auto inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[11px] font-semibold ${
                 isParentActive
                   ? 'bg-module-accent/20 text-module-accent'
                   : 'bg-destructive/20 text-destructive'
@@ -569,7 +569,7 @@ export function Sidebar() {
           >
             <Search className="h-4 w-4" />
             <span>Search...</span>
-            <kbd className="ml-auto rounded bg-white/5 px-1.5 py-0.5 text-[10px] text-sidebar-text">
+            <kbd className="ml-auto rounded bg-white/5 px-1.5 py-0.5 text-[11px] text-sidebar-text">
               ⌘K
             </kbd>
           </button>
@@ -589,7 +589,7 @@ export function Sidebar() {
           {quickOpen && (
             <div className="absolute bottom-full left-3 right-3 mb-2 rounded-xl border border-white/10 bg-sidebar-hover shadow-2xl shadow-black/40 overflow-hidden animate-scale-in">
               <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
-                <span className="text-xs font-semibold uppercase tracking-wider text-sidebar-text">
+                <span className="text-xs font-semibold tracking-wider text-sidebar-text">
                   Quick Actions
                 </span>
                 <button

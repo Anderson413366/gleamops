@@ -329,7 +329,7 @@ export function SupervisorDashboard() {
             <CardContent className="pt-4">
               <div className="flex items-center gap-2 mb-1">
                 <kpi.icon className="h-3.5 w-3.5 text-muted-foreground" />
-                <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{kpi.label}</p>
+                <p className="text-[11px] font-medium tracking-wider text-muted-foreground">{kpi.label}</p>
               </div>
               <p className={cn('text-2xl font-bold', kpi.color)}>{kpi.value}</p>
             </CardContent>
@@ -380,7 +380,7 @@ export function SupervisorDashboard() {
                   </div>
 
                   {group.hasIssues && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300">
                       <AlertTriangle className="h-3 w-3" />
                       Needs Attention
                     </span>
@@ -503,7 +503,7 @@ export function SupervisorDashboard() {
       {viewMode === 'staff' && (
         <div className="rounded-lg border border-border overflow-hidden">
           {/* Column header */}
-          <div className="grid grid-cols-[1fr_1fr_120px_140px_100px] border-b border-border bg-muted/30 px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+          <div className="grid grid-cols-[1fr_1fr_120px_140px_100px] border-b border-border bg-muted/30 px-4 py-2 text-[11px] font-medium tracking-wider text-muted-foreground">
             <span>Staff</span>
             <span>Site</span>
             <span>Shift</span>

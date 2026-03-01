@@ -82,7 +82,7 @@ export function LiveEstimatePanel({
       <div className="mt-6 rounded-lg border border-border bg-muted/30 p-4">
         <div className="flex items-center gap-2 mb-2">
           <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+          <h3 className="text-xs font-semibold text-muted-foreground tracking-wide">
             {isReviewStep ? 'Final Estimate' : 'Live Estimate'}
           </h3>
         </div>
@@ -111,7 +111,7 @@ export function LiveEstimatePanel({
       >
         <div className="flex items-center gap-2">
           <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+          <h3 className="text-xs font-semibold text-muted-foreground tracking-wide">
             {isReviewStep ? 'Final Estimate' : 'Live Estimate'}
           </h3>
         </div>
@@ -126,11 +126,11 @@ export function LiveEstimatePanel({
       {/* 5-stat row — always visible */}
       <div className="grid grid-cols-5 gap-3">
         <div>
-          <p className="text-[10px] text-muted-foreground">Monthly Price</p>
+          <p className="text-[11px] text-muted-foreground">Monthly Price</p>
           <p className="text-sm font-bold text-primary">{fmt(pricing.recommended_price)}</p>
         </div>
         <div>
-          <p className="text-[10px] text-muted-foreground">Margin</p>
+          <p className="text-[11px] text-muted-foreground">Margin</p>
           <p className="text-sm font-bold">
             <Badge
               color={
@@ -146,15 +146,15 @@ export function LiveEstimatePanel({
           </p>
         </div>
         <div>
-          <p className="text-[10px] text-muted-foreground">Monthly Hours</p>
+          <p className="text-[11px] text-muted-foreground">Monthly Hours</p>
           <p className="text-sm font-bold">{workload.monthly_hours.toFixed(1)}</p>
         </div>
         <div>
-          <p className="text-[10px] text-muted-foreground">Cleaners</p>
+          <p className="text-[11px] text-muted-foreground">Cleaners</p>
           <p className="text-sm font-bold">{workload.cleaners_needed}</p>
         </div>
         <div>
-          <p className="text-[10px] text-muted-foreground">Total Cost</p>
+          <p className="text-[11px] text-muted-foreground">Total Cost</p>
           <p className="text-sm font-bold">{fmt(pricing.total_monthly_cost)}</p>
         </div>
       </div>
@@ -277,7 +277,7 @@ export function LiveEstimatePanel({
                   );
                 })()}
               </div>
-              <div className="flex justify-between mt-1 text-[10px] text-muted-foreground tabular-nums">
+              <div className="flex justify-between mt-1 text-[11px] text-muted-foreground tabular-nums">
                 <span>${benchmark.low.toFixed(2)}</span>
                 <span className="font-medium text-foreground">${benchmark.pricePerSqft.toFixed(3)}/sqft</span>
                 <span>${benchmark.high.toFixed(2)}</span>
@@ -362,7 +362,7 @@ export function LiveEstimatePanel({
       {workload.warnings.length > 0 && (
         <div className="mt-2 flex items-start gap-1.5">
           <AlertTriangle className="h-3 w-3 text-warning mt-0.5 shrink-0" />
-          <p className="text-[10px] text-warning">{workload.warnings.join('; ')}</p>
+          <p className="text-[11px] text-warning">{workload.warnings.join('; ')}</p>
         </div>
       )}
     </div>

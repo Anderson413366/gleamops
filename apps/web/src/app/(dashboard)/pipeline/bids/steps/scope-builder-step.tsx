@@ -158,7 +158,7 @@ export function ScopeBuilderStep({
 
             {facility.key_considerations.length > 0 && (
               <div className="rounded-lg border border-border bg-muted/30 p-3">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                <p className="text-xs font-semibold text-muted-foreground tracking-wide mb-1">
                   Key Considerations
                 </p>
                 <ul className="space-y-0.5">

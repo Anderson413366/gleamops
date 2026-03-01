@@ -194,7 +194,7 @@ export function ShiftDetailDrawer({
             {addToTomorrowEnabled ? (
               <div className="mt-3 space-y-3">
                 <div>
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Site</label>
+                  <label className="mb-1 block text-xs font-semibold tracking-wide text-muted-foreground">Site</label>
                   <select
                     value={addToTomorrowSiteId}
                     onChange={(event) => onAddToTomorrowSiteChange(event.target.value)}

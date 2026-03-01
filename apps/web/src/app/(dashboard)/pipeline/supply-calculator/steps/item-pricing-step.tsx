@@ -237,21 +237,21 @@ export function ItemPricingStep({
       <div className="rounded-lg bg-muted/50 p-4">
         <div className="grid grid-cols-4 gap-4 text-sm">
           <div>
-            <p className="text-[10px] text-muted-foreground uppercase">Total Cost</p>
+            <p className="text-[11px] text-muted-foreground">Total Cost</p>
             <p className="font-bold">{fmt(result.total_cost)}</p>
           </div>
           <div>
-            <p className="text-[10px] text-muted-foreground uppercase">Total Revenue</p>
+            <p className="text-[11px] text-muted-foreground">Total Revenue</p>
             <p className="font-bold">{fmt(result.total_revenue)}</p>
           </div>
           <div>
-            <p className="text-[10px] text-muted-foreground uppercase">Blended Margin</p>
+            <p className="text-[11px] text-muted-foreground">Blended Margin</p>
             <p className={`font-bold ${healthColor[result.margin_health]}`}>
               {result.blended_margin_pct}%
             </p>
           </div>
           <div>
-            <p className="text-[10px] text-muted-foreground uppercase">Blended Markup</p>
+            <p className="text-[11px] text-muted-foreground">Blended Markup</p>
             <p className="font-bold">{result.blended_markup_pct}%</p>
           </div>
         </div>

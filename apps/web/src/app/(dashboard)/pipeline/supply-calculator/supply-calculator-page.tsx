@@ -213,7 +213,7 @@ function LiveEstimatePanel({
     <div className="rounded-lg border border-border bg-muted/30 p-4 transition-all duration-200">
       <div className="flex items-center gap-2 mb-3">
         <BarChart3 className="h-4 w-4 text-muted-foreground" />
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+        <h3 className="text-xs font-semibold text-muted-foreground tracking-wide">
           Live Estimate
         </h3>
       </div>
@@ -222,15 +222,15 @@ function LiveEstimatePanel({
         <>
           <div className="grid grid-cols-4 gap-4">
             <div>
-              <p className="text-[10px] text-muted-foreground uppercase">Total Cost</p>
+              <p className="text-[11px] text-muted-foreground">Total Cost</p>
               <p className="text-sm font-bold">{fmt(result.total_cost)}</p>
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground uppercase">Revenue</p>
+              <p className="text-[11px] text-muted-foreground">Revenue</p>
               <p className="text-sm font-bold">{fmt(result.total_revenue)}</p>
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground uppercase">Margin</p>
+              <p className="text-[11px] text-muted-foreground">Margin</p>
               <p className="text-sm font-bold">
                 <Badge color={healthBadgeColor[result.margin_health]}>
                   {result.blended_margin_pct}%
@@ -238,7 +238,7 @@ function LiveEstimatePanel({
               </p>
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground uppercase">Items</p>
+              <p className="text-[11px] text-muted-foreground">Items</p>
               <p className="text-sm font-bold">{result.items.length}</p>
             </div>
           </div>

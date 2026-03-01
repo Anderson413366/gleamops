@@ -218,7 +218,7 @@ export function ChipTabs({ tabs, active, onChange }: ChipTabsProps) {
             {tab.count != null && (
               <span
                 className={cn(
-                  'ml-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+                  'ml-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-semibold',
                   active === tab.key
                     ? 'bg-background text-muted-foreground'
                     : 'bg-muted text-muted-foreground'
@@ -275,7 +275,7 @@ export function ChipTabs({ tabs, active, onChange }: ChipTabsProps) {
                     {tab.icon}
                     {tab.label}
                     {tab.count != null && (
-                      <span className="ml-auto rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                      <span className="ml-auto rounded-full bg-muted px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
                         {tab.count}
                       </span>
                     )}

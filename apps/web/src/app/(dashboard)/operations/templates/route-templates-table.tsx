@@ -173,7 +173,7 @@ export default function RouteTemplatesTable({ search }: RouteTemplatesTableProps
           >
             {status}
             <span className={cn(
-              'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+              'rounded-full px-1.5 py-0.5 text-[11px] font-semibold',
               statusFilter === status ? 'bg-primary-foreground/20' : 'bg-background',
             )}
             >

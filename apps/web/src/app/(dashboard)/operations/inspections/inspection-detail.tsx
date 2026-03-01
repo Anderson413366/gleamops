@@ -321,7 +321,7 @@ export function InspectionDetail({ inspection, open, onClose, onUpdate }: Inspec
                 {Array.from(sections.entries()).map(([sectionName, sectionItems]) => (
                   <div key={sectionName}>
                     {sections.size > 1 && (
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                      <p className="text-xs font-semibold text-muted-foreground tracking-wider mb-2">
                         {sectionName}
                       </p>
                     )}

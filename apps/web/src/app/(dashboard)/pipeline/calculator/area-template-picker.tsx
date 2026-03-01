@@ -180,7 +180,7 @@ export function AreaTemplatePicker({ selectedCodes, totalSqft, onChange }: AreaT
       </div>
 
       <div className="rounded-xl border border-dashed bg-muted/20 p-3">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Projected Area Mix</p>
+        <p className="mb-2 text-xs font-semibold tracking-wide text-muted-foreground">Projected Area Mix</p>
         <div className="grid gap-2 md:grid-cols-2">
           {areas.map((area) => (
             <div key={area.id} className="flex items-center justify-between rounded-lg bg-background/80 px-2.5 py-2 text-xs">

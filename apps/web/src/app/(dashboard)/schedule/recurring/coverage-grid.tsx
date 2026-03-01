@@ -93,7 +93,7 @@ export function CoverageGrid({ rows, visibleDates, search = '' }: CoverageGridPr
     <div className="overflow-x-auto rounded-2xl border border-border">
       <div style={{ minWidth: `${280 + dateColumns.length * 80}px` }}>
         <div
-          className="grid border-b border-border bg-muted/40 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+          className="grid border-b border-border bg-muted/40 text-xs font-semibold tracking-wide text-muted-foreground"
           style={{ gridTemplateColumns }}
         >
           <div className="sticky left-0 z-10 bg-muted/40 border-r border-border px-4 py-3">
@@ -106,7 +106,7 @@ export function CoverageGrid({ rows, visibleDates, search = '' }: CoverageGridPr
             return (
               <div key={dateKey} className="px-2 py-3 text-center">
                 <p>{heading.day}</p>
-                <p className={cn('mt-0.5 text-[10px] normal-case', isToday(dateKey) && 'text-primary font-semibold')}>
+                <p className={cn('mt-0.5 text-[11px] normal-case', isToday(dateKey) && 'text-primary font-semibold')}>
                   {heading.label}
                 </p>
               </div>

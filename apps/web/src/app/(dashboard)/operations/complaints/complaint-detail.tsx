@@ -381,7 +381,7 @@ export function ComplaintDetail({ complaintCode }: ComplaintDetailProps) {
         <CardHeader><CardTitle>Actions</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Assign Complaint</label>
+            <label className="mb-1 block text-xs font-semibold tracking-wide text-muted-foreground">Assign Complaint</label>
             <Select
               value={assignTo}
               onChange={(event) => setAssignTo(event.target.value)}

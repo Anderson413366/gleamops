@@ -342,7 +342,7 @@ export function FloaterBoard() {
                 <div className="mt-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-[11px] font-medium uppercase tracking-wider text-primary mb-0.5">Next Stop</p>
+                      <p className="text-[11px] font-medium tracking-wider text-primary mb-0.5">Next Stop</p>
                       <p className="text-sm font-semibold text-foreground">{nextStop.siteName}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {nextStop.address || 'No address on file'}
@@ -380,7 +380,7 @@ export function FloaterBoard() {
                     {idx > 0 && stop.estimatedTravel != null && stop.estimatedTravel > 0 && (
                       <div className="flex items-center gap-2 py-1.5 pl-[30px]">
                         <Navigation className="h-3 w-3 text-muted-foreground/50" />
-                        <span className="text-[10px] text-muted-foreground/60">~{stop.estimatedTravel} min drive</span>
+                        <span className="text-[11px] text-muted-foreground/60">~{stop.estimatedTravel} min drive</span>
                       </div>
                     )}
 
@@ -442,7 +442,7 @@ export function FloaterBoard() {
 
                             {/* Check timestamps */}
                             {stop.checkInTime && (
-                              <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground">
+                              <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground">
                                 <span>In: {new Date(stop.checkInTime).toLocaleTimeString()}</span>
                                 {stop.checkOutTime && <span>Out: {new Date(stop.checkOutTime).toLocaleTimeString()}</span>}
                               </div>
@@ -507,7 +507,7 @@ export function FloaterBoard() {
 
           <div className="rounded-lg border border-border overflow-hidden">
             {/* Column header */}
-            <div className="grid grid-cols-[1fr_100px_120px_120px] border-b border-border bg-muted/30 px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+            <div className="grid grid-cols-[1fr_100px_120px_120px] border-b border-border bg-muted/30 px-4 py-2 text-[11px] font-medium tracking-wider text-muted-foreground">
               <span>Site</span>
               <span>Position</span>
               <span>Time</span>

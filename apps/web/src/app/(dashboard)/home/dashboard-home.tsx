@@ -702,7 +702,7 @@ export default function HomePage() {
 
       {/* Executive Dashboard — Stat Cards */}
       <div>
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Executive Overview</h2>
+        <h2 className="text-sm font-semibold text-muted-foreground tracking-wide mb-3">Executive Overview</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-4">
           {metricsLoading ? (
             <>
@@ -777,7 +777,7 @@ export default function HomePage() {
       {/* Sales Pipeline KPIs */}
       {!simpleView && (
         <div>
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Sales Pipeline</h2>
+        <h2 className="text-sm font-semibold text-muted-foreground tracking-wide mb-3">Sales Pipeline</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {metricsLoading ? (
             <>
@@ -820,7 +820,7 @@ export default function HomePage() {
 
       {!simpleView && (
         <div>
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Operational Risk</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground tracking-wide mb-3">Operational Risk</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <StatCard
               label="Pending Approvals"
@@ -845,7 +845,7 @@ export default function HomePage() {
       )}
 
       {/* Operations Dashboard — 2x2 grid */}
-      <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Operations</h2>
+      <h2 className="text-sm font-semibold text-muted-foreground tracking-wide">Operations</h2>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Activity */}
         {!simpleView && (
@@ -992,7 +992,7 @@ export default function HomePage() {
       </div>
 
       {/* Compliance Alerts */}
-      <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Compliance</h2>
+      <h2 className="text-sm font-semibold text-muted-foreground tracking-wide">Compliance</h2>
       <div className="grid grid-cols-1 gap-6">
         <CollapsibleCard
           id="dashboard-compliance"
@@ -1032,7 +1032,7 @@ export default function HomePage() {
       {/* Inventory & Data Quality Dashboards */}
       {!simpleView && (
         <>
-      <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Inventory & Data Quality</h2>
+      <h2 className="text-sm font-semibold text-muted-foreground tracking-wide">Inventory & Data Quality</h2>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <CollapsibleCard
           id="dashboard-inventory-due"

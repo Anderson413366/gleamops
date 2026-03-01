@@ -9,28 +9,39 @@ interface SiteOption {
   id: string;
   name: string;
   site_code: string;
+  client_id: string | null;
 }
 
-interface ScheduleSidebarProps {
-  /** Current anchor date for the schedule range */
+interface ClientOption {
+  id: string;
+  name: string;
+  client_code: string;
+}
+
+export interface ScheduleSidebarProps {
   anchorDate: Date;
   onDateSelect: (date: Date) => void;
-  /** Show/hide availability overlay in grid */
   showAvailability: boolean;
   onShowAvailabilityChange: (show: boolean) => void;
-  /** Show/hide leave overlay in grid */
   showLeave: boolean;
   onShowLeaveChange: (show: boolean) => void;
-  /** Reset all filters */
   onResetFilters: () => void;
-  /** Selected site codes for filtering */
+  /** Selected client IDs */
+  selectedClients: string[];
+  onSelectedClientsChange: (clients: string[]) => void;
+  /** Selected site codes */
   selectedSites: string[];
   onSelectedSitesChange: (sites: string[]) => void;
-  /** Selected employee names for filtering */
+  /** Selected position types */
+  selectedPositions: string[];
+  onSelectedPositionsChange: (positions: string[]) => void;
+  /** Selected employee names */
   selectedEmployees: string[];
   onSelectedEmployeesChange: (employees: string[]) => void;
-  /** Available employee names extracted from schedule rows */
+  /** Available employee names from schedule rows */
   availableEmployees: string[];
+  /** Available position types from schedule rows */
+  availablePositions: string[];
 }
 
 function startOfMonth(date: Date) {
@@ -151,35 +162,52 @@ export function ScheduleSidebar({
   showLeave,
   onShowLeaveChange,
   onResetFilters,
+  selectedClients,
+  onSelectedClientsChange,
   selectedSites,
   onSelectedSitesChange,
+  selectedPositions,
+  onSelectedPositionsChange,
   selectedEmployees,
   onSelectedEmployeesChange,
   availableEmployees,
+  availablePositions,
 }: ScheduleSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [sites, setSites] = useState<SiteOption[]>([]);
+  const [clients, setClients] = useState<ClientOption[]>([]);
   const [selectedShiftTypes, setSelectedShiftTypes] = useState<string[]>([]);
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
-    async function fetchSites() {
+    async function fetchData() {
       const supabase = getSupabaseBrowserClient();
-      const { data } = await supabase
-        .from('sites')
-        .select('id, name, site_code')
-        .is('archived_at', null)
-        .order('name');
-      if (!cancelled && data) setSites(data as SiteOption[]);
+      const [sitesRes, clientsRes] = await Promise.all([
+        supabase.from('sites').select('id, name, site_code, client_id').is('archived_at', null).order('name'),
+        supabase.from('clients').select('id, name, client_code').is('archived_at', null).order('name'),
+      ]);
+      if (!cancelled) {
+        if (sitesRes.data) setSites(sitesRes.data as SiteOption[]);
+        if (clientsRes.data) setClients(clientsRes.data as ClientOption[]);
+      }
     }
-    void fetchSites();
+    void fetchData();
     return () => { cancelled = true; };
   }, []);
 
-  // "All" is checked when no individual items are selected (empty array = no filter = show all)
+  // Sites filtered by selected clients (if any clients are selected, only show their sites)
+  const visibleSites = useMemo(() => {
+    if (selectedClients.length === 0) return sites;
+    const clientIdSet = new Set(selectedClients);
+    return sites.filter((s) => s.client_id && clientIdSet.has(s.client_id));
+  }, [sites, selectedClients]);
+
+  // "All" checked = no filter applied = empty array
+  const clientsAllChecked = selectedClients.length === 0;
   const sitesAllChecked = selectedSites.length === 0;
+  const positionsAllChecked = selectedPositions.length === 0;
   const employeesAllChecked = selectedEmployees.length === 0;
   const shiftTypesAllChecked = selectedShiftTypes.length === 0;
   const skillsAllChecked = selectedSkills.length === 0;
@@ -197,7 +225,6 @@ export function ScheduleSidebar({
     } else {
       next = [...selected, item];
     }
-    // If every individual item is now selected, reset to "All" (empty array)
     if (next.length === allItems.length) {
       onChange([]);
     } else {
@@ -210,6 +237,21 @@ export function ScheduleSidebar({
     setSelectedSkills([]);
     setSelectedTags([]);
     onResetFilters();
+  };
+
+  // When client selection changes, clear sites that no longer belong to selected clients
+  const handleClientsChange = (nextClients: string[]) => {
+    onSelectedClientsChange(nextClients);
+    if (nextClients.length > 0 && selectedSites.length > 0) {
+      const clientIdSet = new Set(nextClients);
+      const validSiteCodes = new Set(
+        sites.filter((s) => s.client_id && clientIdSet.has(s.client_id)).map((s) => s.site_code),
+      );
+      const filtered = selectedSites.filter((code) => validSiteCodes.has(code));
+      if (filtered.length !== selectedSites.length) {
+        onSelectedSitesChange(filtered);
+      }
+    }
   };
 
   if (collapsed) {
@@ -264,8 +306,34 @@ export function ScheduleSidebar({
         </label>
       </div>
 
-      {/* Job Sites */}
-      <FilterAccordion title="Job Sites">
+      {/* Client */}
+      <FilterAccordion title="Client">
+        <label className="flex items-center gap-2 text-[12px] cursor-pointer mb-0.5">
+          <input
+            type="checkbox"
+            checked={clientsAllChecked}
+            onChange={() => { onSelectedClientsChange([]); onSelectedSitesChange([]); }}
+            className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary"
+          />
+          <span className="text-foreground font-medium">All</span>
+        </label>
+        {clients.map((c) => (
+          <label key={c.id} className="flex items-center gap-2 text-[12px] cursor-pointer">
+            <input
+              type="checkbox"
+              checked={selectedClients.includes(c.id)}
+              onChange={() =>
+                handleToggleItem(c.id, selectedClients, clients.map((x) => x.id), handleClientsChange)
+              }
+              className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary"
+            />
+            <span className="text-foreground truncate">{c.name}</span>
+          </label>
+        ))}
+      </FilterAccordion>
+
+      {/* Sites */}
+      <FilterAccordion title="Sites">
         <label className="flex items-center gap-2 text-[12px] cursor-pointer mb-0.5">
           <input
             type="checkbox"
@@ -275,7 +343,7 @@ export function ScheduleSidebar({
           />
           <span className="text-foreground font-medium">All</span>
         </label>
-        {sites.map((site) => (
+        {visibleSites.map((site) => (
           <label key={site.site_code} className="flex items-center gap-2 text-[12px] cursor-pointer">
             <input
               type="checkbox"
@@ -284,7 +352,7 @@ export function ScheduleSidebar({
                 handleToggleItem(
                   site.site_code,
                   selectedSites,
-                  sites.map((s) => s.site_code),
+                  visibleSites.map((s) => s.site_code),
                   onSelectedSitesChange,
                 )
               }
@@ -312,12 +380,7 @@ export function ScheduleSidebar({
               type="checkbox"
               checked={selectedEmployees.includes(name)}
               onChange={() =>
-                handleToggleItem(
-                  name,
-                  selectedEmployees,
-                  availableEmployees,
-                  onSelectedEmployeesChange,
-                )
+                handleToggleItem(name, selectedEmployees, availableEmployees, onSelectedEmployeesChange)
               }
               className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary"
             />
@@ -326,15 +389,39 @@ export function ScheduleSidebar({
         ))}
       </FilterAccordion>
 
-      {/* Skills */}
-      <FilterAccordion title="Skills">
+      {/* Position */}
+      <FilterAccordion title="Position">
         <label className="flex items-center gap-2 text-[12px] cursor-pointer mb-0.5">
           <input
             type="checkbox"
-            checked={skillsAllChecked}
-            onChange={() => setSelectedSkills([])}
+            checked={positionsAllChecked}
+            onChange={() => onSelectedPositionsChange([])}
             className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary"
           />
+          <span className="text-foreground font-medium">All</span>
+        </label>
+        {availablePositions.map((pos) => (
+          <label key={pos} className="flex items-center gap-2 text-[12px] cursor-pointer">
+            <input
+              type="checkbox"
+              checked={selectedPositions.includes(pos)}
+              onChange={() =>
+                handleToggleItem(pos, selectedPositions, availablePositions, onSelectedPositionsChange)
+              }
+              className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary"
+            />
+            <span className="text-foreground truncate">
+              {pos.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())}
+            </span>
+          </label>
+        ))}
+      </FilterAccordion>
+
+      {/* Skills */}
+      <FilterAccordion title="Skills">
+        <label className="flex items-center gap-2 text-[12px] cursor-pointer mb-0.5">
+          <input type="checkbox" checked={skillsAllChecked} onChange={() => setSelectedSkills([])}
+            className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary" />
           <span className="text-foreground font-medium">All</span>
         </label>
         <p className="text-[11px] text-muted-foreground italic pl-5">No skills configured yet.</p>
@@ -343,12 +430,8 @@ export function ScheduleSidebar({
       {/* Shift Types */}
       <FilterAccordion title="Shift Types">
         <label className="flex items-center gap-2 text-[12px] cursor-pointer mb-0.5">
-          <input
-            type="checkbox"
-            checked={shiftTypesAllChecked}
-            onChange={() => setSelectedShiftTypes([])}
-            className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary"
-          />
+          <input type="checkbox" checked={shiftTypesAllChecked} onChange={() => setSelectedShiftTypes([])}
+            className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary" />
           <span className="text-foreground font-medium">All</span>
         </label>
         {SHIFT_TYPES.map((type) => (
@@ -356,14 +439,7 @@ export function ScheduleSidebar({
             <input
               type="checkbox"
               checked={selectedShiftTypes.includes(type)}
-              onChange={() =>
-                handleToggleItem(
-                  type,
-                  selectedShiftTypes,
-                  [...SHIFT_TYPES],
-                  setSelectedShiftTypes,
-                )
-              }
+              onChange={() => handleToggleItem(type, selectedShiftTypes, [...SHIFT_TYPES], setSelectedShiftTypes)}
               className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary"
             />
             <span className="text-foreground truncate">{type}</span>
@@ -374,12 +450,8 @@ export function ScheduleSidebar({
       {/* Tags */}
       <FilterAccordion title="Tags">
         <label className="flex items-center gap-2 text-[12px] cursor-pointer mb-0.5">
-          <input
-            type="checkbox"
-            checked={tagsAllChecked}
-            onChange={() => setSelectedTags([])}
-            className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary"
-          />
+          <input type="checkbox" checked={tagsAllChecked} onChange={() => setSelectedTags([])}
+            className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary" />
           <span className="text-foreground font-medium">All</span>
         </label>
         <p className="text-[11px] text-muted-foreground italic pl-5">No shift tags configured yet.</p>
@@ -387,10 +459,7 @@ export function ScheduleSidebar({
 
       <div className="border-t border-border pt-2">
         <label className="flex items-center gap-2 text-sm cursor-pointer">
-          <input
-            type="checkbox"
-            className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
-          />
+          <input type="checkbox" className="h-4 w-4 rounded border-border text-primary focus:ring-primary" />
           <span className="text-foreground text-xs">Empty Shifts Only</span>
         </label>
       </div>

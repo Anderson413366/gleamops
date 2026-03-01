@@ -25,7 +25,7 @@ import { ShiftTradesPanel } from './recurring/shift-trades-panel';
 import { AvailabilityPanel } from './recurring/availability-panel';
 import { SchedulePeriodsPanel } from './recurring/schedule-periods-panel';
 import { ConflictPanel } from './recurring/conflict-panel';
-import { ScheduleFilters, applyScheduleFilters, type ScheduleFilterState } from './recurring/schedule-filters';
+// Inline filters merged into ScheduleSidebar — schedule-filters.tsx kept for applyScheduleFilters export
 import { ScheduleToolsDropdown } from './recurring/schedule-tools-dropdown';
 import { TemplateManager } from './recurring/template-manager';
 import { ScheduleSidebar } from './recurring/schedule-sidebar';
@@ -217,7 +217,6 @@ export default function SchedulePageClient() {
   const [recurringRows, setRecurringRows] = useState<RecurringScheduleRow[]>([]);
   const [recurringLoading, setRecurringLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [scheduleFilters, setScheduleFilters] = useState<ScheduleFilterState>({ client: '', site: '', position: '', staff: '' });
   const [conflictCount, setConflictCount] = useState(0);
   const [copyWeekOpen, setCopyWeekOpen] = useState(false);
   const [copyWeekLoading, setCopyWeekLoading] = useState(false);
@@ -226,7 +225,9 @@ export default function SchedulePageClient() {
   const [autoFillLoading, setAutoFillLoading] = useState(false);
   const [showAvailability, setShowAvailability] = useState(true);
   const [showLeave, setShowLeave] = useState(false);
+  const [selectedClients, setSelectedClients] = useState<string[]>([]);
   const [selectedSites, setSelectedSites] = useState<string[]>([]);
+  const [selectedPositions, setSelectedPositions] = useState<string[]>([]);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [shiftPrefill, setShiftPrefill] = useState<{ date?: string; staffName?: string } | null>(null);
   const [budgetMode, setBudgetMode] = useState(false);
@@ -244,6 +245,10 @@ export default function SchedulePageClient() {
     return Array.from(new Set(recurringRows.map((r) => r.staffName).filter((n) => n !== 'Open Shift'))).sort();
   }, [recurringRows]);
 
+  const availablePositions = useMemo(() => {
+    return Array.from(new Set(recurringRows.map((r) => r.positionType).filter(Boolean))).sort();
+  }, [recurringRows]);
+
   const [kpis, setKpis] = useState({
     todayTickets: 0,
     coverageGaps: 0,
@@ -258,17 +263,25 @@ export default function SchedulePageClient() {
   );
 
   const filteredRecurringRows = useMemo((): RecurringScheduleRow[] => {
-    let rows = applyScheduleFilters(recurringRows, scheduleFilters);
+    let rows = recurringRows;
+    if (selectedClients.length > 0) {
+      const clientIdSet = new Set(selectedClients);
+      rows = rows.filter((r) => r.clientId && clientIdSet.has(r.clientId));
+    }
     if (selectedSites.length > 0) {
       const siteCodeSet = new Set(selectedSites);
       rows = rows.filter((r) => r.siteCode && siteCodeSet.has(r.siteCode));
+    }
+    if (selectedPositions.length > 0) {
+      const posSet = new Set(selectedPositions);
+      rows = rows.filter((r) => posSet.has(r.positionType));
     }
     if (selectedEmployees.length > 0) {
       const empSet = new Set(selectedEmployees);
       rows = rows.filter((r) => empSet.has(r.staffName));
     }
     return rows;
-  }, [recurringRows, scheduleFilters, selectedSites, selectedEmployees]);
+  }, [recurringRows, selectedClients, selectedSites, selectedPositions, selectedEmployees]);
 
   const clearActionParam = useCallback(() => {
     const params = new URLSearchParams(searchParams.toString());
@@ -1168,18 +1181,23 @@ export default function SchedulePageClient() {
             showLeave={showLeave}
             onShowLeaveChange={setShowLeave}
             onResetFilters={() => {
-              setScheduleFilters({ client: '', site: '', position: '', staff: '' });
+              setSelectedClients([]);
               setSelectedSites([]);
+              setSelectedPositions([]);
               setSelectedEmployees([]);
             }}
+            selectedClients={selectedClients}
+            onSelectedClientsChange={setSelectedClients}
             selectedSites={selectedSites}
             onSelectedSitesChange={setSelectedSites}
+            selectedPositions={selectedPositions}
+            onSelectedPositionsChange={setSelectedPositions}
             selectedEmployees={selectedEmployees}
             onSelectedEmployeesChange={setSelectedEmployees}
             availableEmployees={availableEmployees}
+            availablePositions={availablePositions}
           />
           <div className="flex-1 min-w-0 space-y-4">
-            <ScheduleFilters filters={scheduleFilters} onChange={setScheduleFilters} rows={recurringRows} />
             {recurringLoading ? (
               <Card>
                 <CardContent className="py-12 text-center text-sm text-muted-foreground">

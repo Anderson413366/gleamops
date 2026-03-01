@@ -306,7 +306,7 @@ export async function listRoutesForDate(
       route_date,
       status,
       route_owner_staff_id,
-      route_owner:staff_id(id, staff_code, full_name)
+      route_owner:route_owner_staff_id(id, staff_code, full_name)
     `)
     .eq('route_date', routeDate)
     .is('archived_at', null)

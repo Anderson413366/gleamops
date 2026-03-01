@@ -52,7 +52,7 @@ export async function listComplaints(
     .select(`
       *,
       site:site_id(id, site_code, name),
-      client:client_id!sites_client_id_fkey(id, client_code, name),
+      client:client_id(id, client_code, name),
       assigned_staff:assigned_to_staff_id(id, staff_code, full_name),
       reported_staff:reported_by_staff_id(id, staff_code, full_name)
     `)
@@ -79,7 +79,7 @@ export async function insertComplaint(
     .select(`
       *,
       site:site_id(id, site_code, name),
-      client:client_id!sites_client_id_fkey(id, client_code, name),
+      client:client_id(id, client_code, name),
       assigned_staff:assigned_to_staff_id(id, staff_code, full_name),
       reported_staff:reported_by_staff_id(id, staff_code, full_name)
     `)
@@ -95,7 +95,7 @@ export async function getComplaintByCode(
     .select(`
       *,
       site:site_id(id, site_code, name),
-      client:client_id!sites_client_id_fkey(id, client_code, name),
+      client:client_id(id, client_code, name),
       assigned_staff:assigned_to_staff_id(id, staff_code, full_name),
       reported_staff:reported_by_staff_id(id, staff_code, full_name)
     `)
@@ -113,7 +113,7 @@ export async function getComplaintById(
     .select(`
       *,
       site:site_id(id, site_code, name),
-      client:client_id!sites_client_id_fkey(id, client_code, name),
+      client:client_id(id, client_code, name),
       assigned_staff:assigned_to_staff_id(id, staff_code, full_name),
       reported_staff:reported_by_staff_id(id, staff_code, full_name)
     `)
@@ -141,7 +141,7 @@ export async function updateComplaintById(
     .select(`
       *,
       site:site_id(id, site_code, name),
-      client:client_id!sites_client_id_fkey(id, client_code, name),
+      client:client_id(id, client_code, name),
       assigned_staff:assigned_to_staff_id(id, staff_code, full_name),
       reported_staff:reported_by_staff_id(id, staff_code, full_name)
     `)

@@ -63,7 +63,7 @@ export default function ProposalsTable({ search, onGoToBids }: ProposalsTablePro
             client_id,
             total_sqft,
             bid_monthly_price,
-            client:client_id!sales_bids_client_id_fkey(name, client_code),
+            client:client_id(name, client_code),
             service:service_id(name)
           )
         )

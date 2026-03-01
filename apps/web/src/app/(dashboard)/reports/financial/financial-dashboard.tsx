@@ -40,7 +40,7 @@ export default function FinancialDashboard(props: { rangeDays: number; refreshKe
     const [jobsRes] = await Promise.all([
       supabase
         .from('site_jobs')
-        .select('id, billing_amount, frequency, status, site:site_id(name, client:client_id!sites_client_id_fkey(name))')
+        .select('id, billing_amount, frequency, status, site:site_id(name, client:client_id(name))')
         .eq('status', 'ACTIVE')
         .is('archived_at', null),
     ]);

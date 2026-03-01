@@ -344,10 +344,10 @@ export default function SiteDetailPage() {
     const routeIdentifier = decodeURIComponent(id).trim();
     const siteSelect = `
         *,
-        client:client_id!sites_client_id_fkey(name, client_code),
-        primary_contact:primary_contact_id!sites_primary_contact_id_fkey(name, role, role_title, email, phone, mobile_phone, work_phone, preferred_contact_method, photo_url),
-        emergency_contact:emergency_contact_id!sites_emergency_contact_id_fkey(name, role, role_title, email, phone, mobile_phone, work_phone, preferred_contact_method, photo_url),
-        supervisor:supervisor_id!sites_supervisor_id_fkey(full_name, staff_code, email, phone, mobile_phone, photo_url)
+        client:client_id(name, client_code),
+        primary_contact:primary_contact_id(name, role, role_title, email, phone, mobile_phone, work_phone, preferred_contact_method, photo_url),
+        emergency_contact:emergency_contact_id(name, role, role_title, email, phone, mobile_phone, work_phone, preferred_contact_method, photo_url),
+        supervisor:supervisor_id(full_name, staff_code, email, phone, mobile_phone, photo_url)
       `;
     const fetchSiteBy = async (column: 'site_code' | 'id') => {
       const { data, error } = await supabase

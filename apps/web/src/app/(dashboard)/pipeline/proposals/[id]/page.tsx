@@ -79,7 +79,7 @@ export default function ProposalDetailPage() {
           bid:bid_id(
             bid_code,
             client_id,
-            client:client_id!sales_bids_client_id_fkey(name, client_code),
+            client:client_id(name, client_code),
             service:service_id(name)
           )
         )

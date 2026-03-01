@@ -265,7 +265,7 @@ export default function StaffDetailPage() {
       Promise.all([
         supabase
           .from('job_staff_assignments')
-          .select('id, role, start_date, end_date, job:job_id(job_code, job_name, status, frequency, schedule_days, site:site_id(name, site_code, client:client_id!sites_client_id_fkey(name, client_code)))')
+          .select('id, role, start_date, end_date, job:job_id(job_code, job_name, status, frequency, schedule_days, site:site_id(name, site_code, client:client_id(name, client_code)))')
           .eq('staff_id', data.id)
           .is('archived_at', null)
           .order('start_date', { ascending: false }),
@@ -318,7 +318,7 @@ export default function StaffDetailPage() {
     const assignedJobCodes = new Set((jobs ?? []).map((j) => j.job?.job_code).filter(Boolean));
     const { data } = await supabase
       .from('site_jobs')
-      .select('id, job_code, job_name, site:site_id(name, client:client_id!sites_client_id_fkey(name))')
+      .select('id, job_code, job_name, site:site_id(name, client:client_id(name))')
       .eq('status', 'ACTIVE')
       .is('archived_at', null)
       .order('job_code', { ascending: true });

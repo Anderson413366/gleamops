@@ -67,7 +67,7 @@ export default function TicketsTable({ search, onGoToServicePlans }: TicketsTabl
       .select(`
         *,
         job:job_id(job_code),
-        site:site_id(site_code, name, photo_url, client:client_id!sites_client_id_fkey(name, client_code))
+        site:site_id(site_code, name, photo_url, client:client_id(name, client_code))
       `)
       .is('archived_at', null)
       .order('scheduled_date', { ascending: true });

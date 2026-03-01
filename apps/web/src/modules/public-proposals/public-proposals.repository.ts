@@ -32,7 +32,7 @@ export async function findSendRecordByToken(db: SupabaseClient, token: string) {
           bid_code,
           total_sqft,
           bid_monthly_price,
-          client:client_id!customer_portal_sessions_client_id_fkey(id, name, client_code),
+          client:client_id(id, name, client_code),
           service:service_id(id, name)
         )
       )

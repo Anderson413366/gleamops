@@ -53,7 +53,7 @@ export default function JobsTable({ search }: JobsTableProps) {
       .from('site_jobs')
       .select(`
         *,
-        site:site_id(site_code, name, client:client_id!sites_client_id_fkey(name, client_code))
+        site:site_id(site_code, name, client:client_id(name, client_code))
       `)
       .is('archived_at', null)
       .order('created_at', { ascending: false });

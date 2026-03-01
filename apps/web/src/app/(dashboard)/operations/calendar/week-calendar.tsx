@@ -242,7 +242,7 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
       .select(`
         *,
         job:job_id(job_code, job_name),
-        site:site_id(site_code, name, client:client_id!sites_client_id_fkey(name)),
+        site:site_id(site_code, name, client:client_id(name)),
         assignments:ticket_assignments(staff:staff_id(full_name))
       `)
       .is('archived_at', null)
@@ -264,7 +264,7 @@ export default function WeekCalendar({ onSelectTicket }: WeekCalendarProps) {
     const supabase = getSupabaseBrowserClient();
     const { data, error } = await supabase
       .from('site_jobs')
-      .select('id, job_code, job_name, site_id, start_time, end_time, site:site_id(name, site_code, client:client_id!sites_client_id_fkey(name))')
+      .select('id, job_code, job_name, site_id, start_time, end_time, site:site_id(name, site_code, client:client_id(name))')
       .is('archived_at', null)
       .eq('status', 'ACTIVE')
       .order('job_code', { ascending: true });

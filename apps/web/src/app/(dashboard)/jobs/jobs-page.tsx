@@ -179,7 +179,7 @@ export default function JobsPageClient() {
       const { data, error } = await supabase
         .from('work_tickets')
         .select(
-          `*, job:job_id(job_code, billing_amount), site:site_id(site_code, name, address, client:client_id!sites_client_id_fkey(name, client_code))`,
+          `*, job:job_id(job_code, billing_amount), site:site_id(site_code, name, address, client:client_id(name, client_code))`,
         )
         .eq('id', ticketId)
         .is('archived_at', null)

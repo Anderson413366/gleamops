@@ -238,7 +238,7 @@ export async function findCustomerPortalSessionByHash(
       updated_at,
       archived_at,
       version_etag,
-      client:client_id!clients_primary_contact_id_fkey(id, client_code, name)
+      client:client_id(id, client_code, name)
     `)
     .eq('token_hash', tokenHash)
     .is('archived_at', null)
@@ -275,7 +275,7 @@ export async function listCustomerPortalSessions(
       updated_at,
       archived_at,
       version_etag,
-      client:client_id!clients_primary_contact_id_fkey(id, client_code, name)
+      client:client_id(id, client_code, name)
     `)
     .eq('tenant_id', tenantId)
     .is('archived_at', null)
@@ -312,7 +312,7 @@ export async function insertCustomerPortalSession(
       updated_at,
       archived_at,
       version_etag,
-      client:client_id!clients_primary_contact_id_fkey(id, client_code, name)
+      client:client_id(id, client_code, name)
     `)
     .single();
 }

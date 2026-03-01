@@ -65,7 +65,7 @@ export function OpportunityDetail({ opportunity, open, onClose, onEdit }: Opport
 
     supabase
       .from('sales_bids')
-      .select('id, bid_code, status, bid_monthly_price, total_sqft, created_at, client:client_id!sales_bids_client_id_fkey(name)')
+      .select('id, bid_code, status, bid_monthly_price, total_sqft, created_at, client:client_id(name)')
       .eq('opportunity_id', opportunity.id)
       .is('archived_at', null)
       .order('created_at', { ascending: false })

@@ -1,6 +1,6 @@
  'use client';
 
-import { Suspense, useMemo } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { X } from 'lucide-react';
 import { Sidebar } from './sidebar';
@@ -12,13 +12,43 @@ import { DEFAULT_MODULE_KEY, getModuleFromPathname, MODULE_ACCENTS } from '@glea
 import { useUiPreferences } from '@/hooks/use-ui-preferences';
 import { useOfflineMutationSync } from '@/hooks/use-offline-mutation-sync';
 
+const COLLAPSED_STORAGE_KEY = 'gleamops-sidebar-collapsed';
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const moduleKey = useMemo(() => getModuleFromPathname(pathname), [pathname]);
   const accent = MODULE_ACCENTS[moduleKey] ?? MODULE_ACCENTS[DEFAULT_MODULE_KEY];
   const { preferences, togglePreference, mounted: prefMounted } = useUiPreferences();
   const focusMode = prefMounted && preferences.focus_mode;
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   useOfflineMutationSync();
+
+  // Hydrate from localStorage and listen for sidebar toggle events
+  useEffect(() => {
+    try {
+      setSidebarCollapsed(localStorage.getItem(COLLAPSED_STORAGE_KEY) === 'true');
+    } catch { /* ignore */ }
+
+    function handleStorage(e: StorageEvent) {
+      if (e.key === COLLAPSED_STORAGE_KEY) {
+        setSidebarCollapsed(e.newValue === 'true');
+      }
+    }
+
+    // Listen for changes within the same tab via a custom event from sidebar
+    function handleToggle() {
+      try {
+        setSidebarCollapsed(localStorage.getItem(COLLAPSED_STORAGE_KEY) === 'true');
+      } catch { /* ignore */ }
+    }
+
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('gleamops:sidebar-toggle', handleToggle);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('gleamops:sidebar-toggle', handleToggle);
+    };
+  }, []);
 
   return (
     <div
@@ -35,9 +65,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <OfflineBanner />
 
-      {/* When focus mode is enabled, we hide these in two layers:
-         1) Pre-hydration CSS via html[data-focus-mode="true"] (see globals.css)
-         2) After preferences mount, React stops rendering the chrome entirely */}
       {!focusMode && (
         <div className="app-shell-sidebar">
           <Suspense>
@@ -46,7 +73,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      <div className={`app-shell-content ${focusMode ? '' : 'md:ml-64'}`}>
+      <div className={`app-shell-content transition-[margin] duration-300 ease-out ${focusMode ? '' : sidebarCollapsed ? '' : 'md:ml-64'}`}>
         {!focusMode && (
           <div className="app-shell-header">
             <Suspense>

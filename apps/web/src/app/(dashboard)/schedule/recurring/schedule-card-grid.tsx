@@ -87,6 +87,7 @@ export function ScheduleCardGrid({ rows, search = '', loading = false, onSelect 
                   startTime={row.startTime}
                   endTime={row.endTime}
                   staffName={row.staffName}
+                  siteCode={row.siteCode}
                   isOpenShift={row.status === 'open'}
                 />
               </button>

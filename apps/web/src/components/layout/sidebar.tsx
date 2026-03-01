@@ -54,6 +54,8 @@ import {
   KeyRound,
   Award,
   GraduationCap,
+  PanelLeftClose,
+  PanelLeft,
 } from 'lucide-react';
 import { getModuleFromPathname, NAV_TREE, normalizeRoleCode, roleDisplayName, type NavItem } from '@gleamops/shared';
 import { useAuth } from '@/hooks/use-auth';
@@ -137,6 +139,19 @@ const SHIFTS_TIME_SIDEBAR_ROLES = new Set([
 ]);
 
 const EXPANDED_STORAGE_KEY = 'gleamops-nav-expanded';
+const COLLAPSED_STORAGE_KEY = 'gleamops-sidebar-collapsed';
+
+function loadCollapsedState(): boolean {
+  try {
+    return localStorage.getItem(COLLAPSED_STORAGE_KEY) === 'true';
+  } catch { return false; }
+}
+
+function saveCollapsedState(collapsed: boolean) {
+  try {
+    localStorage.setItem(COLLAPSED_STORAGE_KEY, String(collapsed));
+  } catch { /* ignore */ }
+}
 
 function getInitials(email: string): string {
   const name = email.split('@')[0];
@@ -172,6 +187,8 @@ export function Sidebar() {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const collapsedInitialized = useRef(false);
   const [badgeCounts, setBadgeCounts] = useState<Record<string, number>>({});
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set<string>());
   const expandedInitialized = useRef(false);
@@ -196,6 +213,13 @@ export function Sidebar() {
     if (stored.size > 0) setExpanded(stored);
   }, []);
 
+  // Hydrate collapsed state from localStorage after mount
+  useEffect(() => {
+    if (collapsedInitialized.current) return;
+    collapsedInitialized.current = true;
+    setSidebarCollapsed(loadCollapsedState());
+  }, []);
+
   // Auto-expand the active module's parent on mount
   useEffect(() => {
     if (!v2NavigationEnabled) return;
@@ -209,6 +233,15 @@ export function Sidebar() {
       });
     }
   }, [activeModule, v2NavigationEnabled]);
+
+  const toggleSidebarCollapsed = useCallback(() => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      saveCollapsedState(next);
+      window.dispatchEvent(new CustomEvent('gleamops:sidebar-toggle'));
+      return next;
+    });
+  }, []);
 
   const toggleExpanded = useCallback((id: string) => {
     setExpanded((prev) => {
@@ -454,11 +487,23 @@ export function Sidebar() {
         />
       )}
 
+      {/* Desktop collapse toggle — visible when sidebar is collapsed */}
+      {sidebarCollapsed && (
+        <button
+          type="button"
+          onClick={toggleSidebarCollapsed}
+          className="fixed top-4 left-4 z-50 hidden md:flex rounded-lg bg-card p-2 shadow-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200 ease-in-out"
+          aria-label="Expand navigation"
+        >
+          <PanelLeft className="h-5 w-5" />
+        </button>
+      )}
+
       {/* Sidebar — dark bg with sidebar tokens */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-sidebar-bg border-r border-white/10 flex flex-col transition-transform duration-300 ease-out md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-sidebar-bg border-r border-white/10 flex flex-col transition-transform duration-300 ease-out ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        } ${sidebarCollapsed ? 'md:-translate-x-full' : 'md:translate-x-0'}`}
       >
         {/* Header / Logo */}
         <div className="flex items-center justify-between h-16 px-5 border-b border-white/10">
@@ -468,14 +513,24 @@ export function Sidebar() {
             </div>
             <span className="text-lg font-bold text-white tracking-tight">GleamOps</span>
           </Link>
-          <button
-            type="button"
-            onClick={() => setMobileOpen(false)}
-            className="md:hidden rounded-lg p-1.5 text-sidebar-text hover:bg-sidebar-hover hover:text-white transition-all duration-200 ease-in-out"
-            aria-label="Close navigation"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={toggleSidebarCollapsed}
+              className="hidden md:flex rounded-lg p-1.5 text-sidebar-text hover:bg-sidebar-hover hover:text-white transition-all duration-200 ease-in-out"
+              aria-label="Collapse navigation"
+            >
+              <PanelLeftClose className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileOpen(false)}
+              className="md:hidden rounded-lg p-1.5 text-sidebar-text hover:bg-sidebar-hover hover:text-white transition-all duration-200 ease-in-out"
+              aria-label="Close navigation"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         {/* Search trigger */}

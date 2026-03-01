@@ -101,9 +101,8 @@ function normalizeDateKey(date: Date) {
 function fallbackWeekDates() {
   const today = new Date();
   const start = new Date(today);
-  const day = start.getDay();
-  const distanceFromMonday = (day + 6) % 7;
-  start.setDate(start.getDate() - distanceFromMonday);
+  const distanceFromSunday = start.getDay();
+  start.setDate(start.getDate() - distanceFromSunday);
   start.setHours(0, 0, 0, 0);
 
   return Array.from({ length: 7 }, (_, index) => {
@@ -490,7 +489,7 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect, o
                             startTime={row.startTime}
                             endTime={row.endTime}
                             staffName={row.staffName}
-                            clientCode={row.clientCode}
+                            siteCode={row.siteCode}
                             isOpenShift={row.status === 'open'}
                             hasConflict={conflictKeys.has(`${row.id}:${dateKey}`)}
                             draggable

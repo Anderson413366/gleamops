@@ -57,7 +57,7 @@ const STATUS_BADGE: Record<RecurringScheduleRow['status'], 'green' | 'yellow' | 
   open: 'red',
 };
 
-const WEEKDAY_ORDER = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+const WEEKDAY_ORDER = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
 function normalizeDays(days: string[]) {
   const sorted = [...days].sort((a, b) => WEEKDAY_ORDER.indexOf(a) - WEEKDAY_ORDER.indexOf(b));

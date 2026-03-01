@@ -1,6 +1,6 @@
 import { memo } from 'react';
-import { UserCircle2, MapPin, Clock4, AlertTriangle, Lock } from 'lucide-react';
-import { Badge, cn } from '@gleamops/ui';
+import { AlertTriangle } from 'lucide-react';
+import { cn } from '@gleamops/ui';
 import { usePositionTypes, resolvePositionTheme, COLOR_TOKEN_MAP } from '@/hooks/use-position-types';
 
 /**
@@ -51,23 +51,13 @@ function resolveTheme(positionType?: string) {
   };
 }
 
-function computeDuration(startTime: string, endTime: string): string {
-  const [sh, sm] = startTime.split(':').map(Number);
-  const [eh, em] = endTime.split(':').map(Number);
-  let totalMinutes = (eh * 60 + em) - (sh * 60 + sm);
-  if (totalMinutes <= 0) totalMinutes += 24 * 60;
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
-}
-
 interface PositionBlockProps {
   positionType?: string;
   siteName: string;
   startTime: string;
   endTime: string;
   staffName?: string | null;
-  clientCode?: string | null;
+  siteCode?: string | null;
   isOpenShift?: boolean;
   isPublished?: boolean;
   hasConflict?: boolean;
@@ -77,25 +67,23 @@ interface PositionBlockProps {
   onDragEnd?: (event: React.DragEvent) => void;
 }
 
-export const PositionBlock = memo(function PositionBlock({
-  positionType,
-  siteName,
-  startTime,
-  endTime,
-  staffName,
-  clientCode,
-  isOpenShift = false,
-  isPublished = false,
-  hasConflict = false,
-  className,
-  draggable,
-  onDragStart,
-  onDragEnd,
-}: PositionBlockProps) {
+export const PositionBlock = memo(function PositionBlock(props: PositionBlockProps) {
+  const {
+    positionType,
+    siteName,
+    startTime,
+    endTime,
+    siteCode,
+    isOpenShift = false,
+    hasConflict = false,
+    className,
+    draggable,
+    onDragStart,
+    onDragEnd,
+  } = props;
   const { positionTypes } = usePositionTypes();
   const theme = resolvePositionTheme(positionType, positionTypes);
-  const duration = computeDuration(startTime, endTime);
-  const displaySite = clientCode ? `${clientCode} ${siteName}` : siteName;
+  const displaySite = siteCode ? `${siteCode} – ${siteName}` : siteName;
 
   return (
     <article
@@ -103,7 +91,7 @@ export const PositionBlock = memo(function PositionBlock({
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       className={cn(
-        'rounded-xl border p-3 shadow-sm transition-all',
+        'rounded-md border px-2 py-1.5 transition-all',
         theme.block,
         isOpenShift && 'ring-2 ring-destructive/40',
         hasConflict && 'ring-2 ring-amber-500/60',
@@ -113,34 +101,14 @@ export const PositionBlock = memo(function PositionBlock({
       role="group"
       aria-label={`${theme.label} at ${displaySite} from ${startTime} to ${endTime}`}
     >
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <Badge color={theme.badge}>{theme.label}</Badge>
-        <div className="flex items-center gap-1">
-          {isOpenShift && <Badge color="red">Open</Badge>}
-          {hasConflict && (
-            <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" aria-label="Schedule conflict" />
-          )}
-          {isPublished && (
-            <Lock className="h-3.5 w-3.5 opacity-50 shrink-0" aria-label="Published (locked)" />
-          )}
-        </div>
-      </div>
-
-      <div className="space-y-1 text-sm">
-        <p className="inline-flex items-center gap-1.5 font-medium truncate max-w-full">
-          <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          {displaySite}
-        </p>
-        <p className="inline-flex items-center gap-1.5 text-xs opacity-90">
-          <Clock4 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          {startTime} - {endTime}
-          <span className="font-medium ml-0.5">{duration}</span>
-        </p>
-        <p className="inline-flex items-center gap-1.5 text-xs opacity-90">
-          <UserCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          {staffName?.trim() ? staffName : 'Not assigned'}
-        </p>
-      </div>
+      <p className="text-[11px] font-semibold truncate leading-tight">
+        {displaySite}
+        {hasConflict && (
+          <AlertTriangle className="ml-1 inline h-3 w-3 text-amber-500 shrink-0" aria-label="Schedule conflict" />
+        )}
+      </p>
+      <p className="text-[11px] truncate leading-tight opacity-90">{theme.label}</p>
+      <p className="text-[11px] font-mono leading-tight opacity-90">{startTime} – {endTime}</p>
     </article>
   );
 });

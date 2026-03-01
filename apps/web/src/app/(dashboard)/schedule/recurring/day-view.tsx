@@ -100,7 +100,7 @@ export function DayView({ rows, dateKey, search = '', onSelect }: DayViewProps) 
                     startTime={row.startTime}
                     endTime={row.endTime}
                     staffName={row.staffName}
-                    clientCode={row.clientCode}
+                    siteCode={row.siteCode}
                     isOpenShift={row.status === 'open'}
                     className="h-full"
                   />

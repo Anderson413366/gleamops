@@ -1,8 +1,15 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { PanelLeftClose, PanelLeft, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { PanelLeftClose, PanelLeft, ChevronLeft, ChevronRight, ChevronDown, RotateCcw } from 'lucide-react';
 import { cn } from '@gleamops/ui';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+
+interface SiteOption {
+  id: string;
+  name: string;
+  site_code: string;
+}
 
 interface ScheduleSidebarProps {
   /** Current anchor date for the schedule range */
@@ -16,6 +23,14 @@ interface ScheduleSidebarProps {
   onShowLeaveChange: (show: boolean) => void;
   /** Reset all filters */
   onResetFilters: () => void;
+  /** Selected site codes for filtering */
+  selectedSites: string[];
+  onSelectedSitesChange: (sites: string[]) => void;
+  /** Selected employee names for filtering */
+  selectedEmployees: string[];
+  onSelectedEmployeesChange: (employees: string[]) => void;
+  /** Available employee names extracted from schedule rows */
+  availableEmployees: string[];
 }
 
 function startOfMonth(date: Date) {
@@ -108,6 +123,24 @@ function MiniCalendar({ currentDate, onSelect }: { currentDate: Date; onSelect: 
   );
 }
 
+function FilterAccordion({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <div className="border-t border-border pt-2">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between text-xs font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground transition-colors"
+      >
+        {title}
+        <ChevronDown className={cn('h-3 w-3 transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && <div className="mt-2 space-y-1 max-h-40 overflow-y-auto">{children}</div>}
+    </div>
+  );
+}
+
 export function ScheduleSidebar({
   anchorDate,
   onDateSelect,
@@ -116,8 +149,45 @@ export function ScheduleSidebar({
   showLeave,
   onShowLeaveChange,
   onResetFilters,
+  selectedSites,
+  onSelectedSitesChange,
+  selectedEmployees,
+  onSelectedEmployeesChange,
+  availableEmployees,
 }: ScheduleSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [sites, setSites] = useState<SiteOption[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchSites() {
+      const supabase = getSupabaseBrowserClient();
+      const { data } = await supabase
+        .from('sites')
+        .select('id, name, site_code')
+        .is('archived_at', null)
+        .order('name');
+      if (!cancelled && data) setSites(data as SiteOption[]);
+    }
+    void fetchSites();
+    return () => { cancelled = true; };
+  }, []);
+
+  const toggleSite = (siteCode: string) => {
+    onSelectedSitesChange(
+      selectedSites.includes(siteCode)
+        ? selectedSites.filter((c) => c !== siteCode)
+        : [...selectedSites, siteCode],
+    );
+  };
+
+  const toggleEmployee = (name: string) => {
+    onSelectedEmployeesChange(
+      selectedEmployees.includes(name)
+        ? selectedEmployees.filter((n) => n !== name)
+        : [...selectedEmployees, name],
+    );
+  };
 
   if (collapsed) {
     return (
@@ -170,6 +240,52 @@ export function ScheduleSidebar({
           <span className="text-foreground">Show Leave</span>
         </label>
       </div>
+
+      <FilterAccordion title="Job Sites">
+        {selectedSites.length > 0 && (
+          <button
+            type="button"
+            onClick={() => onSelectedSitesChange([])}
+            className="text-[11px] text-primary hover:underline mb-1"
+          >
+            Show All Sites
+          </button>
+        )}
+        {sites.map((site) => (
+          <label key={site.site_code} className="flex items-center gap-2 text-[12px] cursor-pointer">
+            <input
+              type="checkbox"
+              checked={selectedSites.includes(site.site_code)}
+              onChange={() => toggleSite(site.site_code)}
+              className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary"
+            />
+            <span className="text-foreground truncate">{site.site_code} – {site.name}</span>
+          </label>
+        ))}
+      </FilterAccordion>
+
+      <FilterAccordion title="Employees">
+        {selectedEmployees.length > 0 && (
+          <button
+            type="button"
+            onClick={() => onSelectedEmployeesChange([])}
+            className="text-[11px] text-primary hover:underline mb-1"
+          >
+            Show All Employees
+          </button>
+        )}
+        {availableEmployees.map((name) => (
+          <label key={name} className="flex items-center gap-2 text-[12px] cursor-pointer">
+            <input
+              type="checkbox"
+              checked={selectedEmployees.includes(name)}
+              onChange={() => toggleEmployee(name)}
+              className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary"
+            />
+            <span className="text-foreground truncate">{name}</span>
+          </label>
+        ))}
+      </FilterAccordion>
 
       <button
         type="button"

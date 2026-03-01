@@ -63,7 +63,7 @@ const BASE_TABS = [
 
 const ALL_TAB_KEYS = BASE_TABS.map((t) => t.key);
 
-const WEEKDAY_ORDER = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+const WEEKDAY_ORDER = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 type RecurringHorizon = '1w' | '2w' | '4w' | '1m';
 
 interface RecurringTicketRow {
@@ -99,16 +99,15 @@ function toDateKey(date: Date) {
 
 function startOfWeek(date: Date) {
   const clone = new Date(date);
-  const day = clone.getDay();
-  const distanceFromMonday = (day + 6) % 7;
-  clone.setDate(clone.getDate() - distanceFromMonday);
+  const day = clone.getDay(); // 0=Sun already
+  clone.setDate(clone.getDate() - day);
   clone.setHours(0, 0, 0, 0);
   return clone;
 }
 
 function dayCodeFromDate(dateString: string) {
   const dayIndex = new Date(`${dateString}T12:00:00`).getDay();
-  return WEEKDAY_ORDER[(dayIndex + 6) % 7] ?? 'MON';
+  return WEEKDAY_ORDER[dayIndex] ?? 'SUN';
 }
 
 function normalizeTime(value: string | null | undefined) {
@@ -218,6 +217,8 @@ export default function SchedulePageClient() {
   const [autoFillLoading, setAutoFillLoading] = useState(false);
   const [showAvailability, setShowAvailability] = useState(true);
   const [showLeave, setShowLeave] = useState(false);
+  const [selectedSites, setSelectedSites] = useState<string[]>([]);
+  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [shiftPrefill, setShiftPrefill] = useState<{ date?: string; staffName?: string } | null>(null);
   const [budgetMode, setBudgetMode] = useState(false);
   const [, setSelectedTicket] = useState<TicketWithRelations | null>(null);
@@ -229,6 +230,10 @@ export default function SchedulePageClient() {
   const showMasterBoard = normalizedRole === 'OWNER_ADMIN' || normalizedRole === 'MANAGER';
   const showFloaterBoard = normalizedRole === 'CLEANER' || normalizedRole === 'SUPERVISOR' || normalizedRole === 'OWNER_ADMIN' || normalizedRole === 'MANAGER';
   const showSupervisorTab = normalizedRole === 'SUPERVISOR' || normalizedRole === 'MANAGER' || normalizedRole === 'OWNER_ADMIN';
+
+  const availableEmployees = useMemo(() => {
+    return Array.from(new Set(recurringRows.map((r) => r.staffName).filter((n) => n !== 'Open Shift'))).sort();
+  }, [recurringRows]);
 
   const visibleTabs = useMemo(() => {
     return BASE_TABS.filter((t) => {
@@ -251,6 +256,19 @@ export default function SchedulePageClient() {
     () => buildRecurringRange(recurringAnchorDate, recurringHorizon),
     [recurringAnchorDate, recurringHorizon],
   );
+
+  const filteredRecurringRows = useMemo((): RecurringScheduleRow[] => {
+    let rows = applyScheduleFilters(recurringRows, scheduleFilters);
+    if (selectedSites.length > 0) {
+      const siteCodeSet = new Set(selectedSites);
+      rows = rows.filter((r) => r.siteCode && siteCodeSet.has(r.siteCode));
+    }
+    if (selectedEmployees.length > 0) {
+      const empSet = new Set(selectedEmployees);
+      rows = rows.filter((r) => empSet.has(r.staffName));
+    }
+    return rows;
+  }, [recurringRows, scheduleFilters, selectedSites, selectedEmployees]);
 
   const clearActionParam = useCallback(() => {
     const params = new URLSearchParams(searchParams.toString());
@@ -1147,7 +1165,16 @@ export default function SchedulePageClient() {
             onShowAvailabilityChange={setShowAvailability}
             showLeave={showLeave}
             onShowLeaveChange={setShowLeave}
-            onResetFilters={() => setScheduleFilters({ client: '', site: '', position: '', staff: '' })}
+            onResetFilters={() => {
+              setScheduleFilters({ client: '', site: '', position: '', staff: '' });
+              setSelectedSites([]);
+              setSelectedEmployees([]);
+            }}
+            selectedSites={selectedSites}
+            onSelectedSitesChange={setSelectedSites}
+            selectedEmployees={selectedEmployees}
+            onSelectedEmployeesChange={setSelectedEmployees}
+            availableEmployees={availableEmployees}
           />
           <div className="flex-1 min-w-0 space-y-4">
             <ScheduleFilters filters={scheduleFilters} onChange={setScheduleFilters} rows={recurringRows} />
@@ -1158,25 +1185,25 @@ export default function SchedulePageClient() {
                 </CardContent>
               </Card>
             ) : recurringView === 'list' ? (
-              <ScheduleList rows={applyScheduleFilters(recurringRows, scheduleFilters)} search={search} onSelect={setSelectedRecurringRow} />
+              <ScheduleList rows={filteredRecurringRows} search={search} onSelect={setSelectedRecurringRow} />
             ) : recurringView === 'card' ? (
-              <ScheduleCardGrid rows={applyScheduleFilters(recurringRows, scheduleFilters)} search={search} onSelect={setSelectedRecurringRow} />
+              <ScheduleCardGrid rows={filteredRecurringRows} search={search} onSelect={setSelectedRecurringRow} />
             ) : recurringView === 'coverage' ? (
               <CoverageGrid
-                rows={applyScheduleFilters(recurringRows, scheduleFilters)}
+                rows={filteredRecurringRows}
                 visibleDates={recurringRange.visibleDates}
                 search={search}
               />
             ) : recurringView === 'day' ? (
               <DayView
-                rows={applyScheduleFilters(recurringRows, scheduleFilters)}
+                rows={filteredRecurringRows}
                 dateKey={toDateKey(recurringAnchorDate)}
                 search={search}
                 onSelect={setSelectedRecurringRow}
               />
             ) : (
               <ScheduleGrid
-                rows={applyScheduleFilters(recurringRows, scheduleFilters)}
+                rows={filteredRecurringRows}
                 visibleDates={recurringRange.visibleDates}
                 search={search}
                 onSelect={setSelectedRecurringRow}
@@ -1193,7 +1220,7 @@ export default function SchedulePageClient() {
 
       {tab === 'recurring' && budgetMode && (
         <BudgetOverlay
-          rows={applyScheduleFilters(recurringRows, scheduleFilters)}
+          rows={filteredRecurringRows}
           visibleDates={recurringRange.visibleDates}
         />
       )}

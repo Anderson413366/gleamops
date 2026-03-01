@@ -232,6 +232,32 @@ export default function SchedulePageClient() {
   const [selectedSites, setSelectedSites] = useState<string[]>([]);
   const [selectedPositions, setSelectedPositions] = useState<string[]>([]);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
+
+  // Restore schedule filters from localStorage on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('gleamops-schedule-filters');
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved.clients?.length) setSelectedClients(saved.clients);
+        if (saved.sites?.length) setSelectedSites(saved.sites);
+        if (saved.positions?.length) setSelectedPositions(saved.positions);
+        if (saved.employees?.length) setSelectedEmployees(saved.employees);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  // Persist schedule filters to localStorage
+  useEffect(() => {
+    const data = { clients: selectedClients, sites: selectedSites, positions: selectedPositions, employees: selectedEmployees };
+    const hasAny = selectedClients.length || selectedSites.length || selectedPositions.length || selectedEmployees.length;
+    if (hasAny) {
+      localStorage.setItem('gleamops-schedule-filters', JSON.stringify(data));
+    } else {
+      localStorage.removeItem('gleamops-schedule-filters');
+    }
+  }, [selectedClients, selectedSites, selectedPositions, selectedEmployees]);
+
   const [shiftPrefill, setShiftPrefill] = useState<{ date?: string; staffName?: string } | null>(null);
   const [budgetMode, setBudgetMode] = useState(false);
   const [, setSelectedTicket] = useState<TicketWithRelations | null>(null);

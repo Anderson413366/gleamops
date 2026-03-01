@@ -382,7 +382,7 @@ export function FieldRequests({ filter }: FieldRequestsProps) {
 
         {!loading && !requests.length ? (
           <p className="text-sm text-muted-foreground">
-            No field requests for this filter. Specialist submissions will appear here.
+            No field requests for this filter. Staff submissions will appear here.
           </p>
         ) : (
           requests.map((request) => {

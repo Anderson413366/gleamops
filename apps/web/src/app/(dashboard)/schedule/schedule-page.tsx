@@ -1044,7 +1044,7 @@ export default function SchedulePageClient() {
 
       for (const raw of data as unknown as RecurringTicketRow[]) {
         const dayCode = dayCodeFromDate(raw.scheduled_date);
-        const positionType = raw.position_code?.trim() || 'General Specialist';
+        const positionType = raw.position_code?.trim() || 'General';
         const siteName = raw.site?.name?.trim() || 'Unassigned Site';
         const siteCode = raw.site?.site_code?.trim() || null;
         const clientName = raw.site?.client?.name?.trim() || null;

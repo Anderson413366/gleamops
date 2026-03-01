@@ -54,7 +54,7 @@ const KPI_META = [
   },
   {
     key: 'specialist_turnover_90d_pct',
-    label: 'Specialist Turnover (90d)',
+    label: 'Staff Turnover (90d)',
     icon: <Users className="h-4 w-4 text-muted-foreground" />,
     format: (value: number | null | undefined) => formatNumber(value != null ? Math.round(value * 100) / 100 : null, '%'),
     href: '/team?tab=staff',

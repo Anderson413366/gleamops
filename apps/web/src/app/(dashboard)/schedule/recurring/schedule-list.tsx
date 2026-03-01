@@ -112,7 +112,7 @@ export function ScheduleList({ rows, search = '', loading = false, onSelect }: S
           <TableHeader>
             <tr>
               <TableHead sortable sorted={sortKey === 'staffName' && sortDir} onSort={() => onSort('staffName')}>
-                Specialist
+                Staff
               </TableHead>
               <TableHead sortable sorted={sortKey === 'positionType' && sortDir} onSort={() => onSort('positionType')}>
                 Position

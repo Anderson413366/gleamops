@@ -467,7 +467,7 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect, o
           className="grid border-b border-border bg-muted/40 text-xs font-semibold tracking-wide text-muted-foreground"
           style={{ gridTemplateColumns }}
         >
-          <div className="sticky left-0 z-10 bg-muted/40 border-r border-border px-4 py-3">Specialist</div>
+          <div className="sticky left-0 z-10 bg-muted/40 border-r border-border px-4 py-3">Staff</div>
           {dateColumns.map((dateKey) => {
             const heading = formatDateHeading(dateKey);
             return (

@@ -2,12 +2,12 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Handshake, Sparkles, Plus } from 'lucide-react';
+import { Handshake, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Pagination, TableSkeleton, ExportButton, StatusDot, statusRowAccentClass, cn, ViewToggle, Button,
+  EmptyState, Pagination, TableSkeleton, ExportButton, StatusDot, statusRowAccentClass, cn, ViewToggle,
 } from '@gleamops/ui';
 import type { SalesProspect } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
@@ -113,11 +113,29 @@ export default function ProspectsTable({ search }: ProspectsTableProps) {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <Button size="sm" onClick={handleAdd}>
-          <Plus className="h-4 w-4" /> New Prospect
-        </Button>
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
+          {statusOptions.map((status) => (
+            <button
+              key={status}
+              type="button"
+              onClick={() => setStatusFilter(status)}
+              className={cn(
+                'inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors',
+                effectiveStatusFilter === status ? 'bg-module-accent text-module-accent-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80',
+              )}
+            >
+              {status === 'all' ? 'All' : status}
+              <span className={cn(
+                'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+                effectiveStatusFilter === status ? 'bg-white/20' : 'bg-background'
+              )}>
+                {statusCounts[status] || 0}
+              </span>
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
           <ViewToggle view={view} onChange={setView} />
           <ExportButton
             data={filtered as unknown as Record<string, unknown>[]}
@@ -132,27 +150,6 @@ export default function ProspectsTable({ search }: ProspectsTableProps) {
             onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
           />
         </div>
-      </div>
-      <div className="mb-4 flex flex-wrap gap-2">
-        {statusOptions.map((status) => (
-          <button
-            key={status}
-            type="button"
-            onClick={() => setStatusFilter(status)}
-            className={cn(
-              'inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors',
-              effectiveStatusFilter === status ? 'bg-module-accent text-module-accent-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80',
-            )}
-          >
-            {status === 'all' ? 'All' : status}
-            <span className={cn(
-              'rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
-              effectiveStatusFilter === status ? 'bg-white/20' : 'bg-background'
-            )}>
-              {statusCounts[status] || 0}
-            </span>
-          </button>
-        ))}
       </div>
       {view === 'card' ? (
         filtered.length === 0 ? null : <ProspectsCardGrid rows={pag.page} onSelect={handleRowClick} />

@@ -266,16 +266,22 @@ function UnifiedPipelinePageClient() {
   return (
     <>
       <div className="space-y-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
             <h1 className="text-2xl font-bold text-foreground">Pipeline</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Track prospects, opportunities, bids, proposals, and performance.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-3 ml-auto">
+            <SearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder={`Search ${tab}...`}
+              className="w-56 sm:w-72 lg:w-80"
+            />
             {showAddButton && (
-              <Button onClick={handleAdd}>
+              <Button className="shrink-0" onClick={handleAdd}>
                 <Plus className="h-4 w-4" />
                 {addLabel[tab] ?? 'Add'}
               </Button>
@@ -284,13 +290,6 @@ function UnifiedPipelinePageClient() {
         </div>
 
         <SalesKpiBar stats={pipelineStats} />
-
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder={`Search ${tab}...`}
-          className="w-full sm:w-72 lg:w-80"
-        />
 
         {tab === 'prospects' && (
           <ProspectsSection

@@ -155,17 +155,25 @@ export default function TeamPageClient() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-foreground">Team</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage your team — staff, positions, timesheets, payroll, HR, and microfiber program</p>
         </div>
-        {addLabel && (
-          <Button className="w-full sm:w-auto" onClick={handleAdd}>
-            <Plus className="h-4 w-4" />
-            {addLabel}
-          </Button>
-        )}
+        <div className="flex items-center gap-3 ml-auto">
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder={`Search ${tab}...`}
+            className="w-56 sm:w-72 lg:w-80"
+          />
+          {addLabel && (
+            <Button className="shrink-0" onClick={handleAdd}>
+              <Plus className="h-4 w-4" />
+              {addLabel}
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -174,13 +182,6 @@ export default function TeamPageClient() {
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Open Exceptions</p><p className="text-lg font-semibold sm:text-xl leading-tight text-warning">{kpis.openExceptions}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Pending Timesheets</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.pendingTimesheets}</p></CardContent></Card>
       </div>
-
-      <SearchInput
-        value={search}
-        onChange={setSearch}
-        placeholder={`Search ${tab}...`}
-        className="w-full sm:w-72 lg:w-80"
-      />
 
       {tab === 'staff' && (
         <StaffTable

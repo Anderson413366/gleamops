@@ -184,19 +184,27 @@ export default function ClientsPageClient() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-foreground">Clients</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Manage clients, sites, contacts, and partners
           </p>
         </div>
-        {addLabel && (
-          <Button className="w-full sm:w-auto" onClick={handleAdd}>
-            <Plus className="h-4 w-4" />
-            {addLabel}
-          </Button>
-        )}
+        <div className="flex items-center gap-3 ml-auto">
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder={`Search ${tab}...`}
+            className="w-56 sm:w-72 lg:w-80"
+          />
+          {addLabel && (
+            <Button className="shrink-0" onClick={handleAdd}>
+              <Plus className="h-4 w-4" />
+              {addLabel}
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
@@ -237,13 +245,6 @@ export default function ClientsPageClient() {
           </CardContent>
         </Card>
       </div>
-
-      <SearchInput
-        value={search}
-        onChange={setSearch}
-        placeholder={`Search ${tab}...`}
-        className="w-full sm:w-72 lg:w-80"
-      />
 
       {tab === 'clients' && (
         <ClientsTable key={`clients-${refreshKey}`} search={search} />

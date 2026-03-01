@@ -202,19 +202,37 @@ export default function JobsPageClient() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-foreground">Jobs</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Active work: tickets, inspections, time tracking, and routes.
           </p>
         </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Button className="w-full sm:w-auto" onClick={() => { setTab('service-plans'); setOpenServicePlanCreateToken((token) => token + 1); }}>
+        <div className="flex items-center gap-3 ml-auto">
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder={
+              tab === 'service-plans'
+                ? 'Search service plans...'
+                : tab === 'tickets'
+                  ? 'Search tickets...'
+                  : tab === 'inspections'
+                    ? 'Search inspections...'
+                    : tab === 'time'
+                      ? 'Search time alerts and exceptions...'
+                      : tab === 'routes'
+                        ? 'Search routes and owners...'
+                        : `Search ${tab}...`
+            }
+            className="w-56 sm:w-72 lg:w-80"
+          />
+          <Button className="shrink-0" onClick={() => { setTab('service-plans'); setOpenServicePlanCreateToken((token) => token + 1); }}>
             <Plus className="h-4 w-4" />
             New Service Plan
           </Button>
-          <Button variant="secondary" onClick={() => setFocusMode((prev) => !prev)}>
+          <Button variant="secondary" className="shrink-0" onClick={() => setFocusMode((prev) => !prev)}>
             {focusMode ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             {focusMode ? 'Exit Focus' : 'Focus Mode'}
           </Button>
@@ -271,25 +289,6 @@ export default function JobsPageClient() {
           </CardContent>
         </Card>
       </div>
-
-      <SearchInput
-        value={search}
-        onChange={setSearch}
-        placeholder={
-          tab === 'service-plans'
-            ? 'Search service plans...'
-            : tab === 'tickets'
-              ? 'Search tickets...'
-              : tab === 'inspections'
-                ? 'Search inspections...'
-                : tab === 'time'
-                  ? 'Search time alerts and exceptions...'
-                  : tab === 'routes'
-                    ? 'Search routes and owners...'
-                    : `Search ${tab}...`
-        }
-        className="w-full sm:w-72 lg:w-80"
-      />
 
       {tab === 'service-plans' && (
         <JobsTable

@@ -108,19 +108,29 @@ export default function SafetyPageClient() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-foreground">Safety</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Certifications, training, incidents, and compliance calendar
           </p>
         </div>
-        {canAdd && (
-          <Button onClick={handleAdd}>
-            <Plus className="h-4 w-4" />
-            {addLabel[tab] ?? 'Add'}
-          </Button>
-        )}
+        <div className="flex items-center gap-3 ml-auto">
+          {tab !== 'calendar' && (
+            <SearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder={`Search ${tab}...`}
+              className="w-56 sm:w-72 lg:w-80"
+            />
+          )}
+          {canAdd && (
+            <Button className="shrink-0" onClick={handleAdd}>
+              <Plus className="h-4 w-4" />
+              {addLabel[tab] ?? 'Add'}
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -129,15 +139,6 @@ export default function SafetyPageClient() {
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Docs Needing Review</p><p className={`text-lg font-semibold sm:text-xl leading-tight${kpis.docsNeedReview > 0 ? ' text-warning' : ''}`}>{kpis.docsNeedReview}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Completions Expiring (30d)</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.completionsExpiring30d}</p></CardContent></Card>
       </div>
-
-      {tab !== 'calendar' && (
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder={`Search ${tab}...`}
-          className="w-full sm:w-72 lg:w-80"
-        />
-      )}
 
       {tab === 'certifications' && (
         <CertificationsTable

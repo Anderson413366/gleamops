@@ -33,6 +33,8 @@ export const NAV_TREE: NavItem[] = [
       { id: 'schedule', label: 'Calendar', href: '/schedule?tab=calendar', icon: 'CalendarDays' },
       { id: 'schedule', label: 'Planning Board', href: '/schedule?tab=planning', icon: 'LayoutDashboard' },
       { id: 'schedule', label: 'Master Board', href: '/schedule?tab=master', icon: 'Columns3' },
+      { id: 'schedule', label: 'Leave', href: '/schedule?tab=leave', icon: 'CalendarDays' },
+      { id: 'schedule', label: 'Availability', href: '/schedule?tab=availability', icon: 'CalendarDays' },
     ],
   },
   {

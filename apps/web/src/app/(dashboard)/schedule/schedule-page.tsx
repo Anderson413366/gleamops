@@ -36,6 +36,10 @@ import { BudgetOverlay } from './recurring/budget-overlay';
 import { MasterBoard } from './boards/master-board';
 import { FloaterBoard } from './boards/floater-board';
 import { SupervisorDashboard } from './boards/supervisor-dashboard';
+import { LeaveManagement } from './leave/leave-management';
+import { AvailabilityModule } from './availability/availability-module';
+import { MySchedule } from './my-schedule/my-schedule';
+import { TagView } from './recurring/tag-view';
 
 // Re-use ticket relations type
 interface TicketWithRelations extends WorkTicket {
@@ -59,6 +63,9 @@ const BASE_TABS = [
   { key: 'supervisor', label: 'Supervisor', icon: <Shield className="h-4 w-4" /> },
   { key: 'forms', label: 'Forms', icon: <FileText className="h-4 w-4" /> },
   { key: 'checklists', label: 'Checklists', icon: <ClipboardList className="h-4 w-4" /> },
+  { key: 'leave', label: 'Leave', icon: <Calendar className="h-4 w-4" /> },
+  { key: 'availability', label: 'Availability', icon: <Calendar className="h-4 w-4" /> },
+  { key: 'my-schedule', label: 'My Schedule', icon: <Calendar className="h-4 w-4" /> },
 ];
 
 const ALL_TAB_KEYS = BASE_TABS.map((t) => t.key);
@@ -196,10 +203,12 @@ export default function SchedulePageClient() {
       'master-board': 'master',
       'floater-board': 'floater',
       'my-route': 'floater',
+      'time-off': 'leave',
+      'my-shifts': 'my-schedule',
     },
   });
   const [search, setSearch] = useState('');
-  const [recurringView, setRecurringView] = useState<'list' | 'card' | 'grid' | 'coverage' | 'day'>('grid');
+  const [recurringView, setRecurringView] = useState<'list' | 'card' | 'grid' | 'coverage' | 'day' | 'tag'>('grid');
   const [recurringHorizon, setRecurringHorizon] = useState<RecurringHorizon>('2w');
   const [recurringAnchorDate, setRecurringAnchorDate] = useState<Date>(() => startOfWeek(new Date()));
   const [shiftFormOpen, setShiftFormOpen] = useState(false);
@@ -1130,6 +1139,7 @@ export default function SchedulePageClient() {
               { key: 'day', label: 'Day' },
               { key: 'list', label: 'List' },
               { key: 'card', label: 'Card' },
+              { key: 'tag', label: 'Tag' },
             ] as const).map((option) => (
               <button
                 key={option.key}
@@ -1200,6 +1210,11 @@ export default function SchedulePageClient() {
                 dateKey={toDateKey(recurringAnchorDate)}
                 search={search}
                 onSelect={setSelectedRecurringRow}
+              />
+            ) : recurringView === 'tag' ? (
+              <TagView
+                rows={filteredRecurringRows}
+                search={search}
               />
             ) : (
               <ScheduleGrid
@@ -1282,6 +1297,10 @@ export default function SchedulePageClient() {
           ) : null}
         </div>
       )}
+
+      {tab === 'leave' && <LeaveManagement />}
+      {tab === 'availability' && <AvailabilityModule />}
+      {tab === 'my-schedule' && <MySchedule />}
 
       <ShiftForm
         open={shiftFormOpen}

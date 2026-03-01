@@ -159,7 +159,7 @@ interface ActiveStaffRow {
   id: string;
   staff_id: string;
   start_at: string;
-  staff?: { full_name: string } | null;
+  staff?: { full_name: string; staff_code?: string } | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -427,7 +427,7 @@ export default function HomePage() {
       // Currently on shift (open time entries)
       supabase
         .from('time_entries')
-        .select('id, staff_id, start_at, staff:staff_id(full_name)')
+        .select('id, staff_id, start_at, staff:staff_id(full_name, staff_code)')
         .is('end_at', null)
         .order('start_at', { ascending: false })
         .limit(10),
@@ -902,9 +902,12 @@ export default function HomePage() {
                   className="flex items-center justify-between gap-3 text-sm"
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <span className="font-mono text-xs text-muted-foreground shrink-0">
+                    <Link
+                      href={`/operations/tickets/${encodeURIComponent(ticket.ticket_code)}`}
+                      className="font-mono text-xs text-muted-foreground shrink-0 hover:text-foreground transition-colors"
+                    >
                       {ticket.ticket_code}
-                    </span>
+                    </Link>
                     <span className="text-foreground">
                       {dateFormatter.format(toSafeDate(ticket.scheduled_date))}
                     </span>
@@ -937,9 +940,12 @@ export default function HomePage() {
                     className="flex items-center justify-between gap-3 text-sm"
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <span className="font-medium text-foreground truncate">
+                      <Link
+                        href={`/pipeline/prospects/${encodeURIComponent(prospect.prospect_code)}`}
+                        className="font-medium text-foreground truncate hover:text-primary transition-colors"
+                      >
                         {prospect.company_name}
-                      </span>
+                      </Link>
                       {prospect.source && (
                         <span className="text-xs text-muted-foreground shrink-0">
                           {prospect.source.replace(/_/g, ' ')}
@@ -977,9 +983,18 @@ export default function HomePage() {
                 >
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     <div className="h-2 w-2 rounded-full bg-success shrink-0" />
-                    <span className="font-medium text-foreground truncate">
-                      {entry.staff?.full_name ?? 'Unknown Staff'}
-                    </span>
+                    {entry.staff?.staff_code ? (
+                      <Link
+                        href={`/team/staff/${encodeURIComponent(entry.staff.staff_code)}`}
+                        className="font-medium text-foreground truncate hover:text-primary transition-colors"
+                      >
+                        {entry.staff.full_name}
+                      </Link>
+                    ) : (
+                      <span className="font-medium text-foreground truncate">
+                        {entry.staff?.full_name ?? 'Unknown Staff'}
+                      </span>
+                    )}
                   </div>
                   <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
                     Checked in {timeFormatter.format(new Date(entry.start_at))}

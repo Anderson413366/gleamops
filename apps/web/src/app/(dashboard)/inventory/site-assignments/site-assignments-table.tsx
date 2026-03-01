@@ -122,7 +122,7 @@ export default function SiteAssignmentsTable({ search }: Props) {
     const [assignRes, sitesRes, catalogRes, countsRes] = await Promise.all([
       supabase
         .from('site_supplies')
-        .select('*, site:site_id(id, name, site_code)')
+        .select('*, site:site_id!site_supplies_site_id_fkey(id, name, site_code)')
         .is('archived_at', null)
         .order('created_at', { ascending: false }),
       supabase

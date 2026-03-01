@@ -19,7 +19,7 @@ export async function findSendRecordByToken(db: SupabaseClient, token: string) {
       recipient_email,
       recipient_name,
       status,
-      proposal:proposal_id(
+      proposal:proposal_id!sales_proposal_sends_proposal_id_fkey(
         id,
         proposal_code,
         status,

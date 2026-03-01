@@ -77,7 +77,7 @@ export default function CertificationsTable({ search, autoCreate, onAutoCreateHa
     const [certRes, staffRes] = await Promise.all([
       supabase
         .from('staff_certifications')
-        .select('*, staff:staff_id(full_name, staff_code)')
+        .select('*, staff:staff_id!staff_certifications_staff_id_fkey(full_name, staff_code)')
         .is('archived_at', null)
         .order('certification_name'),
       supabase

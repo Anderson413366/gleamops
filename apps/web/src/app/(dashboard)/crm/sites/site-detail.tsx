@@ -83,7 +83,7 @@ export function SiteDetail({ site, open, onClose, onEdit }: SiteDetailProps) {
     Promise.all([
       supabase.from('contacts').select('*').eq('site_id', site.id).is('archived_at', null).order('name'),
       supabase.from('site_jobs').select('id, job_code, frequency, billing_amount, status').eq('site_id', site.id).is('archived_at', null).order('job_code'),
-      supabase.from('site_supplies').select('id, supply_id, par_level, supply:supply_id(name, category)').eq('site_id', site.id).is('archived_at', null),
+      supabase.from('site_supplies').select('id, supply_id, par_level, supply:supply_id!site_supplies_supply_id_fkey(name, category)').eq('site_id', site.id).is('archived_at', null),
     ]).then(([contactsRes, jobsRes, suppliesRes]) => {
       if (contactsRes.data) setContacts(contactsRes.data as unknown as Contact[]);
       if (jobsRes.data) setJobs(jobsRes.data as unknown as SiteJobRow[]);

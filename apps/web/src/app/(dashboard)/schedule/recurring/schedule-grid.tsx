@@ -145,7 +145,7 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect, o
       const [availRes, eligRes] = await Promise.all([
         supabase
           .from('staff_availability_rules')
-          .select('id, staff_id, day_of_week, is_available, reason, staff:staff_id(full_name)')
+          .select('id, staff_id, day_of_week, is_available, reason, staff:staff_id!staff_availability_rules_staff_id_fkey(full_name)')
           .eq('is_available', false),
         supabase
           .from('staff_eligible_positions')

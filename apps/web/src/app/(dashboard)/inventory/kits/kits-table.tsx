@@ -101,7 +101,7 @@ export default function KitsTable({ search, autoCreate, onAutoCreateHandled }: K
     const supabase = getSupabaseBrowserClient();
     const { data } = await supabase
       .from('supply_kit_items')
-      .select('id, supply_id, quantity, supply:supply_id(name)')
+      .select('id, supply_id, quantity, supply:supply_id!supply_kit_items_supply_id_fkey(name)')
       .eq('kit_id', kitId)
       .is('archived_at', null);
 

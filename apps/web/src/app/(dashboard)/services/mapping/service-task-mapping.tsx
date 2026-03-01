@@ -29,7 +29,7 @@ export default function ServiceTaskMapping({ search }: Props) {
     const supabase = getSupabaseBrowserClient();
     const { data, error } = await supabase
       .from('service_tasks')
-      .select('*, service:service_id(name, service_code), task:task_id(name, task_code)')
+      .select('*, service:service_id!service_tasks_service_id_fkey(name, service_code), task:task_id(name, task_code)')
       .is('archived_at', null)
       .order('created_at', { ascending: false });
     if (!error && data) setRows(data as unknown as ServiceTaskRow[]);

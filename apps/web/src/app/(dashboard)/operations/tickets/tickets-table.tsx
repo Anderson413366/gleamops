@@ -66,8 +66,8 @@ export default function TicketsTable({ search, onGoToServicePlans }: TicketsTabl
       .from('work_tickets')
       .select(`
         *,
-        job:job_id(job_code),
-        site:site_id(site_code, name, photo_url, client:client_id(name, client_code))
+        job:job_id!work_tickets_job_id_fkey(job_code),
+        site:site_id!work_tickets_site_id_fkey(site_code, name, photo_url, client:client_id!sites_client_id_fkey(name, client_code))
       `)
       .is('archived_at', null)
       .order('scheduled_date', { ascending: true });

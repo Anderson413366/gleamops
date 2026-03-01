@@ -427,14 +427,14 @@ export default function HomePage() {
       // Currently on shift (open time entries)
       supabase
         .from('time_entries')
-        .select('id, staff_id, start_at, staff:staff_id(full_name)')
+        .select('id, staff_id, start_at, staff:staff_id!time_entries_staff_id_fkey(full_name)')
         .is('end_at', null)
         .order('start_at', { ascending: false })
         .limit(10),
       // Low stock / supply alerts — fetch all with par_level set for client-side filtering
       supabase
         .from('site_supplies')
-        .select('id, name, category, par_level, supply_id, site_id, site:site_id(name)')
+        .select('id, name, category, par_level, supply_id, site_id, site:site_id!site_supplies_site_id_fkey(name)')
         .is('archived_at', null)
         .gt('par_level', 0)
         .order('name')
@@ -458,7 +458,7 @@ export default function HomePage() {
       // Expiring certifications (next 30 days or already expired)
       supabase
         .from('staff_certifications')
-        .select('id, certification_name, expiry_date, staff:staff_id(full_name)')
+        .select('id, certification_name, expiry_date, staff:staff_id!staff_certifications_staff_id_fkey(full_name)')
         .is('archived_at', null)
         .eq('status', 'ACTIVE')
         .not('expiry_date', 'is', null)
@@ -468,7 +468,7 @@ export default function HomePage() {
       // Expiring training completions
       supabase
         .from('training_completions')
-        .select('id, expiry_date, staff:staff_id(full_name), course:course_id(name)')
+        .select('id, expiry_date, staff:staff_id!training_completions_staff_id_fkey(full_name), course:course_id(name)')
         .is('archived_at', null)
         .not('expiry_date', 'is', null)
         .lte('expiry_date', complianceLookaheadStr)

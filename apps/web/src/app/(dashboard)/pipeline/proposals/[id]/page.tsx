@@ -75,7 +75,7 @@ export default function ProposalDetailPage() {
       .from('sales_proposals')
       .select(`
         *,
-        bid_version:bid_version_id(
+        bid_version:bid_version_id!sales_proposals_bid_version_id_fkey(
           bid:bid_id(
             bid_code,
             client_id,

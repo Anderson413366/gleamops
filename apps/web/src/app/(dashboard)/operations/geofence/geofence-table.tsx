@@ -34,7 +34,7 @@ export default function GeofenceTable({ search, onAdd, onSelect }: GeofenceTable
       .from('geofences')
       .select(`
         *,
-        site:site_id(name, site_code)
+        site:site_id!geofences_site_id_fkey(name, site_code)
       `)
       .is('archived_at', null)
       .order('created_at', { ascending: false });

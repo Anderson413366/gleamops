@@ -62,7 +62,7 @@ export function AvailabilityModule() {
     const supabase = getSupabaseBrowserClient();
     const { data } = await supabase
       .from('staff_availability_rules')
-      .select('id, staff_id, rule_type, availability_type, weekday:day_of_week, start_time, end_time, one_off_start, one_off_end, notes, staff:staff_id(full_name, staff_code)')
+      .select('id, staff_id, rule_type, availability_type, weekday:day_of_week, start_time, end_time, one_off_start, one_off_end, notes, staff:staff_id!staff_availability_rules_staff_id_fkey(full_name, staff_code)')
       .is('archived_at', null)
       .order('staff_id');
 

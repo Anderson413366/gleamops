@@ -55,7 +55,7 @@ export default function EquipmentTable({ search, onSelect, formOpen, onFormClose
     const supabase = getSupabaseBrowserClient();
     const { data, error } = await supabase
       .from('equipment')
-      .select('*, staff:assigned_to(full_name, staff_code), site:site_id(name, site_code)')
+      .select('*, staff:assigned_to(full_name, staff_code), site:site_id!equipment_site_id_fkey(name, site_code)')
       .is('archived_at', null)
       .order('name');
     if (!error && data) {
@@ -69,7 +69,7 @@ export default function EquipmentTable({ search, onSelect, formOpen, onFormClose
       const ids = equipmentRows.map((row) => row.id);
       const { data: assignmentRows } = await supabase
         .from('equipment_assignments')
-        .select('equipment_id, assigned_date, staff:staff_id(full_name, staff_code), site:site_id(name, site_code)')
+        .select('equipment_id, assigned_date, staff:staff_id!equipment_assignments_staff_id_fkey(full_name, staff_code), site:site_id!staff_attendance_site_id_fkey(name, site_code)')
         .in('equipment_id', ids)
         .is('archived_at', null)
         .is('returned_date', null)

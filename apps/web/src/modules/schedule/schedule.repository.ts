@@ -188,9 +188,9 @@ export async function listTrades(
       id, tenant_id, ticket_id, period_id, initiator_staff_id, target_staff_id,
       request_type, status, requested_at, accepted_at, approved_at, applied_at,
       manager_user_id, initiator_note, manager_note, created_at, updated_at,
-      ticket:ticket_id(ticket_code, scheduled_date, start_time, end_time, site:site_id(name, site_code)),
-      initiator:initiator_staff_id(staff_code, full_name),
-      target:target_staff_id(staff_code, full_name)
+      ticket:ticket_id!shift_trade_requests_ticket_id_fkey(ticket_code, scheduled_date, start_time, end_time, site:site_id!work_tickets_site_id_fkey(name, site_code)),
+      initiator:initiator_staff_id!shift_trade_requests_initiator_staff_id_fkey(staff_code, full_name),
+      target:target_staff_id!shift_trade_requests_target_staff_id_fkey(staff_code, full_name)
     `)
     .is('archived_at', null)
     .order('requested_at', { ascending: false })

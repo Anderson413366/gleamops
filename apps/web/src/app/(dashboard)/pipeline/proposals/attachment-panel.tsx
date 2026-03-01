@@ -38,7 +38,7 @@ export function AttachmentPanel({ proposalId, tenantId, proposalCode, readOnly }
     const supabase = getSupabaseBrowserClient();
     const { data, error } = await supabase
       .from('sales_proposal_attachments')
-      .select('*, file:file_id(original_filename, size_bytes, mime_type)')
+      .select('*, file:file_id!sales_proposal_attachments_file_id_fkey(original_filename, size_bytes, mime_type)')
       .eq('proposal_id', proposalId)
       .order('sort_order');
 

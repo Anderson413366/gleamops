@@ -115,7 +115,7 @@ export default function TaskDetailPage() {
 
       const { data: jobsData } = await supabase
         .from('job_tasks')
-        .select('job:job_id(id, job_code, job_name, status, frequency, billing_amount, site:site_id(name, site_code))')
+        .select('job:job_id!job_tasks_job_id_fkey(id, job_code, job_name, status, frequency, billing_amount, site:site_id!site_jobs_site_id_fkey(name, site_code))')
         .eq('task_id', t.id)
         .is('archived_at', null);
 

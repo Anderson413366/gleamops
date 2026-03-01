@@ -56,7 +56,7 @@ export function LeaveManagement() {
       // Fetch leave requests from staff_availability_rules with rule_type = 'ONE_OFF' and availability_type = 'UNAVAILABLE'
       const { data: rules } = await supabase
         .from('staff_availability_rules')
-        .select('id, staff_id, availability_type, one_off_start, one_off_end, notes, rule_type, staff:staff_id(full_name)')
+        .select('id, staff_id, availability_type, one_off_start, one_off_end, notes, rule_type, staff:staff_id!staff_availability_rules_staff_id_fkey(full_name)')
         .eq('rule_type', 'ONE_OFF')
         .eq('availability_type', 'UNAVAILABLE')
         .is('archived_at', null)

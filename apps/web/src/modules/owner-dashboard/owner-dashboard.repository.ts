@@ -58,8 +58,8 @@ export async function listSupplyCostsForRange(
       updated_at,
       archived_at,
       version_etag,
-      site:site_id(id, site_code, name),
-      supply:supply_id(id, code, name, category)
+      site:site_id!site_supply_costs_site_id_fkey(id, site_code, name),
+      supply:supply_id!site_supply_costs_supply_id_fkey(id, code, name, category)
     `)
     .gte('delivery_date', fromDate)
     .lte('delivery_date', toDate)
@@ -176,8 +176,8 @@ export async function listMicrofiberWashLogs(
       updated_at,
       archived_at,
       version_etag,
-      staff:staff_id(id, staff_code, full_name, microfiber_rate_per_set),
-      site:site_id(id, site_code, name)
+      staff:staff_id!microfiber_wash_log_staff_id_fkey(id, staff_code, full_name, microfiber_rate_per_set),
+      site:site_id!microfiber_wash_log_site_id_fkey(id, site_code, name)
     `)
     .is('archived_at', null)
     .order('wash_date', { ascending: false })

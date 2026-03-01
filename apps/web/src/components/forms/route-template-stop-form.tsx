@@ -113,7 +113,7 @@ export function RouteTemplateStopForm({
 
     supabase
       .from('site_jobs')
-      .select('id, job_code, site:site_id(name, site_code)')
+      .select('id, job_code, site:site_id!site_jobs_site_id_fkey(name, site_code)')
       .is('archived_at', null)
       .order('job_code', { ascending: true })
       .then(({ data }) => {

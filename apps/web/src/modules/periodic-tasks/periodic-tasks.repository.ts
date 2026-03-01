@@ -35,13 +35,13 @@ export async function listPeriodicTasks(
     .from('periodic_tasks')
     .select(`
       *,
-      site_job:site_job_id(
+      site_job:site_job_id!periodic_tasks_site_job_id_fkey(
         id,
         job_code,
         site:site_id(id, site_code, name)
       ),
-      preferred_staff:preferred_staff_id(id, staff_code, full_name),
-      last_completed_route:last_completed_route_id(id, route_date, status)
+      preferred_staff:preferred_staff_id!periodic_tasks_preferred_staff_id_fkey(id, staff_code, full_name),
+      last_completed_route:last_completed_route_id!periodic_tasks_last_completed_route_id_fkey(id, route_date, status)
     `)
     .is('archived_at', null)
     .order('next_due_date', { ascending: true })
@@ -63,13 +63,13 @@ export async function insertPeriodicTask(
     .insert(payload)
     .select(`
       *,
-      site_job:site_job_id(
+      site_job:site_job_id!periodic_tasks_site_job_id_fkey(
         id,
         job_code,
         site:site_id(id, site_code, name)
       ),
-      preferred_staff:preferred_staff_id(id, staff_code, full_name),
-      last_completed_route:last_completed_route_id(id, route_date, status)
+      preferred_staff:preferred_staff_id!periodic_tasks_preferred_staff_id_fkey(id, staff_code, full_name),
+      last_completed_route:last_completed_route_id!periodic_tasks_last_completed_route_id_fkey(id, route_date, status)
     `)
     .single();
 }
@@ -82,13 +82,13 @@ export async function getPeriodicTaskByCode(
     .from('periodic_tasks')
     .select(`
       *,
-      site_job:site_job_id(
+      site_job:site_job_id!periodic_tasks_site_job_id_fkey(
         id,
         job_code,
         site:site_id(id, site_code, name)
       ),
-      preferred_staff:preferred_staff_id(id, staff_code, full_name),
-      last_completed_route:last_completed_route_id(id, route_date, status)
+      preferred_staff:preferred_staff_id!periodic_tasks_preferred_staff_id_fkey(id, staff_code, full_name),
+      last_completed_route:last_completed_route_id!periodic_tasks_last_completed_route_id_fkey(id, route_date, status)
     `)
     .eq('periodic_code', code)
     .is('archived_at', null)
@@ -113,13 +113,13 @@ export async function updatePeriodicTaskById(
   return query
     .select(`
       *,
-      site_job:site_job_id(
+      site_job:site_job_id!periodic_tasks_site_job_id_fkey(
         id,
         job_code,
         site:site_id(id, site_code, name)
       ),
-      preferred_staff:preferred_staff_id(id, staff_code, full_name),
-      last_completed_route:last_completed_route_id(id, route_date, status)
+      preferred_staff:preferred_staff_id!periodic_tasks_preferred_staff_id_fkey(id, staff_code, full_name),
+      last_completed_route:last_completed_route_id!periodic_tasks_last_completed_route_id_fkey(id, route_date, status)
     `)
     .maybeSingle();
 }
@@ -148,7 +148,7 @@ export async function listPeriodicCompletionHistory(
       completed_at,
       completed_by,
       description,
-      route_stop:route_stop_id(
+      route_stop:route_stop_id!route_stop_tasks_route_stop_id_fkey(
         id,
         route:route_id(id, route_date, status),
         site_job:site_job_id(
@@ -184,13 +184,13 @@ export async function archivePeriodicTaskById(
     .is('archived_at', null)
     .select(`
       *,
-      site_job:site_job_id(
+      site_job:site_job_id!periodic_tasks_site_job_id_fkey(
         id,
         job_code,
         site:site_id(id, site_code, name)
       ),
-      preferred_staff:preferred_staff_id(id, staff_code, full_name),
-      last_completed_route:last_completed_route_id(id, route_date, status)
+      preferred_staff:preferred_staff_id!periodic_tasks_preferred_staff_id_fkey(id, staff_code, full_name),
+      last_completed_route:last_completed_route_id!periodic_tasks_last_completed_route_id_fkey(id, route_date, status)
     `)
     .maybeSingle();
 }

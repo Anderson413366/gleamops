@@ -80,7 +80,7 @@ export default function OpportunityDetailPage() {
 
     const { data } = await supabase
       .from('sales_opportunities')
-      .select('*, prospect:prospect_id(company_name, prospect_code), client:client_id(name, client_code)')
+      .select('*, prospect:prospect_id!sales_opportunities_prospect_id_fkey(company_name, prospect_code), client:client_id(name, client_code)')
       .eq('opportunity_code', opportunityCode)
       .is('archived_at', null)
       .single();

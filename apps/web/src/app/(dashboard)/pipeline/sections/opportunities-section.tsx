@@ -39,7 +39,7 @@ export function OpportunitiesSection({
     const supabase = getSupabaseBrowserClient();
     const { data, error } = await supabase
       .from('sales_opportunities')
-      .select('*, prospect:prospect_id(company_name, prospect_code)')
+      .select('*, prospect:prospect_id!sales_opportunities_prospect_id_fkey(company_name, prospect_code)')
       .is('archived_at', null)
       .order('created_at', { ascending: false });
 

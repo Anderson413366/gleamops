@@ -580,7 +580,7 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
     if (!form.service_id) { setServiceTasks([]); return; }
     supabase
       .from('service_tasks')
-      .select('task_id, frequency_default, task:task_id(task_code, name)')
+      .select('task_id, frequency_default, task:task_id!service_tasks_task_id_fkey(task_code, name)')
       .eq('service_id', form.service_id)
       .is('archived_at', null)
       .then(({ data }) => {
@@ -604,7 +604,7 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
     if (!open) return;
     supabase
       .from('task_production_rates')
-      .select('*, task:task_id(task_code)')
+      .select('*, task:task_id!task_production_rates_task_id_fkey(task_code)')
       .eq('is_active', true)
       .then(({ data }) => {
         if (data) {

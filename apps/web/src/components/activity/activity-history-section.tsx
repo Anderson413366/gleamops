@@ -271,7 +271,7 @@ export function ActivityHistorySection({
       if (ticketStaffId) {
         const { data: assignmentRows } = await supabase
           .from('ticket_assignments')
-          .select('ticket:ticket_id(id, ticket_code, scheduled_date, status)')
+          .select('ticket:ticket_id!ticket_assignments_ticket_id_fkey(id, ticket_code, scheduled_date, status)')
           .eq('staff_id', ticketStaffId)
           .is('archived_at', null)
           .order('created_at', { ascending: false })

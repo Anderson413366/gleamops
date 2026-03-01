@@ -94,7 +94,7 @@ export async function findUpcomingTickets(
       start_time,
       end_time,
       status,
-      site:site_id(id, name, site_code)
+      site:site_id!work_tickets_site_id_fkey(id, name, site_code)
     `)
     .in('site_id', siteIds)
     .gte('scheduled_date', from)
@@ -114,7 +114,7 @@ export async function findRecentInspections(db: SupabaseClient, siteIds: string[
       status,
       score_pct,
       summary,
-      site:site_id(id, name, site_code)
+      site:site_id!inspections_site_id_fkey(id, name, site_code)
     `)
     .in('site_id', siteIds)
     .is('archived_at', null)
@@ -132,7 +132,7 @@ export async function findRecentCounts(db: SupabaseClient, siteIds: string[]) {
       status,
       counted_by_name,
       submitted_at,
-      site:site_id(id, name, site_code)
+      site:site_id!inventory_counts_site_id_fkey(id, name, site_code)
     `)
     .in('site_id', siteIds)
     .is('archived_at', null)
@@ -149,7 +149,7 @@ export async function findRecentOrders(db: SupabaseClient, siteIds: string[]) {
       order_date,
       status,
       total_amount,
-      site:site_id(id, name, site_code)
+      site:site_id!supply_orders_site_id_fkey(id, name, site_code)
     `)
     .in('site_id', siteIds)
     .is('archived_at', null)
@@ -238,7 +238,7 @@ export async function findCustomerPortalSessionByHash(
       updated_at,
       archived_at,
       version_etag,
-      client:client_id(id, client_code, name)
+      client:client_id!customer_portal_sessions_client_id_fkey(id, client_code, name)
     `)
     .eq('token_hash', tokenHash)
     .is('archived_at', null)
@@ -275,7 +275,7 @@ export async function listCustomerPortalSessions(
       updated_at,
       archived_at,
       version_etag,
-      client:client_id(id, client_code, name)
+      client:client_id!customer_portal_sessions_client_id_fkey(id, client_code, name)
     `)
     .eq('tenant_id', tenantId)
     .is('archived_at', null)
@@ -312,7 +312,7 @@ export async function insertCustomerPortalSession(
       updated_at,
       archived_at,
       version_etag,
-      client:client_id(id, client_code, name)
+      client:client_id!customer_portal_sessions_client_id_fkey(id, client_code, name)
     `)
     .single();
 }
@@ -353,8 +353,8 @@ export async function listPortalInspectionsBySites(
       notes,
       summary_notes,
       photos,
-      site:site_id(id, site_code, name),
-      inspector:inspector_id(id, staff_code, full_name)
+      site:site_id!inspections_site_id_fkey(id, site_code, name),
+      inspector:inspector_id!inspections_inspector_id_fkey(id, staff_code, full_name)
     `)
     .in('site_id', siteIds)
     .in('status', ['COMPLETED', 'SUBMITTED'])
@@ -381,8 +381,8 @@ export async function getPortalInspectionById(
       notes,
       summary_notes,
       photos,
-      site:site_id(id, site_code, name),
-      inspector:inspector_id(id, staff_code, full_name)
+      site:site_id!inspections_site_id_fkey(id, site_code, name),
+      inspector:inspector_id!inspections_inspector_id_fkey(id, staff_code, full_name)
     `)
     .eq('id', inspectionId)
     .is('archived_at', null)
@@ -428,7 +428,7 @@ export async function listPortalComplaintsByClient(
       status,
       created_at,
       resolution_description,
-      site:site_id(id, site_code, name)
+      site:site_id!complaint_records_site_id_fkey(id, site_code, name)
     `)
     .eq('client_id', clientId)
     .is('archived_at', null)
@@ -452,7 +452,7 @@ export async function listPortalWorkTicketsBySites(
       title,
       description,
       priority,
-      site:site_id(id, site_code, name)
+      site:site_id!work_tickets_site_id_fkey(id, site_code, name)
     `)
     .in('site_id', siteIds)
     .is('archived_at', null)
@@ -486,7 +486,7 @@ export async function insertCustomerFeedback(
       updated_at,
       archived_at,
       version_etag,
-      site:site_id(id, site_code, name)
+      site:site_id!customer_feedback_site_id_fkey(id, site_code, name)
     `)
     .single();
 }

@@ -255,7 +255,7 @@ export default function JobDetailPage() {
         role,
         start_date,
         end_date,
-        staff:staff_id(id, staff_code, full_name, staff_status)
+        staff:staff_id!job_staff_assignments_staff_id_fkey(id, staff_code, full_name, staff_status)
       `)
       .eq('job_id', jobId)
       .is('archived_at', null)
@@ -308,7 +308,7 @@ export default function JobDetailPage() {
 
     const primary = await supabase
       .from('job_tasks')
-      .select('id, task_id, task_code, task_name, sequence_order, is_required, wait_after, estimated_minutes, custom_minutes, planned_minutes, notes, status, task:task_id(id, task_code, name, category, subcategory, priority_level, default_minutes, is_active)')
+      .select('id, task_id, task_code, task_name, sequence_order, is_required, wait_after, estimated_minutes, custom_minutes, planned_minutes, notes, status, task:task_id!job_tasks_task_id_fkey(id, task_code, name, category, subcategory, priority_level, default_minutes, is_active)')
       .eq('job_id', jobId)
       .is('archived_at', null);
 
@@ -320,7 +320,7 @@ export default function JobDetailPage() {
     // Backward-compatible fallback for environments that have not applied new task columns yet.
     const fallback = await supabase
       .from('job_tasks')
-      .select('id, task_id, task_code, task_name, is_required, planned_minutes, notes, status, task:task_id(id, task_code, name, category, subcategory, priority_level, default_minutes, is_active)')
+      .select('id, task_id, task_code, task_name, is_required, planned_minutes, notes, status, task:task_id!job_tasks_task_id_fkey(id, task_code, name, category, subcategory, priority_level, default_minutes, is_active)')
       .eq('job_id', jobId)
       .is('archived_at', null);
 
@@ -347,7 +347,7 @@ export default function JobDetailPage() {
     const { data } = await supabase
       .from('site_jobs')
       .select(
-        '*, site:site_id(site_code, name, client:client_id(name, client_code))'
+        '*, site:site_id!site_jobs_site_id_fkey(site_code, name, client:client_id!sites_client_id_fkey(name, client_code))'
       )
       .eq('job_code', id)
       .is('archived_at', null)
@@ -367,7 +367,7 @@ export default function JobDetailPage() {
             role,
             start_date,
             end_date,
-            staff:staff_id(id, staff_code, full_name, staff_status)
+            staff:staff_id!job_staff_assignments_staff_id_fkey(id, staff_code, full_name, staff_status)
           `)
           .eq('job_id', j.id)
           .is('archived_at', null)

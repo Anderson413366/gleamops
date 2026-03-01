@@ -259,7 +259,7 @@ export default function PlanningBoard({ search = '', openCreateToken = 0 }: Plan
     setJobsLoading(true);
     const { data, error } = await supabase
       .from('site_jobs')
-      .select('id, job_code, job_name, site_id, start_time, end_time, site:site_id(name, site_code, client:client_id(name))')
+      .select('id, job_code, job_name, site_id, start_time, end_time, site:site_id!site_jobs_site_id_fkey(name, site_code, client:client_id!sites_client_id_fkey(name))')
       .is('archived_at', null)
       .eq('status', 'ACTIVE')
       .order('job_code', { ascending: true });

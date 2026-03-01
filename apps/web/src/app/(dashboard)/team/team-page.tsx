@@ -136,7 +136,7 @@ export default function TeamPageClient() {
       ]);
     } else if (activeTab === 'positions') {
       const [posRes, assignedRes, staffRes] = await Promise.all([
-        supabase.from('position_types').select('id', { count: 'exact', head: true }).is('archived_at', null),
+        supabase.from('staff_positions').select('id', { count: 'exact', head: true }).is('archived_at', null),
         supabase.from('staff_eligible_positions').select('staff_id').is('archived_at', null),
         supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('staff_status', 'ACTIVE'),
       ]);
@@ -209,7 +209,7 @@ export default function TeamPageClient() {
       // Shared fallback for microfiber, subs, break-rules, shift-tags
       const [activeRes, posRes, excRes, tsRes] = await Promise.all([
         supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('staff_status', 'ACTIVE'),
-        supabase.from('position_types').select('id', { count: 'exact', head: true }).is('archived_at', null),
+        supabase.from('staff_positions').select('id', { count: 'exact', head: true }).is('archived_at', null),
         supabase.from('time_exceptions').select('id', { count: 'exact', head: true }).is('resolved_at', null),
         supabase.from('timesheets').select('id', { count: 'exact', head: true }).eq('status', 'SUBMITTED'),
       ]);

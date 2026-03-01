@@ -102,7 +102,7 @@ export function BidsSection({
       result = result.filter((row) => (row.status ?? 'ACTIVE') === effectiveStatusFilter);
     }
 
-    const query = normalizeQuery(`${globalSearch} ${sectionSearch}`);
+    const query = normalizeQuery(globalSearch);
     if (!query) return result;
 
     return result.filter((row) => (
@@ -112,7 +112,7 @@ export function BidsSection({
       || (row.client?.client_code?.toLowerCase().includes(query) ?? false)
       || (row.service?.name?.toLowerCase().includes(query) ?? false)
     ));
-  }, [effectiveStatusFilter, globalSearch, rows, sectionSearch]);
+  }, [effectiveStatusFilter, globalSearch, rows]);
 
   useEffect(() => {
     onCountChange?.(filtered.length);
@@ -149,26 +149,6 @@ export function BidsSection({
               </span>
             </button>
           ))}
-        </div>
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-          <SearchInput
-            value={sectionSearch}
-            onChange={setSectionSearch}
-            placeholder="Search bids..."
-            className="w-full sm:w-72"
-          />
-          {onExpressBid ? (
-            <Button variant="secondary" onClick={onExpressBid}>
-              <Zap className="h-4 w-4" />
-              Express Bid
-            </Button>
-          ) : null}
-          {onCreateNew ? (
-            <Button onClick={onCreateNew}>
-              <Plus className="h-4 w-4" />
-              New Bid
-            </Button>
-          ) : null}
         </div>
       </div>
 

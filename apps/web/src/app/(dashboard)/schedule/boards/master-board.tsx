@@ -305,36 +305,6 @@ export function MasterBoard() {
         </div>
       </div>
 
-      {/* KPI Summary Cards */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Card>
-          <CardContent className="pt-4">
-            <p className="text-xs text-muted-foreground">Total Tickets</p>
-            <p className="text-xl font-semibold">{loading ? '—' : filtered.length}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <p className="text-xs text-muted-foreground">Sites</p>
-            <p className="text-xl font-semibold">{loading ? '—' : sites.length}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <p className="text-xs text-muted-foreground">Assigned</p>
-            <p className="text-xl font-semibold text-emerald-600">{loading ? '—' : filtered.length - unassignedCount}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <p className="text-xs text-muted-foreground">Unassigned</p>
-            <p className={cn('text-xl font-semibold', unassignedCount > 0 && 'text-destructive')}>
-              {loading ? '—' : unassignedCount}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Monday.com-style Board */}
       <div className="flex gap-4">
         <div className="flex-1 space-y-3">

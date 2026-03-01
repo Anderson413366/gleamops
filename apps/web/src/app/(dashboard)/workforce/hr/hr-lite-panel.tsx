@@ -638,13 +638,6 @@ export default function HrLitePanel({ search }: Props) {
         <ExportButton<Record<string, unknown>> data={exportRows as unknown as Record<string, unknown>[]} filename="workforce-hr-lite" />
       </div>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Pending PTO</p><p className="text-xl font-semibold">{pendingPto}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Goals</p><p className="text-xl font-semibold">{activeGoals}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Submitted Reviews</p><p className="text-xl font-semibold">{submittedReviews}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Expiring Docs</p><p className="text-xl font-semibold text-warning">{expiringDocs}</p></CardContent></Card>
-      </div>
-
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader className="flex-row items-center justify-between">

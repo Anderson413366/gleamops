@@ -80,7 +80,7 @@ export function ProspectsSection({
       result = result.filter((row) => row.prospect_status_code === effectiveStatusFilter);
     }
 
-    const query = normalizeQuery(`${globalSearch} ${sectionSearch}`);
+    const query = normalizeQuery(globalSearch);
     if (!query) return result;
 
     return result.filter((row) => (
@@ -89,7 +89,7 @@ export function ProspectsSection({
       || (row.source?.toLowerCase().includes(query) ?? false)
       || (row.prospect_status_code?.toLowerCase().includes(query) ?? false)
     ));
-  }, [effectiveStatusFilter, globalSearch, rows, sectionSearch]);
+  }, [effectiveStatusFilter, globalSearch, rows]);
 
   useEffect(() => {
     onCountChange?.(filtered.length);
@@ -130,20 +130,6 @@ export function ProspectsSection({
               </span>
             </button>
           ))}
-        </div>
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-          <SearchInput
-            value={sectionSearch}
-            onChange={setSectionSearch}
-            placeholder="Search prospects..."
-            className="w-full sm:w-72"
-          />
-          {onCreate ? (
-            <Button onClick={onCreate}>
-              <Plus className="h-4 w-4" />
-              New Prospect
-            </Button>
-          ) : null}
         </div>
       </div>
 

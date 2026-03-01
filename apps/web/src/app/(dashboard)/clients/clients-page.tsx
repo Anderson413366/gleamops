@@ -184,41 +184,29 @@ export default function ClientsPageClient() {
 
   return (
     <div className="space-y-6">
-      <div className="pt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+      <div className="pt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Card>
           <CardContent className="pt-4">
-            <p className="text-xl font-semibold tabular-nums sm:text-2xl leading-tight">{kpis.clients}</p>
             <p className="text-xs text-muted-foreground">Total Clients</p>
+            <p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.clients}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
-            <p className="text-xl font-semibold tabular-nums sm:text-2xl leading-tight">{kpis.activeClients}</p>
             <p className="text-xs text-muted-foreground">Active Clients</p>
+            <p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.activeClients}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
-            <p className="text-xl font-semibold tabular-nums sm:text-2xl leading-tight">{kpis.sites}</p>
             <p className="text-xs text-muted-foreground">Total Sites</p>
+            <p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.sites}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
-            <p className="text-xl font-semibold tabular-nums sm:text-2xl leading-tight">{kpis.activeSites}</p>
-            <p className="text-xs text-muted-foreground">Active Sites</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <p className="text-xl font-semibold tabular-nums sm:text-2xl leading-tight">{kpis.contacts}</p>
-            <p className="text-xs text-muted-foreground">Contacts</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <p className="text-xl font-semibold tabular-nums sm:text-2xl leading-tight">{kpis.pendingRequests}</p>
             <p className="text-xs text-muted-foreground">Pending Requests</p>
+            <p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.pendingRequests}</p>
           </CardContent>
         </Card>
       </div>

@@ -269,10 +269,18 @@ export default function JobsPageClient() {
           }
           className="w-56 sm:w-72 lg:w-80"
         />
-        <Button className="shrink-0" onClick={() => { setTab('service-plans'); setOpenServicePlanCreateToken((token) => token + 1); }}>
-          <Plus className="h-4 w-4" />
-          New Service Plan
-        </Button>
+        {tab === 'service-plans' && (
+          <Button className="shrink-0" onClick={() => setOpenServicePlanCreateToken((token) => token + 1)}>
+            <Plus className="h-4 w-4" />
+            New Service Plan
+          </Button>
+        )}
+        {tab === 'inspections' && (
+          <Button className="shrink-0" onClick={() => setShowCreateInspection(true)}>
+            <Plus className="h-4 w-4" />
+            New Inspection
+          </Button>
+        )}
       </div>
 
       {tab === 'service-plans' && (

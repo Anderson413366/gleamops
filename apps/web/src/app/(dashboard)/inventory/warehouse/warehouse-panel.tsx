@@ -511,14 +511,6 @@ export default function WarehousePanel({ search }: Props) {
         <ExportButton<Record<string, unknown>> data={exportRows as unknown as Record<string, unknown>[]} filename="inventory-warehouse" />
       </div>
 
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Locations</p><p className="text-xl font-semibold">{metrics.locationCount}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Low Stock Slots</p><p className="text-xl font-semibold text-warning">{metrics.lowStockCount}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Open Supply Requests</p><p className="text-xl font-semibold">{metrics.pendingRequestCount}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Pending Approvals</p><p className="text-xl font-semibold text-warning">{metrics.pendingApprovalCount}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Recent Movements</p><p className="text-xl font-semibold text-blue-600">{metrics.movementCount}</p></CardContent></Card>
-      </div>
-
       <Card>
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2">

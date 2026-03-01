@@ -83,7 +83,7 @@ export function OpportunitiesSection({
       result = result.filter((row) => (row.stage_code ?? 'QUALIFIED') === effectiveStageFilter);
     }
 
-    const query = normalizeQuery(`${globalSearch} ${sectionSearch}`);
+    const query = normalizeQuery(globalSearch);
     if (!query) return result;
 
     return result.filter((row) => (
@@ -93,7 +93,7 @@ export function OpportunitiesSection({
       || (row.prospect?.company_name?.toLowerCase().includes(query) ?? false)
       || (row.prospect?.prospect_code?.toLowerCase().includes(query) ?? false)
     ));
-  }, [effectiveStageFilter, globalSearch, rows, sectionSearch]);
+  }, [effectiveStageFilter, globalSearch, rows]);
 
   useEffect(() => {
     onCountChange?.(filtered.length);
@@ -134,20 +134,6 @@ export function OpportunitiesSection({
               </span>
             </button>
           ))}
-        </div>
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-          <SearchInput
-            value={sectionSearch}
-            onChange={setSectionSearch}
-            placeholder="Search opportunities..."
-            className="w-full sm:w-72"
-          />
-          {onCreate ? (
-            <Button onClick={onCreate}>
-              <Plus className="h-4 w-4" />
-              New Opportunity
-            </Button>
-          ) : null}
         </div>
       </div>
 

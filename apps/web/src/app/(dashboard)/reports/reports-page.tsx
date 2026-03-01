@@ -177,7 +177,7 @@ export default function ReportsPageClient() {
       </div>
 
       {tab === 'overview' && (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <MetricCard
             icon={<BarChart3 className="h-5 w-5" />}
             tone="primary"
@@ -198,22 +198,10 @@ export default function ReportsPageClient() {
             value={formatCurrency(snapshot.monthlyRevenue)}
           />
           <MetricCard
-            icon={<Shield className="h-5 w-5" />}
-            tone="warning"
-            label="Pass Rate"
-            value={`${snapshot.passRate}%`}
-          />
-          <MetricCard
             icon={<Users className="h-5 w-5" />}
             tone="primary"
             label="Active Staff"
             value={snapshot.activeStaff}
-          />
-          <MetricCard
-            icon={<Package className="h-5 w-5" />}
-            tone="primary"
-            label="Active Supplies"
-            value={snapshot.activeSupplies}
           />
         </div>
       )}

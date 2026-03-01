@@ -3,11 +3,13 @@
 import Link from 'next/link';
 import { Activity, AlertTriangle, DollarSign, HelpCircle, Package, Users } from 'lucide-react';
 import { Card, CardContent, Tooltip } from '@gleamops/ui';
+import { Sparkline } from '@/app/(dashboard)/reports/_components/report-components';
 import type { OwnerDashboardKpis } from '@gleamops/shared';
 
 interface KpiCardsProps {
   kpis: OwnerDashboardKpis | null;
   loading?: boolean;
+  trendData?: Record<string, number[]>;
 }
 
 function formatNumber(value: number | null | undefined, suffix = '') {
@@ -68,13 +70,15 @@ const KPI_META = [
   },
 ] as const;
 
-export function KpiCards({ kpis, loading = false }: KpiCardsProps) {
+export function KpiCards({ kpis, loading = false, trendData }: KpiCardsProps) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
       {KPI_META.map((item) => {
         const value = kpis ? kpis[item.key] : null;
         const formatted = loading ? '...' : item.format(value);
         const isEmpty = !loading && formatted === '\u2014';
+        const trend = trendData?.[item.key];
+        const hasTrend = trend && trend.length >= 2;
         return (
           <Link key={item.key} href={item.href} className="group">
             <Card className="shadow-sm transition-shadow group-hover:shadow-md">
@@ -93,6 +97,11 @@ export function KpiCards({ kpis, loading = false }: KpiCardsProps) {
                     </Tooltip>
                   )}
                 </div>
+                {hasTrend && (
+                  <div className="mt-2">
+                    <Sparkline values={trend} width={100} height={28} ariaLabel={`${item.label} trend`} />
+                  </div>
+                )}
               </CardContent>
             </Card>
           </Link>

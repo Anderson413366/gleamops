@@ -5,10 +5,9 @@
  * Re-exports the existing workforce page with the new "Team" branding.
  */
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Users, FileText, BriefcaseBusiness, DollarSign, Plus, MessageSquare, UserRoundCheck, Clock, Droplets, HardHat, Coffee, Tag } from 'lucide-react';
 import { SearchInput, Button, Card, CardContent } from '@gleamops/ui';
-import { useFeatureFlag } from '@/hooks/use-feature-flag';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
 
@@ -95,21 +94,12 @@ const BASE_TABS = [
   { key: 'subcontractors', label: 'Subcontractors', icon: <HardHat className="h-4 w-4" /> },
   { key: 'break-rules', label: 'Break Rules', icon: <Coffee className="h-4 w-4" /> },
   { key: 'shift-tags', label: 'Shift Tags', icon: <Tag className="h-4 w-4" /> },
+  { key: 'messages', label: 'Messages', icon: <MessageSquare className="h-4 w-4" /> },
 ];
 
 export default function TeamPageClient() {
-  const messagingEnabled = useFeatureFlag('messaging_v1');
-
-  const TABS = useMemo(() => {
-    const tabs = [...BASE_TABS];
-    if (messagingEnabled) {
-      tabs.push({ key: 'messages', label: 'Messages', icon: <MessageSquare className="h-4 w-4" /> });
-    }
-    return tabs;
-  }, [messagingEnabled]);
-
   const [tab] = useSyncedTab({
-    tabKeys: TABS.map((entry) => entry.key),
+    tabKeys: BASE_TABS.map((entry) => entry.key),
     defaultTab: 'staff',
     aliases: {
       timekeeping: 'attendance',
@@ -294,7 +284,7 @@ export default function TeamPageClient() {
           <MicrofiberTable key={`mft-${refreshKey}`} search={search} />
         </div>
       )}
-      {tab === 'messages' && messagingEnabled && <MessagesTab key={`msg-${refreshKey}`} search={search} />}
+      {tab === 'messages' && <MessagesTab key={`msg-${refreshKey}`} search={search} />}
       {tab === 'subcontractors' && <SubcontractorsTable key={`subs-${refreshKey}`} search={search} />}
       {tab === 'break-rules' && <BreakRulesTable key={`break-${refreshKey}`} search={search} />}
       {tab === 'shift-tags' && <ShiftTagsTable key={`tags-${refreshKey}`} search={search} />}

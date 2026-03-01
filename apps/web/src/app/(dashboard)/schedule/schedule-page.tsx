@@ -1380,8 +1380,32 @@ export default function SchedulePageClient() {
         </div>
       )}
 
-      {tab === 'leave' && <LeaveManagement />}
-      {tab === 'availability' && <AvailabilityModule />}
+      {(tab === 'leave' || tab === 'availability') && (
+        <div className="space-y-4">
+          <div className="inline-flex items-center rounded-lg border border-border bg-muted p-0.5">
+            <button
+              type="button"
+              onClick={() => { if (tab !== 'leave') setTab('leave'); }}
+              className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+                tab === 'leave' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Leave Management
+            </button>
+            <button
+              type="button"
+              onClick={() => { if (tab !== 'availability') setTab('availability'); }}
+              className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+                tab === 'availability' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Availability
+            </button>
+          </div>
+          {tab === 'leave' && <LeaveManagement />}
+          {tab === 'availability' && <AvailabilityModule />}
+        </div>
+      )}
       {tab === 'my-schedule' && <MySchedule />}
 
       <ShiftForm

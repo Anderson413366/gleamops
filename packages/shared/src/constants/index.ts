@@ -24,117 +24,163 @@ export const NAV_ITEMS: NavItem[] = [
 // Hierarchical navigation tree — v2 sidebar with collapsible children
 // ---------------------------------------------------------------------------
 export const NAV_TREE: NavItem[] = [
+  // 1. Home
   { id: 'home', label: 'Home', href: '/home', icon: 'Home' },
+  // 2. Staff Schedule
   {
-    id: 'schedule', label: 'Schedule', href: '/schedule', icon: 'Calendar',
+    id: 'schedule', label: 'Staff Schedule', href: '/schedule', icon: 'Calendar',
     children: [
-      { id: 'schedule', label: 'Employee Schedule', href: '/schedule?tab=recurring', icon: 'RefreshCw' },
-      { id: 'schedule', label: 'Work Schedule', href: '/schedule?tab=work-orders', icon: 'FileText' },
+      { id: 'schedule', label: 'Employee Grid', href: '/schedule?tab=recurring', icon: 'RefreshCw' },
       { id: 'schedule', label: 'Calendar', href: '/schedule?tab=calendar', icon: 'CalendarDays' },
-      { id: 'schedule', label: 'Planning Board', href: '/schedule?tab=planning', icon: 'LayoutDashboard' },
-      { id: 'schedule', label: 'Master Board', href: '/schedule?tab=master', icon: 'Columns3' },
-      { id: 'schedule', label: 'My Route', href: '/schedule?tab=floater', icon: 'Route' },
-      { id: 'schedule', label: 'Supervisor', href: '/schedule?tab=supervisor', icon: 'Shield' },
-      { id: 'schedule', label: 'Forms', href: '/schedule?tab=forms', icon: 'FileText' },
-      { id: 'schedule', label: 'Checklists', href: '/schedule?tab=checklists', icon: 'ClipboardList' },
-      { id: 'schedule', label: 'Leave', href: '/schedule?tab=leave', icon: 'CalendarDays' },
-      { id: 'schedule', label: 'Availability', href: '/schedule?tab=availability', icon: 'CalendarDays' },
+      { id: 'schedule', label: 'Leave & Availability', href: '/schedule?tab=leave', icon: 'CalendarDays' },
       { id: 'schedule', label: 'My Schedule', href: '/schedule?tab=my-schedule', icon: 'CalendarDays' },
     ],
   },
+  // 3. Dispatch
   {
-    id: 'jobs', label: 'Jobs', href: '/jobs', icon: 'ClipboardCheck',
+    id: 'schedule', label: 'Dispatch', href: '/schedule?tab=planning', icon: 'MapPin',
     children: [
-      { id: 'jobs', label: 'Service Plans', href: '/jobs?tab=service-plans', icon: 'Briefcase' },
-      { id: 'jobs', label: 'Job Log', href: '/jobs?tab=tickets', icon: 'ClipboardList' },
-      { id: 'jobs', label: 'Inspections', href: '/jobs?tab=inspections', icon: 'ClipboardCheck' },
-      { id: 'jobs', label: 'Time', href: '/jobs?tab=time', icon: 'Clock' },
-      { id: 'jobs', label: 'Routes', href: '/jobs?tab=routes', icon: 'Route' },
-      { id: 'jobs', label: 'Checklists', href: '/jobs?tab=checklists', icon: 'ClipboardCheck' },
-      { id: 'jobs', label: 'Forms', href: '/jobs?tab=forms', icon: 'FileText' },
+      { id: 'schedule', label: 'Planning Board', href: '/schedule?tab=planning', icon: 'LayoutDashboard' },
+      { id: 'schedule', label: 'Master Board', href: '/schedule?tab=master', icon: 'Columns3' },
+      { id: 'schedule', label: 'My Route', href: '/schedule?tab=floater', icon: 'Route' },
+      { id: 'schedule', label: 'Supervisor View', href: '/schedule?tab=supervisor', icon: 'Shield' },
+      { id: 'shifts_time', label: 'Tonight Board', href: '/shifts-time', icon: 'Clock' },
     ],
   },
+  // 4. Work Orders
   {
-    id: 'clients', label: 'Clients', href: '/clients', icon: 'Building2',
+    id: 'jobs', label: 'Work Orders', href: '/schedule?tab=work-orders', icon: 'ClipboardList',
     children: [
-      { id: 'clients', label: 'Clients', href: '/clients?tab=clients', icon: 'Building2' },
+      { id: 'schedule', label: 'Open Orders', href: '/schedule?tab=work-orders', icon: 'FileText' },
+      { id: 'jobs', label: 'Job Log', href: '/jobs?tab=tickets', icon: 'ClipboardList' },
+      { id: 'jobs', label: 'Service Plans', href: '/jobs?tab=service-plans', icon: 'Briefcase' },
+      { id: 'jobs', label: 'Inspections', href: '/jobs?tab=inspections', icon: 'ClipboardCheck' },
+      { id: 'jobs', label: 'Routes', href: '/jobs?tab=routes', icon: 'Route' },
+    ],
+  },
+  // 5. Field Tools
+  {
+    id: 'jobs', label: 'Field Tools', href: '/schedule?tab=checklists', icon: 'Wrench',
+    children: [
+      { id: 'schedule', label: 'Shift Checklists', href: '/schedule?tab=checklists', icon: 'ClipboardCheck' },
+      { id: 'schedule', label: 'Field Requests', href: '/schedule?tab=forms', icon: 'FileText' },
+      { id: 'jobs', label: 'Time Alerts', href: '/jobs?tab=time', icon: 'AlertTriangle' },
+    ],
+  },
+  // 6. Client Hub
+  {
+    id: 'clients', label: 'Client Hub', href: '/clients', icon: 'Building2',
+    children: [
+      { id: 'clients', label: 'Directory', href: '/clients?tab=clients', icon: 'Building2' },
       { id: 'clients', label: 'Sites', href: '/clients?tab=sites', icon: 'MapPin' },
       { id: 'clients', label: 'Contacts', href: '/clients?tab=contacts', icon: 'Contact' },
       { id: 'clients', label: 'Requests', href: '/clients?tab=requests', icon: 'Inbox' },
       { id: 'clients', label: 'Partners', href: '/clients?tab=partners', icon: 'Handshake' },
     ],
   },
+  // 7. Sales Pipeline
   {
-    id: 'pipeline', label: 'Pipeline', href: '/pipeline', icon: 'TrendingUp',
+    id: 'pipeline', label: 'Sales Pipeline', href: '/pipeline', icon: 'TrendingUp',
     children: [
       { id: 'pipeline', label: 'Prospects', href: '/pipeline?tab=prospects', icon: 'UserSearch' },
       { id: 'pipeline', label: 'Opportunities', href: '/pipeline?tab=opportunities', icon: 'Target' },
       { id: 'pipeline', label: 'Bids', href: '/pipeline?tab=bids', icon: 'FileSpreadsheet' },
       { id: 'pipeline', label: 'Proposals', href: '/pipeline?tab=proposals', icon: 'FileCheck' },
-      { id: 'pipeline', label: 'Analytics', href: '/pipeline?tab=analytics', icon: 'BarChart3' },
+      { id: 'pipeline', label: 'Funnel Analytics', href: '/pipeline?tab=analytics', icon: 'BarChart3' },
+    ],
+  },
+  // 8. Estimating
+  {
+    id: 'pipeline', label: 'Estimating', href: '/pipeline/calculator', icon: 'Calculator',
+    children: [
       { id: 'pipeline', label: 'Bid Calculator', href: '/pipeline/calculator', icon: 'Calculator' },
       { id: 'pipeline', label: 'Supply Calculator', href: '/pipeline/supply-calculator', icon: 'Beaker' },
-      { id: 'pipeline', label: 'Admin', href: '/pipeline/admin', icon: 'Settings' },
+      { id: 'pipeline', label: 'Sales Admin', href: '/pipeline/admin', icon: 'Settings' },
     ],
   },
+  // 9. Workforce
   {
-    id: 'catalog', label: 'Catalog', href: '/catalog', icon: 'BookOpen',
+    id: 'team', label: 'Workforce', href: '/team', icon: 'Users',
     children: [
-      { id: 'catalog', label: 'Tasks', href: '/catalog?tab=tasks', icon: 'ClipboardList' },
-      { id: 'catalog', label: 'Services', href: '/catalog?tab=services', icon: 'Layers' },
-      { id: 'catalog', label: 'Mapping', href: '/catalog?tab=mapping', icon: 'Link2' },
-      { id: 'catalog', label: 'Scope Library', href: '/catalog?tab=scope-library', icon: 'BookOpen' },
+      { id: 'team', label: 'Staff Directory', href: '/team?tab=staff', icon: 'Users' },
+      { id: 'team', label: 'Roles & Positions', href: '/team?tab=positions', icon: 'BriefcaseBusiness' },
+      { id: 'team', label: 'Subcontractors', href: '/team?tab=subcontractors', icon: 'HardHat' },
+      { id: 'team', label: 'HR & Reviews', href: '/team?tab=hr', icon: 'UserRoundCheck' },
+      { id: 'team', label: 'Team Messages', href: '/team?tab=messages', icon: 'MessageSquare' },
     ],
   },
+  // 10. Time & Pay
   {
-    id: 'team', label: 'Team', href: '/team', icon: 'Users',
+    id: 'team', label: 'Time & Pay', href: '/team?tab=attendance', icon: 'Clock',
     children: [
-      { id: 'team', label: 'Staff', href: '/team?tab=staff', icon: 'Users' },
-      { id: 'team', label: 'Positions', href: '/team?tab=positions', icon: 'BriefcaseBusiness' },
       { id: 'team', label: 'Attendance', href: '/team?tab=attendance', icon: 'Clock' },
       { id: 'team', label: 'Timesheets', href: '/team?tab=timesheets', icon: 'FileText' },
       { id: 'team', label: 'Payroll', href: '/team?tab=payroll', icon: 'DollarSign' },
-      { id: 'team', label: 'HR', href: '/team?tab=hr', icon: 'UserRoundCheck' },
-      { id: 'team', label: 'Microfiber', href: '/team?tab=microfiber', icon: 'Droplets' },
-      { id: 'team', label: 'Subcontractors', href: '/team?tab=subcontractors', icon: 'HardHat' },
-      { id: 'team', label: 'Break Rules', href: '/team?tab=break-rules', icon: 'Coffee' },
-      { id: 'team', label: 'Shift Tags', href: '/team?tab=shift-tags', icon: 'Tag' },
-      { id: 'team', label: 'Messages', href: '/team?tab=messages', icon: 'MessageSquare' },
+      { id: 'team', label: 'Microfiber Payouts', href: '/team?tab=microfiber', icon: 'Droplets' },
     ],
   },
+  // 11. Shift Config
+  {
+    id: 'team', label: 'Shift Config', href: '/team?tab=break-rules', icon: 'Settings',
+    children: [
+      { id: 'team', label: 'Break Rules', href: '/team?tab=break-rules', icon: 'Coffee' },
+      { id: 'team', label: 'Shift Tags', href: '/team?tab=shift-tags', icon: 'Tag' },
+    ],
+  },
+  // 12. Inventory
   {
     id: 'inventory', label: 'Inventory', href: '/inventory', icon: 'Package',
     children: [
-      { id: 'inventory', label: 'Supplies', href: '/inventory?tab=supplies', icon: 'Package' },
+      { id: 'inventory', label: 'Supply Catalog', href: '/inventory?tab=supplies', icon: 'Package' },
       { id: 'inventory', label: 'Kits', href: '/inventory?tab=kits', icon: 'Box' },
       { id: 'inventory', label: 'Site Assignments', href: '/inventory?tab=site-assignments', icon: 'MapPin' },
-      { id: 'inventory', label: 'Counts', href: '/inventory?tab=counts', icon: 'ClipboardList' },
-      { id: 'inventory', label: 'Orders', href: '/inventory?tab=orders', icon: 'ShoppingCart' },
-      { id: 'inventory', label: 'Forecasting', href: '/inventory?tab=forecasting', icon: 'BrainCircuit' },
+      { id: 'inventory', label: 'Stock Counts', href: '/inventory?tab=counts', icon: 'ClipboardList' },
       { id: 'inventory', label: 'Warehouse', href: '/inventory?tab=warehouse', icon: 'Warehouse' },
-      { id: 'inventory', label: 'Vendors', href: '/inventory?tab=vendors', icon: 'Store' },
     ],
   },
+  // 13. Procurement
   {
-    id: 'equipment', label: 'Equipment', href: '/equipment', icon: 'Wrench',
+    id: 'inventory', label: 'Procurement', href: '/inventory?tab=orders', icon: 'ShoppingCart',
     children: [
-      { id: 'equipment', label: 'Equipment', href: '/equipment?tab=equipment', icon: 'Wrench' },
-      { id: 'equipment', label: 'Assignments', href: '/equipment?tab=assignments', icon: 'Link2' },
+      { id: 'inventory', label: 'Purchase Orders', href: '/inventory?tab=orders', icon: 'ShoppingCart' },
+      { id: 'inventory', label: 'Forecasting', href: '/inventory?tab=forecasting', icon: 'BrainCircuit' },
+      { id: 'inventory', label: 'Vendor Directory', href: '/inventory?tab=vendors', icon: 'Store' },
+    ],
+  },
+  // 14. Assets
+  {
+    id: 'equipment', label: 'Assets', href: '/equipment', icon: 'Wrench',
+    children: [
+      { id: 'equipment', label: 'Asset List', href: '/equipment?tab=equipment', icon: 'Wrench' },
+      { id: 'equipment', label: 'Assigned Gear', href: '/equipment?tab=assignments', icon: 'Link2' },
       { id: 'equipment', label: 'Keys', href: '/equipment?tab=keys', icon: 'KeyRound' },
-      { id: 'equipment', label: 'Vehicles', href: '/equipment?tab=vehicles', icon: 'Truck' },
+      { id: 'equipment', label: 'Fleet', href: '/equipment?tab=vehicles', icon: 'Truck' },
       { id: 'equipment', label: 'Maintenance', href: '/equipment?tab=maintenance', icon: 'Settings' },
     ],
   },
+  // 15. Compliance
   {
-    id: 'safety', label: 'Safety', href: '/safety', icon: 'ShieldCheck',
+    id: 'safety', label: 'Compliance', href: '/safety', icon: 'ShieldCheck',
     children: [
       { id: 'safety', label: 'Certifications', href: '/safety?tab=certifications', icon: 'Award' },
       { id: 'safety', label: 'Training', href: '/safety?tab=training', icon: 'GraduationCap' },
       { id: 'safety', label: 'Incidents', href: '/safety?tab=incidents', icon: 'AlertTriangle' },
-      { id: 'safety', label: 'Calendar', href: '/safety?tab=calendar', icon: 'CalendarDays' },
+      { id: 'safety', label: 'Expiration Tracker', href: '/safety?tab=calendar', icon: 'CalendarDays' },
     ],
   },
+  // 16. Reports
   { id: 'reports', label: 'Reports', href: '/reports', icon: 'BarChart3' },
+  // 17. Service Catalog
+  {
+    id: 'catalog', label: 'Service Catalog', href: '/catalog', icon: 'BookOpen',
+    children: [
+      { id: 'catalog', label: 'Task Library', href: '/catalog?tab=tasks', icon: 'ClipboardList' },
+      { id: 'catalog', label: 'Service Definitions', href: '/catalog?tab=services', icon: 'Layers' },
+      { id: 'catalog', label: 'Task Mapping', href: '/catalog?tab=mapping', icon: 'Link2' },
+      { id: 'catalog', label: 'Scope Library', href: '/catalog?tab=scope-library', icon: 'BookOpen' },
+    ],
+  },
+  // 18. Settings
   { id: 'settings', label: 'Settings', href: '/settings', icon: 'Settings' },
 ];
 

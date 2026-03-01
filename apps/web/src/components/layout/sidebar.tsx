@@ -234,11 +234,12 @@ export function Sidebar() {
   // Auto-expand the active module's parent on mount
   useEffect(() => {
     if (!v2NavigationEnabled) return;
-    const active = NAV_TREE.find((item) => item.children && item.id === activeModule);
-    if (active) {
+    // Auto-expand all parent sections that match the active module
+    const activeParents = NAV_TREE.filter((item) => item.children && item.id === activeModule);
+    if (activeParents.length > 0) {
       setExpanded((prev) => {
         const next = new Set(prev);
-        next.add(active.id);
+        for (const p of activeParents) next.add(p.label);
         saveExpandedState(next);
         return next;
       });
@@ -361,10 +362,18 @@ export function Sidebar() {
     items.map((item) => {
       const Icon = ICON_MAP[item.icon] ?? Building2;
       const hasChildren = item.children && item.children.length > 0;
-      const isJobsNavItem = item.id === 'jobs' || item.href === '/jobs';
-      const suppressJobsActive = showShiftsTimeNav && shiftsTimeActive && isJobsNavItem;
-      const isParentActive = (activeModule === item.id || pathname.startsWith(item.href)) && !suppressJobsActive;
-      const isExpanded = expanded.has(item.id);
+      // A parent is active if any of its children's hrefs match the current URL
+      const childrenMatch = hasChildren && item.children!.some((child) => {
+        const childUrl = new URL(child.href, 'http://localhost');
+        const childPath = childUrl.pathname;
+        const childTab = childUrl.searchParams.get('tab');
+        if (childPath !== pathname && !pathname.startsWith(childPath)) return false;
+        if (childTab) return searchParams.get('tab') === childTab;
+        return !searchParams.get('tab');
+      });
+      const isParentActive = childrenMatch || (!hasChildren && (activeModule === item.id || pathname.startsWith(item.href)));
+      const expandKey = item.label;
+      const isExpanded = expanded.has(expandKey);
       const badgeCount = badgeCounts[item.id] ?? 0;
 
       if (!hasChildren) {
@@ -406,11 +415,11 @@ export function Sidebar() {
 
       // Parent with children — accordion
       return (
-        <div key={`${item.id}-${item.href}`}>
+        <div key={`nav-${item.label}`}>
           <button
             type="button"
             data-nav-id={item.id}
-            onClick={() => toggleExpanded(item.id)}
+            onClick={() => toggleExpanded(expandKey)}
             className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 ease-in-out group ${
               isParentActive
                 ? 'border-module-accent/30 bg-module-accent/15 text-module-accent'
@@ -442,10 +451,13 @@ export function Sidebar() {
             <div className="ml-4 mt-0.5 space-y-0.5 border-l border-white/5 pl-3">
               {item.children!.map((child, idx) => {
                 const ChildIcon = ICON_MAP[child.icon] ?? Building2;
-                // Check if the child's tab matches the current URL
-                const childTabParam = new URL(child.href, 'http://localhost').searchParams.get('tab');
+                // Check if the child's href matches the current URL (path + tab)
+                const childUrl = new URL(child.href, 'http://localhost');
+                const childPath = childUrl.pathname;
+                const childTabParam = childUrl.searchParams.get('tab');
                 const currentTab = searchParams.get('tab');
-                const isChildActive = isParentActive && (
+                const pathMatches = pathname === childPath || pathname.startsWith(childPath + '/');
+                const isChildActive = pathMatches && (
                   childTabParam ? currentTab === childTabParam : !currentTab
                 );
 
@@ -566,29 +578,9 @@ export function Sidebar() {
         {/* Nav items */}
         <nav className="flex-1 py-3 px-3 space-y-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
           {v2NavigationEnabled
-            ? renderTreeNav(NAV_TREE.filter((item) => item.id !== 'settings'))
-            : renderFlatNav(LEGACY_NAV_ITEMS.filter((item) => item.id !== 'settings'))
+            ? renderTreeNav(NAV_TREE)
+            : renderFlatNav(LEGACY_NAV_ITEMS)
           }
-          {showShiftsTimeNav && (
-            <Link
-              href="/shifts-time"
-              onClick={() => setMobileOpen(false)}
-              aria-current={shiftsTimeActive ? 'page' : undefined}
-              className={`mt-1 flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 ease-in-out group ${
-                shiftsTimeActive
-                  ? 'border-module-accent/30 bg-module-accent/15 text-module-accent'
-                  : 'border-transparent text-sidebar-text hover:bg-sidebar-hover hover:text-white'
-              }`}
-            >
-              <Clock3
-                className={`h-[18px] w-[18px] shrink-0 transition-colors duration-200 ${
-                  shiftsTimeActive ? 'text-module-accent' : 'text-sidebar-text group-hover:text-white'
-                }`}
-              />
-              {t('shiftsTime.tab')}
-              {shiftsTimeActive && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-module-accent" />}
-            </Link>
-          )}
         </nav>
         {v2NavigationEnabled && <NavigationTooltipTour />}
 

@@ -141,6 +141,8 @@ function FilterAccordion({ title, children, defaultOpen = false }: { title: stri
   );
 }
 
+const SHIFT_TYPES = ['Day Shift', 'Evening Shift', 'Night Shift', 'Weekend'] as const;
+
 export function ScheduleSidebar({
   anchorDate,
   onDateSelect,
@@ -157,6 +159,9 @@ export function ScheduleSidebar({
 }: ScheduleSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [sites, setSites] = useState<SiteOption[]>([]);
+  const [selectedShiftTypes, setSelectedShiftTypes] = useState<string[]>([]);
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -173,20 +178,38 @@ export function ScheduleSidebar({
     return () => { cancelled = true; };
   }, []);
 
-  const toggleSite = (siteCode: string) => {
-    onSelectedSitesChange(
-      selectedSites.includes(siteCode)
-        ? selectedSites.filter((c) => c !== siteCode)
-        : [...selectedSites, siteCode],
-    );
-  };
+  // "All" is checked when no individual items are selected (empty array = no filter = show all)
+  const sitesAllChecked = selectedSites.length === 0;
+  const employeesAllChecked = selectedEmployees.length === 0;
+  const shiftTypesAllChecked = selectedShiftTypes.length === 0;
+  const skillsAllChecked = selectedSkills.length === 0;
+  const tagsAllChecked = selectedTags.length === 0;
 
-  const toggleEmployee = (name: string) => {
-    onSelectedEmployeesChange(
-      selectedEmployees.includes(name)
-        ? selectedEmployees.filter((n) => n !== name)
-        : [...selectedEmployees, name],
-    );
+  function handleToggleItem(
+    item: string,
+    selected: string[],
+    allItems: string[],
+    onChange: (items: string[]) => void,
+  ) {
+    let next: string[];
+    if (selected.includes(item)) {
+      next = selected.filter((v) => v !== item);
+    } else {
+      next = [...selected, item];
+    }
+    // If every individual item is now selected, reset to "All" (empty array)
+    if (next.length === allItems.length) {
+      onChange([]);
+    } else {
+      onChange(next);
+    }
+  }
+
+  const handleResetAll = () => {
+    setSelectedShiftTypes([]);
+    setSelectedSkills([]);
+    setSelectedTags([]);
+    onResetFilters();
   };
 
   if (collapsed) {
@@ -241,22 +264,30 @@ export function ScheduleSidebar({
         </label>
       </div>
 
+      {/* Job Sites */}
       <FilterAccordion title="Job Sites">
-        {selectedSites.length > 0 && (
-          <button
-            type="button"
-            onClick={() => onSelectedSitesChange([])}
-            className="text-[11px] text-primary hover:underline mb-1"
-          >
-            Show All Sites
-          </button>
-        )}
+        <label className="flex items-center gap-2 text-[12px] cursor-pointer mb-0.5">
+          <input
+            type="checkbox"
+            checked={sitesAllChecked}
+            onChange={() => onSelectedSitesChange([])}
+            className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary"
+          />
+          <span className="text-foreground font-medium">All</span>
+        </label>
         {sites.map((site) => (
           <label key={site.site_code} className="flex items-center gap-2 text-[12px] cursor-pointer">
             <input
               type="checkbox"
               checked={selectedSites.includes(site.site_code)}
-              onChange={() => toggleSite(site.site_code)}
+              onChange={() =>
+                handleToggleItem(
+                  site.site_code,
+                  selectedSites,
+                  sites.map((s) => s.site_code),
+                  onSelectedSitesChange,
+                )
+              }
               className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary"
             />
             <span className="text-foreground truncate">{site.site_code} – {site.name}</span>
@@ -264,22 +295,30 @@ export function ScheduleSidebar({
         ))}
       </FilterAccordion>
 
+      {/* Employees */}
       <FilterAccordion title="Employees">
-        {selectedEmployees.length > 0 && (
-          <button
-            type="button"
-            onClick={() => onSelectedEmployeesChange([])}
-            className="text-[11px] text-primary hover:underline mb-1"
-          >
-            Show All Employees
-          </button>
-        )}
+        <label className="flex items-center gap-2 text-[12px] cursor-pointer mb-0.5">
+          <input
+            type="checkbox"
+            checked={employeesAllChecked}
+            onChange={() => onSelectedEmployeesChange([])}
+            className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary"
+          />
+          <span className="text-foreground font-medium">All</span>
+        </label>
         {availableEmployees.map((name) => (
           <label key={name} className="flex items-center gap-2 text-[12px] cursor-pointer">
             <input
               type="checkbox"
               checked={selectedEmployees.includes(name)}
-              onChange={() => toggleEmployee(name)}
+              onChange={() =>
+                handleToggleItem(
+                  name,
+                  selectedEmployees,
+                  availableEmployees,
+                  onSelectedEmployeesChange,
+                )
+              }
               className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary"
             />
             <span className="text-foreground truncate">{name}</span>
@@ -287,21 +326,63 @@ export function ScheduleSidebar({
         ))}
       </FilterAccordion>
 
+      {/* Skills */}
       <FilterAccordion title="Skills">
-        <p className="text-[11px] text-muted-foreground italic">No skills configured yet.</p>
+        <label className="flex items-center gap-2 text-[12px] cursor-pointer mb-0.5">
+          <input
+            type="checkbox"
+            checked={skillsAllChecked}
+            onChange={() => setSelectedSkills([])}
+            className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary"
+          />
+          <span className="text-foreground font-medium">All</span>
+        </label>
+        <p className="text-[11px] text-muted-foreground italic pl-5">No skills configured yet.</p>
       </FilterAccordion>
 
+      {/* Shift Types */}
       <FilterAccordion title="Shift Types">
-        {['Day Shift', 'Evening Shift', 'Night Shift', 'Weekend'].map((type) => (
+        <label className="flex items-center gap-2 text-[12px] cursor-pointer mb-0.5">
+          <input
+            type="checkbox"
+            checked={shiftTypesAllChecked}
+            onChange={() => setSelectedShiftTypes([])}
+            className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary"
+          />
+          <span className="text-foreground font-medium">All</span>
+        </label>
+        {SHIFT_TYPES.map((type) => (
           <label key={type} className="flex items-center gap-2 text-[12px] cursor-pointer">
-            <input type="checkbox" className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary" />
+            <input
+              type="checkbox"
+              checked={selectedShiftTypes.includes(type)}
+              onChange={() =>
+                handleToggleItem(
+                  type,
+                  selectedShiftTypes,
+                  [...SHIFT_TYPES],
+                  setSelectedShiftTypes,
+                )
+              }
+              className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary"
+            />
             <span className="text-foreground truncate">{type}</span>
           </label>
         ))}
       </FilterAccordion>
 
+      {/* Tags */}
       <FilterAccordion title="Tags">
-        <p className="text-[11px] text-muted-foreground italic">No shift tags configured yet.</p>
+        <label className="flex items-center gap-2 text-[12px] cursor-pointer mb-0.5">
+          <input
+            type="checkbox"
+            checked={tagsAllChecked}
+            onChange={() => setSelectedTags([])}
+            className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary"
+          />
+          <span className="text-foreground font-medium">All</span>
+        </label>
+        <p className="text-[11px] text-muted-foreground italic pl-5">No shift tags configured yet.</p>
       </FilterAccordion>
 
       <div className="border-t border-border pt-2">
@@ -316,7 +397,7 @@ export function ScheduleSidebar({
 
       <button
         type="button"
-        onClick={onResetFilters}
+        onClick={handleResetAll}
         className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
       >
         <RotateCcw className="h-3 w-3" />

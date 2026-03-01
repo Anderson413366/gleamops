@@ -109,7 +109,7 @@ export function WorkOrderTable({ search, openCreateToken = 0 }: WorkOrderTablePr
       .select(`
         *,
         job:job_id(job_code, job_name),
-        site:site_id(site_code, name, client:client_id(name, client_code)),
+        site:site_id(site_code, name, client:client_id!sites_client_id_fkey(name, client_code)),
         assignments:ticket_assignments(assignment_status, staff:staff_id(full_name))
       `)
       .is('archived_at', null)

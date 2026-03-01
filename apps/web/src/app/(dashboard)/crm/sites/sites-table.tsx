@@ -70,7 +70,7 @@ export default function SitesTable({ search }: SitesTableProps) {
     const supabase = getSupabaseBrowserClient();
     const { data, error } = await supabase
       .from('sites')
-      .select('*, client:client_id(name, client_code)')
+      .select('*, client:client_id!sites_client_id_fkey(name, client_code)')
       .is('archived_at', null)
       .order('name');
     if (!error && data) {

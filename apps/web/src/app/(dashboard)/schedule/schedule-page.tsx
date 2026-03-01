@@ -769,7 +769,7 @@ export default function SchedulePageClient() {
             entry_instructions,
             parking_instructions,
             access_notes,
-            client:client_id(name, client_code)
+            client:client_id!sites_client_id_fkey(name, client_code)
           ),
           assignments:ticket_assignments(assignment_status, staff:staff_id(full_name))
         `)

@@ -80,7 +80,7 @@ export default function BidDetailPage() {
     const { data } = await supabase
       .from('sales_bids')
       .select(
-        '*, client:client_id(name, client_code), service:service_id(name), opportunity:opportunity_id(opportunity_code, name)'
+        '*, client:client_id!sales_bids_client_id_fkey(name, client_code), service:service_id(name), opportunity:opportunity_id!sales_bids_opportunity_id_fkey(opportunity_code, name)'
       )
       .eq('bid_code', bidCode)
       .is('archived_at', null)

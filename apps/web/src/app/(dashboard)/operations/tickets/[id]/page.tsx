@@ -105,7 +105,7 @@ export default function TicketDetailPage() {
         .select(`
           *,
           job:job_id(id, job_code, job_name, frequency, billing_amount, priority_level),
-          site:site_id(id, site_code, name, client:client_id(client_code, name))
+          site:site_id(id, site_code, name, client:client_id!sites_client_id_fkey(client_code, name))
         `)
         .eq('ticket_code', ticketCode)
         .is('archived_at', null)

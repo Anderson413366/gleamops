@@ -51,7 +51,7 @@ export default function ContactDetailPage() {
     const supabase = getSupabaseBrowserClient();
     const { data } = await supabase
       .from('contacts')
-      .select('*, client:client_id(name, client_code), site:site_id(name, site_code)')
+      .select('*, client:client_id!sites_client_id_fkey(name, client_code), site:site_id(name, site_code)')
       .eq('contact_code', code)
       .is('archived_at', null)
       .single();

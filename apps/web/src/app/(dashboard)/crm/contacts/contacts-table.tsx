@@ -50,7 +50,7 @@ export default function ContactsTable({ search }: ContactsTableProps) {
     const supabase = getSupabaseBrowserClient();
     const { data, error } = await supabase
       .from('contacts')
-      .select('*, client:client_id(name, client_code), site:site_id(name, site_code)')
+      .select('*, client:client_id!sites_client_id_fkey(name, client_code), site:site_id(name, site_code)')
       .is('archived_at', null)
       .order('name');
     if (!error && data) setRows(data as unknown as ContactWithParent[]);

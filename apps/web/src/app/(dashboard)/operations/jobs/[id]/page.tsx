@@ -347,7 +347,7 @@ export default function JobDetailPage() {
     const { data } = await supabase
       .from('site_jobs')
       .select(
-        '*, site:site_id(site_code, name, client:client_id(name, client_code))'
+        '*, site:site_id(site_code, name, client:client_id!sites_client_id_fkey(name, client_code))'
       )
       .eq('job_code', id)
       .is('archived_at', null)

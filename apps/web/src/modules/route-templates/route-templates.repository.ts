@@ -35,8 +35,8 @@ export async function listRouteTemplates(
       updated_at,
       archived_at,
       version_etag,
-      assigned_staff:staff!route_templates_assigned_staff_id_fkey(id, staff_code, full_name),
-      default_vehicle:default_vehicle_id!route_templates_default_vehicle_id_fkey(id, vehicle_code, name),
+      assigned_staff:staff_id(id, staff_code, full_name),
+      default_vehicle:vehicle_id(id, vehicle_code, name),
       stops:route_template_stops(id, archived_at)
     `)
     .is('archived_at', null)
@@ -72,8 +72,8 @@ export async function getRouteTemplateById(
       updated_at,
       archived_at,
       version_etag,
-      assigned_staff:staff!route_templates_assigned_staff_id_fkey(id, staff_code, full_name),
-      default_vehicle:default_vehicle_id!route_templates_default_vehicle_id_fkey(id, vehicle_code, name),
+      assigned_staff:staff_id(id, staff_code, full_name),
+      default_vehicle:vehicle_id(id, vehicle_code, name),
       stops:route_template_stops(
         id,
         tenant_id,
@@ -429,8 +429,8 @@ export async function getRouteStopSupplyContext(
     .select(`
       id,
       route_id,
-      site_job:site_jobs!route_stops_site_job_id_fkey(site_id),
-      route:routes!route_stops_route_id_fkey(id, tenant_id, route_date)
+      site_job:job_id(site_id),
+      route:route_id(id, tenant_id, route_date)
     `)
     .eq('id', routeStopId)
     .is('archived_at', null)

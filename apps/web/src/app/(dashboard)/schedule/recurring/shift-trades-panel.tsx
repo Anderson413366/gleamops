@@ -51,9 +51,9 @@ export function ShiftTradesPanel() {
           id, ticket_id, period_id, request_type, status,
           initiator_note, manager_note,
           requested_at, accepted_at, approved_at, applied_at,
-          initiator_staff:staff!shift_trade_requests_initiator_staff_id_fkey(full_name, staff_code),
-          target_staff:staff!shift_trade_requests_target_staff_id_fkey(full_name, staff_code),
-          ticket:work_tickets!shift_trade_requests_ticket_id_fkey(ticket_code, scheduled_date, start_time, end_time)
+          initiator_staff:staff_id(full_name, staff_code),
+          target_staff:staff_id(full_name, staff_code),
+          ticket:ticket_id(ticket_code, scheduled_date, start_time, end_time)
         `)
         .is('archived_at', null)
         .order('requested_at', { ascending: false })

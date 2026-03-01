@@ -43,7 +43,7 @@ export default function KeysTable({ search, formOpen, onFormClose, onRefresh }: 
     setLoading(true);
     const { data, error } = await supabase
       .from('key_inventory')
-      .select('*, site:sites!key_inventory_site_id_fkey(name, site_code), assigned:assigned_to(full_name, staff_code)')
+      .select('*, site:site_id(name, site_code), assigned:assigned_to(full_name, staff_code)')
       .is('archived_at', null)
       .order('key_code');
     if (!error && data) setRows(data as unknown as KeyWithRelations[]);

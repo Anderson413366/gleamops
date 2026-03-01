@@ -16,8 +16,8 @@ export async function findTicketByCode(db: SupabaseClient, ticketCode: string) {
       start_time,
       end_time,
       status,
-      job:site_jobs!work_tickets_job_id_fkey(job_code, job_name),
-      site:sites!work_tickets_site_id_fkey(name, site_code)
+      job:job_id(job_code, job_name),
+      site:site_id(name, site_code)
     `)
     .eq('ticket_code', ticketCode)
     .is('archived_at', null)

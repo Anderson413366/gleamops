@@ -306,7 +306,7 @@ export async function listRoutesForDate(
       route_date,
       status,
       route_owner_staff_id,
-      route_owner:route_owner_staff_id!routes_route_owner_staff_id_fkey(id, staff_code, full_name)
+      route_owner:staff_id(id, staff_code, full_name)
     `)
     .eq('route_date', routeDate)
     .is('archived_at', null)
@@ -341,8 +341,8 @@ export async function listRouteStopsByRouteIds(
       planned_end_at,
       arrived_at,
       departed_at,
-      site:sites!route_stops_site_id_fkey(id, site_code, name),
-      site_job:site_jobs!route_stops_site_job_id_fkey(id, job_code, site:sites!site_jobs_site_id_fkey(id, site_code, name))
+      site:site_id(id, site_code, name),
+      site_job:job_id(id, job_code, site:site_id(id, site_code, name))
     `)
     .in('route_id', routeIds)
     .is('archived_at', null)
@@ -364,7 +364,7 @@ export async function listAssignedTicketsForDate(
       start_time,
       end_time,
       status,
-      site:sites!work_tickets_site_id_fkey(id, site_code, name),
+      site:site_id(id, site_code, name),
       assignments:ticket_assignments!inner(
         id,
         staff_id,
@@ -442,10 +442,10 @@ export async function listRecentCalloutEvents(
       escalation_level,
       route_id,
       route_stop_id,
-      affected_staff:staff!callout_events_affected_staff_id_fkey(id, staff_code, full_name),
-      reported_by_staff:staff!callout_events_reported_by_staff_id_fkey(id, staff_code, full_name),
-      covered_by_staff:staff!callout_events_covered_by_staff_id_fkey(id, staff_code, full_name),
-      site:sites!callout_events_site_id_fkey(id, site_code, name)
+      affected_staff:staff_id(id, staff_code, full_name),
+      reported_by_staff:staff_id(id, staff_code, full_name),
+      covered_by_staff:staff_id(id, staff_code, full_name),
+      site:site_id(id, site_code, name)
     `)
     .is('archived_at', null)
     .order('reported_at', { ascending: false })
@@ -488,7 +488,7 @@ export async function listCoverageOffersForCallouts(
       expires_at,
       responded_at,
       response_note,
-      candidate:candidate_staff_id!coverage_offers_candidate_staff_id_fkey(id, staff_code, full_name)
+      candidate:staff_id(id, staff_code, full_name)
     `)
     .in('callout_event_id', calloutIds)
     .is('archived_at', null)
@@ -718,7 +718,7 @@ export async function listRecentPayrollRuns(
       status,
       created_at,
       exported_at,
-      mapping:mapping_id!payroll_export_runs_mapping_id_fkey(id, template_name)
+      mapping:mapping_id(id, template_name)
     `)
     .is('archived_at', null)
     .order('created_at', { ascending: false })

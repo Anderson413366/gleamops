@@ -160,7 +160,7 @@ export function PeriodicTaskForm({
     Promise.all([
       supabase
         .from('site_jobs')
-        .select('id, job_code, site:sites!site_jobs_site_id_fkey(name, site_code)')
+        .select('id, job_code, site:site_id(name, site_code)')
         .is('archived_at', null)
         .order('job_code'),
       supabase

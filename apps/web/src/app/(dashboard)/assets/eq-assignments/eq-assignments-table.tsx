@@ -38,7 +38,7 @@ export default function EqAssignmentsTable({ search, formOpen, onFormClose, onRe
     const supabase = getSupabaseBrowserClient();
     const { data, error } = await supabase
       .from('equipment_assignments')
-      .select('*, equipment:equipment!equipment_assignments_equipment_id_fkey(name, equipment_code), staff:staff!equipment_assignments_staff_id_fkey(full_name, staff_code), site:sites!staff_attendance_site_id_fkey(name, site_code)')
+      .select('*, equipment:equipment_id(name, equipment_code), staff:staff_id(full_name, staff_code), site:site_id(name, site_code)')
       .is('archived_at', null)
       .order('assigned_date', { ascending: false });
     if (!error && data) setRows(data as unknown as AssignmentRow[]);

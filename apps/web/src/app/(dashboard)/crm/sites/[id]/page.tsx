@@ -505,7 +505,7 @@ export default function SiteDetailPage() {
             .order('task_name'),
           supabase
             .from('job_staff_assignments')
-            .select('id, job_id, staff:staff!job_staff_assignments_staff_id_fkey(full_name, staff_code)')
+            .select('id, job_id, staff:staff_id(full_name, staff_code)')
             .in('job_id', jobIds)
             .is('archived_at', null),
         ]);

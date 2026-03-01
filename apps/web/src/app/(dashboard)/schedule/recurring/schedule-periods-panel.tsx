@@ -50,7 +50,7 @@ export function SchedulePeriodsPanel() {
         .select(`
           id, site_id, period_name, period_start, period_end,
           status, published_at, locked_at,
-          site:sites!schedule_periods_site_id_fkey(name, site_code)
+          site:site_id(name, site_code)
         `)
         .is('archived_at', null)
         .order('period_start', { ascending: false })

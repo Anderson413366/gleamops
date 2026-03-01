@@ -169,7 +169,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
       // Staff assignments for this ticket
       supabase
         .from('ticket_assignments')
-        .select('*, staff:staff!ticket_assignments_staff_id_fkey(staff_code, full_name, role)')
+        .select('*, staff:staff_id(staff_code, full_name, role)')
         .eq('ticket_id', ticket.id)
         .is('archived_at', null),
       // All active staff
@@ -194,27 +194,27 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
       // Time entries
       supabase
         .from('time_entries')
-        .select('id, start_at, end_at, duration_minutes, status, staff:staff!time_entries_staff_id_fkey(full_name)')
+        .select('id, start_at, end_at, duration_minutes, status, staff:staff_id(full_name)')
         .eq('ticket_id', ticket.id)
         .is('archived_at', null)
         .order('start_at', { ascending: false }),
       // Time exceptions (via time_entries for this ticket)
       supabase
         .from('time_exceptions')
-        .select('*, staff:staff!time_exceptions_staff_id_fkey(full_name, staff_code)')
+        .select('*, staff:staff_id(full_name, staff_code)')
         .is('archived_at', null)
         .order('created_at', { ascending: false }),
       // Inspections for this ticket
       supabase
         .from('inspections')
-        .select('*, inspector:staff!inspections_inspector_id_fkey(full_name)')
+        .select('*, inspector:staff_id(full_name)')
         .eq('ticket_id', ticket.id)
         .is('archived_at', null)
         .order('created_at', { ascending: false }),
       // Inspection issues (via inspections for this ticket)
       supabase
         .from('inspection_issues')
-        .select('*, inspection:inspection_id!inspection_issues_inspection_id_fkey(inspection_code)')
+        .select('*, inspection:inspection_id(inspection_code)')
         .is('archived_at', null)
         .order('created_at', { ascending: false }),
       // Site supplies (SDS)
@@ -239,7 +239,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
       // Shift trades for this ticket
       supabase
         .from('shift_trade_requests')
-        .select('id, request_type, status, target_staff_id, initiator_staff_id, initiator_note, manager_note, requested_at, initiator:staff!shift_trade_requests_initiator_staff_id_fkey(full_name, staff_code), target:target_staff_id(full_name, staff_code)')
+        .select('id, request_type, status, target_staff_id, initiator_staff_id, initiator_note, manager_note, requested_at, initiator:staff_id(full_name, staff_code), target:target_staff_id(full_name, staff_code)')
         .eq('ticket_id', ticket.id)
         .is('archived_at', null)
         .order('requested_at', { ascending: false }),
@@ -328,7 +328,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
     // Supply usage
     const { data: usageData } = await supabase
       .from('ticket_supply_usage')
-      .select('*, supply:supply_catalog!ticket_supply_usage_supply_id_fkey(code, name)')
+      .select('*, supply:supply_id(code, name)')
       .eq('ticket_id', ticket.id)
       .is('archived_at', null)
       .order('logged_at', { ascending: false });

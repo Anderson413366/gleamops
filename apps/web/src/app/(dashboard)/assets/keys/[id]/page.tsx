@@ -52,7 +52,7 @@ export default function KeyDetailPage() {
     const supabase = getSupabaseBrowserClient();
     const { data } = await supabase
       .from('key_inventory')
-      .select('*, site:sites!key_inventory_site_id_fkey(name, site_code), assigned:assigned_to(full_name, staff_code)')
+      .select('*, site:site_id(name, site_code), assigned:assigned_to(full_name, staff_code)')
       .eq('key_code', id)
       .is('archived_at', null)
       .single();

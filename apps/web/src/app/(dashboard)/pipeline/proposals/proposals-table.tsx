@@ -57,7 +57,7 @@ export default function ProposalsTable({ search, onGoToBids }: ProposalsTablePro
       .from('sales_proposals')
       .select(`
         *,
-        bid_version:sales_bid_versions!sales_proposals_bid_version_id_fkey(
+        bid_version:bid_version_id(
           bid:bid_id(
             bid_code,
             client_id,

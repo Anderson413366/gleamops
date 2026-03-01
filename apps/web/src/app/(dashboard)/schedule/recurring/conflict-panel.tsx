@@ -46,8 +46,8 @@ export function ConflictPanel() {
         .select(`
           id, period_id, ticket_id, staff_id,
           conflict_type, severity, message, is_blocking, resolved_at,
-          staff:staff!schedule_conflicts_staff_id_fkey(full_name, staff_code),
-          ticket:work_tickets!schedule_conflicts_ticket_id_fkey(ticket_code, scheduled_date)
+          staff:staff_id(full_name, staff_code),
+          ticket:ticket_id(ticket_code, scheduled_date)
         `)
         .is('resolved_at', null)
         .order('severity', { ascending: false })

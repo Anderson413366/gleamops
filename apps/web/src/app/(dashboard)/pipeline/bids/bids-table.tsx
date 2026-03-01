@@ -42,7 +42,7 @@ export default function BidsTable({ search, onCreateNew }: BidsTableProps) {
     const supabase = getSupabaseBrowserClient();
     const { data, error } = await supabase
       .from('sales_bids')
-      .select('*, client:clients!sales_bids_client_id_fkey(name, client_code), service:service_id(name)')
+      .select('*, client:client_id(name, client_code), service:service_id(name)')
       .is('archived_at', null)
       .order('created_at', { ascending: false });
     if (!error && data) setRows(data as unknown as BidWithClient[]);

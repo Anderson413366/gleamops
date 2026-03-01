@@ -62,7 +62,7 @@ export default function InventoryCountDetailPage() {
       const supabase = getSupabaseBrowserClient();
       const { data: countRow } = await supabase
         .from('inventory_counts')
-        .select('*, site:sites!inventory_counts_site_id_fkey(name, site_code), counter:counted_by(full_name, staff_code)')
+        .select('*, site:site_id(name, site_code), counter:counted_by(full_name, staff_code)')
         .eq('count_code', id)
         .is('archived_at', null)
         .maybeSingle();

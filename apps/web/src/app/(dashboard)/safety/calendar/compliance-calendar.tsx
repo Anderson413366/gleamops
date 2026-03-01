@@ -74,7 +74,7 @@ export default function ComplianceCalendar() {
       // Expiring certifications
       supabase
         .from('staff_certifications')
-        .select('id, certification_name, expiry_date, status, staff:staff!staff_certifications_staff_id_fkey(full_name)')
+        .select('id, certification_name, expiry_date, status, staff:staff_id(full_name)')
         .is('archived_at', null)
         .eq('status', 'ACTIVE')
         .not('expiry_date', 'is', null)
@@ -85,7 +85,7 @@ export default function ComplianceCalendar() {
       // Expiring training completions
       supabase
         .from('training_completions')
-        .select('id, expiry_date, staff:staff!training_completions_staff_id_fkey(full_name), course:course_id(name)')
+        .select('id, expiry_date, staff:staff_id(full_name), course:course_id(name)')
         .is('archived_at', null)
         .not('expiry_date', 'is', null)
         .gte('expiry_date', lookBackStr)

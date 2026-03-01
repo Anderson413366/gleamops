@@ -63,7 +63,7 @@ export default function OpportunitiesTable({ search }: OpportunitiesTableProps) 
     const supabase = getSupabaseBrowserClient();
     const { data, error } = await supabase
       .from('sales_opportunities')
-      .select('*, prospect:sales_prospects!sales_opportunities_prospect_id_fkey(company_name, prospect_code)')
+      .select('*, prospect:prospect_id(company_name, prospect_code)')
       .is('archived_at', null)
       .order('created_at', { ascending: false });
     if (!error && data) setRows(data as unknown as OpportunityWithProspect[]);

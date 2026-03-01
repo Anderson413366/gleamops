@@ -34,7 +34,7 @@ export default function TimesheetsTable({ search }: TimesheetsTableProps) {
       .from('timesheets')
       .select(`
         *,
-        staff:staff!timesheets_staff_id_fkey(staff_code, full_name)
+        staff:staff_id(staff_code, full_name)
       `)
       .is('archived_at', null)
       .order('week_start', { ascending: false })

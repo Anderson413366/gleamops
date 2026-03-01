@@ -69,7 +69,7 @@ export default function CompletionsTable({ search, autoCreate, onAutoCreateHandl
     const [compRes, staffRes, courseRes] = await Promise.all([
       supabase
         .from('training_completions')
-        .select('*, staff:staff!training_completions_staff_id_fkey(full_name, staff_code), course:course_id(name, course_code)')
+        .select('*, staff:staff_id(full_name, staff_code), course:course_id(name, course_code)')
         .is('archived_at', null)
         .order('completed_date', { ascending: false }),
       supabase

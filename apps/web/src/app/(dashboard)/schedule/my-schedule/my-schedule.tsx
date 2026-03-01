@@ -76,7 +76,7 @@ export function MySchedule() {
       // Fetch shifts assigned to this staff member
       const { data: ticketData } = await supabase
         .from('ticket_assignments')
-        .select('ticket:work_tickets!ticket_assignments_ticket_id_fkey(id, scheduled_date, start_time, end_time, status, position_code, site:sites!work_tickets_site_id_fkey(name, site_code))')
+        .select('ticket:ticket_id(id, scheduled_date, start_time, end_time, status, position_code, site:site_id(name, site_code))')
         .eq('staff_id', staffId)
         .eq('assignment_status', 'ASSIGNED');
 

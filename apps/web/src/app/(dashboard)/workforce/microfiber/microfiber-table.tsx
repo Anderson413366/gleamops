@@ -115,7 +115,7 @@ export default function MicrofiberTable({ search }: MicrofiberTableProps) {
         const supabase = getSupabaseBrowserClient();
         const { data: assignments } = await supabase
           .from('job_staff_assignments')
-          .select('staff_id, end_date, job:site_jobs!job_staff_assignments_job_id_fkey(status, site:sites!site_jobs_site_id_fkey(name, site_code))')
+          .select('staff_id, end_date, job:job_id(status, site:site_id(name, site_code))')
           .in('staff_id', staffIds)
           .is('archived_at', null);
 

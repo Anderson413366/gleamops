@@ -46,7 +46,7 @@ export default function MaintenanceTable({ search, formOpen, onFormClose, onRefr
     const supabase = getSupabaseBrowserClient();
     const { data, error } = await supabase
       .from('vehicle_maintenance')
-      .select('*, vehicle:vehicles!vehicle_maintenance_vehicle_id_fkey(name, vehicle_code)')
+      .select('*, vehicle:vehicle_id(name, vehicle_code)')
       .is('archived_at', null)
       .order('service_date', { ascending: false });
     if (!error && data) setRows(data as unknown as MaintenanceRow[]);

@@ -133,7 +133,7 @@ export function JobDetail({ job, open, onClose, onEdit }: JobDetailProps) {
     setLoadingTasks(true);
     supabase
       .from('job_tasks')
-      .select('id, task_id, sequence_order, is_required, estimated_minutes, status, task:tasks!job_tasks_task_id_fkey(name, task_code)')
+      .select('id, task_id, sequence_order, is_required, estimated_minutes, status, task:task_id(name, task_code)')
       .eq('job_id', job.id)
       .is('archived_at', null)
       .order('sequence_order')
@@ -210,7 +210,7 @@ export function JobDetail({ job, open, onClose, onEdit }: JobDetailProps) {
       // Reload tasks
       const { data } = await supabase
         .from('job_tasks')
-        .select('id, task_id, sequence_order, is_required, estimated_minutes, status, task:tasks!job_tasks_task_id_fkey(name, task_code)')
+        .select('id, task_id, sequence_order, is_required, estimated_minutes, status, task:task_id(name, task_code)')
         .eq('job_id', job.id)
         .is('archived_at', null)
         .order('sequence_order');

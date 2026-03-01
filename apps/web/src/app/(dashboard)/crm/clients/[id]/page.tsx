@@ -240,7 +240,7 @@ export default function ClientDetailPage() {
         const siteIds = sites.map((s: { id: string }) => s.id);
         const { data: jobsData } = await supabase
           .from('site_jobs')
-          .select('id, site_id, job_code, job_name, status, frequency, schedule_days, start_time, end_time, priority_level, billing_amount, site:sites!site_jobs_site_id_fkey(name, site_code)')
+          .select('id, site_id, job_code, job_name, status, frequency, schedule_days, start_time, end_time, priority_level, billing_amount, site:site_id(name, site_code)')
           .in('site_id', siteIds)
           .order('job_code')
           .is('archived_at', null);

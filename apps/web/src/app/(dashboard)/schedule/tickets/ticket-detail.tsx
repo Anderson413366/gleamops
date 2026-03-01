@@ -144,7 +144,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
       // Staff assignments for this ticket
       supabase
         .from('ticket_assignments')
-        .select('*, staff:staff!ticket_assignments_staff_id_fkey(staff_code, full_name, role)')
+        .select('*, staff:staff_id(staff_code, full_name, role)')
         .eq('ticket_id', ticket.id)
         .is('archived_at', null),
       // All active staff
@@ -169,27 +169,27 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
       // Time entries
       supabase
         .from('time_entries')
-        .select('id, start_at, end_at, duration_minutes, status, staff:staff!time_entries_staff_id_fkey(full_name)')
+        .select('id, start_at, end_at, duration_minutes, status, staff:staff_id(full_name)')
         .eq('ticket_id', ticket.id)
         .is('archived_at', null)
         .order('start_at', { ascending: false }),
       // Time exceptions (via time_entries for this ticket)
       supabase
         .from('time_exceptions')
-        .select('*, staff:staff!time_exceptions_staff_id_fkey(full_name, staff_code)')
+        .select('*, staff:staff_id(full_name, staff_code)')
         .is('archived_at', null)
         .order('created_at', { ascending: false }),
       // Inspections for this ticket
       supabase
         .from('inspections')
-        .select('*, inspector:staff!inspections_inspector_id_fkey(full_name)')
+        .select('*, inspector:staff_id(full_name)')
         .eq('ticket_id', ticket.id)
         .is('archived_at', null)
         .order('created_at', { ascending: false }),
       // Inspection issues (via inspections for this ticket)
       supabase
         .from('inspection_issues')
-        .select('*, inspection:inspection_id!inspection_issues_inspection_id_fkey(inspection_code)')
+        .select('*, inspection:inspection_id(inspection_code)')
         .is('archived_at', null)
         .order('created_at', { ascending: false }),
       // Site supplies (SDS)

@@ -156,7 +156,7 @@ export default function StaffHome() {
         start_time,
         end_time,
         status,
-        site:sites!work_tickets_site_id_fkey(
+        site:site_id(
           name,
           site_code,
           janitorial_closet_location,

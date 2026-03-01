@@ -29,7 +29,7 @@ function fieldReportSelect() {
   return `
     *,
     reporter:reported_by(id, staff_code, full_name),
-    site:sites!staff_attendance_site_id_fkey(id, site_code, name),
+    site:site_id(id, site_code, name),
     acknowledged_staff:acknowledged_by(id, staff_code, full_name),
     resolved_staff:resolved_by(id, staff_code, full_name)
   `;

@@ -757,7 +757,7 @@ export default function SchedulePageClient() {
           end_time,
           status,
           position_code,
-          site:sites!work_tickets_site_id_fkey(
+          site:site_id(
             name,
             site_code,
             client_id,

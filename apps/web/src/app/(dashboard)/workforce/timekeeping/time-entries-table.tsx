@@ -260,9 +260,9 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
         .from('time_entries')
         .select(`
           *,
-          staff:staff!time_entries_staff_id_fkey(staff_code, full_name),
-          ticket:work_tickets!time_entries_ticket_id_fkey(ticket_code),
-          site:sites!time_entries_site_id_fkey(name, site_code)
+          staff:staff_id(staff_code, full_name),
+          ticket:ticket_id(ticket_code),
+          site:site_id(name, site_code)
         `)
         .is('archived_at', null)
         .order('start_at', { ascending: false })

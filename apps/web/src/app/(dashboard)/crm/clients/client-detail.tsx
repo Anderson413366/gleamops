@@ -83,7 +83,7 @@ export function ClientDetail({ client, open, onClose, onEdit }: ClientDetailProp
         Promise.all([
           supabase
             .from('site_jobs')
-            .select('id, job_code, frequency, billing_amount, status, site:sites!site_jobs_site_id_fkey(name, site_code)')
+            .select('id, job_code, frequency, billing_amount, status, site:site_id(name, site_code)')
             .in('site_id', siteIds)
             .is('archived_at', null)
             .order('job_code'),

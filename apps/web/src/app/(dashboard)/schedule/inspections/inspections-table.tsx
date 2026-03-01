@@ -58,10 +58,10 @@ export default function InspectionsTable({ search, onSelect, onCreateNew }: Insp
       .from('inspections')
       .select(`
         *,
-        site:sites!inspections_site_id_fkey(name, site_code, photo_url),
-        inspector:staff!inspections_inspector_id_fkey(full_name, staff_code),
-        template:checklist_templates!inspections_template_id_fkey(name),
-        ticket:work_tickets!inspections_ticket_id_fkey(ticket_code)
+        site:site_id(name, site_code, photo_url),
+        inspector:staff_id(full_name, staff_code),
+        template:template_id(name),
+        ticket:ticket_id(ticket_code)
       `)
       .is('archived_at', null)
       .order('created_at', { ascending: false })

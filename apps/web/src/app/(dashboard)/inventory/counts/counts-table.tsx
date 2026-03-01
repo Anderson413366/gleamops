@@ -66,7 +66,7 @@ export default function CountsTable({ search, formOpen, onFormClose, onRefresh }
     const [countsRes, sitesRes] = await Promise.all([
       supabase
         .from('inventory_counts')
-        .select('*, site:sites!inventory_counts_site_id_fkey(id, name, site_code), counter:counted_by(full_name)')
+        .select('*, site:site_id(id, name, site_code), counter:counted_by(full_name)')
         .is('archived_at', null)
         .order('count_date', { ascending: false }),
       supabase

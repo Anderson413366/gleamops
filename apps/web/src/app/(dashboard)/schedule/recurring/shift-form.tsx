@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Search, Trash2, UserPlus } from 'lucide-react';
-import { Button, Input, Select, SlideOver, Textarea, Badge } from '@gleamops/ui';
+import { Button, Input, Select, SlideOver, Textarea, Badge, ConfirmDialog } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 
@@ -19,6 +19,7 @@ interface ShiftFormProps {
   /** When provided, form opens in edit mode */
   initialData?: {
     id: string;
+    version_etag?: string;
     siteId: string;
     jobId: string;
     positionCode: string;
@@ -121,6 +122,8 @@ export function ShiftForm({ open, onClose, onCreated, prefill, initialData }: Sh
   const [breakPaid, setBreakPaid] = useState(initialData?.breakPaid ?? false);
   const [remoteSite, setRemoteSite] = useState(initialData?.remoteSite ?? '');
 
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+
   // Employee assignment panel
   const [staffSearch, setStaffSearch] = useState('');
   const [assignedStaff, setAssignedStaff] = useState<StaffCandidate[]>([]);
@@ -132,6 +135,26 @@ export function ShiftForm({ open, onClose, onCreated, prefill, initialData }: Sh
     if (!open || !prefill) return;
     if (prefill.date) setStartDate(prefill.date);
   }, [open, prefill]);
+
+  // Reset form fields when initialData changes (opening form for a different shift)
+  useEffect(() => {
+    if (!open) return;
+    setTitle(initialData?.title ?? '');
+    setSiteId(initialData?.siteId ?? '');
+    setJobId(initialData?.jobId ?? '');
+    setPositionCode(initialData?.positionCode ?? 'GENERAL_SPECIALIST');
+    setRequiredStaffCount(String(initialData?.requiredStaff ?? 1));
+    setStartDate(initialData?.startDate ?? toDateInputValue(new Date()));
+    setStartTime(initialData?.startTime ?? '18:00');
+    setEndTime(initialData?.endTime ?? '22:00');
+    setWeeksAhead(String(initialData?.weeksAhead ?? 1));
+    setSelectedDays(initialData?.selectedDays ?? ['MON', 'TUE', 'WED', 'THU', 'FRI']);
+    setNote(initialData?.note ?? '');
+    setOpenSlots(String(initialData?.openSlots ?? 0));
+    setBreakMinutes(String(initialData?.breakMinutes ?? 0));
+    setBreakPaid(initialData?.breakPaid ?? false);
+    setRemoteSite(initialData?.remoteSite ?? '');
+  }, [open, initialData]);
 
   useEffect(() => {
     if (!open) return;
@@ -283,11 +306,41 @@ export function ShiftForm({ open, onClose, onCreated, prefill, initialData }: Sh
       return;
     }
 
-    const weeks = Math.max(1, Math.min(Number(weeksAhead) || 1, 8));
     const requiredStaff = Math.max(1, Number(requiredStaffCount) || 1);
-    const start = new Date(`${startDate}T00:00:00`);
 
     setSaving(true);
+
+    // Edit mode: update the existing work_ticket
+    if (isEdit && initialData?.id) {
+      const { error } = await supabase
+        .from('work_tickets')
+        .update({
+          site_id: siteId,
+          job_id: jobId,
+          position_code: positionCode,
+          start_time: `${startTime}:00`,
+          end_time: `${endTime}:00`,
+          scheduled_date: startDate,
+          required_staff_count: requiredStaff,
+          note: [title, note].filter(Boolean).join(' — ').trim() || null,
+        })
+        .eq('id', initialData.id);
+
+      setSaving(false);
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
+      toast.success('Shift updated.');
+      onCreated();
+      onClose();
+      return;
+    }
+
+    const weeks = Math.max(1, Math.min(Number(weeksAhead) || 1, 8));
+    const start = new Date(`${startDate}T00:00:00`);
 
     const inserts: Array<Record<string, unknown>> = [];
     for (const dayCode of selectedDays) {
@@ -357,10 +410,14 @@ export function ShiftForm({ open, onClose, onCreated, prefill, initialData }: Sh
   async function handleDelete() {
     if (!initialData?.id) return;
     setSaving(true);
-    const { error } = await supabase
+    let query = supabase
       .from('work_tickets')
       .update({ archived_at: new Date().toISOString() })
       .eq('id', initialData.id);
+    if (initialData.version_etag) {
+      query = query.eq('version_etag', initialData.version_etag);
+    }
+    const { error } = await query;
     setSaving(false);
     if (error) {
       toast.error(error.message);
@@ -540,7 +597,7 @@ export function ShiftForm({ open, onClose, onCreated, prefill, initialData }: Sh
 
           <div className="flex items-center justify-between">
             {isEdit && (
-              <Button variant="danger" onClick={handleDelete} loading={saving}>
+              <Button variant="danger" onClick={() => setDeleteConfirmOpen(true)} loading={saving}>
                 <Trash2 className="h-4 w-4" />
                 Delete Shift
               </Button>
@@ -659,6 +716,19 @@ export function ShiftForm({ open, onClose, onCreated, prefill, initialData }: Sh
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={() => {
+          setDeleteConfirmOpen(false);
+          handleDelete();
+        }}
+        title="Delete Shift"
+        description="Are you sure you want to delete this shift? This action will archive the work ticket and remove it from the schedule."
+        confirmLabel="Delete Shift"
+        variant="danger"
+      />
     </SlideOver>
   );
 }

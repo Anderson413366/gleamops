@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { toast } from 'sonner';
 import { Calendar, ClipboardList, Briefcase, FileText, ListTodo, Plus, ChevronLeft, ChevronRight, LayoutDashboard, Route, Shield, AlertTriangle, Send, X, Users } from 'lucide-react';
 import { SearchInput, Card, CardContent, Button, ConfirmDialog, Badge } from '@gleamops/ui';
 import { normalizeRoleCode, type WorkTicket } from '@gleamops/shared';
@@ -259,6 +260,25 @@ export default function SchedulePageClient() {
   }, [selectedClients, selectedSites, selectedPositions, selectedEmployees]);
 
   const [shiftPrefill, setShiftPrefill] = useState<{ date?: string; staffName?: string } | null>(null);
+  const [editShiftData, setEditShiftData] = useState<{
+    id: string;
+    version_etag?: string;
+    siteId: string;
+    jobId: string;
+    positionCode: string;
+    requiredStaff: number;
+    startDate: string;
+    startTime: string;
+    endTime: string;
+    weeksAhead: number;
+    selectedDays: string[];
+    note: string;
+    title: string;
+    openSlots: number;
+    breakMinutes: number;
+    breakPaid: boolean;
+    remoteSite: string;
+  } | null>(null);
   const [budgetMode, setBudgetMode] = useState(false);
   const [, setSelectedTicket] = useState<TicketWithRelations | null>(null);
   const [selectedRecurringRow, setSelectedRecurringRow] = useState<RecurringScheduleRow | null>(null);
@@ -587,6 +607,53 @@ export default function SchedulePageClient() {
     }
     setRecurringAnchorDate(startOfWeek(today));
   }, [recurringHorizon]);
+
+  const handleShiftBlockClick = useCallback(async (row: RecurringScheduleRow) => {
+    // Still update SiteBlueprintView
+    setSelectedRecurringRow(row);
+
+    // Fetch the actual work_ticket for this shift from Supabase
+    const targetDate = row.scheduledDates[0];
+    if (!targetDate) return;
+
+    const supabase = getSupabaseBrowserClient();
+    const { data: tickets } = await supabase
+      .from('work_tickets')
+      .select('id, version_etag, site_id, job_id, position_code, scheduled_date, start_time, end_time, required_staff_count, note, status')
+      .eq('scheduled_date', targetDate)
+      .eq('position_code', row.positionType)
+      .eq('start_time', `${row.startTime}:00`)
+      .eq('end_time', `${row.endTime}:00`)
+      .is('archived_at', null)
+      .limit(1);
+
+    const ticket = tickets?.[0];
+    if (!ticket) {
+      toast.error('Could not find the underlying work ticket.');
+      return;
+    }
+
+    setEditShiftData({
+      id: ticket.id,
+      version_etag: ticket.version_etag,
+      siteId: ticket.site_id,
+      jobId: ticket.job_id ?? '',
+      positionCode: ticket.position_code ?? '',
+      requiredStaff: ticket.required_staff_count ?? 1,
+      startDate: ticket.scheduled_date,
+      startTime: (ticket.start_time ?? '18:00').slice(0, 5),
+      endTime: (ticket.end_time ?? '22:00').slice(0, 5),
+      weeksAhead: 1,
+      selectedDays: row.scheduleDays,
+      note: ticket.note ?? '',
+      title: '',
+      openSlots: 0,
+      breakMinutes: 0,
+      breakPaid: false,
+      remoteSite: '',
+    });
+    setShiftFormOpen(true);
+  }, []);
 
   const { handlePrint } = useSchedulePrint({
     rows: recurringRows,
@@ -1204,7 +1271,7 @@ export default function SchedulePageClient() {
               {publishLoading ? 'Publishing...' : 'Publish Schedule'}
             </Button>
           )}
-          <Button onClick={() => setShiftFormOpen(true)}>
+          <Button onClick={() => { setEditShiftData(null); setShiftFormOpen(true); }}>
             <Plus className="h-4 w-4" />
             New Shift
           </Button>
@@ -1356,9 +1423,9 @@ export default function SchedulePageClient() {
                 </CardContent>
               </Card>
             ) : recurringView === 'list' ? (
-              <ScheduleList rows={filteredRecurringRows} search={search} onSelect={setSelectedRecurringRow} />
+              <ScheduleList rows={filteredRecurringRows} search={search} onSelect={handleShiftBlockClick} />
             ) : recurringView === 'card' ? (
-              <ScheduleCardGrid rows={filteredRecurringRows} search={search} onSelect={setSelectedRecurringRow} />
+              <ScheduleCardGrid rows={filteredRecurringRows} search={search} onSelect={handleShiftBlockClick} />
             ) : recurringView === 'coverage' ? (
               <CoverageGrid
                 rows={filteredRecurringRows}
@@ -1371,7 +1438,7 @@ export default function SchedulePageClient() {
                 rows={filteredRecurringRows}
                 dateKey={toDateKey(recurringAnchorDate)}
                 search={search}
-                onSelect={setSelectedRecurringRow}
+                onSelect={handleShiftBlockClick}
               />
             ) : recurringView === 'tag' ? (
               <TagView
@@ -1383,9 +1450,10 @@ export default function SchedulePageClient() {
                 rows={filteredRecurringRows}
                 visibleDates={recurringRange.visibleDates}
                 search={search}
-                onSelect={setSelectedRecurringRow}
+                onSelect={handleShiftBlockClick}
                 onReassign={() => setRefreshKey((k) => k + 1)}
                 onQuickCreate={(date, staffName) => {
+                  setEditShiftData(null);
                   setShiftPrefill({ date, staffName });
                   setShiftFormOpen(true);
                 }}
@@ -1460,6 +1528,7 @@ export default function SchedulePageClient() {
                   <Button
                     size="sm"
                     onClick={() => {
+                      setEditShiftData(null);
                       setShiftPrefill({ date: coverageDrill.dateKey });
                       setShiftFormOpen(true);
                       setCoverageDrill(null);
@@ -1557,9 +1626,10 @@ export default function SchedulePageClient() {
 
       <ShiftForm
         open={shiftFormOpen}
-        onClose={() => { setShiftFormOpen(false); setShiftPrefill(null); }}
-        onCreated={() => setRefreshKey((current) => current + 1)}
+        onClose={() => { setShiftFormOpen(false); setShiftPrefill(null); setEditShiftData(null); }}
+        onCreated={() => { setRefreshKey((current) => current + 1); setEditShiftData(null); }}
         prefill={shiftPrefill}
+        initialData={editShiftData}
       />
 
       <ConfirmDialog

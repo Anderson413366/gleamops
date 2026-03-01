@@ -63,8 +63,6 @@ function UnifiedPipelinePageClient() {
     pipelineValue: '$0k',
     activeBids: 0,
     staleDeals: 0,
-    emailProblems: 0,
-    proposalsSent30d: 0,
     winRate: '0%',
   });
 
@@ -104,14 +102,11 @@ function UnifiedPipelinePageClient() {
       const supabase = getSupabaseBrowserClient();
 
       const fourteenDaysAgo = new Date(Date.now() - 14 * 86400000).toISOString();
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
 
       const [
         pipelineRes,
         activeBidsRes,
         staleRes,
-        emailRes,
-        sentRes,
         wonRes,
         totalRes,
         bidsTotalRes,
@@ -132,16 +127,6 @@ function UnifiedPipelinePageClient() {
           .select('id', { count: 'exact', head: true })
           .not('stage_code', 'in', '("WON","LOST")')
           .lt('updated_at', fourteenDaysAgo)
-          .is('archived_at', null),
-        supabase
-          .from('sales_proposal_sends')
-          .select('id', { count: 'exact', head: true })
-          .in('status', ['BOUNCED', 'FAILED']),
-        supabase
-          .from('sales_proposals')
-          .select('id', { count: 'exact', head: true })
-          .gte('created_at', thirtyDaysAgo)
-          .in('status', ['SENT', 'VIEWED', 'SIGNED', 'WON'])
           .is('archived_at', null),
         supabase
           .from('sales_proposals')
@@ -173,8 +158,6 @@ function UnifiedPipelinePageClient() {
         pipelineValue: `$${(pipelineSum / 1000).toFixed(1)}k`,
         activeBids: activeBidsRes.count ?? 0,
         staleDeals: staleRes.count ?? 0,
-        emailProblems: emailRes.count ?? 0,
-        proposalsSent30d: sentRes.count ?? 0,
         winRate: totalProposals > 0 ? `${Math.round((wonCount / totalProposals) * 100)}%` : '0%',
       });
 
@@ -266,30 +249,24 @@ function UnifiedPipelinePageClient() {
   return (
     <>
       <div className="space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="text-2xl font-bold text-foreground">Pipeline</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Track prospects, opportunities, bids, proposals, and performance.
-            </p>
-          </div>
-          <div className="flex items-center gap-3 ml-auto">
-            <SearchInput
-              value={search}
-              onChange={setSearch}
-              placeholder={`Search ${tab}...`}
-              className="w-56 sm:w-72 lg:w-80"
-            />
-            {showAddButton && (
-              <Button className="shrink-0" onClick={handleAdd}>
-                <Plus className="h-4 w-4" />
-                {addLabel[tab] ?? 'Add'}
-              </Button>
-            )}
-          </div>
+        <div className="pt-6">
+          <SalesKpiBar stats={pipelineStats} />
         </div>
 
-        <SalesKpiBar stats={pipelineStats} />
+        <div className="flex flex-wrap items-center gap-3">
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder={`Search ${tab}...`}
+            className="w-56 sm:w-72 lg:w-80"
+          />
+          {showAddButton && (
+            <Button className="shrink-0" onClick={handleAdd}>
+              <Plus className="h-4 w-4" />
+              {addLabel[tab] ?? 'Add'}
+            </Button>
+          )}
+        </div>
 
         {tab === 'prospects' && (
           <ProspectsSection

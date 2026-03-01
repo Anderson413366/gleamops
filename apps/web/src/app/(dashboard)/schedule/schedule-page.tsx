@@ -249,12 +249,12 @@ export default function SchedulePageClient() {
     return Array.from(new Set(recurringRows.map((r) => r.positionType).filter(Boolean))).sort();
   }, [recurringRows]);
 
-  const [kpis, setKpis] = useState({
-    todayTickets: 0,
-    coverageGaps: 0,
-    openWorkOrders: 0,
-    activeServicePlans: 0,
-  });
+  const [tabKpis, setTabKpis] = useState<{ label: string; value: number | string; warn?: boolean; onClick?: () => void }[]>([
+    { label: 'Tickets Today', value: '—' },
+    { label: 'Coverage Gaps', value: '—' },
+    { label: 'Open Work Orders', value: '—' },
+    { label: 'Active Service Plans', value: '—' },
+  ]);
   const [kpisLoading, setKpisLoading] = useState(true);
   const action = searchParams.get('action');
   const recurringRange = useMemo(
@@ -307,46 +307,199 @@ export default function SchedulePageClient() {
   }, [action, clearActionParam, setTab]);
 
   useEffect(() => {
-    async function fetchKpis() {
+    async function fetchTabKpis() {
       setKpisLoading(true);
       try {
         const supabase = getSupabaseBrowserClient();
         const today = new Date().toISOString().slice(0, 10);
-        const [todayRes, gapsRes, openWorkOrdersRes, servicePlansRes] = await Promise.all([
-          supabase
-            .from('work_tickets')
-            .select('id', { count: 'exact', head: true })
-            .eq('scheduled_date', today)
-            .is('archived_at', null),
-          supabase
-            .from('schedule_conflicts')
-            .select('id', { count: 'exact', head: true })
-            .eq('conflict_type', 'COVERAGE_GAP')
-            .eq('is_blocking', true),
-          supabase
-            .from('work_tickets')
-            .select('id', { count: 'exact', head: true })
-            .in('status', ['SCHEDULED', 'IN_PROGRESS'])
-            .is('archived_at', null),
-          supabase
-            .from('site_jobs')
-            .select('id', { count: 'exact', head: true })
-            .eq('status', 'ACTIVE')
-            .is('archived_at', null),
-        ]);
+        const weekEnd = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
 
-        setKpis({
-          todayTickets: todayRes.count ?? 0,
-          coverageGaps: gapsRes.count ?? 0,
-          openWorkOrders: openWorkOrdersRes.count ?? 0,
-          activeServicePlans: servicePlansRes.count ?? 0,
-        });
+        if (tab === 'recurring') {
+          const [workingRes, openRes, gapsRes, leaveRes] = await Promise.all([
+            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('scheduled_date', today).is('archived_at', null).in('status', ['SCHEDULED', 'IN_PROGRESS']),
+            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('scheduled_date', today).is('archived_at', null).eq('status', 'SCHEDULED'),
+            supabase.from('schedule_conflicts').select('id', { count: 'exact', head: true }).eq('conflict_type', 'COVERAGE_GAP').eq('is_blocking', true),
+            supabase.from('hr_leave_requests').select('id', { count: 'exact', head: true }).eq('status', 'APPROVED').lte('start_date', today).gte('end_date', today),
+          ]);
+          setTabKpis([
+            { label: 'Working Today', value: workingRes.count ?? 0 },
+            { label: 'Open Shifts', value: openRes.count ?? 0 },
+            { label: 'Coverage Gaps', value: gapsRes.count ?? 0, warn: (gapsRes.count ?? 0) > 0 },
+            { label: 'On Leave Today', value: leaveRes.count ?? 0 },
+          ]);
+        } else if (tab === 'calendar') {
+          const [todayRes, recurringRes, unassignedRes, completedRes] = await Promise.all([
+            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('scheduled_date', today).is('archived_at', null),
+            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).gte('scheduled_date', today).lte('scheduled_date', weekEnd).is('archived_at', null),
+            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('scheduled_date', today).is('archived_at', null).eq('status', 'SCHEDULED'),
+            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).gte('scheduled_date', today).lte('scheduled_date', weekEnd).is('archived_at', null).eq('status', 'COMPLETED'),
+          ]);
+          setTabKpis([
+            { label: 'Tickets Today', value: todayRes.count ?? 0 },
+            { label: 'Recurring This Week', value: recurringRes.count ?? 0 },
+            { label: 'Unassigned', value: unassignedRes.count ?? 0, warn: (unassignedRes.count ?? 0) > 0 },
+            { label: 'Completed This Week', value: completedRes.count ?? 0 },
+          ]);
+        } else if (tab === 'planning') {
+          const [todayRes, notStartedRes, inProgressRes, readyRes] = await Promise.all([
+            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('scheduled_date', today).is('archived_at', null),
+            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('status', 'SCHEDULED').is('archived_at', null),
+            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('status', 'IN_PROGRESS').is('archived_at', null),
+            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('status', 'COMPLETED').is('archived_at', null).gte('updated_at', today),
+          ]);
+          setTabKpis([
+            { label: 'Tasks Today', value: todayRes.count ?? 0 },
+            { label: 'Not Started', value: notStartedRes.count ?? 0 },
+            { label: 'In Progress', value: inProgressRes.count ?? 0 },
+            { label: 'Ready', value: readyRes.count ?? 0 },
+          ]);
+        } else if (tab === 'master') {
+          const [totalRes, sitesRes, assignedRes, unassignedRes] = await Promise.all([
+            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).is('archived_at', null).in('status', ['SCHEDULED', 'IN_PROGRESS']),
+            supabase.from('sites').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'ACTIVE'),
+            supabase.from('work_tickets').select('id, assignments:ticket_assignments(id)').is('archived_at', null).eq('status', 'SCHEDULED'),
+            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'SCHEDULED'),
+          ]);
+          const assignedRows = (assignedRes.data ?? []) as unknown as Array<{ id: string; assignments?: Array<{ id: string }> }>;
+          const withAssignment = assignedRows.filter(r => (r.assignments ?? []).length > 0).length;
+          const totalTickets = unassignedRes.count ?? 0;
+          setTabKpis([
+            { label: 'Total Tickets', value: totalRes.count ?? 0 },
+            { label: 'Sites', value: sitesRes.count ?? 0 },
+            { label: 'Assigned', value: withAssignment },
+            { label: 'Unassigned', value: Math.max(totalTickets - withAssignment, 0), warn: (totalTickets - withAssignment) > 0 },
+          ]);
+        } else if (tab === 'floater') {
+          const [stopsRes, completedRes, scheduledRes] = await Promise.all([
+            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('scheduled_date', today).is('archived_at', null),
+            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('scheduled_date', today).is('archived_at', null).eq('status', 'COMPLETED'),
+            supabase.from('work_tickets').select('start_time, end_time').eq('scheduled_date', today).is('archived_at', null),
+          ]);
+          const totalStops = stopsRes.count ?? 0;
+          const completedCount = completedRes.count ?? 0;
+          const hours = (scheduledRes.data ?? []).reduce((sum, r: { start_time?: string | null; end_time?: string | null }) => {
+            if (!r.start_time || !r.end_time) return sum;
+            const [sh, sm] = r.start_time.slice(0, 5).split(':').map(Number);
+            const [eh, em] = r.end_time.slice(0, 5).split(':').map(Number);
+            return sum + ((eh * 60 + em) - (sh * 60 + sm)) / 60;
+          }, 0);
+          setTabKpis([
+            { label: 'Stops Today', value: totalStops },
+            { label: 'Completed', value: completedCount },
+            { label: 'Remaining', value: Math.max(totalStops - completedCount, 0) },
+            { label: 'Hours Scheduled', value: hours > 0 ? `${hours.toFixed(1)}h` : '0h' },
+          ]);
+        } else if (tab === 'supervisor') {
+          const [shiftsRes, assignedRes, unassignedRes, staffRes] = await Promise.all([
+            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('scheduled_date', today).is('archived_at', null),
+            supabase.from('work_tickets').select('id, assignments:ticket_assignments(id)').eq('scheduled_date', today).is('archived_at', null),
+            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('scheduled_date', today).is('archived_at', null).eq('status', 'SCHEDULED'),
+            supabase.from('time_entries').select('staff_id').is('clock_out', null).gte('clock_in', `${today}T00:00:00`),
+          ]);
+          const assignedRows = (assignedRes.data ?? []) as unknown as Array<{ id: string; assignments?: Array<{ id: string }> }>;
+          const withAssignment = assignedRows.filter(r => (r.assignments ?? []).length > 0).length;
+          setTabKpis([
+            { label: 'Shifts Today', value: shiftsRes.count ?? 0 },
+            { label: 'Assigned', value: withAssignment },
+            { label: 'Unassigned', value: unassignedRes.count ?? 0, warn: (unassignedRes.count ?? 0) > 0 },
+            { label: 'Staff on Site', value: staffRes.data?.length ?? 0 },
+          ]);
+        } else if (tab === 'forms') {
+          const [supplyRes, timeOffRes, submittedRes, alertsRes] = await Promise.all([
+            supabase.from('alerts').select('id', { count: 'exact', head: true }).eq('alert_type', 'SUPPLY_REQUEST').is('dismissed_at', null),
+            supabase.from('hr_leave_requests').select('id', { count: 'exact', head: true }).eq('status', 'PENDING').is('archived_at', null),
+            supabase.from('alerts').select('id', { count: 'exact', head: true }).gte('created_at', `${today}T00:00:00`).is('dismissed_at', null),
+            supabase.from('alerts').select('id', { count: 'exact', head: true }).is('dismissed_at', null),
+          ]);
+          setTabKpis([
+            { label: 'Supply Requests', value: supplyRes.count ?? 0 },
+            { label: 'Time Off Requests', value: timeOffRes.count ?? 0 },
+            { label: 'Submitted Today', value: submittedRes.count ?? 0 },
+            { label: 'Recent Alerts', value: alertsRes.count ?? 0 },
+          ]);
+        } else if (tab === 'checklists') {
+          const [templatesRes, activeRes, itemsRes] = await Promise.all([
+            supabase.from('checklist_templates').select('id', { count: 'exact', head: true }).is('archived_at', null),
+            supabase.from('checklist_instances').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'IN_PROGRESS'),
+            supabase.from('checklist_items').select('id, is_completed', { count: 'exact' }).is('archived_at', null),
+          ]);
+          const allItems = itemsRes.data ?? [];
+          const totalItems = allItems.length;
+          const completedItems = allItems.filter((i: { is_completed?: boolean }) => i.is_completed).length;
+          const rate = totalItems > 0 ? `${Math.round((completedItems / totalItems) * 100)}%` : '0%';
+          setTabKpis([
+            { label: 'Templates', value: templatesRes.count ?? 0 },
+            { label: 'Active Checklists', value: activeRes.count ?? 0 },
+            { label: 'Items Total', value: totalItems },
+            { label: 'Completion Rate', value: rate },
+          ]);
+        } else if (tab === 'my-schedule') {
+          const [weekRes, todayShiftsRes, completedRes, hoursRes] = await Promise.all([
+            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).gte('scheduled_date', today).lte('scheduled_date', weekEnd).is('archived_at', null),
+            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('scheduled_date', today).is('archived_at', null),
+            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).gte('scheduled_date', today).lte('scheduled_date', weekEnd).is('archived_at', null).eq('status', 'COMPLETED'),
+            supabase.from('work_tickets').select('start_time, end_time').gte('scheduled_date', today).lte('scheduled_date', weekEnd).is('archived_at', null),
+          ]);
+          const hours = (hoursRes.data ?? []).reduce((sum, r: { start_time?: string | null; end_time?: string | null }) => {
+            if (!r.start_time || !r.end_time) return sum;
+            const [sh, sm] = r.start_time.slice(0, 5).split(':').map(Number);
+            const [eh, em] = r.end_time.slice(0, 5).split(':').map(Number);
+            return sum + ((eh * 60 + em) - (sh * 60 + sm)) / 60;
+          }, 0);
+          setTabKpis([
+            { label: 'My Shifts This Week', value: weekRes.count ?? 0 },
+            { label: "Today's Shifts", value: todayShiftsRes.count ?? 0 },
+            { label: 'Completed This Week', value: completedRes.count ?? 0 },
+            { label: 'Hours This Week', value: hours > 0 ? `${hours.toFixed(1)}h` : '0h' },
+          ]);
+        } else if (tab === 'availability') {
+          const [activeRes, hasAvailRes, staffRes] = await Promise.all([
+            supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('staff_status', 'ACTIVE'),
+            supabase.from('staff_availability_rules').select('staff_id').is('archived_at', null),
+            supabase.from('staff').select('id').is('archived_at', null).eq('staff_status', 'ACTIVE'),
+          ]);
+          const totalStaff = activeRes.count ?? 0;
+          const withAvail = new Set((hasAvailRes.data ?? []).map((r: { staff_id: string }) => r.staff_id)).size;
+          setTabKpis([
+            { label: 'Active Employees', value: totalStaff },
+            { label: 'Availability Set', value: withAvail },
+            { label: 'No Availability Set', value: Math.max(totalStaff - withAvail, 0), warn: (totalStaff - withAvail) > 0 },
+            { label: 'Split Schedules', value: '—' },
+          ]);
+        } else if (tab === 'leave') {
+          const [pendingRes, approvedRes, onLeaveRes, totalRes] = await Promise.all([
+            supabase.from('hr_leave_requests').select('id', { count: 'exact', head: true }).eq('status', 'PENDING').is('archived_at', null),
+            supabase.from('hr_leave_requests').select('id', { count: 'exact', head: true }).eq('status', 'APPROVED').is('archived_at', null).gte('updated_at', new Date(Date.now() - 30 * 86400000).toISOString()),
+            supabase.from('hr_leave_requests').select('id', { count: 'exact', head: true }).eq('status', 'APPROVED').lte('start_date', today).gte('end_date', today).is('archived_at', null),
+            supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('staff_status', 'ACTIVE'),
+          ]);
+          setTabKpis([
+            { label: 'Pending Requests', value: pendingRes.count ?? 0 },
+            { label: 'Approved This Month', value: approvedRes.count ?? 0 },
+            { label: 'On Leave Today', value: onLeaveRes.count ?? 0 },
+            { label: 'Total Staff', value: totalRes.count ?? 0 },
+          ]);
+        } else {
+          // work-orders fallback
+          const [todayRes, gapsRes, openWorkOrdersRes, servicePlansRes] = await Promise.all([
+            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('scheduled_date', today).is('archived_at', null),
+            supabase.from('schedule_conflicts').select('id', { count: 'exact', head: true }).eq('conflict_type', 'COVERAGE_GAP').eq('is_blocking', true),
+            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).in('status', ['SCHEDULED', 'IN_PROGRESS']).is('archived_at', null),
+            supabase.from('site_jobs').select('id', { count: 'exact', head: true }).eq('status', 'ACTIVE').is('archived_at', null),
+          ]);
+          setTabKpis([
+            { label: 'Tickets Today', value: todayRes.count ?? 0 },
+            { label: 'Coverage Gaps', value: gapsRes.count ?? 0, warn: (gapsRes.count ?? 0) > 0 },
+            { label: 'Open Work Orders', value: openWorkOrdersRes.count ?? 0 },
+            { label: 'Active Service Plans', value: servicePlansRes.count ?? 0 },
+          ]);
+        }
       } finally {
         setKpisLoading(false);
       }
     }
-    fetchKpis();
-  }, [refreshKey]);
+    fetchTabKpis();
+  }, [refreshKey, tab]);
 
   // Fetch conflict count for toolbar badge
   useEffect(() => {
@@ -919,144 +1072,71 @@ export default function SchedulePageClient() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Schedule</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Employee schedules, work schedules, and calendar coordination.
-          </p>
-        </div>
-        {tab === 'recurring' && canCreateRecurringShift ? (
-          <div className="flex items-center gap-2">
-            {conflictCount > 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  const conflictEl = document.getElementById('schedule-conflicts');
-                  if (conflictEl) {
-                    conflictEl.scrollIntoView({ behavior: 'smooth' });
-                    conflictEl.querySelector('button')?.click();
-                  }
-                }}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20"
-              >
-                <AlertTriangle className="h-4 w-4" />
-                {conflictCount} {conflictCount === 1 ? 'Conflict' : 'Conflicts'}
-              </button>
-            )}
-            <SearchInput
-              value={search}
-              onChange={setSearch}
-              placeholder="Search schedule..."
-              className="w-56 sm:w-64"
-            />
-            <ScheduleToolsDropdown
-              onCopyWeek={() => setCopyWeekOpen(true)}
-              onSaveTemplate={() => setTemplateMode('save')}
-              onLoadTemplate={() => setTemplateMode('load')}
-              onAutoFill={handleAutoFill}
-              onPrint={handlePrint}
-              onToggleBudget={() => setBudgetMode((b) => !b)}
-              budgetMode={budgetMode}
-              autoFillLoading={autoFillLoading}
-            />
-            {canPublish && (
-              <Button
-                variant="secondary"
-                onClick={handleQuickPublish}
-                disabled={publishLoading}
-                className="border-green-300 bg-green-50 text-green-800 hover:bg-green-100 dark:border-green-700 dark:bg-green-950/30 dark:text-green-300 dark:hover:bg-green-950/50"
-              >
-                <Send className="h-4 w-4" />
-                {publishLoading ? 'Publishing...' : 'Publish Schedule'}
-              </Button>
-            )}
-            <Button onClick={() => setShiftFormOpen(true)}>
-              <Plus className="h-4 w-4" />
-              New Shift
+      <div className="pt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        {tabKpis.map((kpi) => (
+          <Card key={kpi.label}>
+            <CardContent className="pt-4">
+              <p className="text-xs text-muted-foreground">{kpi.label}</p>
+              <p className={`text-lg font-semibold sm:text-xl leading-tight${kpi.warn ? ' text-warning' : ''}`}>
+                {kpisLoading ? '—' : kpi.value}
+              </p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {tab === 'recurring' && canCreateRecurringShift ? (
+        <div className="flex flex-wrap items-center gap-2">
+          {conflictCount > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                const conflictEl = document.getElementById('schedule-conflicts');
+                if (conflictEl) {
+                  conflictEl.scrollIntoView({ behavior: 'smooth' });
+                  conflictEl.querySelector('button')?.click();
+                }
+              }}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20"
+            >
+              <AlertTriangle className="h-4 w-4" />
+              {conflictCount} {conflictCount === 1 ? 'Conflict' : 'Conflicts'}
+            </button>
+          )}
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Search schedule..."
+            className="w-56 sm:w-64"
+          />
+          <ScheduleToolsDropdown
+            onCopyWeek={() => setCopyWeekOpen(true)}
+            onSaveTemplate={() => setTemplateMode('save')}
+            onLoadTemplate={() => setTemplateMode('load')}
+            onAutoFill={handleAutoFill}
+            onPrint={handlePrint}
+            onToggleBudget={() => setBudgetMode((b) => !b)}
+            budgetMode={budgetMode}
+            autoFillLoading={autoFillLoading}
+          />
+          {canPublish && (
+            <Button
+              variant="secondary"
+              onClick={handleQuickPublish}
+              disabled={publishLoading}
+              className="border-green-300 bg-green-50 text-green-800 hover:bg-green-100 dark:border-green-700 dark:bg-green-950/30 dark:text-green-300 dark:hover:bg-green-950/50"
+            >
+              <Send className="h-4 w-4" />
+              {publishLoading ? 'Publishing...' : 'Publish Schedule'}
             </Button>
-          </div>
-        ) : null}
-      </div>
+          )}
+          <Button onClick={() => setShiftFormOpen(true)}>
+            <Plus className="h-4 w-4" />
+            New Shift
+          </Button>
+        </div>
+      ) : null}
 
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <Card
-          role="button"
-          tabIndex={0}
-          onClick={() => setTab('calendar')}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              setTab('calendar');
-            }
-          }}
-          className="cursor-pointer hover:border-module-accent/40 hover:shadow-md"
-        >
-          <CardContent className="pt-4">
-            <p className="text-xs text-muted-foreground">Tickets Today</p>
-            <p className="text-lg font-semibold sm:text-xl leading-tight">{kpisLoading ? '—' : kpis.todayTickets}</p>
-            <p className="text-[11px] text-muted-foreground">Open Calendar</p>
-          </CardContent>
-        </Card>
-        <Card
-          role="button"
-          tabIndex={0}
-          onClick={() => setTab('recurring')}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              setTab('recurring');
-            }
-          }}
-          className="cursor-pointer hover:border-module-accent/40 hover:shadow-md"
-        >
-          <CardContent className="pt-4">
-            <p className="text-xs text-muted-foreground">Coverage Gaps</p>
-            <p className={`text-lg font-semibold sm:text-xl leading-tight ${kpis.coverageGaps > 0 ? 'text-destructive' : ''}`}>
-              {kpisLoading ? '—' : kpis.coverageGaps}
-            </p>
-            <p className="text-[11px] text-muted-foreground">Open Employee Schedule</p>
-          </CardContent>
-        </Card>
-        <Card
-          role="button"
-          tabIndex={0}
-          onClick={() => setTab('work-orders')}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              setTab('work-orders');
-            }
-          }}
-          className="cursor-pointer hover:border-module-accent/40 hover:shadow-md"
-        >
-          <CardContent className="pt-4">
-            <p className="text-xs text-muted-foreground">Open Work Orders</p>
-            <p className="text-lg font-semibold sm:text-xl leading-tight">{kpisLoading ? '—' : kpis.openWorkOrders}</p>
-            <p className="text-[11px] text-muted-foreground">Open Work Orders</p>
-          </CardContent>
-        </Card>
-        <Card
-          role="button"
-          tabIndex={0}
-          onClick={() => router.push('/jobs?tab=service-plans')}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              router.push('/jobs?tab=service-plans');
-            }
-          }}
-          className="cursor-pointer hover:border-module-accent/40 hover:shadow-md"
-        >
-          <CardContent className="pt-4">
-            <p className="text-xs text-muted-foreground">Active Service Plans</p>
-            <p className="text-lg font-semibold sm:text-xl leading-tight">{kpisLoading ? '—' : kpis.activeServicePlans}</p>
-            <p className="text-[11px] text-muted-foreground">Open Service Plans</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Search moved into toolbar row for recurring tab; other tabs render inline */}
       {(tab === 'work-orders' || tab === 'planning' || tab === 'checklists') && (
         <SearchInput
           value={search}

@@ -5,7 +5,7 @@
  * Re-exports the existing workforce page with the new "Team" branding.
  */
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Users, FileText, BriefcaseBusiness, DollarSign, Plus, MessageSquare, UserRoundCheck, Clock, Droplets, HardHat, Coffee, Tag } from 'lucide-react';
 import { SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import { useFeatureFlag } from '@/hooks/use-feature-flag';
@@ -121,31 +121,120 @@ export default function TeamPageClient() {
   const [search, setSearch] = useState('');
   const refreshKey = 0;
   const [autoCreateStaff, setAutoCreateStaff] = useState(false);
-  const [kpis, setKpis] = useState({
-    activeStaff: 0,
-    supervisors: 0,
-    openExceptions: 0,
-    pendingTimesheets: 0,
-  });
-  useEffect(() => {
-    async function fetchKpis() {
-      const supabase = getSupabaseBrowserClient();
+  const [tabKpis, setTabKpis] = useState<{ label: string; value: number | string; warn?: boolean }[]>([
+    { label: 'Active Staff', value: 0 },
+    { label: 'Supervisors', value: 0 },
+    { label: 'Open Exceptions', value: 0, warn: true },
+    { label: 'Pending Timesheets', value: 0 },
+  ]);
+
+  const fetchTabKpis = useCallback(async (activeTab: string) => {
+    const supabase = getSupabaseBrowserClient();
+
+    if (activeTab === 'staff') {
       const [activeRes, superRes, excRes, tsRes] = await Promise.all([
         supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('staff_status', 'ACTIVE'),
         supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('staff_status', 'ACTIVE').eq('role', 'SUPERVISOR'),
         supabase.from('time_exceptions').select('id', { count: 'exact', head: true }).is('resolved_at', null),
         supabase.from('timesheets').select('id', { count: 'exact', head: true }).eq('status', 'SUBMITTED'),
       ]);
-
-      setKpis({
-        activeStaff: activeRes.count ?? 0,
-        supervisors: superRes.count ?? 0,
-        openExceptions: excRes.count ?? 0,
-        pendingTimesheets: tsRes.count ?? 0,
-      });
+      setTabKpis([
+        { label: 'Active Staff', value: activeRes.count ?? 0 },
+        { label: 'Supervisors', value: superRes.count ?? 0 },
+        { label: 'Open Exceptions', value: excRes.count ?? 0, warn: (excRes.count ?? 0) > 0 },
+        { label: 'Pending Timesheets', value: tsRes.count ?? 0 },
+      ]);
+    } else if (activeTab === 'positions') {
+      const [posRes, assignedRes, staffRes] = await Promise.all([
+        supabase.from('position_types').select('id', { count: 'exact', head: true }).is('archived_at', null),
+        supabase.from('staff_eligible_positions').select('staff_id').is('archived_at', null),
+        supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('staff_status', 'ACTIVE'),
+      ]);
+      const totalPos = posRes.count ?? 0;
+      const uniqueStaff = new Set((assignedRes.data ?? []).map((r: { staff_id: string }) => r.staff_id)).size;
+      const totalStaff = staffRes.count ?? 0;
+      setTabKpis([
+        { label: 'Total Positions', value: totalPos },
+        { label: 'Staff Assigned', value: uniqueStaff },
+        { label: 'Unassigned', value: Math.max(totalStaff - uniqueStaff, 0), warn: (totalStaff - uniqueStaff) > 0 },
+        { label: 'Avg Staff/Position', value: totalPos > 0 ? (uniqueStaff / totalPos).toFixed(1) : '0' },
+      ]);
+    } else if (activeTab === 'attendance') {
+      const today = new Date().toISOString().slice(0, 10);
+      const [clockedInRes, clockInsRes, excRes] = await Promise.all([
+        supabase.from('time_entries').select('id', { count: 'exact', head: true }).is('clock_out', null).gte('clock_in', `${today}T00:00:00`),
+        supabase.from('time_entries').select('id', { count: 'exact', head: true }).gte('clock_in', `${today}T00:00:00`),
+        supabase.from('time_exceptions').select('id', { count: 'exact', head: true }).is('resolved_at', null),
+      ]);
+      setTabKpis([
+        { label: 'Clocked In Now', value: clockedInRes.count ?? 0 },
+        { label: 'Clock-ins Today', value: clockInsRes.count ?? 0 },
+        { label: 'Open Exceptions', value: excRes.count ?? 0, warn: (excRes.count ?? 0) > 0 },
+        { label: 'Avg Duration', value: '—' },
+      ]);
+    } else if (activeTab === 'timesheets') {
+      const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+      const [pendingRes, approvedRes, rejectedRes, hoursRes] = await Promise.all([
+        supabase.from('timesheets').select('id', { count: 'exact', head: true }).eq('status', 'SUBMITTED'),
+        supabase.from('timesheets').select('id', { count: 'exact', head: true }).eq('status', 'APPROVED').gte('updated_at', weekAgo),
+        supabase.from('timesheets').select('id', { count: 'exact', head: true }).eq('status', 'REJECTED'),
+        supabase.from('timesheets').select('total_hours').eq('status', 'APPROVED'),
+      ]);
+      const totalHours = (hoursRes.data ?? []).reduce((sum, r: { total_hours: number | null }) => sum + (Number(r.total_hours) || 0), 0);
+      setTabKpis([
+        { label: 'Pending', value: pendingRes.count ?? 0 },
+        { label: 'Approved This Week', value: approvedRes.count ?? 0 },
+        { label: 'Rejected', value: rejectedRes.count ?? 0, warn: (rejectedRes.count ?? 0) > 0 },
+        { label: 'Total Hours', value: totalHours > 0 ? `${totalHours.toFixed(0)}h` : '0h' },
+      ]);
+    } else if (activeTab === 'payroll') {
+      const [staffRes, schedRes, confirmedRes, pendingRes] = await Promise.all([
+        supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('staff_status', 'ACTIVE'),
+        supabase.from('timesheets').select('total_hours').in('status', ['SUBMITTED', 'APPROVED']),
+        supabase.from('timesheets').select('total_hours').eq('status', 'APPROVED'),
+        supabase.from('timesheets').select('id', { count: 'exact', head: true }).eq('status', 'SUBMITTED'),
+      ]);
+      const schedHours = (schedRes.data ?? []).reduce((sum, r: { total_hours: number | null }) => sum + (Number(r.total_hours) || 0), 0);
+      const confirmedHours = (confirmedRes.data ?? []).reduce((sum, r: { total_hours: number | null }) => sum + (Number(r.total_hours) || 0), 0);
+      setTabKpis([
+        { label: 'Staff on Payroll', value: staffRes.count ?? 0 },
+        { label: 'Scheduled Hours', value: schedHours > 0 ? `${schedHours.toFixed(0)}h` : '0h' },
+        { label: 'Confirmed Hours', value: confirmedHours > 0 ? `${confirmedHours.toFixed(0)}h` : '0h' },
+        { label: 'Pending Confirm', value: pendingRes.count ?? 0 },
+      ]);
+    } else if (activeTab === 'hr') {
+      const [ptoRes, goalsRes, reviewsRes, docsRes] = await Promise.all([
+        supabase.from('hr_leave_requests').select('id', { count: 'exact', head: true }).eq('status', 'PENDING').is('archived_at', null),
+        supabase.from('hr_goals').select('id', { count: 'exact', head: true }).eq('status', 'ACTIVE').is('archived_at', null),
+        supabase.from('hr_reviews').select('id', { count: 'exact', head: true }).eq('status', 'SUBMITTED').is('archived_at', null),
+        supabase.from('hr_documents').select('id', { count: 'exact', head: true }).is('archived_at', null).lte('expiry_date', new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)),
+      ]);
+      setTabKpis([
+        { label: 'Pending PTO', value: ptoRes.count ?? 0 },
+        { label: 'Active Goals', value: goalsRes.count ?? 0 },
+        { label: 'Submitted Reviews', value: reviewsRes.count ?? 0 },
+        { label: 'Expiring Docs', value: docsRes.count ?? 0, warn: (docsRes.count ?? 0) > 0 },
+      ]);
+    } else {
+      // Shared fallback for microfiber, subs, break-rules, shift-tags
+      const [activeRes, posRes, excRes, tsRes] = await Promise.all([
+        supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('staff_status', 'ACTIVE'),
+        supabase.from('position_types').select('id', { count: 'exact', head: true }).is('archived_at', null),
+        supabase.from('time_exceptions').select('id', { count: 'exact', head: true }).is('resolved_at', null),
+        supabase.from('timesheets').select('id', { count: 'exact', head: true }).eq('status', 'SUBMITTED'),
+      ]);
+      setTabKpis([
+        { label: 'Active Staff', value: activeRes.count ?? 0 },
+        { label: 'Positions', value: posRes.count ?? 0 },
+        { label: 'Exceptions', value: excRes.count ?? 0, warn: (excRes.count ?? 0) > 0 },
+        { label: 'Timesheets', value: tsRes.count ?? 0 },
+      ]);
     }
-    fetchKpis();
   }, []);
+
+  useEffect(() => {
+    fetchTabKpis(tab);
+  }, [tab, fetchTabKpis]);
 
   const handleAdd = () => {
     setAutoCreateStaff(true);
@@ -155,32 +244,30 @@ export default function TeamPageClient() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold text-foreground">Team</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage your team — staff, positions, timesheets, payroll, HR, and microfiber program</p>
-        </div>
-        <div className="flex items-center gap-3 ml-auto">
-          <SearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder={`Search ${tab}...`}
-            className="w-56 sm:w-72 lg:w-80"
-          />
-          {addLabel && (
-            <Button className="shrink-0" onClick={handleAdd}>
-              <Plus className="h-4 w-4" />
-              {addLabel}
-            </Button>
-          )}
-        </div>
+      <div className="pt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {tabKpis.map((kpi) => (
+          <Card key={kpi.label}>
+            <CardContent className="pt-4">
+              <p className="text-xs text-muted-foreground">{kpi.label}</p>
+              <p className={`text-lg font-semibold sm:text-xl leading-tight${kpi.warn ? ' text-warning' : ''}`}>{kpi.value}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Staff</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.activeStaff}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Supervisors</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.supervisors}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Open Exceptions</p><p className="text-lg font-semibold sm:text-xl leading-tight text-warning">{kpis.openExceptions}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Pending Timesheets</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.pendingTimesheets}</p></CardContent></Card>
+      <div className="flex flex-wrap items-center gap-3">
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder={`Search ${tab}...`}
+          className="w-56 sm:w-72 lg:w-80"
+        />
+        {addLabel && (
+          <Button className="shrink-0" onClick={handleAdd}>
+            <Plus className="h-4 w-4" />
+            {addLabel}
+          </Button>
+        )}
       </div>
 
       {tab === 'staff' && (

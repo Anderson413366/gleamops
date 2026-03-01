@@ -826,20 +826,11 @@ export default function RoutesFleetPanel({ search }: Props) {
         <ExportButton<Record<string, unknown>> data={exportRows as unknown as Record<string, unknown>[]} filename="operations-routes-fleet" />
       </div>
 
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Routes Today</p><p className="text-xl font-semibold">{routeKpis.todayRoutes}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Published Routes</p><p className="text-xl font-semibold">{routeKpis.publishedRoutes}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Stops Planned</p><p className="text-xl font-semibold">{routeKpis.totalStops}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Locked Stops</p><p className="text-xl font-semibold text-warning">{routeKpis.lockedStops}</p></CardContent></Card>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Fleet Ready</p><p className="text-xl font-semibold text-green-600">{fleetKpis.readyVehicles}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Checked Out</p><p className="text-xl font-semibold text-blue-600">{fleetKpis.outVehicles}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Overdue Returns</p><p className="text-xl font-semibold text-red-600">{fleetKpis.overdueCheckouts}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Maintenance Due</p><p className="text-xl font-semibold text-warning">{fleetKpis.maintenanceDue}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">DVIR Needs Review</p><p className="text-xl font-semibold text-warning">{fleetKpis.dvirDue}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Fuel Logs (24h)</p><p className="text-xl font-semibold text-blue-600">{fleetKpis.recentFuelLogs}</p></CardContent></Card>
       </div>
 
       <Card>

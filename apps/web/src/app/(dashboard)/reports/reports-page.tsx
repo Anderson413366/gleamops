@@ -13,6 +13,7 @@ import FinancialDashboard from './financial/financial-dashboard';
 import QualityDashboard from './quality/quality-dashboard';
 import WorkforceDashboard from './workforce/workforce-dashboard';
 import InventoryDashboard from './inventory/inventory-dashboard';
+import ScheduleReports from './schedule-reports';
 import { MetricCard } from './_components/report-components';
 
 const TABS = [
@@ -22,6 +23,7 @@ const TABS = [
   { key: 'quality', label: 'Compliance', icon: <Shield className="h-4 w-4" /> },
   { key: 'workforce', label: 'Workforce', icon: <Users className="h-4 w-4" /> },
   { key: 'inventory', label: 'Inventory', icon: <Package className="h-4 w-4" /> },
+  { key: 'schedule', label: 'Schedule', icon: <CalendarDays className="h-4 w-4" /> },
 ];
 
 const TAB_ALIASES: Record<string, string> = {
@@ -223,6 +225,7 @@ export default function ReportsPageClient() {
       {tab === 'quality' && <QualityDashboard rangeDays={rangeDays} refreshKey={refreshKey} />}
       {tab === 'workforce' && <WorkforceDashboard rangeDays={rangeDays} refreshKey={refreshKey} />}
       {tab === 'inventory' && <InventoryDashboard rangeDays={rangeDays} refreshKey={refreshKey} />}
+      {tab === 'schedule' && <ScheduleReports />}
     </div>
   );
 }

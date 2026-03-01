@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { MessageSquare, Plus, Clock as ClockIcon, Users, CalendarDays, AlertTriangle, FileText, Gift, Star } from 'lucide-react';
-import { Button, Card, CardContent, Badge, CollapsibleCard } from '@gleamops/ui';
+import { Button, Card, CardContent, CollapsibleCard } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 interface Announcement {
@@ -96,8 +96,6 @@ export function DashboardWidgets() {
   useEffect(() => {
     async function fetchCounts() {
       const supabase = getSupabaseBrowserClient();
-      const today = new Date().toISOString().slice(0, 10);
-
       const { count: clockedIn } = await supabase
         .from('time_entries')
         .select('id', { count: 'exact', head: true })

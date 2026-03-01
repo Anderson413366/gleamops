@@ -729,7 +729,8 @@ export default function SiteDetailPage() {
   const addr = site.address;
   const isInactive = (site.status ?? '').toUpperCase() === 'INACTIVE';
   const mapsUrl = mapsSearchUrl(addr);
-  const heroMapUrl = site.photo_url ? null : osmStaticMapUrl(site.geofence_center_lat, site.geofence_center_lng);
+  const heroPhotoUrl = site.photo_url || site.photo_exterior_thumbnail_url || null;
+  const heroMapUrl = heroPhotoUrl ? null : osmStaticMapUrl(site.geofence_center_lat, site.geofence_center_lng);
   const parsedLegacy = parseLegacySiteNotes(site.notes);
   const updatedAgo = formatRelativeDateTime(site.updated_at);
   const geofenceCenterLabel =
@@ -814,9 +815,9 @@ export default function SiteDetailPage() {
 
       {/* Hero */}
       <div className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-        {site.photo_url ? (
+        {heroPhotoUrl ? (
           <img
-            src={site.photo_url}
+            src={heroPhotoUrl}
             alt={`${site.name} photo`}
             className="h-44 w-full object-cover sm:h-56"
           />
@@ -1048,6 +1049,14 @@ export default function SiteDetailPage() {
               <dt className="text-muted-foreground">Access Notes</dt>
               <dd className="mt-1 font-medium">{site.access_notes ? site.access_notes : <span className="text-muted-foreground">Not Set</span>}</dd>
             </div>
+            <div>
+              <dt className="text-muted-foreground">Access Window</dt>
+              <dd className="mt-1 font-medium">
+                {site.access_window_start || site.access_window_end
+                  ? `${site.access_window_start ?? '—'} – ${site.access_window_end ?? '—'}`
+                  : <span className="text-muted-foreground">Not Set</span>}
+              </dd>
+            </div>
 
             <div className="pt-3 border-t border-border">
               <dt className="text-muted-foreground">Keys On File</dt>
@@ -1100,9 +1109,30 @@ export default function SiteDetailPage() {
               <dt className="text-muted-foreground">Dumpster</dt>
               <dd className="font-medium">{dumpsterLocation ? dumpsterLocation : <span className="text-muted-foreground">Not Set</span>}</dd>
             </div>
+            <div>
+              <dt className="text-muted-foreground">Difficulty</dt>
+              <dd className="font-medium">{site.difficulty ? site.difficulty : <span className="text-muted-foreground">Not Set</span>}</dd>
+            </div>
           </dl>
         </div>
       </div>
+
+      {/* Site Photos — Interior */}
+      {(site.photo_interior_url || site.photo_interior_thumbnail_url) && (
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+          <h3 className="mb-4 text-sm font-semibold text-foreground">Site Photos</h3>
+          <div className="flex gap-4">
+            <img
+              src={site.photo_interior_thumbnail_url || site.photo_interior_url!}
+              alt={`${site.name} interior`}
+              className="h-40 w-auto rounded-lg object-cover border border-border cursor-pointer"
+              onClick={() => {
+                if (site.photo_interior_url) window.open(site.photo_interior_url, '_blank');
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Service / Compliance + Risk / Priority + Notes */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

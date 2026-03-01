@@ -955,6 +955,84 @@ export default function JobDetailPage() {
           </dl>
         </div>
 
+        {/* ISSA Classification — conditional */}
+        {(job.issa_category || job.issa_service_code || job.issa_service_name || job.issa_task_range) && (
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+            <h3 className="mb-4 text-sm font-semibold text-foreground">
+              <span className="inline-flex items-center gap-2">
+                <ClipboardList className="h-4 w-4 text-muted-foreground" />
+                ISSA Classification
+              </span>
+            </h3>
+            <dl className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">ISSA Category</dt>
+                <dd className="font-medium">{job.issa_category ?? '\u2014'}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">ISSA Service Code</dt>
+                <dd className="font-medium font-mono">{job.issa_service_code ?? '\u2014'}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">ISSA Service Name</dt>
+                <dd className="font-medium">{job.issa_service_name ?? '\u2014'}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">ISSA Task Range</dt>
+                <dd className="font-medium">{job.issa_task_range ?? '\u2014'}</dd>
+              </div>
+            </dl>
+          </div>
+        )}
+
+        {/* Profitability (Import) — conditional */}
+        {(job.annual_revenue != null || job.suggested_sub_mo != null || job.current_sub_mo != null || job.current_sub_pct != null || job.profit_amount != null || job.profit_pct != null || job.margin_tier != null) && (
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+            <h3 className="mb-4 text-sm font-semibold text-foreground">
+              <span className="inline-flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                Profitability (Import)
+              </span>
+            </h3>
+            <dl className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">Annual Revenue</dt>
+                <dd className="font-medium tabular-nums">{formatCurrency(job.annual_revenue)}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">Suggested Sub/Mo</dt>
+                <dd className="font-medium tabular-nums">{formatCurrency(job.suggested_sub_mo)}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">Current Sub/Mo</dt>
+                <dd className="font-medium tabular-nums">{formatCurrency(job.current_sub_mo)}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">Current Sub %</dt>
+                <dd className="font-medium">{job.current_sub_pct != null ? `${job.current_sub_pct.toFixed(1)}%` : '\u2014'}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">Profit Amount</dt>
+                <dd className="font-medium tabular-nums">{formatCurrency(job.profit_amount)}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">Profit %</dt>
+                <dd className="font-medium">{job.profit_pct != null ? `${job.profit_pct.toFixed(1)}%` : '\u2014'}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">Margin Tier</dt>
+                <dd className="font-medium">
+                  {job.margin_tier ? (
+                    <Badge color={job.margin_tier === 'A' ? 'green' : job.margin_tier === 'B' ? 'yellow' : job.margin_tier === 'C' ? 'orange' : 'red'}>
+                      Tier {job.margin_tier}
+                    </Badge>
+                  ) : '\u2014'}
+                </dd>
+              </div>
+            </dl>
+          </div>
+        )}
+
         {/* Job Tasks (Scope of Work) */}
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm lg:col-span-2">
           <div className="mb-4 flex items-center justify-between">

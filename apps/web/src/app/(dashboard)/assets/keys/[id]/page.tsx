@@ -1,5 +1,7 @@
 'use client';
 
+/* eslint-disable @next/next/no-img-element */
+
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -142,9 +144,17 @@ export default function KeyDetailPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-xl font-bold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-            <KeyRound className="h-8 w-8" />
-          </div>
+          {(key.photo_thumbnail_url || key.photo_url) ? (
+            <img
+              src={key.photo_thumbnail_url || key.photo_url!}
+              alt={key.label || key.key_code}
+              className="h-16 w-16 rounded-full object-cover border border-border"
+            />
+          ) : (
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-xl font-bold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+              <KeyRound className="h-8 w-8" />
+            </div>
+          )}
           <div>
             <h1 className="text-2xl font-bold text-foreground">
               {key.label || key.key_code}
@@ -249,6 +259,14 @@ export default function KeyDetailPage() {
                   {key.status}
                 </Badge>
               </dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Original Key</dt>
+              <dd className="font-medium">{key.is_original != null ? (key.is_original ? 'Yes' : 'No') : '\u2014'}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Copy Number</dt>
+              <dd className="font-medium">{key.copy_number ?? '\u2014'}</dd>
             </div>
           </dl>
         </div>

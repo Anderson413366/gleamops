@@ -95,7 +95,7 @@ export async function listPeriods(
 ) {
   let query = db
     .from('schedule_periods')
-    .select('id, tenant_id, site_id, period_name, period_start, period_end, status, published_at, published_by, locked_at, locked_by, created_at, updated_at')
+    .select('id, tenant_id, site_id, period_name, period_start, period_end, status, period_type, payroll_anchor_date, published_at, published_by, locked_at, locked_by, created_at, updated_at')
     .is('archived_at', null)
     .order('period_start', { ascending: false })
     .limit(250);
@@ -134,7 +134,7 @@ export async function validatePeriod(db: SupabaseClient, periodId: string) {
 export async function fetchPeriod(db: SupabaseClient, periodId: string) {
   return db
     .from('schedule_periods')
-    .select('id, status, period_name, period_start, period_end, locked_at')
+    .select('id, status, period_name, period_start, period_end, period_type, payroll_anchor_date, locked_at')
     .eq('id', periodId)
     .single();
 }

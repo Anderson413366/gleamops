@@ -14,7 +14,7 @@ import {
   CheckSquare,
   FileCog,
 } from 'lucide-react';
-import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
+import { SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import type { WorkTicket, Inspection } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
@@ -272,30 +272,24 @@ export default function JobsPageClient() {
         </Card>
       </div>
 
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0 lg:flex-1">
-          <ChipTabs tabs={tabs} active={tab} onChange={setTab} />
-        </div>
-
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder={
-            tab === 'service-plans'
-              ? 'Search service plans...'
-              : tab === 'tickets'
-                ? 'Search tickets...'
-                : tab === 'inspections'
-                  ? 'Search inspections...'
-                  : tab === 'time'
-                    ? 'Search time alerts and exceptions...'
-                    : tab === 'routes'
-                      ? 'Search routes and owners...'
-                      : `Search ${tab}...`
-          }
-          className="w-full sm:w-72 lg:w-80 lg:ml-auto"
-        />
-      </div>
+      <SearchInput
+        value={search}
+        onChange={setSearch}
+        placeholder={
+          tab === 'service-plans'
+            ? 'Search service plans...'
+            : tab === 'tickets'
+              ? 'Search tickets...'
+              : tab === 'inspections'
+                ? 'Search inspections...'
+                : tab === 'time'
+                  ? 'Search time alerts and exceptions...'
+                  : tab === 'routes'
+                    ? 'Search routes and owners...'
+                    : `Search ${tab}...`
+        }
+        className="w-full sm:w-72 lg:w-80"
+      />
 
       {tab === 'service-plans' && (
         <JobsTable

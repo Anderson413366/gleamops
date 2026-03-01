@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Calendar, ClipboardList, Briefcase, FileText, ListTodo, Plus, ChevronLeft, ChevronRight, Copy, LayoutDashboard, Route, Shield, AlertTriangle, Send } from 'lucide-react';
-import { ChipTabs, SearchInput, Card, CardContent, Button, ConfirmDialog } from '@gleamops/ui';
+import { SearchInput, Card, CardContent, Button, ConfirmDialog } from '@gleamops/ui';
 import { normalizeRoleCode, type WorkTicket } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
@@ -1059,30 +1059,24 @@ export default function SchedulePageClient() {
         </Card>
       </div>
 
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0 lg:flex-1">
-          <ChipTabs tabs={visibleTabs} active={tab} onChange={setTab} />
-        </div>
-
-        {(tab === 'recurring' || tab === 'work-orders' || tab === 'planning' || tab === 'checklists') && (
-          <SearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder={
-              tab === 'recurring'
-                ? 'Search employee schedule assignments, roles, and sites...'
-                : tab === 'work-orders'
-                  ? 'Search work orders, services, and sites...'
-                  : tab === 'planning'
-                    ? 'Search planning tickets, sites, positions, or codes...'
-                  : tab === 'checklists'
-                    ? 'Search checklist templates, sections, or items...'
-                  : `Search ${tab}...`
-            }
-            className="w-full sm:w-72 lg:w-80 lg:ml-auto"
-          />
-        )}
-      </div>
+      {(tab === 'recurring' || tab === 'work-orders' || tab === 'planning' || tab === 'checklists') && (
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder={
+            tab === 'recurring'
+              ? 'Search employee schedule assignments, roles, and sites...'
+              : tab === 'work-orders'
+                ? 'Search work orders, services, and sites...'
+                : tab === 'planning'
+                  ? 'Search planning tickets, sites, positions, or codes...'
+                : tab === 'checklists'
+                  ? 'Search checklist templates, sections, or items...'
+                : `Search ${tab}...`
+          }
+          className="w-full sm:w-72 lg:w-80"
+        />
+      )}
 
       {tab === 'recurring' && (
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">

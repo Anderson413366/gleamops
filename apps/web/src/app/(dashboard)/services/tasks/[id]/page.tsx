@@ -328,6 +328,14 @@ export default function TaskDetailPage() {
               <dt className="text-muted-foreground">Priority Level</dt>
               <dd className="font-medium">{task.priority_level ?? '\u2014'}</dd>
             </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Task Type</dt>
+              <dd className="font-medium">{task.task_type ?? '\u2014'}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Position</dt>
+              <dd className="font-medium">{task.position ?? '\u2014'}</dd>
+            </div>
           </dl>
         </div>
 

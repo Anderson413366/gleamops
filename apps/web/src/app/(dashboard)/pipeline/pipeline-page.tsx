@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Plus, TrendingUp, Target, DollarSign, FileText, BarChart3 } from 'lucide-react';
-import { Button, ChipTabs, SearchInput } from '@gleamops/ui';
+import { Button, SearchInput } from '@gleamops/ui';
 import type { SalesProspect, SalesOpportunity } from '@gleamops/shared';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
 
@@ -285,24 +285,12 @@ function UnifiedPipelinePageClient() {
 
         <SalesKpiBar stats={pipelineStats} />
 
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0 lg:flex-1">
-            <ChipTabs
-              tabs={PIPELINE_TABS.map((t) => ({
-                ...t,
-                count: sectionCounts[t.key as PipelineSectionKey] ?? undefined,
-              }))}
-              active={tab}
-              onChange={setTab}
-            />
-          </div>
-          <SearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder={`Search ${tab}...`}
-            className="w-full sm:w-72 lg:w-80 lg:ml-auto"
-          />
-        </div>
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder={`Search ${tab}...`}
+          className="w-full sm:w-72 lg:w-80"
+        />
 
         {tab === 'prospects' && (
           <ProspectsSection

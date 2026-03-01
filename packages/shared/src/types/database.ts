@@ -142,6 +142,8 @@ export interface Client extends StandardColumns {
   auto_renewal: boolean;
   invoice_frequency: string | null; // Lookups "Invoice Frequency"
   notes: string | null;
+  insurance_cert_url: string | null;
+  preferred_invoice_method: string | null;
 }
 
 export interface Site extends StandardColumns {
@@ -173,6 +175,8 @@ export interface Site extends StandardColumns {
   alarm_code: string | null;
   security_protocol: string | null;
   access_notes: string | null;
+  access_window_start: string | null; // TIME
+  access_window_end: string | null; // TIME
   // Facility facts
   square_footage: number | null;
   number_of_floors: number | null;
@@ -203,6 +207,10 @@ export interface Site extends StandardColumns {
   next_count_due: string | null;
   count_status_alert: string | null;
   notes: string | null;
+  difficulty: string | null;
+  photo_exterior_thumbnail_url: string | null;
+  photo_interior_url: string | null;
+  photo_interior_thumbnail_url: string | null;
 }
 
 export interface Contact extends StandardColumns {
@@ -253,6 +261,8 @@ export interface Task extends StandardColumns {
   tools_materials: string | null;
   is_active: boolean;
   notes: string | null;
+  task_type: string | null;
+  position: string | null;
 }
 
 export interface TaskProductionRate extends StandardColumns {
@@ -269,6 +279,9 @@ export interface Service extends StandardColumns {
   service_code: string;
   name: string;
   description: string | null;
+  price_per_unit: number | null;
+  minimum_charge: number | null;
+  requires_certification: boolean | null;
 }
 
 export interface ServiceTask extends StandardColumns {
@@ -532,6 +545,19 @@ export interface SiteJob extends StandardColumns {
   special_requirements: string | null;
   status: string; // Lookups "Job Status"
   notes: string | null;
+  // ISSA classification
+  issa_category: string | null;
+  issa_service_code: string | null;
+  issa_service_name: string | null;
+  issa_task_range: string | null;
+  // Profitability (imported)
+  annual_revenue: number | null;
+  suggested_sub_mo: number | null;
+  current_sub_mo: number | null;
+  current_sub_pct: number | null;
+  profit_amount: number | null;
+  profit_pct: number | null;
+  margin_tier: string | null;
 }
 
 export interface RecurrenceRule extends StandardColumns {
@@ -818,6 +844,7 @@ export interface Staff extends StandardColumns {
   performance_rating: number | null;
   photo_url: string | null;
   notes: string | null;
+  photo_thumbnail_url: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -945,6 +972,7 @@ export interface SupplyCatalog extends StandardColumns {
   ppe_required: boolean;
   image_url: string | null;
   notes: string | null;
+  alternative_items: string | null;
 }
 
 export interface SupplyKit extends StandardColumns {
@@ -972,6 +1000,8 @@ export interface Vehicle extends StandardColumns {
   assigned_to: string | null;
   photo_url: string | null;
   notes: string | null;
+  current_value: number | null;
+  registration_expiry: string | null;
 }
 
 export interface KeyInventory extends StandardColumns {
@@ -983,6 +1013,10 @@ export interface KeyInventory extends StandardColumns {
   assigned_to: string | null;
   status: 'AVAILABLE' | 'ASSIGNED' | 'LOST' | 'RETURNED';
   notes: string | null;
+  is_original: boolean | null;
+  copy_number: number | null;
+  photo_url: string | null;
+  photo_thumbnail_url: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -1033,6 +1067,7 @@ export interface VehicleMaintenance extends StandardColumns {
   performed_by: string | null;
   next_service_date: string | null;
   notes: string | null;
+  next_service_odometer: number | null;
 }
 
 // ---------------------------------------------------------------------------

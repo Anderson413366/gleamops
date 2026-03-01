@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { Award, BookOpen, CalendarCheck, Plus, ShieldAlert } from 'lucide-react';
-import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
+import { SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
 
@@ -130,19 +130,14 @@ export default function SafetyPageClient() {
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Completions Expiring (30d)</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.completionsExpiring30d}</p></CardContent></Card>
       </div>
 
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0 lg:flex-1">
-          <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
-        </div>
-        {tab !== 'calendar' && (
-          <SearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder={`Search ${tab}...`}
-            className="w-full sm:w-72 lg:w-80 lg:ml-auto"
-          />
-        )}
-      </div>
+      {tab !== 'calendar' && (
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder={`Search ${tab}...`}
+          className="w-full sm:w-72 lg:w-80"
+        />
+      )}
 
       {tab === 'certifications' && (
         <CertificationsTable

@@ -16,6 +16,7 @@ import {
   Phone,
   Users,
   AlertTriangle,
+  ExternalLink,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Badge, Skeleton } from '@gleamops/ui';
@@ -28,6 +29,7 @@ import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from 
 import { StatusToggleDialog } from '@/components/detail/status-toggle-dialog';
 import { EntityLink } from '@/components/links/entity-link';
 import { formatZip } from '@/lib/utils/format-zip';
+import { isExternalHttpUrl } from '@/lib/url';
 import { toast } from 'sonner';
 
 function formatCurrency(n: number | null) {
@@ -736,6 +738,12 @@ export default function ClientDetailPage() {
                 {client.invoice_frequency ? client.invoice_frequency : renderNotSet()}
               </dd>
             </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted-foreground">Preferred Invoice Method</dt>
+              <dd className="font-medium text-right">
+                {client.preferred_invoice_method ? client.preferred_invoice_method : renderNotSet()}
+              </dd>
+            </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">PO Required</dt>
               <dd className="font-medium">
@@ -809,6 +817,26 @@ export default function ClientDetailPage() {
               <dd className="font-medium">
                 {client.insurance_expiry ? (
                   formatDate(client.insurance_expiry)
+                ) : (
+                  renderNotSet()
+                )}
+              </dd>
+            </div>
+            <div className="flex justify-between items-center">
+              <dt className="text-muted-foreground">Insurance Certificate</dt>
+              <dd className="font-medium">
+                {isExternalHttpUrl(client.insurance_cert_url) ? (
+                  <a
+                    href={client.insurance_cert_url!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-primary hover:text-primary/80"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    View Certificate
+                  </a>
+                ) : client.insurance_cert_url ? (
+                  <span className="text-muted-foreground" title={client.insurance_cert_url}>On File</span>
                 ) : (
                   renderNotSet()
                 )}

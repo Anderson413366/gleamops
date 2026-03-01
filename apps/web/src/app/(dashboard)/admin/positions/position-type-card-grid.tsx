@@ -3,16 +3,22 @@
 import { Badge, Card, CardContent } from '@gleamops/ui';
 import type { StaffPosition } from '@gleamops/shared';
 
-const POSITION_COLORS: string[] = [
-  '#00c875',
-  '#df2f4a',
-  '#579bfc',
-  '#ffcb00',
-  '#9ca3af',
-  '#f97316',
-  '#14b8a6',
-  '#a855f7',
-];
+const TOKEN_TO_HEX: Record<string, string> = {
+  green: '#00c875',
+  red: '#df2f4a',
+  blue: '#579bfc',
+  yellow: '#ffcb00',
+  pink: '#ec4899',
+  purple: '#a855f7',
+  indigo: '#6366f1',
+  orange: '#f97316',
+  teal: '#14b8a6',
+  emerald: '#10b981',
+  amber: '#f59e0b',
+  cyan: '#06b6d4',
+  gray: '#9ca3af',
+  slate: '#94a3b8',
+};
 
 export interface PositionTypeCardGridProps {
   rows: StaffPosition[];
@@ -20,14 +26,8 @@ export interface PositionTypeCardGridProps {
   onSelect: (row: StaffPosition) => void;
 }
 
-function colorForRow(row: StaffPosition, index: number): string {
-  const normalizedCode = row.position_code.toUpperCase();
-  if (normalizedCode.includes('FLOOR')) return '#00c875';
-  if (normalizedCode.includes('RESTROOM')) return '#df2f4a';
-  if (normalizedCode.includes('VACUUM')) return '#579bfc';
-  if (normalizedCode.includes('UTILITY')) return '#ffcb00';
-  if (normalizedCode.includes('PORTER')) return '#9ca3af';
-  return POSITION_COLORS[index % POSITION_COLORS.length] ?? '#a1a1aa';
+function colorForRow(row: StaffPosition): string {
+  return TOKEN_TO_HEX[row.color_token] ?? '#94a3b8';
 }
 
 export function PositionTypeCardGrid({ rows, staffCountByPositionId, onSelect }: PositionTypeCardGridProps) {
@@ -43,8 +43,8 @@ export function PositionTypeCardGrid({ rows, staffCountByPositionId, onSelect }:
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-      {rows.map((row, index) => {
-        const chipColor = colorForRow(row, index);
+      {rows.map((row) => {
+        const chipColor = colorForRow(row);
         return (
           <button
             key={row.id}

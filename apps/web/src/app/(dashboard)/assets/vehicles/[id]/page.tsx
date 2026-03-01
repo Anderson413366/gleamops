@@ -30,6 +30,7 @@ interface VehicleWithAssigned extends Vehicle {
 interface VehicleMaintenanceSummary {
   service_date: string | null;
   next_service_date: string | null;
+  next_service_odometer: number | null;
 }
 
 function getMaintenanceUrgency(nextServiceDate: string | null): { label: string; color: 'green' | 'yellow' | 'red' | 'gray' } {
@@ -70,7 +71,7 @@ export default function VehicleDetailPage() {
       setVehicle(data as unknown as VehicleWithAssigned);
       const { data: maintenanceRows } = await supabase
         .from('vehicle_maintenance')
-        .select('service_date, next_service_date')
+        .select('service_date, next_service_date, next_service_odometer')
         .eq('vehicle_id', data.id)
         .is('archived_at', null)
         .order('service_date', { ascending: false })
@@ -275,6 +276,22 @@ export default function VehicleDetailPage() {
               <dt className="text-muted-foreground">License Plate</dt>
               <dd className="font-medium">{vehicle.license_plate ?? notSet()}</dd>
             </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Current Value</dt>
+              <dd className="font-medium">
+                {vehicle.current_value != null
+                  ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(vehicle.current_value)
+                  : notSet()}
+              </dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Registration Expiry</dt>
+              <dd className="font-medium">
+                {vehicle.registration_expiry
+                  ? new Date(vehicle.registration_expiry).toLocaleDateString()
+                  : notSet()}
+              </dd>
+            </div>
           </dl>
         </div>
 
@@ -325,6 +342,12 @@ export default function VehicleDetailPage() {
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Last Service</dt>
                 <dd className="font-medium">{new Date(maintenance.service_date).toLocaleDateString()}</dd>
+              </div>
+            )}
+            {maintenance?.next_service_odometer != null && (
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">Next Service Odometer</dt>
+                <dd className="font-medium">{maintenance.next_service_odometer.toLocaleString()} mi</dd>
               </div>
             )}
           </dl>

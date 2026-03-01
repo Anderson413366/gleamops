@@ -281,6 +281,9 @@ export default function TicketDetailPage() {
             <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Start</dt><dd className="font-medium">{formatClock(ticket.start_time)}</dd></div>
             <div className="flex justify-between gap-4"><dt className="text-muted-foreground">End</dt><dd className="font-medium">{formatClock(ticket.end_time)}</dd></div>
             <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Status</dt><dd><Badge color={ticketStatusColor}>{ticket.status}</Badge></dd></div>
+            {ticket.note && (
+              <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Note</dt><dd className="font-medium text-right">{ticket.note}</dd></div>
+            )}
           </dl>
         </div>
 

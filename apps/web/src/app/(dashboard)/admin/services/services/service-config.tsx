@@ -365,6 +365,9 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
             { key: 'service_code', label: 'Code' },
             { key: 'name', label: 'Name' },
             { key: 'description', label: 'Description' },
+            { key: 'price_per_unit', label: 'Price/Unit' },
+            { key: 'minimum_charge', label: 'Min Charge' },
+            { key: 'requires_certification', label: 'Requires Cert' },
             { key: 'task_count', label: '# Tasks' },
           ]}
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
@@ -376,6 +379,9 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
             <TableHead sortable sorted={sortKey === 'service_code' && sortDir} onSort={() => onSort('service_code')}>Code</TableHead>
             <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Name</TableHead>
             <TableHead>Description</TableHead>
+            <TableHead>Price/Unit</TableHead>
+            <TableHead>Min Charge</TableHead>
+            <TableHead>Requires Cert</TableHead>
             <TableHead># Tasks</TableHead>
           </tr>
         </TableHeader>
@@ -385,6 +391,9 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
               <TableCell className="font-mono text-xs">{row.service_code}</TableCell>
               <TableCell className="font-medium">{row.name}</TableCell>
               <TableCell className="text-muted-foreground text-sm max-w-xs truncate">{row.description ?? '--'}</TableCell>
+              <TableCell className="text-sm">{row.price_per_unit != null ? `$${row.price_per_unit.toFixed(2)}` : '--'}</TableCell>
+              <TableCell className="text-sm">{row.minimum_charge != null ? `$${row.minimum_charge.toFixed(2)}` : '--'}</TableCell>
+              <TableCell className="text-sm">{row.requires_certification != null ? (row.requires_certification ? 'Yes' : 'No') : '--'}</TableCell>
               <TableCell>
                 <Badge color={row.task_count ? 'blue' : 'gray'}>
                   {row.task_count ?? 0}

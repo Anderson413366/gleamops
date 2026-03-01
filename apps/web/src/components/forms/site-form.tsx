@@ -48,6 +48,8 @@ const DEFAULTS: SiteFormData = {
   entry_instructions: null,
   parking_instructions: null,
   access_notes: null,
+  access_window_start: null,
+  access_window_end: null,
   earliest_start_time: null,
   latest_start_time: null,
   weekend_access: false,
@@ -112,6 +114,8 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
           entry_instructions: initialData.entry_instructions,
           parking_instructions: initialData.parking_instructions,
           access_notes: initialData.access_notes,
+          access_window_start: initialData.access_window_start,
+          access_window_end: initialData.access_window_end,
           earliest_start_time: initialData.earliest_start_time,
           latest_start_time: initialData.latest_start_time,
           weekend_access: initialData.weekend_access,
@@ -312,6 +316,10 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
             <Textarea label="Entry Instructions" value={values.entry_instructions ?? ''} onChange={(e) => setValue('entry_instructions', e.target.value || null)} rows={2} />
             <Textarea label="Parking Instructions" value={values.parking_instructions ?? ''} onChange={(e) => setValue('parking_instructions', e.target.value || null)} rows={2} />
             <Textarea label="Access Notes" value={values.access_notes ?? ''} onChange={(e) => setValue('access_notes', e.target.value || null)} rows={2} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Input label="Access Window Start" type="time" value={values.access_window_start ?? ''} onChange={(e) => setValue('access_window_start', e.target.value || null)} />
+              <Input label="Access Window End" type="time" value={values.access_window_end ?? ''} onChange={(e) => setValue('access_window_end', e.target.value || null)} />
+            </div>
             </FormSection>
           </div>
 
@@ -456,6 +464,10 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
             <Textarea label="Entry Instructions" value={values.entry_instructions ?? ''} onChange={(e) => setValue('entry_instructions', e.target.value || null)} rows={2} placeholder="How to enter the building..." />
             <Textarea label="Parking Instructions" value={values.parking_instructions ?? ''} onChange={(e) => setValue('parking_instructions', e.target.value || null)} rows={2} placeholder="Where to park vehicles..." />
             <Textarea label="Access Notes" value={values.access_notes ?? ''} onChange={(e) => setValue('access_notes', e.target.value || null)} rows={2} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Input label="Access Window Start" type="time" value={values.access_window_start ?? ''} onChange={(e) => setValue('access_window_start', e.target.value || null)} />
+              <Input label="Access Window End" type="time" value={values.access_window_end ?? ''} onChange={(e) => setValue('access_window_end', e.target.value || null)} />
+            </div>
           </FormSection>
         )}
 

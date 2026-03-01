@@ -133,6 +133,7 @@ export default function MaintenanceTable({ search, formOpen, onFormClose, onRefr
             <TableHead>Performed By</TableHead>
             <TableHead>Cost</TableHead>
             <TableHead>Next Service</TableHead>
+            <TableHead>Next Svc Odometer</TableHead>
           </tr>
         </TableHeader>
         <TableBody>
@@ -169,6 +170,9 @@ export default function MaintenanceTable({ search, formOpen, onFormClose, onRefr
                     </div>
                   );
                 })()}
+              </TableCell>
+              <TableCell className="text-sm">
+                {row.next_service_odometer != null ? `${row.next_service_odometer.toLocaleString()} mi` : '—'}
               </TableCell>
             </TableRow>
           ))}

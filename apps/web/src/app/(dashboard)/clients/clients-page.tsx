@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Building2, MapPin, Users, Handshake, Plus, MessageSquareWarning } from 'lucide-react';
-import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
+import { SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import type { Contact } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
@@ -238,17 +238,12 @@ export default function ClientsPageClient() {
         </Card>
       </div>
 
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0 lg:flex-1">
-          <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
-        </div>
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder={`Search ${tab}...`}
-          className="w-full sm:w-72 lg:w-80 lg:ml-auto"
-        />
-      </div>
+      <SearchInput
+        value={search}
+        onChange={setSearch}
+        placeholder={`Search ${tab}...`}
+        className="w-full sm:w-72 lg:w-80"
+      />
 
       {tab === 'clients' && (
         <ClientsTable key={`clients-${refreshKey}`} search={search} />

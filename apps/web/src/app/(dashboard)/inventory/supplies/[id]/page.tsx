@@ -435,6 +435,10 @@ export default function SupplyDetailPage() {
                 {supply.ppe_required ? 'Yes' : 'No'}
               </dd>
             </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Alternative Items</dt>
+              <dd className="font-medium">{supply.alternative_items ?? '\u2014'}</dd>
+            </div>
           </dl>
         </div>
 

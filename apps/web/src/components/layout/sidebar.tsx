@@ -56,6 +56,15 @@ import {
   GraduationCap,
   PanelLeftClose,
   PanelLeft,
+  Shield,
+  Handshake,
+  Droplets,
+  HardHat,
+  Coffee,
+  Tag,
+  MessageSquare,
+  BrainCircuit,
+  Warehouse,
 } from 'lucide-react';
 import { getModuleFromPathname, NAV_TREE, normalizeRoleCode, roleDisplayName, type NavItem } from '@gleamops/shared';
 import { useAuth } from '@/hooks/use-auth';
@@ -106,6 +115,15 @@ const ICON_MAP: Record<string, React.ElementType> = {
   RefreshCw,
   LayoutDashboard,
   Columns3,
+  Shield,
+  Handshake,
+  Droplets,
+  HardHat,
+  Coffee,
+  Tag,
+  MessageSquare,
+  BrainCircuit,
+  Warehouse,
 };
 
 const QUICK_ACTION_ITEMS = [

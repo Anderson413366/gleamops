@@ -71,6 +71,8 @@ export const siteSchema = z.object({
   entry_instructions: z.string().nullable().default(null),
   parking_instructions: z.string().nullable().default(null),
   access_notes: z.string().nullable().default(null),
+  access_window_start: z.string().nullable().default(null),
+  access_window_end: z.string().nullable().default(null),
   // Service Window & Compliance
   earliest_start_time: z.string().nullable().default(null),
   latest_start_time: z.string().nullable().default(null),

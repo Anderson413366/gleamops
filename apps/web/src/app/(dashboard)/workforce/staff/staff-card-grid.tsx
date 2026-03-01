@@ -33,7 +33,7 @@ export function StaffCardGrid({ rows, onSelect, activeJobsByStaff }: StaffCardGr
           statusTone={statusVisual(item.staff_status).tone}
           metricsLine={`${activeJobsByStaff?.[item.id] ?? 0} active job${(activeJobsByStaff?.[item.id] ?? 0) === 1 ? '' : 's'}`}
           code={item.staff_code}
-          imageUrl={item.photo_url}
+          imageUrl={item.photo_thumbnail_url || item.photo_url}
         />
       ))}
     </div>

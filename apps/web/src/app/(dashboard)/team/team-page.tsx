@@ -7,7 +7,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { Users, FileText, BriefcaseBusiness, DollarSign, Plus, MessageSquare, UserRoundCheck, Clock, Droplets, HardHat, Coffee, Tag } from 'lucide-react';
-import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
+import { SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import { useFeatureFlag } from '@/hooks/use-feature-flag';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
@@ -175,17 +175,12 @@ export default function TeamPageClient() {
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Pending Timesheets</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.pendingTimesheets}</p></CardContent></Card>
       </div>
 
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0 lg:flex-1">
-          <ChipTabs tabs={TABS} active={tab} onChange={setTab} />
-        </div>
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder={`Search ${tab}...`}
-          className="w-full sm:w-72 lg:w-80 lg:ml-auto"
-        />
-      </div>
+      <SearchInput
+        value={search}
+        onChange={setSearch}
+        placeholder={`Search ${tab}...`}
+        className="w-full sm:w-72 lg:w-80"
+      />
 
       {tab === 'staff' && (
         <StaffTable

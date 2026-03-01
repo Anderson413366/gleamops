@@ -15,6 +15,8 @@ import {
   Database,
   MapPin,
   Plus,
+  CalendarDays,
+  Clock,
 } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -30,6 +32,8 @@ import StatusRulesTable from '../admin/rules/status-rules-table';
 import ImportPage from '../admin/import/import-page';
 import DataHubPanel from '../admin/data-hub/data-hub-panel';
 import GeofenceTable from '../operations/geofence/geofence-table';
+import ScheduleSettings from './schedule-settings';
+import TimeClockSettings from './time-clock-settings';
 
 const TABS = [
   { key: 'general', label: 'General', icon: <Settings className="h-4 w-4" /> },
@@ -39,6 +43,8 @@ const TABS = [
   { key: 'data-hub', label: 'Data Hub', icon: <Database className="h-4 w-4" /> },
   { key: 'sequences', label: 'Sequences', icon: <Hash className="h-4 w-4" /> },
   { key: 'import', label: 'Import', icon: <Upload className="h-4 w-4" /> },
+  { key: 'schedule-settings', label: 'Schedule', icon: <CalendarDays className="h-4 w-4" /> },
+  { key: 'time-clock-settings', label: 'Time Clock', icon: <Clock className="h-4 w-4" /> },
 ];
 
 export default function SettingsPageClient() {
@@ -139,6 +145,8 @@ export default function SettingsPageClient() {
       {tab === 'data-hub' && <DataHubPanel key={`hub-${refreshKey}`} search={search} />}
       {tab === 'sequences' && <SequencesTable key={`seq-${refreshKey}`} search={search} />}
       {tab === 'import' && <ImportPage />}
+      {tab === 'schedule-settings' && <ScheduleSettings />}
+      {tab === 'time-clock-settings' && <TimeClockSettings />}
     </div>
   );
 }

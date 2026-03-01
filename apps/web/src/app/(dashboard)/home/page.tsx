@@ -9,6 +9,7 @@ import DashboardHome from './dashboard-home';
 import OwnerOverview from './owner-overview';
 import StaffHome from './staff-home';
 import SupervisorRouteView from '../schedule/supervisor/supervisor-route-view';
+import { MessageWall, DashboardWidgets } from './message-wall';
 
 function HomeLoadingState() {
   return (
@@ -49,5 +50,15 @@ export default function HomePage() {
     return <StaffHome />;
   }
 
-  return <DashboardHome />;
+  return (
+    <div className="flex gap-6">
+      <div className="flex-1 min-w-0">
+        <DashboardHome />
+      </div>
+      <div className="hidden xl:block w-80 shrink-0 space-y-6">
+        <DashboardWidgets />
+        <MessageWall />
+      </div>
+    </div>
+  );
 }

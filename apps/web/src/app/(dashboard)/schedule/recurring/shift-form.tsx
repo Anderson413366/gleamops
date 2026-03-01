@@ -125,7 +125,7 @@ export function ShiftForm({ open, onClose, onCreated, prefill, initialData }: Sh
   const [staffSearch, setStaffSearch] = useState('');
   const [assignedStaff, setAssignedStaff] = useState<StaffCandidate[]>([]);
   const [availableStaff, setAvailableStaff] = useState<StaffCandidate[]>([]);
-  const [overlappingStaff, setOverlappingStaff] = useState<StaffCandidate[]>([]);
+  const [overlappingStaff] = useState<StaffCandidate[]>([]);
 
   // Apply prefill when form opens
   useEffect(() => {

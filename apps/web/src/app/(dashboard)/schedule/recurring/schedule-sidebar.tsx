@@ -287,6 +287,33 @@ export function ScheduleSidebar({
         ))}
       </FilterAccordion>
 
+      <FilterAccordion title="Skills">
+        <p className="text-[11px] text-muted-foreground italic">No skills configured yet.</p>
+      </FilterAccordion>
+
+      <FilterAccordion title="Shift Types">
+        {['Day Shift', 'Evening Shift', 'Night Shift', 'Weekend'].map((type) => (
+          <label key={type} className="flex items-center gap-2 text-[12px] cursor-pointer">
+            <input type="checkbox" className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary" />
+            <span className="text-foreground truncate">{type}</span>
+          </label>
+        ))}
+      </FilterAccordion>
+
+      <FilterAccordion title="Tags">
+        <p className="text-[11px] text-muted-foreground italic">No shift tags configured yet.</p>
+      </FilterAccordion>
+
+      <div className="border-t border-border pt-2">
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input
+            type="checkbox"
+            className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+          />
+          <span className="text-foreground text-xs">Empty Shifts Only</span>
+        </label>
+      </div>
+
       <button
         type="button"
         onClick={onResetFilters}

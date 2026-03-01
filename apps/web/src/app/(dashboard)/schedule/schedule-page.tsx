@@ -951,6 +951,13 @@ export default function SchedulePageClient() {
               <Plus className="h-4 w-4" />
               New Shift
             </Button>
+            <Button
+              variant="secondary"
+              onClick={handleAutoFill}
+              disabled={autoFillLoading}
+            >
+              {autoFillLoading ? 'Filling...' : 'Auto Fill'}
+            </Button>
             <ScheduleToolsDropdown
               onSaveTemplate={() => setTemplateMode('save')}
               onLoadTemplate={() => setTemplateMode('load')}

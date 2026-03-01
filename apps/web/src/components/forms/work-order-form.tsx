@@ -230,7 +230,7 @@ export function WorkOrderForm({ open, onClose, onSuccess, initialValues }: WorkO
     const [jobsRes, staffRes] = await Promise.all([
       supabase
         .from('site_jobs')
-        .select('id, job_code, job_name, site_id, start_time, end_time, site:site_id!site_jobs_site_id_fkey(name, site_code)')
+        .select('id, job_code, job_name, site_id, start_time, end_time, site:sites!site_jobs_site_id_fkey(name, site_code)')
         .eq('status', 'ACTIVE')
         .is('archived_at', null)
         .order('job_code', { ascending: true }),

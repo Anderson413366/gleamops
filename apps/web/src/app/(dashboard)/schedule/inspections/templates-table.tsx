@@ -37,7 +37,7 @@ export default function TemplatesTable({ search }: TemplatesTableProps) {
       .from('inspection_templates')
       .select(`
         *,
-        service:service_id!inspection_templates_service_id_fkey(name)
+        service:services!inspection_templates_service_id_fkey(name)
       `)
       .is('archived_at', null)
       .order('name');

@@ -145,7 +145,7 @@ export function FloaterBoard() {
         .from('work_tickets')
         .select(`
           id, ticket_code, scheduled_date, start_time, end_time, status, position_code,
-          site:site_id!work_tickets_site_id_fkey(name, site_code),
+          site:sites!work_tickets_site_id_fkey(name, site_code),
           assignments:ticket_assignments!inner(staff_id)
         `)
         .eq('scheduled_date', today)
@@ -175,8 +175,8 @@ export function FloaterBoard() {
         .from('route_stops')
         .select(`
           id, stop_order, site_id, estimated_travel_minutes,
-          site:site_id!route_stops_site_id_fkey(name, site_code, address),
-          job:job_id!route_stops_site_job_id_fkey(job_code, start_time, end_time)
+          site:sites!route_stops_site_id_fkey(name, site_code, address),
+          job:site_jobs!route_stops_site_job_id_fkey(job_code, start_time, end_time)
         `)
         .eq('route_id', selectedRouteId)
         .order('stop_order', { ascending: true });

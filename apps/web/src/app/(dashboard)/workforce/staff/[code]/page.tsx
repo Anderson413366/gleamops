@@ -265,13 +265,13 @@ export default function StaffDetailPage() {
       Promise.all([
         supabase
           .from('job_staff_assignments')
-          .select('id, role, start_date, end_date, job:job_id!job_staff_assignments_job_id_fkey(job_code, job_name, status, frequency, schedule_days, site:site_id!site_jobs_site_id_fkey(name, site_code, client:client_id!sites_client_id_fkey(name, client_code)))')
+          .select('id, role, start_date, end_date, job:site_jobs!job_staff_assignments_job_id_fkey(job_code, job_name, status, frequency, schedule_days, site:sites!site_jobs_site_id_fkey(name, site_code, client:clients!sites_client_id_fkey(name, client_code)))')
           .eq('staff_id', data.id)
           .is('archived_at', null)
           .order('start_date', { ascending: false }),
         supabase
           .from('equipment_assignments')
-          .select('id, equipment_id, assigned_date, returned_date, equipment:equipment_id!equipment_assignments_equipment_id_fkey(name, equipment_code, equipment_type, condition)')
+          .select('id, equipment_id, assigned_date, returned_date, equipment:equipment!equipment_assignments_equipment_id_fkey(name, equipment_code, equipment_type, condition)')
           .eq('staff_id', data.id)
           .is('returned_date', null)
           .is('archived_at', null)
@@ -284,7 +284,7 @@ export default function StaffDetailPage() {
           .order('expiry_date', { ascending: true }),
         supabase
           .from('ticket_assignments')
-          .select('id, role, ticket:ticket_id!ticket_assignments_ticket_id_fkey(ticket_code, scheduled_date, status)')
+          .select('id, role, ticket:work_tickets!ticket_assignments_ticket_id_fkey(ticket_code, scheduled_date, status)')
           .eq('staff_id', data.id)
           .is('archived_at', null)
           .order('created_at', { ascending: false }),
@@ -318,7 +318,7 @@ export default function StaffDetailPage() {
     const assignedJobCodes = new Set((jobs ?? []).map((j) => j.job?.job_code).filter(Boolean));
     const { data } = await supabase
       .from('site_jobs')
-      .select('id, job_code, job_name, site:site_id!site_jobs_site_id_fkey(name, client:client_id!sites_client_id_fkey(name))')
+      .select('id, job_code, job_name, site:sites!site_jobs_site_id_fkey(name, client:clients!sites_client_id_fkey(name))')
       .eq('status', 'ACTIVE')
       .is('archived_at', null)
       .order('job_code', { ascending: true });

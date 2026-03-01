@@ -108,8 +108,8 @@ export function WorkOrderTable({ search, openCreateToken = 0 }: WorkOrderTablePr
       .from('work_tickets')
       .select(`
         *,
-        job:job_id!work_tickets_job_id_fkey(job_code, job_name),
-        site:site_id!work_tickets_site_id_fkey(site_code, name, client:client_id!sites_client_id_fkey(name, client_code)),
+        job:site_jobs!work_tickets_job_id_fkey(job_code, job_name),
+        site:sites!work_tickets_site_id_fkey(site_code, name, client:clients!sites_client_id_fkey(name, client_code)),
         assignments:ticket_assignments(assignment_status, staff:staff_id(full_name))
       `)
       .is('archived_at', null)

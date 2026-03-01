@@ -341,8 +341,8 @@ export async function listRouteStopsByRouteIds(
       planned_end_at,
       arrived_at,
       departed_at,
-      site:site_id!route_stops_site_id_fkey(id, site_code, name),
-      site_job:site_job_id!route_stops_site_job_id_fkey(id, job_code, site:site_id!site_jobs_site_id_fkey(id, site_code, name))
+      site:sites!route_stops_site_id_fkey(id, site_code, name),
+      site_job:site_jobs!route_stops_site_job_id_fkey(id, job_code, site:sites!site_jobs_site_id_fkey(id, site_code, name))
     `)
     .in('route_id', routeIds)
     .is('archived_at', null)
@@ -364,7 +364,7 @@ export async function listAssignedTicketsForDate(
       start_time,
       end_time,
       status,
-      site:site_id!work_tickets_site_id_fkey(id, site_code, name),
+      site:sites!work_tickets_site_id_fkey(id, site_code, name),
       assignments:ticket_assignments!inner(
         id,
         staff_id,
@@ -442,10 +442,10 @@ export async function listRecentCalloutEvents(
       escalation_level,
       route_id,
       route_stop_id,
-      affected_staff:affected_staff_id!callout_events_affected_staff_id_fkey(id, staff_code, full_name),
-      reported_by_staff:reported_by_staff_id!callout_events_reported_by_staff_id_fkey(id, staff_code, full_name),
-      covered_by_staff:covered_by_staff_id!callout_events_covered_by_staff_id_fkey(id, staff_code, full_name),
-      site:site_id!callout_events_site_id_fkey(id, site_code, name)
+      affected_staff:staff!callout_events_affected_staff_id_fkey(id, staff_code, full_name),
+      reported_by_staff:staff!callout_events_reported_by_staff_id_fkey(id, staff_code, full_name),
+      covered_by_staff:staff!callout_events_covered_by_staff_id_fkey(id, staff_code, full_name),
+      site:sites!callout_events_site_id_fkey(id, site_code, name)
     `)
     .is('archived_at', null)
     .order('reported_at', { ascending: false })

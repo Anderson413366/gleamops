@@ -51,10 +51,10 @@ export async function listComplaints(
     .from('complaint_records')
     .select(`
       *,
-      site:site_id!complaint_records_site_id_fkey(id, site_code, name),
-      client:client_id!complaint_records_client_id_fkey(id, client_code, name),
-      assigned_staff:assigned_to_staff_id!complaint_records_assigned_to_staff_id_fkey(id, staff_code, full_name),
-      reported_staff:reported_by_staff_id!complaint_records_reported_by_staff_id_fkey(id, staff_code, full_name)
+      site:sites!complaint_records_site_id_fkey(id, site_code, name),
+      client:clients!complaint_records_client_id_fkey(id, client_code, name),
+      assigned_staff:staff!complaint_records_assigned_to_staff_id_fkey(id, staff_code, full_name),
+      reported_staff:staff!complaint_records_reported_by_staff_id_fkey(id, staff_code, full_name)
     `)
     .is('archived_at', null)
     .order('created_at', { ascending: false })
@@ -78,10 +78,10 @@ export async function insertComplaint(
     .insert(payload)
     .select(`
       *,
-      site:site_id!complaint_records_site_id_fkey(id, site_code, name),
-      client:client_id!complaint_records_client_id_fkey(id, client_code, name),
-      assigned_staff:assigned_to_staff_id!complaint_records_assigned_to_staff_id_fkey(id, staff_code, full_name),
-      reported_staff:reported_by_staff_id!complaint_records_reported_by_staff_id_fkey(id, staff_code, full_name)
+      site:sites!complaint_records_site_id_fkey(id, site_code, name),
+      client:clients!complaint_records_client_id_fkey(id, client_code, name),
+      assigned_staff:staff!complaint_records_assigned_to_staff_id_fkey(id, staff_code, full_name),
+      reported_staff:staff!complaint_records_reported_by_staff_id_fkey(id, staff_code, full_name)
     `)
     .single();
 }
@@ -94,10 +94,10 @@ export async function getComplaintByCode(
     .from('complaint_records')
     .select(`
       *,
-      site:site_id!complaint_records_site_id_fkey(id, site_code, name),
-      client:client_id!complaint_records_client_id_fkey(id, client_code, name),
-      assigned_staff:assigned_to_staff_id!complaint_records_assigned_to_staff_id_fkey(id, staff_code, full_name),
-      reported_staff:reported_by_staff_id!complaint_records_reported_by_staff_id_fkey(id, staff_code, full_name)
+      site:sites!complaint_records_site_id_fkey(id, site_code, name),
+      client:clients!complaint_records_client_id_fkey(id, client_code, name),
+      assigned_staff:staff!complaint_records_assigned_to_staff_id_fkey(id, staff_code, full_name),
+      reported_staff:staff!complaint_records_reported_by_staff_id_fkey(id, staff_code, full_name)
     `)
     .eq('complaint_code', code)
     .is('archived_at', null)
@@ -112,10 +112,10 @@ export async function getComplaintById(
     .from('complaint_records')
     .select(`
       *,
-      site:site_id!complaint_records_site_id_fkey(id, site_code, name),
-      client:client_id!complaint_records_client_id_fkey(id, client_code, name),
-      assigned_staff:assigned_to_staff_id!complaint_records_assigned_to_staff_id_fkey(id, staff_code, full_name),
-      reported_staff:reported_by_staff_id!complaint_records_reported_by_staff_id_fkey(id, staff_code, full_name)
+      site:sites!complaint_records_site_id_fkey(id, site_code, name),
+      client:clients!complaint_records_client_id_fkey(id, client_code, name),
+      assigned_staff:staff!complaint_records_assigned_to_staff_id_fkey(id, staff_code, full_name),
+      reported_staff:staff!complaint_records_reported_by_staff_id_fkey(id, staff_code, full_name)
     `)
     .eq('id', id)
     .is('archived_at', null)
@@ -140,10 +140,10 @@ export async function updateComplaintById(
   return query
     .select(`
       *,
-      site:site_id!complaint_records_site_id_fkey(id, site_code, name),
-      client:client_id!complaint_records_client_id_fkey(id, client_code, name),
-      assigned_staff:assigned_to_staff_id!complaint_records_assigned_to_staff_id_fkey(id, staff_code, full_name),
-      reported_staff:reported_by_staff_id!complaint_records_reported_by_staff_id_fkey(id, staff_code, full_name)
+      site:sites!complaint_records_site_id_fkey(id, site_code, name),
+      client:clients!complaint_records_client_id_fkey(id, client_code, name),
+      assigned_staff:staff!complaint_records_assigned_to_staff_id_fkey(id, staff_code, full_name),
+      reported_staff:staff!complaint_records_reported_by_staff_id_fkey(id, staff_code, full_name)
     `)
     .maybeSingle();
 }

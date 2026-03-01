@@ -42,7 +42,7 @@ export default function ExceptionsTable({ search }: ExceptionsTableProps) {
       .from('time_exceptions')
       .select(`
         *,
-        staff:staff_id!time_exceptions_staff_id_fkey(staff_code, full_name)
+        staff:staff!time_exceptions_staff_id_fkey(staff_code, full_name)
       `)
       .is('archived_at', null)
       .order('created_at', { ascending: false })

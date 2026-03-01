@@ -169,8 +169,8 @@ export function TodaysTasks({ date, filter }: TodaysTasksProps) {
             end_time,
             status,
             required_staff_count,
-            job:job_id!work_tickets_job_id_fkey(job_name, frequency, job_type),
-            site:site_id!work_tickets_site_id_fkey(name),
+            job:site_jobs!work_tickets_job_id_fkey(job_name, frequency, job_type),
+            site:sites!work_tickets_site_id_fkey(name),
             assignments:ticket_assignments(assignment_status, staff:staff_id(full_name))
           `)
           .eq('scheduled_date', date)

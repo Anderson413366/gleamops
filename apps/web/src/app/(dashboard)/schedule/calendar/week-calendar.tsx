@@ -364,8 +364,8 @@ export default function WeekCalendar({ onSelectTicket, onCreatedTicket }: WeekCa
       .from('work_tickets')
       .select(`
         *,
-        job:job_id!work_tickets_job_id_fkey(job_code, frequency, job_type),
-        site:site_id!work_tickets_site_id_fkey(site_code, name, client:client_id!sites_client_id_fkey(name)),
+        job:site_jobs!work_tickets_job_id_fkey(job_code, frequency, job_type),
+        site:sites!work_tickets_site_id_fkey(site_code, name, client:clients!sites_client_id_fkey(name)),
         assignments:ticket_assignments(assignment_status, staff:staff_id(full_name))
       `)
       .is('archived_at', null)
@@ -393,7 +393,7 @@ export default function WeekCalendar({ onSelectTicket, onCreatedTicket }: WeekCa
     const supabase = getSupabaseBrowserClient();
     const { data, error } = await supabase
       .from('site_jobs')
-      .select('id, job_code, job_name, site_id, start_time, end_time, site:site_id!site_jobs_site_id_fkey(name, site_code, client:client_id!sites_client_id_fkey(name))')
+      .select('id, job_code, job_name, site_id, start_time, end_time, site:sites!site_jobs_site_id_fkey(name, site_code, client:clients!sites_client_id_fkey(name))')
       .is('archived_at', null)
       .eq('status', 'ACTIVE')
       .order('job_code', { ascending: true });

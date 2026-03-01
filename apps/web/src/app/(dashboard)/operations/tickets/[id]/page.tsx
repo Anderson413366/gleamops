@@ -104,8 +104,8 @@ export default function TicketDetailPage() {
         .from('work_tickets')
         .select(`
           *,
-          job:job_id!work_tickets_job_id_fkey(id, job_code, job_name, frequency, billing_amount, priority_level),
-          site:site_id!work_tickets_site_id_fkey(id, site_code, name, client:client_id!sites_client_id_fkey(client_code, name))
+          job:site_jobs!work_tickets_job_id_fkey(id, job_code, job_name, frequency, billing_amount, priority_level),
+          site:sites!work_tickets_site_id_fkey(id, site_code, name, client:clients!sites_client_id_fkey(client_code, name))
         `)
         .eq('ticket_code', ticketCode)
         .is('archived_at', null)
@@ -127,7 +127,7 @@ export default function TicketDetailPage() {
       const [assignRes, checklistRes, timeRes, inspectionRes] = await Promise.all([
         supabase
           .from('ticket_assignments')
-          .select('id, role, staff:staff_id!ticket_assignments_staff_id_fkey(full_name, staff_code)')
+          .select('id, role, staff:staff!ticket_assignments_staff_id_fkey(full_name, staff_code)')
           .eq('ticket_id', typedTicket.id)
           .is('archived_at', null),
         supabase
@@ -138,7 +138,7 @@ export default function TicketDetailPage() {
           .maybeSingle(),
         supabase
           .from('time_entries')
-          .select('id, start_at, end_at, duration_minutes, status, staff:staff_id!time_entries_staff_id_fkey(full_name, staff_code)')
+          .select('id, start_at, end_at, duration_minutes, status, staff:staff!time_entries_staff_id_fkey(full_name, staff_code)')
           .eq('ticket_id', typedTicket.id)
           .is('archived_at', null)
           .order('start_at', { ascending: false }),

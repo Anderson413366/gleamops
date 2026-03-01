@@ -154,7 +154,7 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
     const supabase = getSupabaseBrowserClient();
     const { data } = await supabase
       .from('service_tasks')
-      .select('id, task_id, frequency_default, task:task_id!service_tasks_task_id_fkey(task_code, name, category)')
+      .select('id, task_id, frequency_default, task:tasks!service_tasks_task_id_fkey(task_code, name, category)')
       .eq('service_id', serviceId)
       .is('archived_at', null)
       .order('created_at');

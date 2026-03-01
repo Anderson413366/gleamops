@@ -130,7 +130,7 @@ export default function StaffTable({
         const staffIds = staffRows.map((row) => row.id);
         const { data: assignmentRows } = await supabase
           .from('job_staff_assignments')
-          .select('staff_id, end_date, job:job_id!job_staff_assignments_job_id_fkey(status)')
+          .select('staff_id, end_date, job:site_jobs!job_staff_assignments_job_id_fkey(status)')
           .is('archived_at', null)
           .in('staff_id', staffIds);
 

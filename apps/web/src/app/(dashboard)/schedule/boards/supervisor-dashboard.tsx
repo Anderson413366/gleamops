@@ -123,7 +123,7 @@ export function SupervisorDashboard() {
       .from('work_tickets')
       .select(`
         id, ticket_code, scheduled_date, start_time, end_time, status, position_code,
-        site:site_id!work_tickets_site_id_fkey(id, name, site_code),
+        site:sites!work_tickets_site_id_fkey(id, name, site_code),
         assignments:ticket_assignments(id, assignment_status, staff:staff_id(id, full_name, phone))
       `)
       .eq('scheduled_date', today)

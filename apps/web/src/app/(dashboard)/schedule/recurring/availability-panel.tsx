@@ -51,7 +51,7 @@ export function AvailabilityPanel() {
           weekday, start_time, end_time,
           one_off_start, one_off_end,
           valid_from, valid_to, notes,
-          staff:staff_id!staff_availability_rules_staff_id_fkey(full_name, staff_code)
+          staff:staff!staff_availability_rules_staff_id_fkey(full_name, staff_code)
         `)
         .is('archived_at', null)
         .order('created_at', { ascending: false })

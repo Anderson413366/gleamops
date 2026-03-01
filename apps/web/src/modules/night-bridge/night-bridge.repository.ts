@@ -120,8 +120,8 @@ export async function listRouteStops(
       departed_at,
       skip_reason,
       skip_notes,
-      site_job:site_job_id!route_stops_site_job_id_fkey(
-        site:site_id!route_stops_site_id_fkey(id, site_code, name)
+      site_job:site_jobs!route_stops_site_job_id_fkey(
+        site:sites!route_stops_site_id_fkey(id, site_code, name)
       )
     `)
     .eq('route_id', routeId)

@@ -175,8 +175,8 @@ export default function OperationsPageClient() {
         .from('work_tickets')
         .select(`
           *,
-          job:job_id!work_tickets_job_id_fkey(job_code, billing_amount),
-          site:site_id!work_tickets_site_id_fkey(site_code, name, address, client:client_id!sites_client_id_fkey(name, client_code))
+          job:site_jobs!work_tickets_job_id_fkey(job_code, billing_amount),
+          site:sites!work_tickets_site_id_fkey(site_code, name, address, client:clients!sites_client_id_fkey(name, client_code))
         `)
         .eq('id', ticketId)
         .is('archived_at', null)

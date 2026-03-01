@@ -25,7 +25,7 @@ export async function findCountByToken(db: SupabaseClient, token: string) {
       submitted_at,
       site_id,
       counter:counted_by(full_name),
-      site:site_id!inventory_counts_site_id_fkey(name, site_code, address)
+      site:sites!inventory_counts_site_id_fkey(name, site_code, address)
     `)
     .eq('public_token', token)
     .is('archived_at', null)
@@ -45,7 +45,7 @@ export async function findCountByTokenFallback(db: SupabaseClient, token: string
       counted_by,
       site_id,
       counter:counted_by(full_name),
-      site:site_id!inventory_counts_site_id_fkey(name, site_code, address)
+      site:sites!inventory_counts_site_id_fkey(name, site_code, address)
     `)
     .eq('count_code', token)
     .is('archived_at', null)

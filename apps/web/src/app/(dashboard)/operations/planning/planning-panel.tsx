@@ -252,7 +252,7 @@ export default function PlanningPanel({ search }: PlanningPanelProps) {
         .select(`
           id, ticket_code, scheduled_date, start_time, end_time, status,
           required_staff_count, position_code, schedule_period_id,
-          site:site_id!work_tickets_site_id_fkey(id, name, site_code),
+          site:sites!work_tickets_site_id_fkey(id, name, site_code),
           assignments:ticket_assignments(id, assignment_status, staff_id, staff:staff_id(full_name))
         `)
         .is('archived_at', null)

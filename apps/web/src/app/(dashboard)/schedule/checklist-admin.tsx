@@ -185,7 +185,7 @@ export function ChecklistAdmin({ search = '' }: ChecklistAdminProps) {
 
     const { data, error } = await supabase
       .from('work_tickets')
-      .select('id, ticket_code, scheduled_date, site:site_id!work_tickets_site_id_fkey(name, site_code)')
+      .select('id, ticket_code, scheduled_date, site:sites!work_tickets_site_id_fkey(name, site_code)')
       .gte('scheduled_date', today)
       .lte('scheduled_date', endDate)
       .is('archived_at', null)

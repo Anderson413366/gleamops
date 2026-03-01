@@ -101,7 +101,7 @@ export function ExpressBid({ open, onClose, onSuccess }: ExpressBidProps) {
       .then(({ data }) => {
         if (data) setServices(data.map((s) => ({ value: s.id, label: `${s.name} (${s.service_code})` })));
       });
-    supabase.from('task_production_rates').select('*, task:task_id!task_production_rates_task_id_fkey(task_code)').eq('is_active', true)
+    supabase.from('task_production_rates').select('*, task:tasks!task_production_rates_task_id_fkey(task_code)').eq('is_active', true)
       .then(({ data }) => {
         if (data) {
           setProductionRates(data.map((r: Record<string, unknown>) => {
@@ -125,7 +125,7 @@ export function ExpressBid({ open, onClose, onSuccess }: ExpressBidProps) {
     if (!form.service_id) { setServiceTasks([]); return; }
     supabase
       .from('service_tasks')
-      .select('task_id, frequency_default, task:task_id!service_tasks_task_id_fkey(task_code, name)')
+      .select('task_id, frequency_default, task:tasks!service_tasks_task_id_fkey(task_code, name)')
       .eq('service_id', form.service_id)
       .is('archived_at', null)
       .then(({ data }) => {

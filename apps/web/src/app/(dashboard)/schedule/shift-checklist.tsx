@@ -230,7 +230,7 @@ export function ShiftChecklist({ search = '' }: ShiftChecklistProps) {
 
     const { data: ticketRowsData } = await supabase
       .from('work_tickets')
-      .select('id, ticket_code, scheduled_date, start_time, end_time, status, site:site_id!work_tickets_site_id_fkey(name, site_code)')
+      .select('id, ticket_code, scheduled_date, start_time, end_time, status, site:sites!work_tickets_site_id_fkey(name, site_code)')
       .in('id', ticketIds)
       .gte('scheduled_date', today)
       .lte('scheduled_date', horizonEnd)

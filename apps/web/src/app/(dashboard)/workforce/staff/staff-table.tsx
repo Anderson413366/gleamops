@@ -281,9 +281,12 @@ export default function StaffTable({
                   <TableHead sortable sorted={sortKey === 'staff_code' && sortDir} onSort={() => onSort('staff_code')}>Code</TableHead>
                   <TableHead sortable sorted={sortKey === 'full_name' && sortDir} onSort={() => onSort('full_name')}>Name</TableHead>
                   <TableHead sortable sorted={sortKey === 'role' && sortDir} onSort={() => onSort('role')}>Role</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Phone</TableHead>
                   <TableHead>Employment</TableHead>
                   <TableHead>Active Jobs</TableHead>
                   <TableHead sortable sorted={sortKey === 'hire_date' && sortDir} onSort={() => onSort('hire_date')}>Hire Date</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Profile %</TableHead>
                 </tr>
               </TableHeader>
@@ -323,6 +326,12 @@ export default function StaffTable({
                         {row.role.replace(/_/g, ' ')}
                       </Badge>
                     </TableCell>
+                    <TableCell className="text-muted-foreground text-xs truncate max-w-[160px]" title={row.email ?? ''}>
+                      {row.email ?? '—'}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-xs">
+                      {row.mobile_phone ?? row.phone ?? '—'}
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       <span className="inline-block max-w-[160px] truncate" title={row.employment_type ?? 'Not Set'}>
                         {row.employment_type ?? 'Not Set'}
@@ -330,6 +339,11 @@ export default function StaffTable({
                     </TableCell>
                     <TableCell className="tabular-nums text-muted-foreground">{activeJobsByStaff[row.id] ?? 0}</TableCell>
                     <TableCell className="text-muted-foreground">{formatDate(row.hire_date)}</TableCell>
+                    <TableCell>
+                      <Badge color={rowStatus === 'ACTIVE' ? 'green' : rowStatus === 'ON_LEAVE' ? 'yellow' : rowStatus === 'TERMINATED' ? 'red' : 'gray'}>
+                        {rowStatus === 'ACTIVE' ? 'Activated' : rowStatus}
+                      </Badge>
+                    </TableCell>
                     <TableCell className="tabular-nums text-muted-foreground">{profilePercent(row)}%</TableCell>
                   </TableRow>
                 );

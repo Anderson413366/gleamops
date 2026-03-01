@@ -6,7 +6,7 @@
  */
 
 import { useState, useMemo, useEffect } from 'react';
-import { Users, FileText, BriefcaseBusiness, DollarSign, Plus, MessageSquare, UserRoundCheck, Clock, Droplets, HardHat } from 'lucide-react';
+import { Users, FileText, BriefcaseBusiness, DollarSign, Plus, MessageSquare, UserRoundCheck, Clock, Droplets, HardHat, Coffee, Tag } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import { useFeatureFlag } from '@/hooks/use-feature-flag';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -22,6 +22,8 @@ import HrLitePanel from '../workforce/hr/hr-lite-panel';
 import MicrofiberTable from '../workforce/microfiber/microfiber-table';
 import MicrofiberExport from '../workforce/microfiber/microfiber-export';
 import SubcontractorsTable from '../vendors/subcontractors/subcontractors-table';
+import BreakRulesTable from '../workforce/break-rules/break-rules-table';
+import ShiftTagsTable from '../workforce/shift-tags/shift-tags-table';
 
 const BASE_TABS = [
   { key: 'staff', label: 'Staff', icon: <Users className="h-4 w-4" /> },
@@ -32,6 +34,8 @@ const BASE_TABS = [
   { key: 'hr', label: 'HR', icon: <UserRoundCheck className="h-4 w-4" /> },
   { key: 'microfiber', label: 'Microfiber', icon: <Droplets className="h-4 w-4" /> },
   { key: 'subcontractors', label: 'Subcontractors', icon: <HardHat className="h-4 w-4" /> },
+  { key: 'break-rules', label: 'Break Rules', icon: <Coffee className="h-4 w-4" /> },
+  { key: 'shift-tags', label: 'Shift Tags', icon: <Tag className="h-4 w-4" /> },
 ];
 
 export default function TeamPageClient() {
@@ -146,6 +150,8 @@ export default function TeamPageClient() {
       )}
       {tab === 'messages' && messagingEnabled && <MessagesTab key={`msg-${refreshKey}`} search={search} />}
       {tab === 'subcontractors' && <SubcontractorsTable key={`subs-${refreshKey}`} search={search} />}
+      {tab === 'break-rules' && <BreakRulesTable key={`break-${refreshKey}`} search={search} />}
+      {tab === 'shift-tags' && <ShiftTagsTable key={`tags-${refreshKey}`} search={search} />}
     </div>
   );
 }

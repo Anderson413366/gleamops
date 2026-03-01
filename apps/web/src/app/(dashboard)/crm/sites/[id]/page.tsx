@@ -36,6 +36,7 @@ import { StatusToggleDialog } from '@/components/detail/status-toggle-dialog';
 import { EntityLink } from '@/components/links/entity-link';
 import { formatZip } from '@/lib/utils/format-zip';
 import { toast } from 'sonner';
+import { InlineEditField } from '@/components/detail/inline-edit-field';
 
 interface SiteWithClient extends Site {
   // Legacy/alias fields kept for older environments so detail pages still populate.
@@ -917,11 +918,22 @@ export default function SiteDetailPage() {
           <p className="text-xs text-muted-foreground">Active Jobs</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <p className="text-2xl font-bold text-foreground">
-            {site.square_footage != null
-              ? site.square_footage.toLocaleString()
-              : 'Not Set'}
-          </p>
+          <InlineEditField
+            value={site.square_footage}
+            displayValue={
+              <span className="text-2xl font-bold text-foreground">
+                {site.square_footage != null ? site.square_footage.toLocaleString() : 'Not Set'}
+              </span>
+            }
+            fieldType="number"
+            renderAs="p"
+            table="sites"
+            recordId={site.id}
+            field="square_footage"
+            versionEtag={site.version_etag}
+            parseValue={(v) => v.trim() === '' ? null : Number(v)}
+            onSaved={fetchSite}
+          />
           <p className="text-xs text-muted-foreground">Square Footage</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
@@ -962,15 +974,56 @@ export default function SiteDetailPage() {
           <dl className="mt-4 space-y-3 text-sm">
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Street</dt>
-              <dd className="font-medium text-right">{notSet(addr?.street)}</dd>
+              <InlineEditField
+                value={addr?.street}
+                table="sites"
+                recordId={site.id}
+                field="address"
+                versionEtag={site.version_etag}
+                parseValue={(v) => ({ ...site.address, street: v.trim() || null })}
+                onSaved={fetchSite}
+                placeholder="Street address"
+              />
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">City</dt>
-              <dd className="font-medium text-right">{notSet(addr?.city)}</dd>
+              <InlineEditField
+                value={addr?.city}
+                table="sites"
+                recordId={site.id}
+                field="address"
+                versionEtag={site.version_etag}
+                parseValue={(v) => ({ ...site.address, city: v.trim() || null })}
+                onSaved={fetchSite}
+                placeholder="City"
+              />
             </div>
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">State / ZIP</dt>
-              <dd className="font-medium text-right">{notSet([addr?.state, formatZip(addr?.zip)].filter(Boolean).join(' '))}</dd>
+              <dt className="text-muted-foreground">State</dt>
+              <InlineEditField
+                value={addr?.state}
+                table="sites"
+                recordId={site.id}
+                field="address"
+                versionEtag={site.version_etag}
+                parseValue={(v) => ({ ...site.address, state: v.trim() || null })}
+                onSaved={fetchSite}
+                placeholder="State"
+              />
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">ZIP</dt>
+              <InlineEditField
+                value={addr?.zip}
+                displayValue={notSet(formatZip(addr?.zip))}
+                table="sites"
+                recordId={site.id}
+                field="address"
+                versionEtag={site.version_etag}
+                parseValue={(v) => ({ ...site.address, zip: v.trim() || null })}
+                onSaved={fetchSite}
+                placeholder="ZIP code"
+              />
             </div>
           </dl>
         </div>
@@ -1034,53 +1087,159 @@ export default function SiteDetailPage() {
           <dl className="space-y-3 text-sm">
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Earliest Start</dt>
-              <dd className="font-medium text-right">{formatTime(earliestStartTime)}</dd>
+              <InlineEditField
+                value={earliestStartTime}
+                displayValue={formatTime(earliestStartTime)}
+                fieldType="time"
+                table="sites"
+                recordId={site.id}
+                field="earliest_start_time"
+                versionEtag={site.version_etag}
+                onSaved={fetchSite}
+              />
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Latest Start</dt>
-              <dd className="font-medium text-right">{formatTime(latestStartTime)}</dd>
+              <InlineEditField
+                value={latestStartTime}
+                displayValue={formatTime(latestStartTime)}
+                fieldType="time"
+                table="sites"
+                recordId={site.id}
+                field="latest_start_time"
+                versionEtag={site.version_etag}
+                onSaved={fetchSite}
+              />
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Weekend Access</dt>
-              <dd className="font-medium">
-                {site.weekend_access ? 'Yes' : 'No'}
-              </dd>
+              <InlineEditField
+                value={site.weekend_access}
+                fieldType="boolean"
+                table="sites"
+                recordId={site.id}
+                field="weekend_access"
+                versionEtag={site.version_etag}
+                parseValue={(v) => v === 'true'}
+                onSaved={fetchSite}
+              />
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Alarm System</dt>
-              <dd className="font-medium text-right">{notSet(site.alarm_system)}</dd>
+              <InlineEditField
+                value={site.alarm_system}
+                table="sites"
+                recordId={site.id}
+                field="alarm_system"
+                versionEtag={site.version_etag}
+                onSaved={fetchSite}
+                placeholder="Alarm system"
+              />
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Alarm Company</dt>
-              <dd className="font-medium text-right">{notSet(site.alarm_company)}</dd>
+              <InlineEditField
+                value={site.alarm_company}
+                table="sites"
+                recordId={site.id}
+                field="alarm_company"
+                versionEtag={site.version_etag}
+                onSaved={fetchSite}
+                placeholder="Alarm company"
+              />
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Alarm Code</dt>
-              <dd className="font-medium font-mono text-right">{site.alarm_code ? site.alarm_code : notSet(null)}</dd>
+              <InlineEditField
+                value={site.alarm_code}
+                className="font-mono"
+                table="sites"
+                recordId={site.id}
+                field="alarm_code"
+                versionEtag={site.version_etag}
+                onSaved={fetchSite}
+                placeholder="Alarm code"
+              />
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Security Protocol</dt>
-              <dd className="font-medium text-right">{notSet(site.security_protocol)}</dd>
+              <InlineEditField
+                value={site.security_protocol}
+                table="sites"
+                recordId={site.id}
+                field="security_protocol"
+                versionEtag={site.version_etag}
+                onSaved={fetchSite}
+                placeholder="Security protocol"
+              />
             </div>
             <div>
               <dt className="text-muted-foreground">Entry Instructions</dt>
-              <dd className="mt-1 font-medium">{site.entry_instructions ? site.entry_instructions : <span className="text-muted-foreground">Not Set</span>}</dd>
+              <InlineEditField
+                value={site.entry_instructions}
+                fieldType="textarea"
+                layout="vertical"
+                table="sites"
+                recordId={site.id}
+                field="entry_instructions"
+                versionEtag={site.version_etag}
+                onSaved={fetchSite}
+                placeholder="Entry instructions..."
+              />
             </div>
             <div>
               <dt className="text-muted-foreground">Parking Instructions</dt>
-              <dd className="mt-1 font-medium">{site.parking_instructions ? site.parking_instructions : <span className="text-muted-foreground">Not Set</span>}</dd>
+              <InlineEditField
+                value={site.parking_instructions}
+                fieldType="textarea"
+                layout="vertical"
+                table="sites"
+                recordId={site.id}
+                field="parking_instructions"
+                versionEtag={site.version_etag}
+                onSaved={fetchSite}
+                placeholder="Parking instructions..."
+              />
             </div>
             <div>
               <dt className="text-muted-foreground">Access Notes</dt>
-              <dd className="mt-1 font-medium">{site.access_notes ? site.access_notes : <span className="text-muted-foreground">Not Set</span>}</dd>
+              <InlineEditField
+                value={site.access_notes}
+                fieldType="textarea"
+                layout="vertical"
+                table="sites"
+                recordId={site.id}
+                field="access_notes"
+                versionEtag={site.version_etag}
+                onSaved={fetchSite}
+                placeholder="Access notes..."
+              />
             </div>
-            <div>
-              <dt className="text-muted-foreground">Access Window</dt>
-              <dd className="mt-1 font-medium">
-                {site.access_window_start || site.access_window_end
-                  ? `${site.access_window_start ?? '—'} – ${site.access_window_end ?? '—'}`
-                  : <span className="text-muted-foreground">Not Set</span>}
-              </dd>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Access Window Start</dt>
+              <InlineEditField
+                value={site.access_window_start}
+                displayValue={site.access_window_start ?? 'Not Set'}
+                fieldType="time"
+                table="sites"
+                recordId={site.id}
+                field="access_window_start"
+                versionEtag={site.version_etag}
+                onSaved={fetchSite}
+              />
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Access Window End</dt>
+              <InlineEditField
+                value={site.access_window_end}
+                displayValue={site.access_window_end ?? 'Not Set'}
+                fieldType="time"
+                table="sites"
+                recordId={site.id}
+                field="access_window_end"
+                versionEtag={site.version_etag}
+                onSaved={fetchSite}
+              />
             </div>
 
             <div className="pt-3 border-t border-border">
@@ -1120,23 +1279,74 @@ export default function SiteDetailPage() {
           <dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-muted-foreground">Janitorial Closet</dt>
-              <dd className="font-medium">{janitorialCloset ? janitorialCloset : <span className="text-muted-foreground">Not Set</span>}</dd>
+              <InlineEditField
+                value={site.janitorial_closet_location}
+                layout="vertical"
+                table="sites"
+                recordId={site.id}
+                field="janitorial_closet_location"
+                versionEtag={site.version_etag}
+                onSaved={fetchSite}
+                placeholder="Location"
+              />
             </div>
             <div>
               <dt className="text-muted-foreground">Supply Storage</dt>
-              <dd className="font-medium">{supplyStorage ? supplyStorage : <span className="text-muted-foreground">Not Set</span>}</dd>
+              <InlineEditField
+                value={site.supply_storage_location}
+                layout="vertical"
+                table="sites"
+                recordId={site.id}
+                field="supply_storage_location"
+                versionEtag={site.version_etag}
+                onSaved={fetchSite}
+                placeholder="Location"
+              />
             </div>
             <div>
               <dt className="text-muted-foreground">Water Source</dt>
-              <dd className="font-medium">{waterSource ? waterSource : <span className="text-muted-foreground">Not Set</span>}</dd>
+              <InlineEditField
+                value={site.water_source_location}
+                layout="vertical"
+                table="sites"
+                recordId={site.id}
+                field="water_source_location"
+                versionEtag={site.version_etag}
+                onSaved={fetchSite}
+                placeholder="Location"
+              />
             </div>
             <div>
               <dt className="text-muted-foreground">Dumpster</dt>
-              <dd className="font-medium">{dumpsterLocation ? dumpsterLocation : <span className="text-muted-foreground">Not Set</span>}</dd>
+              <InlineEditField
+                value={site.dumpster_location}
+                layout="vertical"
+                table="sites"
+                recordId={site.id}
+                field="dumpster_location"
+                versionEtag={site.version_etag}
+                onSaved={fetchSite}
+                placeholder="Location"
+              />
             </div>
             <div>
               <dt className="text-muted-foreground">Difficulty</dt>
-              <dd className="font-medium">{site.difficulty ? site.difficulty : <span className="text-muted-foreground">Not Set</span>}</dd>
+              <InlineEditField
+                value={site.difficulty}
+                fieldType="select"
+                selectOptions={[
+                  { value: 'EASY', label: 'Easy' },
+                  { value: 'MODERATE', label: 'Moderate' },
+                  { value: 'HARD', label: 'Hard' },
+                  { value: 'VERY_HARD', label: 'Very Hard' },
+                ]}
+                layout="vertical"
+                table="sites"
+                recordId={site.id}
+                field="difficulty"
+                versionEtag={site.version_etag}
+                onSaved={fetchSite}
+              />
             </div>
           </dl>
         </div>
@@ -1171,35 +1381,110 @@ export default function SiteDetailPage() {
           <dl className="space-y-3 text-sm">
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Square Footage</dt>
-              <dd className="font-medium text-right">{site.square_footage != null ? `${site.square_footage.toLocaleString()} sq ft` : notSet(null)}</dd>
+              <InlineEditField
+                value={site.square_footage}
+                displayValue={site.square_footage != null ? `${site.square_footage.toLocaleString()} sq ft` : undefined}
+                fieldType="number"
+                table="sites"
+                recordId={site.id}
+                field="square_footage"
+                versionEtag={site.version_etag}
+                parseValue={(v) => v.trim() === '' ? null : Number(v)}
+                onSaved={fetchSite}
+              />
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Floors</dt>
-              <dd className="font-medium text-right">{floors ?? <span className="text-muted-foreground">Not Set</span>}</dd>
+              <InlineEditField
+                value={site.number_of_floors}
+                fieldType="number"
+                table="sites"
+                recordId={site.id}
+                field="number_of_floors"
+                versionEtag={site.version_etag}
+                parseValue={(v) => v.trim() === '' ? null : Number(v)}
+                onSaved={fetchSite}
+              />
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Employees On Site</dt>
-              <dd className="font-medium text-right">{site.employees_on_site ?? <span className="text-muted-foreground">Not Set</span>}</dd>
+              <InlineEditField
+                value={site.employees_on_site}
+                fieldType="number"
+                table="sites"
+                recordId={site.id}
+                field="employees_on_site"
+                versionEtag={site.version_etag}
+                parseValue={(v) => v.trim() === '' ? null : Number(v)}
+                onSaved={fetchSite}
+              />
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">OSHA Compliance</dt>
-              <dd className="font-medium text-right">{oshaComplianceRequired ? 'Required' : 'No'}</dd>
+              <InlineEditField
+                value={site.osha_compliance_required}
+                displayValue={oshaComplianceRequired ? 'Required' : 'No'}
+                fieldType="boolean"
+                table="sites"
+                recordId={site.id}
+                field="osha_compliance_required"
+                versionEtag={site.version_etag}
+                parseValue={(v) => v === 'true'}
+                onSaved={fetchSite}
+              />
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Background Check</dt>
-              <dd className="font-medium text-right">{backgroundCheckRequired ? 'Required' : 'No'}</dd>
+              <InlineEditField
+                value={site.background_check_required}
+                displayValue={backgroundCheckRequired ? 'Required' : 'No'}
+                fieldType="boolean"
+                table="sites"
+                recordId={site.id}
+                field="background_check_required"
+                versionEtag={site.version_etag}
+                parseValue={(v) => v === 'true'}
+                onSaved={fetchSite}
+              />
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Service Start Date</dt>
-              <dd className="font-medium text-right">{site.service_start_date ? formatDate(site.service_start_date) : notSet(null)}</dd>
+              <InlineEditField
+                value={site.service_start_date}
+                displayValue={site.service_start_date ? formatDate(site.service_start_date) : undefined}
+                fieldType="date"
+                table="sites"
+                recordId={site.id}
+                field="service_start_date"
+                versionEtag={site.version_etag}
+                onSaved={fetchSite}
+              />
             </div>
             <div className="flex justify-between gap-4">
-              <dt className="text-muted-foreground">Business Hours</dt>
-              <dd className="font-medium text-right">
-                {site.business_hours_start || site.business_hours_end
-                  ? `${formatTime(site.business_hours_start)} - ${formatTime(site.business_hours_end)}`
-                  : notSet(null)}
-              </dd>
+              <dt className="text-muted-foreground">Business Hours Start</dt>
+              <InlineEditField
+                value={site.business_hours_start}
+                displayValue={site.business_hours_start ? formatTime(site.business_hours_start) : undefined}
+                fieldType="time"
+                table="sites"
+                recordId={site.id}
+                field="business_hours_start"
+                versionEtag={site.version_etag}
+                onSaved={fetchSite}
+              />
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted-foreground">Business Hours End</dt>
+              <InlineEditField
+                value={site.business_hours_end}
+                displayValue={site.business_hours_end ? formatTime(site.business_hours_end) : undefined}
+                fieldType="time"
+                table="sites"
+                recordId={site.id}
+                field="business_hours_end"
+                versionEtag={site.version_etag}
+                onSaved={fetchSite}
+              />
             </div>
           </dl>
         </div>
@@ -1214,35 +1499,75 @@ export default function SiteDetailPage() {
           <dl className="space-y-4 text-sm">
             <div className="flex items-center justify-between gap-4">
               <dt className="text-muted-foreground">Risk Level</dt>
-              <dd className="font-medium text-right">
-                {site.risk_level ? (
+              <InlineEditField
+                value={site.risk_level}
+                displayValue={site.risk_level ? (
                   <Badge color={RISK_BADGE[site.risk_level] ?? 'gray'} dot={false} className="px-3 py-1">
                     {site.risk_level}
                   </Badge>
-                ) : (
-                  <span className="text-muted-foreground">Not Set</span>
-                )}
-              </dd>
+                ) : undefined}
+                fieldType="select"
+                selectOptions={[
+                  { value: 'LOW', label: 'Low' },
+                  { value: 'MEDIUM', label: 'Medium' },
+                  { value: 'HIGH', label: 'High' },
+                  { value: 'CRITICAL', label: 'Critical' },
+                ]}
+                table="sites"
+                recordId={site.id}
+                field="risk_level"
+                versionEtag={site.version_etag}
+                onSaved={fetchSite}
+              />
             </div>
             <div className="flex items-center justify-between gap-4">
               <dt className="text-muted-foreground">Priority Level</dt>
-              <dd className="font-medium text-right">
-                {priorityLevel ? (
+              <InlineEditField
+                value={site.priority_level}
+                displayValue={priorityLevel ? (
                   <Badge color={PRIORITY_BADGE[priorityLevel] ?? 'gray'} dot={false} className="px-3 py-1">
                     {priorityLevel}
                   </Badge>
-                ) : (
-                  <span className="text-muted-foreground">Not Set</span>
-                )}
-              </dd>
+                ) : undefined}
+                fieldType="select"
+                selectOptions={[
+                  { value: 'LOW', label: 'Low' },
+                  { value: 'STANDARD', label: 'Standard' },
+                  { value: 'MEDIUM', label: 'Medium' },
+                  { value: 'HIGH', label: 'High' },
+                  { value: 'CRITICAL', label: 'Critical' },
+                ]}
+                table="sites"
+                recordId={site.id}
+                field="priority_level"
+                versionEtag={site.version_etag}
+                onSaved={fetchSite}
+              />
             </div>
             <div className="flex items-center justify-between gap-4">
               <dt className="text-muted-foreground">Status Date</dt>
-              <dd className="font-medium text-right">{site.status_date ? formatDate(site.status_date) : notSet(null)}</dd>
+              <InlineEditField
+                value={site.status_date}
+                displayValue={site.status_date ? formatDate(site.status_date) : undefined}
+                fieldType="date"
+                table="sites"
+                recordId={site.id}
+                field="status_date"
+                versionEtag={site.version_etag}
+                onSaved={fetchSite}
+              />
             </div>
             <div className="flex items-start justify-between gap-4">
               <dt className="text-muted-foreground">Status Reason</dt>
-              <dd className="font-medium text-right">{site.status_reason ? site.status_reason : notSet(null)}</dd>
+              <InlineEditField
+                value={site.status_reason}
+                table="sites"
+                recordId={site.id}
+                field="status_reason"
+                versionEtag={site.version_etag}
+                onSaved={fetchSite}
+                placeholder="Status reason"
+              />
             </div>
             <div className="pt-3 border-t border-border">
               <p className="text-xs text-muted-foreground">
@@ -1254,13 +1579,20 @@ export default function SiteDetailPage() {
 
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm lg:col-span-1">
           <h3 className="mb-4 text-sm font-semibold text-foreground">Notes</h3>
-          <div className="text-sm">
-            {site.notes ? (
-              <p className="text-muted-foreground whitespace-pre-wrap">{site.notes}</p>
-            ) : (
-              <p className="italic text-muted-foreground">Not Set</p>
-            )}
-          </div>
+          <dl className="text-sm">
+            <InlineEditField
+              value={site.notes}
+              displayValue={site.notes ? <span className="whitespace-pre-wrap text-muted-foreground">{site.notes}</span> : undefined}
+              fieldType="textarea"
+              layout="vertical"
+              table="sites"
+              recordId={site.id}
+              field="notes"
+              versionEtag={site.version_etag}
+              onSaved={fetchSite}
+              placeholder="Add notes..."
+            />
+          </dl>
           <div className="mt-4 pt-4 border-t border-border text-xs text-muted-foreground space-y-2">
             <p>
               Contract Type: <span className="font-mono">{parsedLegacy.contractType ?? 'Not Set'}</span>

@@ -221,6 +221,8 @@ export default function SchedulePageClient() {
   const [copyWeekOpen, setCopyWeekOpen] = useState(false);
   const [copyWeekLoading, setCopyWeekLoading] = useState(false);
   const [publishLoading, setPublishLoading] = useState(false);
+  const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
+  const [publishWarnings, setPublishWarnings] = useState<{ conflicts: number; unassigned: number }>({ conflicts: 0, unassigned: 0 });
   const [templateMode, setTemplateMode] = useState<'save' | 'load' | null>(null);
   const [autoFillLoading, setAutoFillLoading] = useState(false);
   const [showAvailability, setShowAvailability] = useState(true);
@@ -616,6 +618,36 @@ export default function SchedulePageClient() {
       setPublishLoading(false);
     }
   }, [recurringRange, recurringHorizon]);
+
+  const handlePublishClick = useCallback(async () => {
+    const supabase = getSupabaseBrowserClient();
+    const rangeStart = toDateKey(recurringRange.start);
+    const rangeEnd = toDateKey(recurringRange.end);
+
+    const [conflictsRes, unassignedRes] = await Promise.all([
+      supabase
+        .from('schedule_conflicts')
+        .select('id', { count: 'exact', head: true })
+        .is('resolved_at', null),
+      supabase
+        .from('work_tickets')
+        .select('id', { count: 'exact', head: true })
+        .gte('scheduled_date', rangeStart)
+        .lte('scheduled_date', rangeEnd)
+        .in('status', ['SCHEDULED', 'IN_PROGRESS'])
+        .is('assigned_to', null),
+    ]);
+
+    const conflicts = conflictsRes.count ?? 0;
+    const unassigned = unassignedRes.count ?? 0;
+
+    if (conflicts > 0 || unassigned > 0) {
+      setPublishWarnings({ conflicts, unassigned });
+      setPublishConfirmOpen(true);
+    } else {
+      handleQuickPublish();
+    }
+  }, [recurringRange, handleQuickPublish]);
 
   const handleAutoFill = useCallback(async () => {
     setAutoFillLoading(true);
@@ -1122,7 +1154,7 @@ export default function SchedulePageClient() {
           {canPublish && (
             <Button
               variant="secondary"
-              onClick={handleQuickPublish}
+              onClick={handlePublishClick}
               disabled={publishLoading}
               className="border-green-300 bg-green-50 text-green-800 hover:bg-green-100 dark:border-green-700 dark:bg-green-950/30 dark:text-green-300 dark:hover:bg-green-950/50"
             >
@@ -1425,6 +1457,22 @@ export default function SchedulePageClient() {
         description={`Copy all shifts from the previous week into the current range (${recurringRange.label})? This will create new tickets with the same assignments shifted forward by 7 days.`}
         confirmLabel={copyWeekLoading ? 'Copying...' : 'Copy Shifts'}
         variant="default"
+      />
+
+      <ConfirmDialog
+        open={publishConfirmOpen}
+        onClose={() => setPublishConfirmOpen(false)}
+        onConfirm={() => {
+          setPublishConfirmOpen(false);
+          handleQuickPublish();
+        }}
+        title="Publish with warnings?"
+        description={[
+          publishWarnings.conflicts > 0 ? `${publishWarnings.conflicts} unresolved schedule conflict${publishWarnings.conflicts === 1 ? '' : 's'}` : '',
+          publishWarnings.unassigned > 0 ? `${publishWarnings.unassigned} unassigned ticket${publishWarnings.unassigned === 1 ? '' : 's'} in this range` : '',
+        ].filter(Boolean).join(' and ') + '. Are you sure you want to publish?'}
+        confirmLabel="Publish Anyway"
+        variant="danger"
       />
 
       <TemplateManager

@@ -323,7 +323,12 @@ export function StaffForm({ open, onClose, initialData, onSuccess, focusSection 
               <Input label="Hire Date" type="date" value={values.hire_date ?? ''} onChange={(e) => setValue('hire_date', e.target.value || null)} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              <Input label="Pay Rate" type="number" value={values.pay_rate ?? ''} onChange={(e) => setValue('pay_rate', e.target.value ? Number(e.target.value) : null)} />
+              <div>
+                <Input label="Pay Rate" type="number" value={values.pay_rate ?? ''} onChange={(e) => setValue('pay_rate', e.target.value ? Number(e.target.value) : null)} />
+                {values.pay_rate != null && (values.pay_rate < 8 || values.pay_rate > 200) && (
+                  <p className="mt-1 text-xs text-yellow-700 dark:text-yellow-400">Pay rate of ${values.pay_rate}/hr seems unusual. Please verify.</p>
+                )}
+              </div>
               <Select label="Pay Type" value={values.pay_type ?? ''} onChange={(e) => setValue('pay_type', e.target.value || null)} options={PAY_TYPE_OPTIONS} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -413,7 +418,12 @@ export function StaffForm({ open, onClose, initialData, onSuccess, focusSection 
                 <Input label="Hire Date" type="date" value={values.hire_date ?? ''} onChange={(e) => setValue('hire_date', e.target.value || null)} />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                <Input label="Pay Rate ($/hr)" type="number" value={values.pay_rate ?? ''} onChange={(e) => setValue('pay_rate', e.target.value ? Number(e.target.value) : null)} />
+                <div>
+                  <Input label="Pay Rate ($/hr)" type="number" value={values.pay_rate ?? ''} onChange={(e) => setValue('pay_rate', e.target.value ? Number(e.target.value) : null)} />
+                  {values.pay_rate != null && (values.pay_rate < 8 || values.pay_rate > 200) && (
+                    <p className="mt-1 text-xs text-yellow-700 dark:text-yellow-400">Pay rate of ${values.pay_rate}/hr seems unusual. Please verify.</p>
+                  )}
+                </div>
                 <Select label="Pay Type" value={values.pay_type ?? ''} onChange={(e) => setValue('pay_type', e.target.value || null)} options={PAY_TYPE_OPTIONS} />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

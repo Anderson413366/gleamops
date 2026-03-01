@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { BriefcaseBusiness } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { StaffPosition } from '@gleamops/shared';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Badge, Pagination, TableSkeleton, SlideOver, ExportButton
+  EmptyState, Pagination, TableSkeleton, ExportButton
 } from '@gleamops/ui';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
@@ -34,9 +35,9 @@ function briefDescription(position: StaffPosition): string | null {
 }
 
 export default function PositionsTable({ search }: Props) {
+  const router = useRouter();
   const [rows, setRows] = useState<StaffPosition[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<StaffPosition | null>(null);
   const [staffCountByPositionId, setStaffCountByPositionId] = useState<Record<string, number>>({});
 
   const fetchData = useCallback(async () => {
@@ -121,7 +122,7 @@ export default function PositionsTable({ search }: Props) {
           </TableHeader>
           <TableBody>
             {pag.page.map((row) => (
-              <TableRow key={row.id} className="cursor-pointer" onClick={() => setSelected(row)}>
+              <TableRow key={row.id} className="cursor-pointer" onClick={() => router.push(`/team/positions/${encodeURIComponent(row.position_code)}`)}>
                 <TableCell className="font-mono text-xs">
                   <div className="inline-flex max-w-[132px] rounded-md bg-muted px-2 py-1">
                     <span className="truncate" title={row.position_code}>{row.position_code}</span>
@@ -176,32 +177,6 @@ export default function PositionsTable({ search }: Props) {
           />
         </div>
       )}
-
-      <SlideOver
-        open={!!selected}
-        onClose={() => setSelected(null)}
-        title={selected ? `${selected.title}` : 'Position'}
-        subtitle={selected?.position_code}
-      >
-        {selected && (
-          <div className="space-y-3 text-sm">
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-muted-foreground">Status</span>
-              <Badge color={selected.is_active ? 'green' : 'gray'}>
-                {selected.is_active ? 'Active' : 'Inactive'}
-              </Badge>
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-muted-foreground">Department</span>
-              <span className="font-medium text-right">{departmentDisplay(selected) ?? renderNotSet()}</span>
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-muted-foreground">Pay Grade</span>
-              <span className="font-medium text-right">{selected.pay_grade ?? renderNotSet()}</span>
-            </div>
-          </div>
-        )}
-      </SlideOver>
     </div>
   );
 }

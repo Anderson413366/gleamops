@@ -65,6 +65,8 @@ import {
   MessageSquare,
   BrainCircuit,
   Warehouse,
+  Calculator,
+  Beaker,
 } from 'lucide-react';
 import { getModuleFromPathname, NAV_TREE, normalizeRoleCode, roleDisplayName, type NavItem } from '@gleamops/shared';
 import { useAuth } from '@/hooks/use-auth';
@@ -124,6 +126,8 @@ const ICON_MAP: Record<string, React.ElementType> = {
   MessageSquare,
   BrainCircuit,
   Warehouse,
+  Calculator,
+  Beaker,
 };
 
 const QUICK_ACTION_ITEMS = [

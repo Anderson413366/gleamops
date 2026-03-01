@@ -72,6 +72,9 @@ export const NAV_TREE: NavItem[] = [
       { id: 'pipeline', label: 'Bids', href: '/pipeline?tab=bids', icon: 'FileSpreadsheet' },
       { id: 'pipeline', label: 'Proposals', href: '/pipeline?tab=proposals', icon: 'FileCheck' },
       { id: 'pipeline', label: 'Analytics', href: '/pipeline?tab=analytics', icon: 'BarChart3' },
+      { id: 'pipeline', label: 'Bid Calculator', href: '/pipeline/calculator', icon: 'Calculator' },
+      { id: 'pipeline', label: 'Supply Calculator', href: '/pipeline/supply-calculator', icon: 'Beaker' },
+      { id: 'pipeline', label: 'Admin', href: '/pipeline/admin', icon: 'Settings' },
     ],
   },
   {

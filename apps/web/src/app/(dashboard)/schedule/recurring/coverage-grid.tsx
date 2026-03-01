@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Building2, MapPin, Users } from 'lucide-react';
+import { AlertTriangle, Building2, MapPin, Users } from 'lucide-react';
 import { Badge, EmptyState, cn } from '@gleamops/ui';
 import type { RecurringScheduleRow } from './schedule-list';
 
@@ -144,8 +144,11 @@ export function CoverageGrid({ rows, visibleDates, search = '', onCellClick }: C
                     <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                     {group.siteCode ? `${group.siteCode} ` : ''}{group.siteName}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
                     {group.positionType.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())}
+                    {Array.from(group.coverage.values()).some((c) => c.assigned < c.total) && (
+                      <AlertTriangle className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-400 shrink-0" />
+                    )}
                   </p>
                 </div>
 

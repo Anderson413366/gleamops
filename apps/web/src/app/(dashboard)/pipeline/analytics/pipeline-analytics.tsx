@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { TrendingUp, Clock, Trophy, DollarSign } from 'lucide-react';
+import Link from 'next/link';
+import { TrendingUp, Clock, Trophy, DollarSign, Rocket } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   Card,
@@ -157,9 +158,31 @@ export default function PipelineAnalytics() {
   }
 
   const maxCount = Math.max(...funnel.map((f) => f.count), 1);
+  const allEmpty = funnel.length > 0 && funnel.every((s) => s.count === 0);
 
   return (
     <div className="space-y-6">
+      {/* Getting Started prompt when pipeline is empty */}
+      {allEmpty && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="pt-4">
+            <div className="flex items-start gap-3">
+              <Rocket className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">Getting Started with Sales Pipeline</h3>
+                <p className="text-xs text-muted-foreground mt-1">Build your pipeline in 4 steps:</p>
+                <ol className="mt-3 space-y-2 text-sm">
+                  <li>1. <Link href="/pipeline?tab=prospects" className="text-primary hover:underline font-medium">Add your first Prospect</Link></li>
+                  <li>2. <Link href="/pipeline?tab=opportunities" className="text-primary hover:underline font-medium">Create an Opportunity</Link></li>
+                  <li>3. <Link href="/pipeline?tab=bids" className="text-primary hover:underline font-medium">Build a Bid</Link></li>
+                  <li>4. <Link href="/pipeline?tab=proposals" className="text-primary hover:underline font-medium">Generate a Proposal</Link></li>
+                </ol>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Conversion Funnel */}
       <Card>
         <CardHeader>

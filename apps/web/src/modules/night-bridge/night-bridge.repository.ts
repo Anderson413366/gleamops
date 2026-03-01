@@ -120,7 +120,7 @@ export async function listRouteStops(
       departed_at,
       skip_reason,
       skip_notes,
-      site_job:job_id(
+      site_job:site_job_id(
         site:site_id(id, site_code, name)
       )
     `)

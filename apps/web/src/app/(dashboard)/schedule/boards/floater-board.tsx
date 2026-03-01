@@ -24,7 +24,7 @@ interface RouteStopRow {
     site_code: string;
     address: { street?: string; city?: string; state?: string; zip?: string } | null;
   } | null;
-  job: {
+  site_job: {
     job_code: string;
     start_time: string | null;
     end_time: string | null;
@@ -176,7 +176,7 @@ export function FloaterBoard() {
         .select(`
           id, stop_order, site_id, estimated_travel_minutes,
           site:site_id(name, site_code, address),
-          job:job_id(job_code, start_time, end_time)
+          site_job:site_job_id(job_code, start_time, end_time)
         `)
         .eq('route_id', selectedRouteId)
         .order('stop_order', { ascending: true });
@@ -208,9 +208,9 @@ export function FloaterBoard() {
               siteName: s.site?.name ?? 'Unknown Site',
               siteCode: s.site?.site_code ?? '',
               address: addr ? [addr.street, addr.city, addr.state, addr.zip].filter(Boolean).join(', ') : '',
-              jobCode: s.job?.job_code ?? null,
-              startTime: s.job?.start_time ?? null,
-              endTime: s.job?.end_time ?? null,
+              jobCode: s.site_job?.job_code ?? null,
+              startTime: s.site_job?.start_time ?? null,
+              endTime: s.site_job?.end_time ?? null,
               estimatedTravel: s.estimated_travel_minutes,
               checkedIn: Boolean(checkEvents?.checkIn),
               checkedOut: Boolean(checkEvents?.checkOut),

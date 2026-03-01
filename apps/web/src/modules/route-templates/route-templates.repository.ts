@@ -429,7 +429,7 @@ export async function getRouteStopSupplyContext(
     .select(`
       id,
       route_id,
-      site_job:job_id(site_id),
+      site_job:site_job_id(site_id),
       route:route_id(id, tenant_id, route_date)
     `)
     .eq('id', routeStopId)

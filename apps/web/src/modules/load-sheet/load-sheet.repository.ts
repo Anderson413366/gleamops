@@ -32,7 +32,7 @@ export async function listRouteStopsForSpecialItems(
     .select(`
       id,
       stop_order,
-      site_job:job_id(
+      site_job:site_job_id(
         site:site_id(id, name)
       )
     `)

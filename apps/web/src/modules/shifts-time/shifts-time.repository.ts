@@ -342,7 +342,7 @@ export async function listRouteStopsByRouteIds(
       arrived_at,
       departed_at,
       site:site_id(id, site_code, name),
-      site_job:job_id(id, job_code, site:site_id(id, site_code, name))
+      site_job:site_job_id(id, job_code, site:site_id(id, site_code, name))
     `)
     .in('route_id', routeIds)
     .is('archived_at', null)

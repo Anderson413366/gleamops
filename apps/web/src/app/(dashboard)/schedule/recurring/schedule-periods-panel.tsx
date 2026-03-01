@@ -14,8 +14,6 @@ interface SchedulePeriod {
   period_start: string;
   period_end: string;
   status: 'DRAFT' | 'LOCKED' | 'PUBLISHED';
-  period_type: 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY';
-  payroll_anchor_date: string | null;
   published_at: string | null;
   locked_at: string | null;
   site: { name: string | null; site_code: string | null } | null;
@@ -51,7 +49,7 @@ export function SchedulePeriodsPanel() {
         .from('schedule_periods')
         .select(`
           id, site_id, period_name, period_start, period_end,
-          status, period_type, payroll_anchor_date, published_at, locked_at,
+          status, published_at, locked_at,
           site:site_id(name, site_code)
         `)
         .is('archived_at', null)
@@ -115,7 +113,6 @@ export function SchedulePeriodsPanel() {
                   <p className="font-medium text-foreground truncate">{period.period_name}</p>
                   <p className="text-xs text-muted-foreground">
                     {formatDateRange(period.period_start, period.period_end)}
-                    {period.period_type !== 'WEEKLY' && <span> · {period.period_type}</span>}
                     {period.site && <span> · {period.site.name ?? period.site.site_code}</span>}
                   </p>
                 </div>

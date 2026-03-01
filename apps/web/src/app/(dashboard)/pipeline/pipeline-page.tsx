@@ -40,7 +40,7 @@ function UnifiedPipelinePageClient() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const action = searchParams.get('action');
-  const [tab, setTab] = useSyncedTab({
+  const [tab] = useSyncedTab({
     tabKeys: PIPELINE_TABS.map((t) => t.key),
     defaultTab: 'prospects',
     aliases: { 'bids-pricing': 'bids' },
@@ -68,7 +68,7 @@ function UnifiedPipelinePageClient() {
     winRate: '0%',
   });
 
-  const [sectionCounts, setSectionCounts] = useState({
+  const [, setSectionCounts] = useState({
     prospects: 0,
     opportunities: 0,
     bids: 0,

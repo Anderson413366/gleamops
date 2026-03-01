@@ -40,7 +40,7 @@ interface SiteJobRow {
 interface SiteSupplyRow {
   id: string;
   supply_id: string;
-  quantity: number | null;
+  par_level: number | null;
   supply?: { name: string; category: string | null } | null;
 }
 
@@ -83,7 +83,7 @@ export function SiteDetail({ site, open, onClose, onEdit }: SiteDetailProps) {
     Promise.all([
       supabase.from('contacts').select('*').eq('site_id', site.id).is('archived_at', null).order('name'),
       supabase.from('site_jobs').select('id, job_code, frequency, billing_amount, status').eq('site_id', site.id).is('archived_at', null).order('job_code'),
-      supabase.from('site_supplies').select('id, supply_id, quantity, supply:supply_id(name, category)').eq('site_id', site.id).is('archived_at', null),
+      supabase.from('site_supplies').select('id, supply_id, par_level, supply:supply_id(name, category)').eq('site_id', site.id).is('archived_at', null),
     ]).then(([contactsRes, jobsRes, suppliesRes]) => {
       if (contactsRes.data) setContacts(contactsRes.data as unknown as Contact[]);
       if (jobsRes.data) setJobs(jobsRes.data as unknown as SiteJobRow[]);
@@ -430,8 +430,8 @@ export function SiteDetail({ site, open, onClose, onEdit }: SiteDetailProps) {
                         <p className="text-sm font-medium">{s.supply?.name ?? s.supply_id}</p>
                         {s.supply?.category && <p className="text-xs text-muted-foreground">{s.supply.category}</p>}
                       </div>
-                      {s.quantity != null && (
-                        <span className="text-sm text-muted-foreground">Qty: {s.quantity}</span>
+                      {s.par_level != null && (
+                        <span className="text-sm text-muted-foreground">Par: {s.par_level}</span>
                       )}
                     </li>
                   ))}

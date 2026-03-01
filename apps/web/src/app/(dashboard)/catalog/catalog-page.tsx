@@ -19,7 +19,7 @@ const TABS = [
 ];
 
 export default function CatalogPageClient() {
-  const [tab, setTab] = useSyncedTab({
+  const [tab] = useSyncedTab({
     tabKeys: TABS.map((entry) => entry.key),
     defaultTab: 'tasks',
   });

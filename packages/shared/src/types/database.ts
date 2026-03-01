@@ -586,7 +586,7 @@ export interface WorkTicket extends StandardColumns {
   locked_at: string | null;
   locked_by: string | null;
   planning_status: 'NOT_STARTED' | 'IN_PROGRESS' | 'READY';
-  note: string | null;
+  notes: string | null;
 }
 
 export type PlanningStatus = WorkTicket['planning_status'];

@@ -244,15 +244,6 @@ export default function SchedulePageClient() {
     return Array.from(new Set(recurringRows.map((r) => r.staffName).filter((n) => n !== 'Open Shift'))).sort();
   }, [recurringRows]);
 
-  const visibleTabs = useMemo(() => {
-    return BASE_TABS.filter((t) => {
-      if (t.key === 'master') return showMasterBoard;
-      if (t.key === 'floater') return showFloaterBoard;
-      if (t.key === 'supervisor') return showSupervisorTab;
-      return true;
-    });
-  }, [showMasterBoard, showFloaterBoard, showSupervisorTab]);
-
   const [kpis, setKpis] = useState({
     todayTickets: 0,
     coverageGaps: 0,

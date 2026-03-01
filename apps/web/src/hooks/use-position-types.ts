@@ -45,19 +45,20 @@ function fetchPositionTypes(): Promise<Map<string, PositionTypeConfig>> {
     const supabase = getSupabaseBrowserClient();
     const { data } = await supabase
       .from('staff_positions')
-      .select('position_code, title, color_token')
+      .select('position_code, title')
       .eq('is_active', true)
       .is('archived_at', null)
       .order('title', { ascending: true });
 
     const map = new Map<string, PositionTypeConfig>();
     if (data) {
-      for (const row of data as Array<{ position_code: string; title: string; color_token: string }>) {
-        const theme = COLOR_TOKEN_MAP[row.color_token] ?? FALLBACK_THEME;
+      for (const row of data as Array<{ position_code: string; title: string; color_token?: string }>) {
+        const token = row.color_token ?? 'slate';
+        const theme = COLOR_TOKEN_MAP[token] ?? FALLBACK_THEME;
         map.set(row.position_code, {
           positionCode: row.position_code,
           label: row.title,
-          colorToken: row.color_token,
+          colorToken: token,
           block: theme.block,
           badge: theme.badge,
         });

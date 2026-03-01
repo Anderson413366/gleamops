@@ -21,7 +21,7 @@ const TABS = [
 ];
 
 export default function SafetyPageClient() {
-  const [tab, setTab] = useSyncedTab({
+  const [tab] = useSyncedTab({
     tabKeys: TABS.map((entry) => entry.key),
     defaultTab: 'certifications',
     aliases: {

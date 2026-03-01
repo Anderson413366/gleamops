@@ -79,7 +79,7 @@ export default function SettingsPageClient() {
         supabase.from('lookups').select('id', { count: 'exact', head: true }).eq('is_active', true),
         supabase.from('status_transitions').select('id', { count: 'exact', head: true }),
         supabase.from('geofences').select('id', { count: 'exact', head: true }).is('archived_at', null),
-        supabase.from('entity_sequences').select('id', { count: 'exact', head: true }),
+        supabase.from('system_sequences').select('id', { count: 'exact', head: true }),
       ]);
 
       setKpis({

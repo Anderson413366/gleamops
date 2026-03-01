@@ -29,7 +29,7 @@ const ADD_LABELS: Record<string, string> = {
 };
 
 export default function EquipmentPageClient() {
-  const [tab, setTab] = useSyncedTab({
+  const [tab] = useSyncedTab({
     tabKeys: TABS.map((entry) => entry.key),
     defaultTab: 'equipment',
     aliases: {

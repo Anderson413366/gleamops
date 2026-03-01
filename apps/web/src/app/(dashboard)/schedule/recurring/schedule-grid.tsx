@@ -134,6 +134,7 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect, o
   const [dropFeedback, setDropFeedback] = useState<{ cellKey: string; valid: boolean } | null>(null);
   const [availability, setAvailability] = useState<AvailabilityRule[]>([]);
   const [eligibilityMap, setEligibilityMap] = useState<Map<string, Set<string>>>(new Map());
+  const [moveSource, setMoveSource] = useState<{ rowId: string; staffName: string; dateKey: string; positionCode?: string } | null>(null);
 
   // Fetch availability rules and position eligibility
   useEffect(() => {
@@ -378,6 +379,73 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect, o
     setDropFeedback(null);
   }, []);
 
+  // Keyboard move handler for accessibility
+  const handleShiftKeyDown = useCallback((
+    e: React.KeyboardEvent,
+    row: RecurringScheduleRow,
+    staffName: string,
+    dateKey: string,
+  ) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (!moveSource) {
+        // Enter move mode
+        setMoveSource({ rowId: row.id, staffName, dateKey, positionCode: row.positionType });
+      } else if (moveSource.rowId === row.id && moveSource.dateKey === dateKey) {
+        // Pressing Enter on the same cell cancels
+        setMoveSource(null);
+      }
+    } else if (e.key === 'Escape') {
+      setMoveSource(null);
+    } else if (moveSource && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+      e.preventDefault();
+      const currentIdx = dateColumns.indexOf(dateKey);
+      const nextIdx = e.key === 'ArrowLeft' ? currentIdx - 1 : currentIdx + 1;
+      if (nextIdx >= 0 && nextIdx < dateColumns.length) {
+        const nextDateKey = dateColumns[nextIdx];
+        // Focus the next cell in the same row
+        const nextCellId = `cell-${staffName}-${nextDateKey}`;
+        const nextEl = document.getElementById(nextCellId);
+        if (nextEl) nextEl.focus();
+      }
+    }
+  }, [moveSource, dateColumns]);
+
+  // Handle Enter on a target cell while in move mode
+  const handleCellKeyDown = useCallback((
+    e: React.KeyboardEvent,
+    staffName: string,
+    dateKey: string,
+  ) => {
+    if (!moveSource) return;
+    if (e.key === 'Escape') {
+      setMoveSource(null);
+      return;
+    }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      const currentIdx = dateColumns.indexOf(dateKey);
+      const nextIdx = e.key === 'ArrowLeft' ? currentIdx - 1 : currentIdx + 1;
+      if (nextIdx >= 0 && nextIdx < dateColumns.length) {
+        const nextDateKey = dateColumns[nextIdx];
+        const nextCellId = `cell-${staffName}-${nextDateKey}`;
+        const nextEl = document.getElementById(nextCellId);
+        if (nextEl) nextEl.focus();
+      }
+      return;
+    }
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      // Complete the move via synthetic drop
+      const fakeEvent = {
+        preventDefault: () => {},
+        dataTransfer: { getData: () => JSON.stringify(moveSource) },
+      } as unknown as DragEvent;
+      void handleDrop(fakeEvent, staffName, dateKey);
+      setMoveSource(null);
+    }
+  }, [moveSource, dateColumns, handleDrop]);
+
   if (!filtered.length) {
     return (
       <EmptyState
@@ -476,36 +544,84 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect, o
                       </Tooltip>
                     )}
                     {dayRows.length ? (
-                      dayRows.map((row) => (
-                        <button
-                          key={`${row.id}-${dateKey}`}
-                          type="button"
-                          onClick={() => onSelect?.(row)}
-                          className="w-full text-left rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-module-accent/40"
-                        >
-                          <PositionBlock
-                            positionType={row.positionType}
-                            siteName={row.siteName}
-                            startTime={row.startTime}
-                            endTime={row.endTime}
-                            staffName={row.staffName}
-                            siteCode={row.siteCode}
-                            isOpenShift={row.status === 'open'}
-                            hasConflict={conflictKeys.has(`${row.id}:${dateKey}`)}
-                            draggable
-                            onDragStart={(e) => handleDragStart(e, row.id, staffName, dateKey, row.positionType)}
-                            onDragEnd={handleDragEnd}
-                          />
-                        </button>
-                      ))
+                      dayRows.map((row) => {
+                        const isMoving = moveSource?.rowId === row.id && moveSource?.dateKey === dateKey;
+                        return (
+                          <button
+                            key={`${row.id}-${dateKey}`}
+                            id={`cell-${staffName}-${dateKey}`}
+                            type="button"
+                            tabIndex={0}
+                            role="button"
+                            aria-label={`${staffName}, ${row.siteName}, ${dateKey} — press Enter to move`}
+                            onClick={() => {
+                              if (moveSource) {
+                                const fakeEvent = {
+                                  preventDefault: () => {},
+                                  dataTransfer: { getData: () => JSON.stringify(moveSource) },
+                                } as unknown as DragEvent;
+                                void handleDrop(fakeEvent, staffName, dateKey);
+                                setMoveSource(null);
+                              } else {
+                                onSelect?.(row);
+                              }
+                            }}
+                            onKeyDown={(e) => handleShiftKeyDown(e, row, staffName, dateKey)}
+                            className={cn(
+                              'w-full text-left rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-module-accent/40',
+                              isMoving && 'ring-2 ring-primary ring-offset-1',
+                            )}
+                          >
+                            <PositionBlock
+                              positionType={row.positionType}
+                              siteName={row.siteName}
+                              startTime={row.startTime}
+                              endTime={row.endTime}
+                              staffName={row.staffName}
+                              siteCode={row.siteCode}
+                              isOpenShift={row.status === 'open'}
+                              hasConflict={conflictKeys.has(`${row.id}:${dateKey}`)}
+                              draggable
+                              onDragStart={(e) => handleDragStart(e, row.id, staffName, dateKey, row.positionType)}
+                              onDragEnd={handleDragEnd}
+                            />
+                            {isMoving && (
+                              <span className="block text-[10px] text-primary mt-0.5 text-center">Moving... Esc to cancel</span>
+                            )}
+                          </button>
+                        );
+                      })
                     ) : !isUnavailable ? (
                       <button
                         type="button"
-                        onClick={() => onQuickCreate?.(dateKey, staffName)}
-                        className="w-full rounded-lg border border-dashed border-border/70 px-2 py-3 text-center text-[11px] text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-primary transition-colors group"
+                        id={`cell-${staffName}-${dateKey}`}
+                        tabIndex={0}
+                        onClick={() => {
+                          if (moveSource) {
+                            const fakeEvent = {
+                              preventDefault: () => {},
+                              dataTransfer: { getData: () => JSON.stringify(moveSource) },
+                            } as unknown as DragEvent;
+                            void handleDrop(fakeEvent, staffName, dateKey);
+                            setMoveSource(null);
+                          } else {
+                            onQuickCreate?.(dateKey, staffName);
+                          }
+                        }}
+                        onKeyDown={(e) => handleCellKeyDown(e, staffName, dateKey)}
+                        className={cn(
+                          'w-full rounded-lg border border-dashed border-border/70 px-2 py-3 text-center text-[11px] text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-primary transition-colors group',
+                          moveSource && 'border-primary/30 bg-primary/5',
+                        )}
                       >
-                        <span className="group-hover:hidden">OFF</span>
-                        <span className="hidden group-hover:inline">+ Add</span>
+                        {moveSource ? (
+                          <span className="text-primary">Drop here</span>
+                        ) : (
+                          <>
+                            <span className="group-hover:hidden">OFF</span>
+                            <span className="hidden group-hover:inline">+ Add</span>
+                          </>
+                        )}
                       </button>
                     ) : null}
                   </div>

@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { Activity, AlertTriangle, DollarSign, Package, Users } from 'lucide-react';
-import { Card, CardContent } from '@gleamops/ui';
+import { Activity, AlertTriangle, DollarSign, HelpCircle, Package, Users } from 'lucide-react';
+import { Card, CardContent, Tooltip } from '@gleamops/ui';
 import type { OwnerDashboardKpis } from '@gleamops/shared';
 
 interface KpiCardsProps {
@@ -32,6 +32,7 @@ const KPI_META = [
     icon: <Activity className="h-4 w-4 text-muted-foreground" />,
     format: formatHours,
     href: '/jobs?tab=tickets',
+    helpText: 'Requires resolved complaint tickets',
   },
   {
     key: 'first_time_resolution_rate_pct',
@@ -39,6 +40,7 @@ const KPI_META = [
     icon: <AlertTriangle className="h-4 w-4 text-muted-foreground" />,
     format: (value: number | null | undefined) => formatNumber(value != null ? Math.round(value * 100) / 100 : null, '%'),
     href: '/jobs?tab=tickets',
+    helpText: 'Requires completed tickets with resolution data',
   },
   {
     key: 'inventory_on_time_rate_pct',
@@ -46,6 +48,7 @@ const KPI_META = [
     icon: <Package className="h-4 w-4 text-muted-foreground" />,
     format: (value: number | null | undefined) => formatNumber(value != null ? Math.round(value * 100) / 100 : null, '%'),
     href: '/inventory?tab=counts',
+    helpText: 'Requires inventory counts at sites',
   },
   {
     key: 'specialist_turnover_90d_pct',
@@ -53,6 +56,7 @@ const KPI_META = [
     icon: <Users className="h-4 w-4 text-muted-foreground" />,
     format: (value: number | null | undefined) => formatNumber(value != null ? Math.round(value * 100) / 100 : null, '%'),
     href: '/team?tab=staff',
+    helpText: 'Based on staff terminations in last 90 days',
   },
   {
     key: 'supply_cost_mtd',
@@ -60,6 +64,7 @@ const KPI_META = [
     icon: <DollarSign className="h-4 w-4 text-muted-foreground" />,
     format: formatCurrency,
     href: '/reports?tab=inventory',
+    helpText: 'Requires supply cost entries this month',
   },
 ] as const;
 
@@ -68,6 +73,8 @@ export function KpiCards({ kpis, loading = false }: KpiCardsProps) {
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
       {KPI_META.map((item) => {
         const value = kpis ? kpis[item.key] : null;
+        const formatted = loading ? '...' : item.format(value);
+        const isEmpty = !loading && formatted === '\u2014';
         return (
           <Link key={item.key} href={item.href} className="group">
             <Card className="shadow-sm transition-shadow group-hover:shadow-md">
@@ -76,12 +83,16 @@ export function KpiCards({ kpis, loading = false }: KpiCardsProps) {
                   <p className="text-xs text-muted-foreground">{item.label}</p>
                   {item.icon}
                 </div>
-                <p
-                  className="text-xl font-semibold leading-tight"
-                  title={!loading && (value == null || Number.isNaN(value)) ? 'No data available for this period' : undefined}
-                >
-                  {loading ? '...' : item.format(value)}
-                </p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-xl font-semibold leading-tight">
+                    {formatted}
+                  </p>
+                  {isEmpty && (
+                    <Tooltip content={item.helpText} position="bottom">
+                      <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                    </Tooltip>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </Link>

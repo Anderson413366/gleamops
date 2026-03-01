@@ -21,6 +21,7 @@ import {
   ExternalLink,
   ClipboardList,
   Package,
+  Calendar,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { isExternalHttpUrl } from '@/lib/url';
@@ -147,6 +148,18 @@ interface SiteFieldRequestRow {
   severity: string | null;
   body: string | null;
   created_at: string;
+}
+
+interface SiteRecurringSlotRow {
+  id: string;
+  ticket_code: string;
+  scheduled_date: string;
+  start_time: string | null;
+  end_time: string | null;
+  status: string | null;
+  position_code: string | null;
+  assigned_to: string | null;
+  staff?: { full_name: string; staff_code: string } | null;
 }
 
 function formatCurrency(n: number | null) {
@@ -318,6 +331,7 @@ export default function SiteDetailPage() {
   const [relatedJobs, setRelatedJobs] = useState<RelatedSiteJobRow[]>([]);
   const [relatedEquipment, setRelatedEquipment] = useState<RelatedEquipmentRow[]>([]);
   const [fieldRequests, setFieldRequests] = useState<SiteFieldRequestRow[]>([]);
+  const [recurringSlots, setRecurringSlots] = useState<SiteRecurringSlotRow[]>([]);
   const [jobTasksByJob, setJobTasksByJob] = useState<Record<string, JobTaskRow[]>>({});
   const [jobStaffByJob, setJobStaffByJob] = useState<Record<string, JobStaffAssignmentRow[]>>({});
   const [expandedJobs, setExpandedJobs] = useState<string[]>([]);
@@ -376,7 +390,8 @@ export default function SiteDetailPage() {
       );
 
       // Fetch related data in parallel
-      const [jobsRes, equipRes, keysRes, siteSuppliesRes, countHistoryRes, supplyCatalogRes, fieldRequestsRes] = await Promise.all([
+      const todayKey = new Date().toISOString().slice(0, 10);
+      const [jobsRes, equipRes, keysRes, siteSuppliesRes, countHistoryRes, supplyCatalogRes, fieldRequestsRes, recurringRes] = await Promise.all([
         supabase
           .from('site_jobs')
           .select('id, job_code, job_name, status, frequency, schedule_days, start_time, end_time, job_assigned_to, billing_amount, priority_level')
@@ -420,6 +435,14 @@ export default function SiteDetailPage() {
           .is('dismissed_at', null)
           .order('created_at', { ascending: false })
           .limit(12),
+        supabase
+          .from('work_tickets')
+          .select('id, ticket_code, scheduled_date, start_time, end_time, status, position_code, assigned_to, staff:assigned_to(full_name, staff_code)')
+          .eq('site_id', s.id)
+          .in('status', ['SCHEDULED', 'IN_PROGRESS'])
+          .gte('scheduled_date', todayKey)
+          .order('scheduled_date', { ascending: true })
+          .limit(10),
       ]);
 
       const jobs = (jobsRes.data ?? []) as unknown as RelatedSiteJobRow[];
@@ -440,6 +463,7 @@ export default function SiteDetailPage() {
       setRelatedEquipment(equipment);
       setEquipmentCount(equipment.length);
       setFieldRequests((fieldRequestsRes.data ?? []) as unknown as SiteFieldRequestRow[]);
+      setRecurringSlots((recurringRes.data ?? []) as unknown as SiteRecurringSlotRow[]);
       setKeys((keysRes.data as unknown as KeyInventory[]) ?? []);
       setSiteSupplies((siteSuppliesRes.data as unknown as SiteSupplyRow[]) ?? []);
       const lookupByName: Record<string, SupplyLookupRow> = {};
@@ -531,6 +555,7 @@ export default function SiteDetailPage() {
       setRelatedJobs([]);
       setRelatedEquipment([]);
       setFieldRequests([]);
+      setRecurringSlots([]);
       setSiteSupplies([]);
       setLatestCount(null);
       setLatestCountedByName(null);
@@ -1500,6 +1525,72 @@ https://..."
                 activeServicePlans.reduce((sum, job) => sum + (job.billing_amount ?? 0), 0)
               )}/mo
             </p>
+          </div>
+        )}
+      </div>
+
+      {/* Recurring Schedule */}
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="text-sm font-semibold text-foreground">
+            <span className="inline-flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              Recurring Schedule
+            </span>
+          </h3>
+          <Link
+            href="/schedule?tab=recurring"
+            className="inline-flex items-center rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          >
+            View Full Schedule
+          </Link>
+        </div>
+
+        {recurringSlots.length === 0 ? (
+          <p className="mt-4 text-sm text-muted-foreground">No upcoming shifts scheduled at this site.</p>
+        ) : (
+          <div className="mt-4 space-y-2">
+            {recurringSlots.map((slot) => {
+              const isUnassigned = !slot.assigned_to;
+              return (
+                <div
+                  key={slot.id}
+                  className={`flex items-center justify-between gap-3 rounded-lg border p-3 text-sm ${
+                    isUnassigned
+                      ? 'border-yellow-300 bg-yellow-50 dark:border-yellow-700 dark:bg-yellow-950/20'
+                      : 'border-border bg-muted/10'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    {isUnassigned && <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 shrink-0" />}
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground">
+                        {formatDate(slot.scheduled_date)}
+                        {' · '}
+                        {formatTime(slot.start_time)} – {formatTime(slot.end_time)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {slot.position_code ?? 'No position'}
+                        {' · '}
+                        {slot.staff?.staff_code ? (
+                          <EntityLink
+                            entityType="staff"
+                            code={slot.staff.staff_code}
+                            name={slot.staff.full_name}
+                            showCode={false}
+                          />
+                        ) : (
+                          <span className="font-medium text-yellow-700 dark:text-yellow-400">Unassigned</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge color={slot.status === 'IN_PROGRESS' ? 'blue' : 'gray'}>
+                    {(slot.status ?? 'SCHEDULED').replace(/_/g, ' ')}
+                  </Badge>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

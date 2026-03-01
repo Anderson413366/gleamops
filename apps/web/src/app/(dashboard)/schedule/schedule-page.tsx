@@ -40,6 +40,7 @@ import { LeaveManagement } from './leave/leave-management';
 import { AvailabilityModule } from './availability/availability-module';
 import { MySchedule } from './my-schedule/my-schedule';
 import { TagView } from './recurring/tag-view';
+import { PositionColorLegend } from './recurring/position-color-legend';
 
 // Re-use ticket relations type
 interface TicketWithRelations extends WorkTicket {
@@ -1304,6 +1305,9 @@ export default function SchedulePageClient() {
             availablePositions={availablePositions}
           />
           <div className="flex-1 min-w-0 space-y-4">
+            {(recurringView === 'grid' || recurringView === 'coverage' || recurringView === 'tag') && (
+              <PositionColorLegend />
+            )}
             {recurringLoading ? (
               <Card>
                 <CardContent className="py-12 text-center text-sm text-muted-foreground">

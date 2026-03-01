@@ -23,6 +23,7 @@ import { ProfileCompletenessCard, isFieldComplete, type CompletenessItem } from 
 import { toast } from 'sonner';
 import { EntityLink } from '@/components/links/entity-link';
 import { StatusToggleDialog } from '@/components/detail/status-toggle-dialog';
+import { InlineEditField } from '@/components/detail/inline-edit-field';
 
 interface KeyWithRelations extends KeyInventory {
   site?: { name: string; site_code: string } | null;
@@ -204,7 +205,18 @@ export default function KeyDetailPage() {
       {/* Stat Cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <p className="text-2xl font-bold text-foreground">{key.total_count}</p>
+          <InlineEditField
+            value={key.total_count}
+            displayValue={<span className="text-2xl font-bold text-foreground">{key.total_count}</span>}
+            fieldType="number"
+            renderAs="p"
+            table="key_inventory"
+            recordId={key.id}
+            field="total_count"
+            versionEtag={key.version_etag}
+            parseValue={(v) => v.trim() === '' ? null : Number(v)}
+            onSaved={fetchKey}
+          />
           <p className="text-xs text-muted-foreground">Total Copies</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
@@ -240,17 +252,50 @@ export default function KeyDetailPage() {
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Label</dt>
-              <dd className="font-medium">{key.label}</dd>
+              <InlineEditField
+                value={key.label}
+                table="key_inventory"
+                recordId={key.id}
+                field="label"
+                versionEtag={key.version_etag}
+                onSaved={fetchKey}
+                placeholder="Key label"
+              />
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Key Type</dt>
-              <dd className="font-medium">
-                <Badge color="blue">{key.key_type}</Badge>
-              </dd>
+              <InlineEditField
+                value={key.key_type}
+                displayValue={<Badge color="blue">{key.key_type}</Badge>}
+                fieldType="select"
+                selectOptions={[
+                  { value: 'MASTER', label: 'Master' },
+                  { value: 'SUB_MASTER', label: 'Sub-Master' },
+                  { value: 'INDIVIDUAL', label: 'Individual' },
+                  { value: 'FOB', label: 'Fob' },
+                  { value: 'CARD', label: 'Card' },
+                  { value: 'CODE', label: 'Code' },
+                  { value: 'OTHER', label: 'Other' },
+                ]}
+                table="key_inventory"
+                recordId={key.id}
+                field="key_type"
+                versionEtag={key.version_etag}
+                onSaved={fetchKey}
+              />
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Total Count</dt>
-              <dd className="font-medium">{key.total_count}</dd>
+              <InlineEditField
+                value={key.total_count}
+                fieldType="number"
+                table="key_inventory"
+                recordId={key.id}
+                field="total_count"
+                versionEtag={key.version_etag}
+                parseValue={(v) => v.trim() === '' ? null : Number(v)}
+                onSaved={fetchKey}
+              />
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Status</dt>
@@ -262,11 +307,30 @@ export default function KeyDetailPage() {
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Original Key</dt>
-              <dd className="font-medium">{key.is_original != null ? (key.is_original ? 'Yes' : 'No') : '\u2014'}</dd>
+              <InlineEditField
+                value={key.is_original}
+                displayValue={key.is_original != null ? (key.is_original ? 'Yes' : 'No') : '\u2014'}
+                fieldType="boolean"
+                table="key_inventory"
+                recordId={key.id}
+                field="is_original"
+                versionEtag={key.version_etag}
+                parseValue={(v) => v === 'true'}
+                onSaved={fetchKey}
+              />
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Copy Number</dt>
-              <dd className="font-medium">{key.copy_number ?? '\u2014'}</dd>
+              <InlineEditField
+                value={key.copy_number}
+                fieldType="number"
+                table="key_inventory"
+                recordId={key.id}
+                field="copy_number"
+                versionEtag={key.version_etag}
+                parseValue={(v) => v.trim() === '' ? null : Number(v)}
+                onSaved={fetchKey}
+              />
             </div>
           </dl>
         </div>
@@ -328,14 +392,23 @@ export default function KeyDetailPage() {
       </div>
 
       {/* Notes */}
-      {key.notes && (
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <h3 className="mb-4 text-sm font-semibold text-foreground">Notes</h3>
-          <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-            {key.notes}
-          </p>
-        </div>
-      )}
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <h3 className="mb-4 text-sm font-semibold text-foreground">Notes</h3>
+        <dl className="text-sm">
+          <InlineEditField
+            value={key.notes}
+            displayValue={key.notes ? <span className="whitespace-pre-wrap">{key.notes}</span> : undefined}
+            fieldType="textarea"
+            layout="vertical"
+            table="key_inventory"
+            recordId={key.id}
+            field="notes"
+            versionEtag={key.version_etag}
+            onSaved={fetchKey}
+            placeholder="Add notes..."
+          />
+        </dl>
+      </div>
 
       <ActivityHistorySection
         entityType="key_inventory"

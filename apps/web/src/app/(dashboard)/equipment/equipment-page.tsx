@@ -100,13 +100,13 @@ export default function EquipmentPageClient() {
         <Card>
           <CardContent className="pt-4">
             <p className="text-xs text-muted-foreground">Keys Requiring Attention</p>
-            <p className="text-lg font-semibold sm:text-xl leading-tight text-warning">{kpis.keysAtRisk}</p>
+            <p className={`text-lg font-semibold sm:text-xl leading-tight${kpis.keysAtRisk > 0 ? ' text-warning' : ' text-muted-foreground'}`}>{kpis.keysAtRisk}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
             <p className="text-xs text-muted-foreground">Maintenance Due (30 days)</p>
-            <p className="text-lg font-semibold sm:text-xl leading-tight text-warning">{kpis.maintenanceDueSoon}</p>
+            <p className={`text-lg font-semibold sm:text-xl leading-tight${kpis.maintenanceDueSoon > 0 ? ' text-warning' : ' text-muted-foreground'}`}>{kpis.maintenanceDueSoon}</p>
           </CardContent>
         </Card>
       </div>

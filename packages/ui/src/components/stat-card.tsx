@@ -23,8 +23,8 @@ export function StatCard({ label, value, icon, trend, trendUp, className, href }
     >
       <div className="flex items-start justify-between">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-xs font-medium text-muted-foreground sm:text-sm">{label}</p>
-          <p className="mt-1.5 text-[clamp(1rem,3vw,1.5rem)] font-bold leading-tight text-foreground tabular-nums [overflow-wrap:anywhere]">
+          <p className="truncate text-[0.8125rem] font-medium text-muted-foreground">{label}</p>
+          <p className="mt-1.5 text-xl font-semibold leading-tight text-foreground tabular-nums [overflow-wrap:anywhere]">
             {value}
           </p>
           {trend && (

@@ -50,7 +50,7 @@ export function TableRow({ className, onClick, ...props }: React.HTMLAttributes<
 export function TableCell({ className, ...props }: React.TdHTMLAttributes<HTMLTableCellElement>) {
   return (
     <td
-      className={cn('px-4 py-4 text-sm text-foreground', className)}
+      className={cn('px-4 py-3 text-sm text-foreground', className)}
       {...props}
     />
   );
@@ -84,7 +84,7 @@ export function TableHead({
   return (
     <th
       className={cn(
-        'px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider',
+        'px-4 py-3 text-left text-[0.8125rem] font-medium text-muted-foreground tracking-[0.02em]',
         sortable && 'cursor-pointer select-none hover:text-foreground transition-colors',
         className
       )}

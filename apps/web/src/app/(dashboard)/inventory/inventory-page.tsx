@@ -184,7 +184,7 @@ export default function InventoryPageClient() {
     <div className="space-y-6">
       <div className="pt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Supplies</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.activeSupplies}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Below Par</p><p className={`text-lg font-semibold sm:text-xl leading-tight ${kpis.belowPar > 0 ? 'text-red-600 dark:text-red-400' : ''}`}>{kpis.belowPar}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Below Par</p><p className={`text-lg font-semibold sm:text-xl leading-tight ${kpis.belowPar > 0 ? 'text-destructive' : 'text-muted-foreground'}`}>{kpis.belowPar}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Open Orders</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.openOrders}</p></CardContent></Card>
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Pending Counts</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.pendingCounts}</p></CardContent></Card>
       </div>

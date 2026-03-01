@@ -53,6 +53,77 @@
   --danger: 0 84.2% 60.2%;
   --danger-foreground: 210 40% 98%;
 
+  /* ── Semantic status palette ── */
+  --status-active: 152 69% 41%;
+  --status-active-foreground: 0 0% 100%;
+  --status-active-soft: 152 69% 95%;
+  --status-warning: 38 92% 50%;
+  --status-warning-foreground: 0 0% 100%;
+  --status-warning-soft: 38 92% 95%;
+  --status-danger: 0 84% 60%;
+  --status-danger-foreground: 0 0% 100%;
+  --status-danger-soft: 0 84% 96%;
+  --status-inactive: 215 16% 47%;
+  --status-inactive-foreground: 0 0% 100%;
+  --status-inactive-soft: 215 16% 96%;
+  --status-info: 217 91% 60%;
+  --status-info-foreground: 0 0% 100%;
+  --status-info-soft: 217 91% 96%;
+  --status-progress: 262 83% 58%;
+  --status-progress-foreground: 0 0% 100%;
+  --status-progress-soft: 262 83% 96%;
+
+  /* ── Typography scale (Major Third 1.25) ── */
+  --font-size-xs: 0.6875rem;
+  --font-size-sm: 0.8125rem;
+  --font-size-base: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.25rem;
+  --font-size-xl: 1.5rem;
+  --font-size-2xl: 1.875rem;
+  --line-height-tight: 1.2;
+  --line-height-snug: 1.4;
+  --line-height-normal: 1.6;
+  --line-height-relaxed: 1.8;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide: 0.01em;
+  --letter-spacing-wider: 0.02em;
+
+  /* ── Spacing scale (8px base) ── */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  /* ── Component sizing ── */
+  --toolbar-height: 2.25rem;
+  --form-input-height: 2.75rem;
+  --table-row-height: 3.25rem;
+  --table-header-height: 2.75rem;
+
+  /* ── Transitions ── */
+  --transition-fast: 100ms ease;
+  --transition-normal: 150ms ease;
+  --transition-slow: 200ms ease;
+
+  /* ── Z-index scale ── */
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-sidebar: 300;
+  --z-overlay: 400;
+  --z-modal: 500;
+  --z-toast: 600;
+  --z-tooltip: 700;
+
   /* ── Progress bars ── */
   --progress-bg: 214.3 31.8% 91.4%;
   --progress-fill: 217.2 91.2% 59.8%;
@@ -140,6 +211,26 @@
   --color-danger:                 hsl(var(--danger));
   --color-danger-foreground:      hsl(var(--danger-foreground));
 
+  /* ── Semantic Status Aliases ── */
+  --color-status-active:          hsl(var(--status-active));
+  --color-status-active-foreground: hsl(var(--status-active-foreground));
+  --color-status-active-soft:     hsl(var(--status-active-soft));
+  --color-status-warning:         hsl(var(--status-warning));
+  --color-status-warning-foreground: hsl(var(--status-warning-foreground));
+  --color-status-warning-soft:    hsl(var(--status-warning-soft));
+  --color-status-danger:          hsl(var(--status-danger));
+  --color-status-danger-foreground: hsl(var(--status-danger-foreground));
+  --color-status-danger-soft:     hsl(var(--status-danger-soft));
+  --color-status-inactive:        hsl(var(--status-inactive));
+  --color-status-inactive-foreground: hsl(var(--status-inactive-foreground));
+  --color-status-inactive-soft:   hsl(var(--status-inactive-soft));
+  --color-status-info:            hsl(var(--status-info));
+  --color-status-info-foreground: hsl(var(--status-info-foreground));
+  --color-status-info-soft:       hsl(var(--status-info-soft));
+  --color-status-progress:        hsl(var(--status-progress));
+  --color-status-progress-foreground: hsl(var(--status-progress-foreground));
+  --color-status-progress-soft:   hsl(var(--status-progress-soft));
+
   /* ── Progress & Required ── */
   --color-progress-bg:    hsl(var(--progress-bg));
   --color-progress-fill:  hsl(var(--progress-fill));
@@ -209,6 +300,20 @@
   --sidebar-text: 215 20.2% 65.1%;
   --sidebar-active: 217.2 91.2% 59.8%;
   --sidebar-hover: 222.2 47.4% 11.2%;
+
+  /* ── Dark mode semantic status colors ── */
+  --status-active: 152 69% 48%;
+  --status-active-soft: 152 30% 15%;
+  --status-warning: 38 92% 55%;
+  --status-warning-soft: 38 40% 15%;
+  --status-danger: 0 84% 65%;
+  --status-danger-soft: 0 40% 15%;
+  --status-inactive: 215 20% 65%;
+  --status-inactive-soft: 215 15% 20%;
+  --status-info: 217 91% 65%;
+  --status-info-soft: 217 40% 15%;
+  --status-progress: 262 83% 68%;
+  --status-progress-soft: 262 40% 15%;
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -410,7 +515,7 @@ body {
    ═══════════════════════════════════════════════════════ */
 
 h1, h2, h3, h4, h5, h6 {
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   line-height: 1.3;
 }
 

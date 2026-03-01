@@ -245,7 +245,7 @@ export default function JobsPageClient() {
         <Card>
           <CardContent className="pt-4">
             <p className="text-xs text-muted-foreground">Open Alerts</p>
-            <p className="text-lg font-semibold sm:text-xl leading-tight text-warning">{kpis.openAlerts}</p>
+            <p className={`text-lg font-semibold sm:text-xl leading-tight${kpis.openAlerts > 0 ? ' text-warning' : ' text-muted-foreground'}`}>{kpis.openAlerts}</p>
           </CardContent>
         </Card>
       </div>

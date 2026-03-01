@@ -189,7 +189,7 @@ export default function InventoryPageClient() {
         <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Pending Counts</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.pendingCounts}</p></CardContent></Card>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border/60 bg-muted/30 px-3 py-2">
         <SearchInput
           value={search}
           onChange={setSearch}

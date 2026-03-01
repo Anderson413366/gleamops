@@ -1086,7 +1086,7 @@ export default function SchedulePageClient() {
       </div>
 
       {tab === 'recurring' && canCreateRecurringShift ? (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-muted/30 px-3 py-2">
           {conflictCount > 0 && (
             <button
               type="button"
@@ -1138,20 +1138,22 @@ export default function SchedulePageClient() {
       ) : null}
 
       {(tab === 'work-orders' || tab === 'planning' || tab === 'checklists') && (
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder={
-            tab === 'work-orders'
-              ? 'Search work orders, services, and sites...'
-              : tab === 'planning'
-                ? 'Search planning tickets, sites, positions, or codes...'
-              : tab === 'checklists'
-                ? 'Search checklist templates, sections, or items...'
-              : `Search ${tab}...`
-          }
-          className="w-full sm:w-72 lg:w-80"
-        />
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-muted/30 px-3 py-2">
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder={
+              tab === 'work-orders'
+                ? 'Search work orders, services, and sites...'
+                : tab === 'planning'
+                  ? 'Search planning tickets, sites, positions, or codes...'
+                : tab === 'checklists'
+                  ? 'Search checklist templates, sections, or items...'
+                : `Search ${tab}...`
+            }
+            className="w-full sm:w-72 lg:w-80"
+          />
+        </div>
       )}
 
       {tab === 'recurring' && (

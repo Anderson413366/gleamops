@@ -245,7 +245,7 @@ export default function TeamPageClient() {
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border/60 bg-muted/30 px-3 py-2">
         <SearchInput
           value={search}
           onChange={setSearch}

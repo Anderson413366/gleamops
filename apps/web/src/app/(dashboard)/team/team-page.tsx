@@ -25,6 +25,65 @@ import SubcontractorsTable from '../vendors/subcontractors/subcontractors-table'
 import BreakRulesTable from '../workforce/break-rules/break-rules-table';
 import ShiftTagsTable from '../workforce/shift-tags/shift-tags-table';
 
+const ATTENDANCE_SUB_TABS = ['Overview', 'Add Clock Time', 'Manage Time Sheets', 'Clocked In List', 'Time Clock Locations', 'Auto-approval Rules'] as const;
+const PAYROLL_SUB_TABS = ['Scheduled Hours', 'Confirmed Hours', 'Confirmed Time Sheets', 'Payroll Settings'] as const;
+
+function AttendanceWrapper({ search }: { search: string }) {
+  const [subTab, setSubTab] = useState('Overview');
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-1.5 border-b border-border pb-2">
+        {ATTENDANCE_SUB_TABS.map((st) => (
+          <button
+            key={st}
+            type="button"
+            onClick={() => setSubTab(st)}
+            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+              subTab === st ? 'bg-module-accent/15 text-module-accent border border-module-accent/30' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+            }`}
+          >
+            {st}
+          </button>
+        ))}
+      </div>
+      {subTab === 'Overview' && <TimeEntriesTable search={search} />}
+      {subTab !== 'Overview' && (
+        <div className="rounded-xl border border-dashed border-border p-12 text-center">
+          <p className="text-sm text-muted-foreground">{subTab} — coming soon</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PayrollWrapper({ search }: { search: string }) {
+  const [subTab, setSubTab] = useState('Scheduled Hours');
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-1.5 border-b border-border pb-2">
+        {PAYROLL_SUB_TABS.map((st) => (
+          <button
+            key={st}
+            type="button"
+            onClick={() => setSubTab(st)}
+            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+              subTab === st ? 'bg-module-accent/15 text-module-accent border border-module-accent/30' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+            }`}
+          >
+            {st}
+          </button>
+        ))}
+      </div>
+      {subTab === 'Scheduled Hours' && <PayrollTable search={search} />}
+      {subTab !== 'Scheduled Hours' && (
+        <div className="rounded-xl border border-dashed border-border p-12 text-center">
+          <p className="text-sm text-muted-foreground">{subTab} — coming soon</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const BASE_TABS = [
   { key: 'staff', label: 'Staff', icon: <Users className="h-4 w-4" /> },
   { key: 'positions', label: 'Positions', icon: <BriefcaseBusiness className="h-4 w-4" /> },
@@ -138,9 +197,13 @@ export default function TeamPageClient() {
         />
       )}
       {tab === 'positions' && <PositionsTable key={`pos-${refreshKey}`} search={search} />}
-      {tab === 'attendance' && <TimeEntriesTable key={`attendance-${refreshKey}`} search={search} />}
+      {tab === 'attendance' && (
+        <AttendanceWrapper key={`attendance-${refreshKey}`} search={search} />
+      )}
       {tab === 'timesheets' && <TimesheetsTable key={`ts-${refreshKey}`} search={search} />}
-      {tab === 'payroll' && <PayrollTable key={`pay-${refreshKey}`} search={search} />}
+      {tab === 'payroll' && (
+        <PayrollWrapper key={`pay-${refreshKey}`} search={search} />
+      )}
       {tab === 'hr' && <HrLitePanel key={`hr-${refreshKey}`} search={search} />}
       {tab === 'microfiber' && (
         <div className="space-y-4">

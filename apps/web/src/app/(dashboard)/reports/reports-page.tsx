@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { BarChart3, TrendingUp, DollarSign, Shield, Users, Package, RefreshCw, CalendarDays } from 'lucide-react';
-import { ChipTabs, Button, Badge, cn } from '@gleamops/ui';
+import { BarChart3, TrendingUp, DollarSign, Shield, Users, Package, RefreshCw, CalendarDays, ChevronDown } from 'lucide-react';
+import { Badge, cn } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
 
@@ -17,13 +17,14 @@ import ScheduleReports from './schedule-reports';
 import { MetricCard } from './_components/report-components';
 
 const TABS = [
-  { key: 'ops', label: 'Operational', icon: <BarChart3 className="h-4 w-4" /> },
-  { key: 'sales', label: 'Sales', icon: <TrendingUp className="h-4 w-4" /> },
-  { key: 'financial', label: 'Financial', icon: <DollarSign className="h-4 w-4" /> },
-  { key: 'quality', label: 'Compliance', icon: <Shield className="h-4 w-4" /> },
-  { key: 'workforce', label: 'Workforce', icon: <Users className="h-4 w-4" /> },
-  { key: 'inventory', label: 'Inventory', icon: <Package className="h-4 w-4" /> },
-  { key: 'schedule', label: 'Schedule', icon: <CalendarDays className="h-4 w-4" /> },
+  { key: 'overview', label: 'Overview' },
+  { key: 'ops', label: 'Operational' },
+  { key: 'sales', label: 'Sales' },
+  { key: 'financial', label: 'Financial' },
+  { key: 'quality', label: 'Compliance' },
+  { key: 'workforce', label: 'Workforce' },
+  { key: 'inventory', label: 'Inventory' },
+  { key: 'schedule', label: 'Schedule' },
 ];
 
 const TAB_ALIASES: Record<string, string> = {
@@ -44,7 +45,7 @@ export default function ReportsPageClient() {
   const pathname = usePathname();
   const [tab, setTab] = useSyncedTab({
     tabKeys: TABS.map((entry) => entry.key),
-    defaultTab: 'ops',
+    defaultTab: 'overview',
     aliases: TAB_ALIASES,
   });
   const initialRange = searchParams.get('range');
@@ -86,7 +87,6 @@ export default function ReportsPageClient() {
       supabase.from('work_tickets').select('id', { count: 'exact', head: true }).is('archived_at', null).in('status', ['SCHEDULED', 'IN_PROGRESS']),
       supabase.from('sales_opportunities').select('estimated_monthly_value, stage_code, created_at').is('archived_at', null).gte('created_at', startISO),
       supabase.from('site_jobs').select('billing_amount').is('archived_at', null).eq('status', 'ACTIVE'),
-      // inspections table uses boolean `passed` (no `pass_fail`)
       supabase.from('inspections').select('status, passed, created_at').is('archived_at', null).gte('created_at', startISO),
       supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('staff_status', 'ACTIVE'),
       supabase.from('supply_catalog').select('id', { count: 'exact', head: true }).is('archived_at', null).neq('supply_status', 'DISCONTINUED'),
@@ -121,103 +121,102 @@ export default function ReportsPageClient() {
     maximumFractionDigits: 0,
   }).format(value);
 
+  const activeLabel = TABS.find((t) => t.key === tab)?.label ?? 'Overview';
+
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Reports</h1>
-          <p className="text-sm text-muted-foreground mt-1">Operations, Sales, Financial, Quality, Workforce and Inventory dashboards</p>
+      <div className="pt-6 flex flex-wrap items-center gap-3">
+        <div className="relative">
+          <select
+            value={tab}
+            onChange={(e) => setTab(e.target.value)}
+            className="appearance-none rounded-lg border border-border bg-card pl-3 pr-9 py-2 text-sm font-medium text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer"
+          >
+            {TABS.map((t) => (
+              <option key={t.key} value={t.key}>{t.label}</option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         </div>
-        <div className="flex items-center gap-2 flex-wrap justify-end">
+
+        <div className="flex items-center gap-1.5">
+          {RANGE_OPTIONS.map((opt) => (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => {
+                setRangeDays(opt.days);
+                syncRangeUrl(opt.days);
+              }}
+              className={cn(
+                'inline-flex items-center rounded-full px-3 py-1 text-xs font-medium transition-colors',
+                rangeDays === opt.days
+                  ? 'bg-module-accent text-module-accent-foreground'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="ml-auto flex items-center gap-2">
           {updatedAt && <Badge color="gray">{`Updated ${updatedAt}`}</Badge>}
-          <Button
-            variant="secondary"
+          <button
+            type="button"
             onClick={() => {
               fetchSnapshot();
               setRefreshKey((k) => k + 1);
             }}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-muted transition-colors"
           >
-            <RefreshCw className="h-4 w-4" />
+            <RefreshCw className="h-3.5 w-3.5" />
             Refresh
-          </Button>
+          </button>
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-            <CalendarDays className="h-3.5 w-3.5" />
-            Time range
-          </span>
-          <div className="flex items-center gap-2">
-            {RANGE_OPTIONS.map((opt) => (
-              <button
-                key={opt.key}
-                type="button"
-                onClick={() => {
-                  setRangeDays(opt.days);
-                  syncRangeUrl(opt.days);
-                }}
-                className={cn(
-                  'inline-flex items-center rounded-full px-3 py-1 text-xs font-medium transition-colors',
-                  rangeDays === opt.days
-                    ? 'bg-module-accent text-module-accent-foreground'
-                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                )}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
+      {tab === 'overview' && (
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+          <MetricCard
+            icon={<BarChart3 className="h-5 w-5" />}
+            tone="primary"
+            label="Open Tickets"
+            value={snapshot.openTickets}
+          />
+          <MetricCard
+            icon={<TrendingUp className="h-5 w-5" />}
+            tone="accent"
+            label="Pipeline Value"
+            value={formatCurrency(snapshot.pipelineValue)}
+            sublabel="/month"
+          />
+          <MetricCard
+            icon={<DollarSign className="h-5 w-5" />}
+            tone="success"
+            label="Monthly Revenue"
+            value={formatCurrency(snapshot.monthlyRevenue)}
+          />
+          <MetricCard
+            icon={<Shield className="h-5 w-5" />}
+            tone="warning"
+            label="Pass Rate"
+            value={`${snapshot.passRate}%`}
+          />
+          <MetricCard
+            icon={<Users className="h-5 w-5" />}
+            tone="primary"
+            label="Active Staff"
+            value={snapshot.activeStaff}
+          />
+          <MetricCard
+            icon={<Package className="h-5 w-5" />}
+            tone="primary"
+            label="Active Supplies"
+            value={snapshot.activeSupplies}
+          />
         </div>
-        <Badge color="gray">{`Snapshot: last ${rangeDays} days (where applicable)`}</Badge>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-        <MetricCard
-          icon={<BarChart3 className="h-5 w-5" />}
-          tone="primary"
-          label="Open Tickets"
-          value={snapshot.openTickets}
-        />
-        <MetricCard
-          icon={<TrendingUp className="h-5 w-5" />}
-          tone="accent"
-          label="Pipeline Value"
-          value={formatCurrency(snapshot.pipelineValue)}
-          sublabel="/month"
-        />
-        <MetricCard
-          icon={<DollarSign className="h-5 w-5" />}
-          tone="success"
-          label="Monthly Revenue"
-          value={formatCurrency(snapshot.monthlyRevenue)}
-        />
-        <MetricCard
-          icon={<Shield className="h-5 w-5" />}
-          tone="warning"
-          label="Pass Rate"
-          value={`${snapshot.passRate}%`}
-        />
-        <MetricCard
-          icon={<Users className="h-5 w-5" />}
-          tone="primary"
-          label="Active Staff"
-          value={snapshot.activeStaff}
-        />
-        <MetricCard
-          icon={<Package className="h-5 w-5" />}
-          tone="primary"
-          label="Active Supplies"
-          value={snapshot.activeSupplies}
-        />
-      </div>
-
-      <ChipTabs
-        tabs={TABS}
-        active={tab}
-        onChange={setTab}
-      />
+      )}
 
       {tab === 'ops' && <OpsDashboard rangeDays={rangeDays} refreshKey={refreshKey} />}
       {tab === 'sales' && <SalesDashboard rangeDays={rangeDays} refreshKey={refreshKey} />}

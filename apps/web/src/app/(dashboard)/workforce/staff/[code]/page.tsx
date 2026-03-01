@@ -86,6 +86,16 @@ interface TicketAssignmentRow {
   ticket?: Pick<WorkTicket, 'ticket_code' | 'scheduled_date' | 'status'> | null;
 }
 
+interface StaffRecurringSlot {
+  id: string;
+  ticket_code: string;
+  scheduled_date: string;
+  start_time: string | null;
+  end_time: string | null;
+  position_code: string | null;
+  site?: { name: string; site_code: string } | null;
+}
+
 interface AssignableJobOption {
   id: string;
   label: string;
@@ -214,6 +224,7 @@ export default function StaffDetailPage() {
   const [equipment, setEquipment] = useState<EquipmentRow[]>([]);
   const [certifications, setCertifications] = useState<StaffCertification[]>([]);
   const [ticketAssignments, setTicketAssignments] = useState<TicketAssignmentRow[]>([]);
+  const [recurringSlots, setRecurringSlots] = useState<StaffRecurringSlot[]>([]);
   const [formOpen, setFormOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archiveLoading, setArchiveLoading] = useState(false);
@@ -293,12 +304,21 @@ export default function StaffDetailPage() {
           .select('id', { count: 'exact', head: true })
           .eq('supervisor_id', data.id)
           .is('archived_at', null),
-      ]).then(([jobsRes, equipRes, certRes, ticketRes, supervisedRes]) => {
+        supabase
+          .from('work_tickets')
+          .select('id, ticket_code, scheduled_date, start_time, end_time, position_code, site:site_id(name, site_code)')
+          .eq('assigned_to', data.id)
+          .in('status', ['SCHEDULED', 'IN_PROGRESS'])
+          .gte('scheduled_date', new Date().toISOString().slice(0, 10))
+          .order('scheduled_date', { ascending: true })
+          .limit(10),
+      ]).then(([jobsRes, equipRes, certRes, ticketRes, supervisedRes, recurringRes]) => {
         if (jobsRes.data) setJobs(jobsRes.data as unknown as JobAssignment[]);
         if (equipRes.data) setEquipment(equipRes.data as unknown as EquipmentRow[]);
         if (certRes.data) setCertifications(certRes.data as unknown as StaffCertification[]);
         if (ticketRes.data) setTicketAssignments(ticketRes.data as unknown as TicketAssignmentRow[]);
         setSupervisedTeamCount(supervisedRes.count ?? 0);
+        if (recurringRes.data) setRecurringSlots(recurringRes.data as unknown as StaffRecurringSlot[]);
       });
     } else {
       setStaff(null);
@@ -306,6 +326,7 @@ export default function StaffDetailPage() {
       setEquipment([]);
       setCertifications([]);
       setTicketAssignments([]);
+      setRecurringSlots([]);
       setSupervisedTeamCount(0);
     }
     setLoading(false);
@@ -808,33 +829,78 @@ export default function StaffDetailPage() {
 
       {/* Schedule Tab */}
       {tab === 'schedule' && (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <Card>
-            <CardHeader><CardTitle>Employee Schedule</CardTitle></CardHeader>
-            <CardContent>
-              <dl className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Schedule Type</dt>
-                  <dd className="font-medium">{staff.schedule_type ?? <span className="text-muted-foreground">Not set</span>}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Employment Type</dt>
-                  <dd className="font-medium">{staff.employment_type ?? <span className="text-muted-foreground">Not set</span>}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Role</dt>
-                  <dd className="font-medium">{staff.role}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Availability Pattern</dt>
-                  <dd className="font-medium text-right">
-                    {typicalDays.length ? typicalDays.join(', ') : <span className="text-muted-foreground">No preferred days saved</span>}
-                  </dd>
-                </div>
-              </dl>
-            </CardContent>
-          </Card>
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <Card>
+              <CardHeader><CardTitle>Employee Schedule</CardTitle></CardHeader>
+              <CardContent>
+                <dl className="space-y-3 text-sm">
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">Schedule Type</dt>
+                    <dd className="font-medium">{staff.schedule_type ?? <span className="text-muted-foreground">Not set</span>}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">Employment Type</dt>
+                    <dd className="font-medium">{staff.employment_type ?? <span className="text-muted-foreground">Not set</span>}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">Role</dt>
+                    <dd className="font-medium">{staff.role}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">Availability Pattern</dt>
+                    <dd className="font-medium text-right">
+                      {typicalDays.length ? typicalDays.join(', ') : <span className="text-muted-foreground">No preferred days saved</span>}
+                    </dd>
+                  </div>
+                </dl>
+              </CardContent>
+            </Card>
 
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CalendarDays className="h-4 w-4" /> Recurring Site Assignments
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {recurringSlots.length === 0 ? (
+                  <p className="text-sm text-muted-foreground italic">No upcoming site assignments.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {recurringSlots.map((slot) => (
+                      <li key={slot.id} className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">
+                            {formatDate(slot.scheduled_date)}
+                            {slot.start_time && slot.end_time && (
+                              <span className="text-muted-foreground ml-1">
+                                {slot.start_time.slice(0, 5)}–{slot.end_time.slice(0, 5)}
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {slot.position_code ? titleFromCode(slot.position_code) : 'General'}
+                            {slot.site ? (
+                              <> &middot; <EntityLink entityType="site" code={slot.site.site_code} name={slot.site.name} showCode={false} /></>
+                            ) : null}
+                          </p>
+                        </div>
+                        <Badge color="blue" className="text-[10px] shrink-0">{slot.ticket_code}</Badge>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="mt-3 border-t border-border pt-3">
+                  <Link href="/schedule?tab=recurring" className="text-xs text-blue-600 hover:text-blue-800 hover:underline">
+                    View Full Schedule →
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Card>
             <CardHeader><CardTitle>Work Schedule</CardTitle></CardHeader>
             <CardContent className="space-y-4">
@@ -891,6 +957,7 @@ export default function StaffDetailPage() {
               </div>
             </CardContent>
           </Card>
+          </div>
         </div>
       )}
 

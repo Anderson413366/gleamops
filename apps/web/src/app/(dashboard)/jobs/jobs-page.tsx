@@ -8,8 +8,6 @@ import {
   ClipboardCheck,
   Clock,
   Route,
-  Eye,
-  EyeOff,
   Plus,
   CheckSquare,
   FileCog,
@@ -77,7 +75,6 @@ export default function JobsPageClient() {
   const [selectedInspection, setSelectedInspection] = useState<InspectionWithRelations | null>(null);
   const [showCreateInspection, setShowCreateInspection] = useState(false);
   const [openServicePlanCreateToken, setOpenServicePlanCreateToken] = useState(0);
-  const [focusMode, setFocusMode] = useState(false);
   const [kpis, setKpis] = useState({
     todayTickets: 0,
     openTickets: 0,
@@ -275,10 +272,6 @@ export default function JobsPageClient() {
         <Button className="shrink-0" onClick={() => { setTab('service-plans'); setOpenServicePlanCreateToken((token) => token + 1); }}>
           <Plus className="h-4 w-4" />
           New Service Plan
-        </Button>
-        <Button variant="secondary" className="shrink-0" onClick={() => setFocusMode((prev) => !prev)}>
-          {focusMode ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          {focusMode ? 'Exit Focus' : 'Focus Mode'}
         </Button>
       </div>
 

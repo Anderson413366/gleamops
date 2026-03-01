@@ -16,7 +16,6 @@ import {
   Wrench,
   ShieldCheck,
   Settings,
-  LogOut,
   Menu,
   X,
   Sparkles,
@@ -68,7 +67,7 @@ import {
   Calculator,
   Beaker,
 } from 'lucide-react';
-import { getModuleFromPathname, NAV_TREE, normalizeRoleCode, roleDisplayName, type NavItem } from '@gleamops/shared';
+import { getModuleFromPathname, NAV_TREE, normalizeRoleCode, type NavItem } from '@gleamops/shared';
 import { useAuth } from '@/hooks/use-auth';
 import { useFeatureFlag } from '@/hooks/use-feature-flag';
 import { useLocale } from '@/hooks/use-locale';
@@ -175,16 +174,6 @@ function saveCollapsedState(collapsed: boolean) {
   } catch { /* ignore */ }
 }
 
-function getInitials(email: string): string {
-  const name = email.split('@')[0];
-  if (!name) return '?';
-  const parts = name.split(/[._-]/);
-  if (parts.length >= 2) {
-    return (parts[0][0] + parts[1][0]).toUpperCase();
-  }
-  return name.slice(0, 2).toUpperCase();
-}
-
 function loadExpandedState(): Set<string> {
   try {
     const stored = localStorage.getItem(EXPANDED_STORAGE_KEY);
@@ -215,7 +204,7 @@ export function Sidebar() {
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set<string>());
   const expandedInitialized = useRef(false);
   const quickRef = useRef<HTMLDivElement>(null);
-  const { user, role, signOut } = useAuth();
+  const { role } = useAuth();
   const { t } = useLocale();
   const roleCode = normalizeRoleCode(role ?? '') ?? (role ?? '').toUpperCase();
   const showShiftsTimeNav = SHIFTS_TIME_SIDEBAR_ROLES.has(roleCode)
@@ -656,39 +645,6 @@ export function Sidebar() {
           </button>
         </div>
 
-        {/* Footer — profile + settings + sign out */}
-        <div className="border-t border-white/10 p-3 space-y-1">
-          {user && (
-            <div className="flex items-center gap-3 px-3 py-2.5 mb-1">
-              <div className="h-8 w-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold shrink-0">
-                {getInitials(user.email)}
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-white truncate">{user.email}</p>
-                {role && (
-                  <p className="text-xs text-sidebar-text capitalize">
-                    {roleDisplayName(role)}
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-          <Link
-            href="/settings?view=profile"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-text hover:bg-sidebar-hover hover:text-white transition-all duration-200 ease-in-out"
-          >
-            <Settings className="h-[18px] w-[18px] shrink-0" />
-            Settings
-          </Link>
-          <button
-            type="button"
-            onClick={signOut}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-text hover:text-destructive hover:bg-sidebar-hover transition-all duration-200 ease-in-out w-full"
-          >
-            <LogOut className="h-[18px] w-[18px] shrink-0" />
-            Sign out
-          </button>
-        </div>
       </aside>
     </>
   );

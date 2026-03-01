@@ -5,10 +5,20 @@ import { Building2, MapPin, Users } from 'lucide-react';
 import { Badge, EmptyState, cn } from '@gleamops/ui';
 import type { RecurringScheduleRow } from './schedule-list';
 
+export interface CoverageCellParams {
+  siteCode: string | null;
+  siteName: string;
+  positionType: string;
+  dateKey: string;
+  assigned: number;
+  total: number;
+}
+
 interface CoverageGridProps {
   rows: RecurringScheduleRow[];
   visibleDates: string[];
   search?: string;
+  onCellClick?: (params: CoverageCellParams) => void;
 }
 
 interface CoverageGroup {
@@ -32,7 +42,7 @@ function isToday(dateKey: string) {
   return new Date().toISOString().slice(0, 10) === dateKey;
 }
 
-export function CoverageGrid({ rows, visibleDates, search = '' }: CoverageGridProps) {
+export function CoverageGrid({ rows, visibleDates, search = '', onCellClick }: CoverageGridProps) {
   const groups = useMemo(() => {
     const filtered = search.trim()
       ? rows.filter((r) =>
@@ -156,10 +166,23 @@ export function CoverageGrid({ rows, visibleDates, search = '' }: CoverageGridPr
                       )}
                     >
                       {total > 0 ? (
-                        <Badge color={hasGap ? 'red' : 'green'} className="text-[11px]">
-                          <Users className="h-3 w-3 mr-0.5" />
-                          {assigned}/{total}
-                        </Badge>
+                        <button
+                          type="button"
+                          className="cursor-pointer rounded-md transition-all hover:ring-2 hover:ring-primary/40"
+                          onClick={() => onCellClick?.({
+                            siteCode: group.siteCode,
+                            siteName: group.siteName,
+                            positionType: group.positionType,
+                            dateKey,
+                            assigned,
+                            total,
+                          })}
+                        >
+                          <Badge color={hasGap ? 'red' : 'green'} className="text-[11px]">
+                            <Users className="h-3 w-3 mr-0.5" />
+                            {assigned}/{total}
+                          </Badge>
+                        </button>
                       ) : (
                         <span className="text-[11px] text-muted-foreground">—</span>
                       )}

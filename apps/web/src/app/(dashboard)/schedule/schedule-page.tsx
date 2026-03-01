@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Calendar, ClipboardList, Briefcase, FileText, ListTodo, Plus, ChevronLeft, ChevronRight, LayoutDashboard, Route, Shield, AlertTriangle, Send } from 'lucide-react';
-import { SearchInput, Card, CardContent, Button, ConfirmDialog } from '@gleamops/ui';
+import { Calendar, ClipboardList, Briefcase, FileText, ListTodo, Plus, ChevronLeft, ChevronRight, LayoutDashboard, Route, Shield, AlertTriangle, Send, X, Users } from 'lucide-react';
+import { SearchInput, Card, CardContent, Button, ConfirmDialog, Badge } from '@gleamops/ui';
 import { normalizeRoleCode, type WorkTicket } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
@@ -29,7 +29,7 @@ import { ConflictPanel } from './recurring/conflict-panel';
 import { ScheduleToolsDropdown } from './recurring/schedule-tools-dropdown';
 import { TemplateManager } from './recurring/template-manager';
 import { ScheduleSidebar } from './recurring/schedule-sidebar';
-import { CoverageGrid } from './recurring/coverage-grid';
+import { CoverageGrid, type CoverageCellParams } from './recurring/coverage-grid';
 import { DayView } from './recurring/day-view';
 import { useSchedulePrint } from './recurring/schedule-print';
 import { BudgetOverlay } from './recurring/budget-overlay';
@@ -236,6 +236,7 @@ export default function SchedulePageClient() {
   const [budgetMode, setBudgetMode] = useState(false);
   const [, setSelectedTicket] = useState<TicketWithRelations | null>(null);
   const [selectedRecurringRow, setSelectedRecurringRow] = useState<RecurringScheduleRow | null>(null);
+  const [coverageDrill, setCoverageDrill] = useState<CoverageCellParams | null>(null);
   const normalizedRole = normalizeRoleCode(role);
   const showChecklistAdmin = normalizedRole === 'OWNER_ADMIN' || normalizedRole === 'MANAGER' || normalizedRole === 'SUPERVISOR';
   const showShiftChecklist = normalizedRole === 'SUPERVISOR' || normalizedRole === 'CLEANER' || normalizedRole === 'INSPECTOR';
@@ -285,6 +286,20 @@ export default function SchedulePageClient() {
     }
     return rows;
   }, [recurringRows, selectedClients, selectedSites, selectedPositions, selectedEmployees]);
+
+  // Coverage drill-down: compute assigned/unassigned for the selected cell
+  const coverageDrillData = useMemo(() => {
+    if (!coverageDrill) return null;
+    const matched = filteredRecurringRows.filter(
+      (r) =>
+        r.siteName === coverageDrill.siteName &&
+        r.positionType === coverageDrill.positionType &&
+        r.scheduledDates.includes(coverageDrill.dateKey),
+    );
+    const assigned = matched.filter((r) => r.status !== 'open');
+    const unassigned = matched.filter((r) => r.status === 'open');
+    return { assigned, unassigned };
+  }, [coverageDrill, filteredRecurringRows]);
 
   const clearActionParam = useCallback(() => {
     const params = new URLSearchParams(searchParams.toString());
@@ -1323,6 +1338,7 @@ export default function SchedulePageClient() {
                 rows={filteredRecurringRows}
                 visibleDates={recurringRange.visibleDates}
                 search={search}
+                onCellClick={setCoverageDrill}
               />
             ) : recurringView === 'day' ? (
               <DayView
@@ -1363,6 +1379,73 @@ export default function SchedulePageClient() {
       {tab === 'recurring' ? (
         <>
           <SiteBlueprintView row={selectedRecurringRow} onClear={() => setSelectedRecurringRow(null)} />
+
+          {/* Coverage Drill-Down Panel */}
+          {coverageDrill && coverageDrillData && (
+            <Card className="border-primary/30">
+              <CardContent className="pt-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground">
+                      {coverageDrill.siteCode ? `${coverageDrill.siteCode} – ` : ''}{coverageDrill.siteName}
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {coverageDrill.positionType.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())}
+                      {' · '}
+                      {new Date(`${coverageDrill.dateKey}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                    </p>
+                  </div>
+                  <button type="button" onClick={() => setCoverageDrill(null)} className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="flex items-center gap-3 mb-3">
+                  <Badge color="green">{coverageDrillData.assigned.length} assigned</Badge>
+                  <Badge color="red">{coverageDrillData.unassigned.length} open</Badge>
+                </div>
+                {coverageDrillData.assigned.length > 0 && (
+                  <div className="mb-3">
+                    <p className="text-xs font-medium text-muted-foreground mb-1.5">Assigned Staff</p>
+                    <ul className="space-y-1">
+                      {coverageDrillData.assigned.map((r) => (
+                        <li key={r.id} className="flex items-center gap-2 text-sm">
+                          <Users className="h-3 w-3 text-green-600 dark:text-green-400 shrink-0" />
+                          <span className="text-foreground">{r.staffName}</span>
+                          <span className="text-xs text-muted-foreground">{r.startTime} – {r.endTime}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {coverageDrillData.unassigned.length > 0 && (
+                  <div className="mb-3">
+                    <p className="text-xs font-medium text-muted-foreground mb-1.5">Open Slots</p>
+                    <ul className="space-y-1">
+                      {coverageDrillData.unassigned.map((r) => (
+                        <li key={r.id} className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Users className="h-3 w-3 text-red-500 shrink-0" />
+                          <span>{r.startTime} – {r.endTime}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {canCreateRecurringShift && (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setShiftPrefill({ date: coverageDrill.dateKey });
+                      setShiftFormOpen(true);
+                      setCoverageDrill(null);
+                    }}
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1" /> New Shift
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           <div className="space-y-4">
             <SchedulePeriodsPanel />
             <ConflictPanel />

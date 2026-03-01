@@ -27,8 +27,12 @@ import {
   ScanLine,
   Clock3,
   ClipboardList,
+  CheckCircle2,
+  Circle,
+  X,
+  Rocket,
 } from 'lucide-react';
-import { StatCard, CollapsibleCard, Badge, Skeleton } from '@gleamops/ui';
+import { StatCard, CollapsibleCard, Badge, Skeleton, Card, CardContent } from '@gleamops/ui';
 import {
   TICKET_STATUS_COLORS,
   PROSPECT_STATUS_COLORS,
@@ -212,6 +216,97 @@ function formatEntityType(type: string): string {
   return type
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+// ---------------------------------------------------------------------------
+// Onboarding Checklist
+// ---------------------------------------------------------------------------
+const ONBOARDING_STORAGE_KEY = 'gleamops-onboarding-dismissed';
+
+interface OnboardingChecklistProps {
+  metrics: Metrics;
+  loading: boolean;
+}
+
+function OnboardingChecklist({ metrics, loading }: OnboardingChecklistProps) {
+  const [dismissed, setDismissed] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    try {
+      if (localStorage.getItem(ONBOARDING_STORAGE_KEY) === 'true') {
+        setDismissed(true);
+      }
+    } catch {
+      // localStorage not available
+    }
+  }, []);
+
+  if (!mounted || dismissed || loading) return null;
+
+  const items = [
+    { label: 'Add your first client', done: (metrics.activeClients ?? 0) > 0, href: '/clients' },
+    { label: 'Add your first site', done: (metrics.activeSites ?? 0) > 0, href: '/clients?tab=sites' },
+    { label: 'Add your first staff member', done: (metrics.activeStaff ?? 0) > 0, href: '/team' },
+    { label: 'Create a service plan', done: (metrics.activeJobs ?? 0) > 0, href: '/jobs?tab=service-plans' },
+    { label: 'Set up a schedule', done: (metrics.openTickets ?? 0) > 0, href: '/schedule' },
+  ];
+
+  const completedCount = items.filter((i) => i.done).length;
+  const allDone = completedCount === items.length;
+
+  // Auto-hide when all items are done
+  if (allDone) return null;
+
+  const handleDismiss = () => {
+    setDismissed(true);
+    try {
+      localStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
+    } catch {
+      // localStorage not available
+    }
+  };
+
+  return (
+    <Card className="border-primary/30 bg-primary/5">
+      <CardContent className="pt-4">
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Rocket className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">Setup Checklist</h3>
+            <span className="text-xs text-muted-foreground">{completedCount}/{items.length}</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleDismiss}
+            className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            aria-label="Dismiss checklist"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <ul className="space-y-2">
+          {items.map((item) => (
+            <li key={item.label} className="flex items-center gap-2 text-sm">
+              {item.done ? (
+                <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
+              ) : (
+                <Circle className="h-4 w-4 text-muted-foreground shrink-0" />
+              )}
+              {item.done ? (
+                <span className="text-muted-foreground line-through">{item.label}</span>
+              ) : (
+                <Link href={item.href} className="text-primary hover:underline font-medium">
+                  {item.label}
+                </Link>
+              )}
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -699,6 +794,9 @@ export default function HomePage() {
 
       {/* What's New banner — dismissed via localStorage */}
       <WhatsNewBanner />
+
+      {/* Onboarding Checklist — auto-hides when complete or dismissed */}
+      <OnboardingChecklist metrics={metrics} loading={metricsLoading} />
 
       {/* Executive Dashboard — Stat Cards */}
       <div>

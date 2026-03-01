@@ -15,17 +15,6 @@ interface Props {
   search: string;
 }
 
-interface StaffCountLite {
-  role: string | null;
-  staff_type: string | null;
-}
-
-function normalize(value: string | null | undefined): string {
-  return (value ?? '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '');
-}
-
 function renderNotSet() {
   return <span className="italic text-muted-foreground">Not Set</span>;
 }
@@ -62,21 +51,16 @@ export default function PositionsTable({ search }: Props) {
       const positionRows = data as StaffPosition[];
       setRows(positionRows);
 
-      const { data: staffRows } = await supabase
-        .from('staff')
-        .select('role, staff_type')
+      const { data: eligRows } = await supabase
+        .from('staff_eligible_positions')
+        .select('staff_id, position_code')
         .is('archived_at', null);
 
-      const staff = (staffRows ?? []) as StaffCountLite[];
       const counts: Record<string, number> = {};
       for (const position of positionRows) {
-        const byCode = normalize(position.position_code);
-        const byTitle = normalize(position.title);
-        counts[position.id] = staff.filter((member) => {
-          const role = normalize(member.role);
-          const staffType = normalize(member.staff_type);
-          return role === byCode || role === byTitle || staffType === byCode || staffType === byTitle;
-        }).length;
+        counts[position.id] = (eligRows ?? []).filter(
+          (e: { position_code: string }) => e.position_code === position.position_code
+        ).length;
       }
       setStaffCountByPositionId(counts);
     }

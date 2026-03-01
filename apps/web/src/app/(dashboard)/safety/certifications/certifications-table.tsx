@@ -25,6 +25,7 @@ import {
 import type { StaffCertification } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { getStatusPillColor } from '@/lib/utils/status-colors';
 import { EntityLink } from '@/components/links/entity-link';
 
 const STATUS_OPTIONS = [
@@ -329,7 +330,7 @@ export default function CertificationsTable({ search, autoCreate, onAutoCreateHa
             className={cn(
               'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors',
               statusFilter === status
-                ? 'bg-module-accent text-module-accent-foreground'
+                ? getStatusPillColor(status)
                 : 'bg-muted text-muted-foreground hover:bg-muted/80',
             )}
           >

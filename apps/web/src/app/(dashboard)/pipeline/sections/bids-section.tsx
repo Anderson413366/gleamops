@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FileText, Plus, Sparkles, Zap } from 'lucide-react';
 import { Badge, Button, EmptyState, Pagination, SearchInput, TableSkeleton, cn } from '@gleamops/ui';
+import { getStatusPillColor } from '@/lib/utils/status-colors';
 import type { SalesBid } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { usePagination } from '@/hooks/use-pagination';
@@ -136,7 +137,7 @@ export function BidsSection({
               className={cn(
                 'inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors',
                 effectiveStatusFilter === status
-                  ? 'bg-green-600 text-white'
+                  ? getStatusPillColor(status)
                   : 'bg-muted text-muted-foreground hover:bg-muted/80'
               )}
             >

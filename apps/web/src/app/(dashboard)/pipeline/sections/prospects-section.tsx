@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Handshake, Plus, Sparkles } from 'lucide-react';
 import { Button, EmptyState, Pagination, SearchInput, TableSkeleton, cn } from '@gleamops/ui';
+import { getStatusPillColor } from '@/lib/utils/status-colors';
 import type { SalesProspect } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { usePagination } from '@/hooks/use-pagination';
@@ -117,7 +118,7 @@ export function ProspectsSection({
               className={cn(
                 'inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors',
                 effectiveStatusFilter === status
-                  ? 'bg-blue-600 text-white'
+                  ? getStatusPillColor(status)
                   : 'bg-muted text-muted-foreground hover:bg-muted/80'
               )}
             >

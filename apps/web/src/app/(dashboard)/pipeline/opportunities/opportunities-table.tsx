@@ -13,6 +13,7 @@ import { OPPORTUNITY_STAGE_COLORS } from '@gleamops/shared';
 import type { SalesOpportunity } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { getStatusPillColor } from '@/lib/utils/status-colors';
 import { OpportunityForm } from '@/components/forms/opportunity-form';
 import { PipelineFlowHint } from '@/components/empty-states/pipeline-flow-hint';
 import { useViewPreference } from '@/hooks/use-view-preference';
@@ -137,7 +138,7 @@ export default function OpportunitiesTable({ search }: OpportunitiesTableProps) 
               className={cn(
                 'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors',
                 statusFilter === status
-                  ? 'bg-module-accent text-module-accent-foreground'
+                  ? getStatusPillColor(status)
                   : 'bg-muted text-muted-foreground hover:bg-muted/80'
               )}
             >

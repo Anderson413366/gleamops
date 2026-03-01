@@ -24,6 +24,7 @@ import {
 import type { Task } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { getStatusPillColor } from '@/lib/utils/status-colors';
 import { useViewPreference } from '@/hooks/use-view-preference';
 import { TaskForm } from '@/components/forms/task-form';
 import { TaskCatalogCardGrid } from './task-catalog-card-grid';
@@ -204,7 +205,7 @@ export default function TaskCatalogTable({ search }: TaskCatalogTableProps) {
             className={cn(
               'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors',
               statusFilter === status
-                ? 'bg-module-accent text-module-accent-foreground'
+                ? getStatusPillColor(status)
                 : 'bg-muted text-muted-foreground hover:bg-muted/80'
             )}
           >

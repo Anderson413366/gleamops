@@ -10,6 +10,7 @@ import {
   EmptyState, Badge, Pagination, TableSkeleton, ExportButton, ViewToggle, StatusDot, statusRowAccentClass, cn,
 } from '@gleamops/ui';
 import type { Staff } from '@gleamops/shared';
+import { getStatusPillColor } from '@/lib/utils/status-colors';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 import { useViewPreference } from '@/hooks/use-view-preference';
@@ -206,7 +207,7 @@ export default function StaffTable({
               className={cn(
                 'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors',
                 statusFilter === status
-                  ? 'bg-module-accent text-module-accent-foreground'
+                  ? getStatusPillColor(status)
                   : 'bg-muted text-muted-foreground hover:bg-muted/80'
               )}
             >

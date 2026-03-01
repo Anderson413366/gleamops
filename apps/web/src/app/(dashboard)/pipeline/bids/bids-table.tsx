@@ -12,6 +12,7 @@ import {
 import type { SalesBid } from '@gleamops/shared';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { getStatusPillColor } from '@/lib/utils/status-colors';
 import { PipelineFlowHint } from '@/components/empty-states/pipeline-flow-hint';
 import { EntityLink } from '@/components/links/entity-link';
 
@@ -136,7 +137,7 @@ export default function BidsTable({ search, onCreateNew }: BidsTableProps) {
             onClick={() => setStatusFilter(status)}
             className={cn(
               'inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors',
-              effectiveStatusFilter === status ? 'bg-module-accent text-module-accent-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80',
+              effectiveStatusFilter === status ? getStatusPillColor(status) : 'bg-muted text-muted-foreground hover:bg-muted/80',
             )}
           >
             {status === 'all' ? 'All' : status.replace(/_/g, ' ')}

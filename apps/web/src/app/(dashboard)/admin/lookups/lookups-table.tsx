@@ -9,6 +9,7 @@ import {
 } from '@gleamops/ui';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
+import { getStatusPillColor } from '@/lib/utils/status-colors';
 import { LookupForm, type LookupRow } from '@/components/forms/lookup-form';
 
 interface Props {
@@ -97,7 +98,7 @@ export default function LookupsTable({ search, autoCreate, onAutoCreateHandled, 
             className={cn(
               'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors',
               activeFilter === option
-                ? 'bg-module-accent text-module-accent-foreground'
+                ? getStatusPillColor(option)
                 : 'bg-muted text-muted-foreground hover:bg-muted/80'
             )}
           >

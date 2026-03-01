@@ -566,8 +566,8 @@ export function Sidebar() {
         {/* Nav items */}
         <nav className="flex-1 py-3 px-3 space-y-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
           {v2NavigationEnabled
-            ? renderTreeNav(NAV_TREE)
-            : renderFlatNav(LEGACY_NAV_ITEMS)
+            ? renderTreeNav(NAV_TREE.filter((item) => item.id !== 'settings'))
+            : renderFlatNav(LEGACY_NAV_ITEMS.filter((item) => item.id !== 'settings'))
           }
           {showShiftsTimeNav && (
             <Link

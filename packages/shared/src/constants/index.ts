@@ -31,7 +31,6 @@ export const NAV_TREE: NavItem[] = [
     id: 'schedule', label: 'Staff Schedule', href: '/schedule', icon: 'Calendar',
     children: [
       { id: 'schedule', label: 'Employee Grid', href: '/schedule?tab=recurring', icon: 'RefreshCw' },
-      { id: 'schedule', label: 'Calendar', href: '/schedule?tab=calendar', icon: 'CalendarDays' },
       { id: 'schedule', label: 'Leave & Availability', href: '/schedule?tab=leave', icon: 'CalendarDays' },
       { id: 'schedule', label: 'My Schedule', href: '/schedule?tab=my-schedule', icon: 'CalendarDays' },
     ],
@@ -52,6 +51,7 @@ export const NAV_TREE: NavItem[] = [
     id: 'jobs', label: 'Work Orders', href: '/schedule?tab=work-orders', icon: 'ClipboardList',
     children: [
       { id: 'schedule', label: 'Open Orders', href: '/schedule?tab=work-orders', icon: 'FileText' },
+      { id: 'schedule', label: 'Calendar', href: '/schedule?tab=calendar', icon: 'CalendarDays' },
       { id: 'jobs', label: 'Job Log', href: '/jobs?tab=tickets', icon: 'ClipboardList' },
       { id: 'jobs', label: 'Service Plans', href: '/jobs?tab=service-plans', icon: 'Briefcase' },
       { id: 'jobs', label: 'Inspections', href: '/jobs?tab=inspections', icon: 'ClipboardCheck' },

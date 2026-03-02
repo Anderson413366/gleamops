@@ -133,3 +133,85 @@ export const useInvoiceFrequencies = () => useLookups(['Invoice Frequency', 'INV
 export const useSiteStatuses = () => useLookups(['Site Status', 'SITE_STATUS']);
 export const useRiskLevels = () => useLookups(['Risk Level', 'RISK_LEVEL']);
 export const usePriorityLevels = () => useLookups(['Priority Level', 'PRIORITY_LEVEL']);
+
+// Sprint 6 — Staff category presets
+export const useStaffStatuses = () => useLookups(['Staff Status', 'staff_status']);
+export const useStaffRoles = () => useLookups(['Staff Role', 'STAFF_ROLE']);
+export const useEmploymentTypes = () => useLookups(['Employment Type', 'EMPLOYMENT_TYPE']);
+export const usePayTypes = () => useLookups(['Pay Type', 'PAY_TYPE']);
+export const useScheduleTypes = () => useLookups(['Schedule Type', 'SCHEDULE_TYPE']);
+
+// Sprint 6 — Reference table hooks
+export const usePositionTypes = () => {
+  const supabase = getSupabaseBrowserClient();
+  const [data, setData] = useState<Array<{ value: string; label: string }>>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    supabase
+      .from('staff_positions')
+      .select('id, position_code, title')
+      .is('archived_at', null)
+      .eq('is_active', true)
+      .order('title')
+      .then(({ data: rows }) => {
+        if (cancelled) return;
+        setData((rows ?? []).map((r) => ({ value: r.position_code, label: r.title })));
+        setIsLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [supabase]);
+
+  return { options: data, isLoading };
+};
+
+export const useSiteTypes = () => {
+  const supabase = getSupabaseBrowserClient();
+  const [data, setData] = useState<Array<{ value: string; label: string }>>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    supabase
+      .from('site_types')
+      .select('id, code, name')
+      .is('archived_at', null)
+      .eq('is_active', true)
+      .order('sort_order')
+      .then(({ data: rows }) => {
+        if (cancelled) return;
+        setData((rows ?? []).map((r) => ({ value: r.id, label: r.name })));
+        setIsLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [supabase]);
+
+  return { options: data, isLoading };
+};
+
+export const useServicesList = () => {
+  const supabase = getSupabaseBrowserClient();
+  const [data, setData] = useState<Array<{ value: string; label: string }>>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    supabase
+      .from('services')
+      .select('id, service_code, name')
+      .is('archived_at', null)
+      .order('name')
+      .then(({ data: rows }) => {
+        if (cancelled) return;
+        setData((rows ?? []).map((r) => ({ value: r.id, label: r.name })));
+        setIsLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [supabase]);
+
+  return { options: data, isLoading };
+};

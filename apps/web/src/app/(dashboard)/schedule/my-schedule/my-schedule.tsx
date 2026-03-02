@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, List } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Calendar as CalendarIcon, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent, EmptyState, Badge } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
@@ -178,7 +178,19 @@ export function MySchedule() {
         </div>
       </div>
 
-      {/* Shifts */}
+      {view === 'list' ? (
+        <ListView shifts={shifts} leaves={leaves} />
+      ) : (
+        <CalendarView shifts={shifts} leaves={leaves} />
+      )}
+    </div>
+  );
+}
+
+/* ─── List View ─── */
+function ListView({ shifts, leaves }: { shifts: MyShift[]; leaves: MyLeave[] }) {
+  return (
+    <>
       {shifts.length === 0 ? (
         <EmptyState title="No Upcoming Shifts" description="No upcoming shifts found for your schedule." />
       ) : (
@@ -208,7 +220,6 @@ export function MySchedule() {
         </div>
       )}
 
-      {/* Time Off */}
       {leaves.length > 0 && (
         <div className="space-y-2">
           <h3 className="text-sm font-semibold text-foreground">Time Off</h3>
@@ -229,6 +240,153 @@ export function MySchedule() {
           ))}
         </div>
       )}
+    </>
+  );
+}
+
+/* ─── Calendar View ─── */
+const WEEKDAY_HEADERS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function CalendarView({ shifts, leaves }: { shifts: MyShift[]; leaves: MyLeave[] }) {
+  const [calMonth, setCalMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
+
+  const shiftsByDate = useMemo(() => {
+    const map = new Map<string, MyShift[]>();
+    for (const s of shifts) {
+      const existing = map.get(s.scheduled_date);
+      if (existing) existing.push(s);
+      else map.set(s.scheduled_date, [s]);
+    }
+    return map;
+  }, [shifts]);
+
+  const leaveDates = useMemo(() => {
+    const set = new Set<string>();
+    for (const l of leaves) {
+      if (!l.start_date) continue;
+      const start = new Date(`${l.start_date}T12:00:00`);
+      const end = l.end_date ? new Date(`${l.end_date}T12:00:00`) : start;
+      const cursor = new Date(start);
+      while (cursor <= end) {
+        set.add(cursor.toISOString().slice(0, 10));
+        cursor.setDate(cursor.getDate() + 1);
+      }
+    }
+    return set;
+  }, [leaves]);
+
+  const calendarDays = useMemo(() => {
+    const year = calMonth.getFullYear();
+    const month = calMonth.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const days: Array<{ date: string; day: number; inMonth: boolean }> = [];
+
+    // Leading blanks
+    for (let i = 0; i < firstDay; i++) {
+      const d = new Date(year, month, -(firstDay - 1 - i));
+      days.push({ date: d.toISOString().slice(0, 10), day: d.getDate(), inMonth: false });
+    }
+
+    // Current month days
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dt = new Date(year, month, d);
+      days.push({ date: dt.toISOString().slice(0, 10), day: d, inMonth: true });
+    }
+
+    // Trailing blanks to complete final week
+    const trailing = (7 - (days.length % 7)) % 7;
+    for (let i = 1; i <= trailing; i++) {
+      const d = new Date(year, month + 1, i);
+      days.push({ date: d.toISOString().slice(0, 10), day: d.getDate(), inMonth: false });
+    }
+
+    return days;
+  }, [calMonth]);
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const monthLabel = calMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+  return (
+    <div className="space-y-3">
+      {/* Month navigation */}
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() - 1, 1))}
+          className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <p className="text-sm font-semibold text-foreground">{monthLabel}</p>
+        <button
+          type="button"
+          onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 1))}
+          className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+
+      {/* Grid */}
+      <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+        {/* Weekday header */}
+        <div className="grid grid-cols-7 border-b border-border bg-muted/30">
+          {WEEKDAY_HEADERS.map((d) => (
+            <div key={d} className="py-2 text-center text-xs font-medium text-muted-foreground">{d}</div>
+          ))}
+        </div>
+
+        {/* Day cells */}
+        <div className="grid grid-cols-7">
+          {calendarDays.map((cell) => {
+            const dayShifts = shiftsByDate.get(cell.date) ?? [];
+            const isLeave = leaveDates.has(cell.date);
+            const isToday = cell.date === todayStr;
+
+            return (
+              <div
+                key={cell.date}
+                className={`min-h-[5rem] border-b border-r border-border/50 p-1.5 ${
+                  !cell.inMonth ? 'bg-muted/20' : ''
+                } ${isToday ? 'bg-primary/5' : ''}`}
+              >
+                <p className={`text-xs font-medium mb-1 ${
+                  !cell.inMonth ? 'text-muted-foreground/40' : isToday ? 'text-primary font-bold' : 'text-muted-foreground'
+                }`}>
+                  {cell.day}
+                </p>
+
+                {isLeave && cell.inMonth && (
+                  <div className="mb-0.5 rounded bg-orange-100 px-1 py-0.5 text-[10px] font-medium text-orange-700 dark:bg-orange-950/40 dark:text-orange-300 truncate">
+                    Time Off
+                  </div>
+                )}
+
+                {cell.inMonth && dayShifts.map((shift) => (
+                  <div
+                    key={shift.id}
+                    className={`mb-0.5 rounded px-1 py-0.5 text-[10px] font-medium truncate ${
+                      shift.status === 'COMPLETED'
+                        ? 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-300'
+                        : shift.status === 'IN_PROGRESS'
+                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-300'
+                          : 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300'
+                    }`}
+                    title={`${shift.site_name} · ${shift.start_time}–${shift.end_time} · ${shift.status}`}
+                  >
+                    {shift.start_time} {shift.site_code ?? shift.site_name}
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }

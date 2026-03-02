@@ -90,7 +90,9 @@ Dashboard with KPI widgets. No sub-tabs.
 | Payroll | `/team?tab=payroll` | Payroll export |
 | HR | `/team?tab=hr` | HR records (badges, goals, PTO) |
 | Microfiber | `/team?tab=microfiber` | Microfiber tracking |
-| Subcontractors | `/team?tab=subcontractors` | Subcontractor management |
+| Partners | `/team?tab=subcontractors` | Subcontractor/partner management |
+| Break Rules | `/team?tab=break-rules` | Break policy configuration |
+| Shift Tags | `/team?tab=shift-tags` | Shift type tag definitions |
 | Messages | `/team?tab=messages` | Team messages (feature-flagged) |
 
 **Detail Pages:**

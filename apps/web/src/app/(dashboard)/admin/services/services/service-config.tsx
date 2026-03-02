@@ -27,7 +27,7 @@ interface LinkedTask {
   task_id: string;
   frequency_default: string;
   task: {
-    task_code: string;
+    code: string;
     name: string;
     category: string | null;
   };
@@ -135,7 +135,7 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
     return rows.filter(
       (r) =>
         r.name.toLowerCase().includes(q) ||
-        r.service_code.toLowerCase().includes(q) ||
+        r.code.toLowerCase().includes(q) ||
         r.description?.toLowerCase().includes(q)
     );
   }, [rows, search]);
@@ -154,7 +154,7 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
     const supabase = getSupabaseBrowserClient();
     const { data } = await supabase
       .from('service_tasks')
-      .select('id, task_id, frequency_default, task:task_id(task_code, name, category)')
+      .select('id, task_id, frequency_default, task:task_id(code, name, category)')
       .eq('service_id', serviceId)
       .is('archived_at', null)
       .order('created_at');
@@ -201,7 +201,7 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
 
   const handleSelect = async (service: ServiceWithTaskCount) => {
     setSelectedService(service);
-    setServiceCode(service.service_code);
+    setServiceCode(service.code);
     setName(service.name);
     setDescription(service.description ?? '');
     setError(null);
@@ -254,7 +254,7 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
         .from('services')
         .insert({
           tenant_id: tenantId,
-          service_code: serviceCode,
+          code: serviceCode,
           name: name.trim(),
           description: description.trim() || null,
         })
@@ -362,7 +362,7 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
           data={filtered as unknown as Record<string, unknown>[]}
           filename="services"
           columns={[
-            { key: 'service_code', label: 'Code' },
+            { key: 'code', label: 'Code' },
             { key: 'name', label: 'Name' },
             { key: 'description', label: 'Description' },
             { key: 'price_per_unit', label: 'Price/Unit' },
@@ -376,7 +376,7 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
       <Table>
         <TableHeader>
           <tr>
-            <TableHead sortable sorted={sortKey === 'service_code' && sortDir} onSort={() => onSort('service_code')}>Code</TableHead>
+            <TableHead sortable sorted={sortKey === 'code' && sortDir} onSort={() => onSort('code')}>Code</TableHead>
             <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Name</TableHead>
             <TableHead>Description</TableHead>
             <TableHead>Price/Unit</TableHead>
@@ -388,7 +388,7 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
         <TableBody>
           {pag.page.map((row) => (
             <TableRow key={row.id} onClick={() => handleSelect(row)}>
-              <TableCell className="font-mono text-xs">{row.service_code}</TableCell>
+              <TableCell className="font-mono text-xs">{row.code}</TableCell>
               <TableCell className="font-medium">{row.name}</TableCell>
               <TableCell className="text-muted-foreground text-sm max-w-xs truncate">{row.description ?? '--'}</TableCell>
               <TableCell className="text-sm">{row.price_per_unit != null ? `$${row.price_per_unit.toFixed(2)}` : '--'}</TableCell>
@@ -495,7 +495,7 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-foreground">{lt.task.name}</p>
                           <p className="text-xs text-muted-foreground">
-                            {lt.task.task_code}
+                            {lt.task.code}
                             {lt.task.category && <> &middot; {lt.task.category}</>}
                           </p>
                         </div>
@@ -535,7 +535,7 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
                           >
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-foreground">{task.name}</p>
-                              <p className="text-xs text-muted-foreground">{task.task_code}</p>
+                              <p className="text-xs text-muted-foreground">{task.code}</p>
                             </div>
                             {task.category && (
                               <Badge color="gray">{task.category}</Badge>

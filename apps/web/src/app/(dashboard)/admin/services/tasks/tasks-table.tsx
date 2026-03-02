@@ -90,7 +90,7 @@ export default function TasksTable({ search, autoCreate, onAutoCreateHandled, on
     return rows.filter(
       (r) =>
         r.name.toLowerCase().includes(q) ||
-        r.task_code.toLowerCase().includes(q) ||
+        r.code.toLowerCase().includes(q) ||
         r.category?.toLowerCase().includes(q)
     );
   }, [rows, search]);
@@ -123,7 +123,7 @@ export default function TasksTable({ search, autoCreate, onAutoCreateHandled, on
           data={filtered as unknown as Record<string, unknown>[]}
           filename="tasks"
           columns={[
-            { key: 'task_code', label: 'Code' },
+            { key: 'code', label: 'Code' },
             { key: 'name', label: 'Name' },
             { key: 'category', label: 'Category' },
             { key: 'unit_code', label: 'Unit' },
@@ -135,7 +135,7 @@ export default function TasksTable({ search, autoCreate, onAutoCreateHandled, on
       <Table>
         <TableHeader>
           <tr>
-            <TableHead sortable sorted={sortKey === 'task_code' && sortDir} onSort={() => onSort('task_code')}>Code</TableHead>
+            <TableHead sortable sorted={sortKey === 'code' && sortDir} onSort={() => onSort('code')}>Code</TableHead>
             <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Name</TableHead>
             <TableHead>Category</TableHead>
             <TableHead>Unit</TableHead>
@@ -144,8 +144,8 @@ export default function TasksTable({ search, autoCreate, onAutoCreateHandled, on
         </TableHeader>
         <TableBody>
           {pag.page.map((row) => (
-            <TableRow key={row.id} onClick={() => router.push(`/services/tasks/${row.task_code}`)}>
-              <TableCell className="font-mono text-xs">{row.task_code}</TableCell>
+            <TableRow key={row.id} onClick={() => router.push(`/services/tasks/${row.code}`)}>
+              <TableCell className="font-mono text-xs">{row.code}</TableCell>
               <TableCell className="font-medium">{row.name}</TableCell>
               <TableCell>
                 {row.category ? (

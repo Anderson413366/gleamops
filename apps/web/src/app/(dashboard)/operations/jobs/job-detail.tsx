@@ -70,7 +70,7 @@ interface JobTaskRow {
   is_required: boolean;
   estimated_minutes: number | null;
   status: string;
-  task?: { name: string; task_code: string } | null;
+  task?: { name: string; code: string } | null;
 }
 
 interface LogRow {
@@ -133,7 +133,7 @@ export function JobDetail({ job, open, onClose, onEdit }: JobDetailProps) {
     setLoadingTasks(true);
     supabase
       .from('job_tasks')
-      .select('id, task_id, sequence_order, is_required, estimated_minutes, status, task:task_id(name, task_code)')
+      .select('id, task_id, sequence_order, is_required, estimated_minutes, status, task:task_id(name, code)')
       .eq('job_id', job.id)
       .is('archived_at', null)
       .order('sequence_order')
@@ -210,7 +210,7 @@ export function JobDetail({ job, open, onClose, onEdit }: JobDetailProps) {
       // Reload tasks
       const { data } = await supabase
         .from('job_tasks')
-        .select('id, task_id, sequence_order, is_required, estimated_minutes, status, task:task_id(name, task_code)')
+        .select('id, task_id, sequence_order, is_required, estimated_minutes, status, task:task_id(name, code)')
         .eq('job_id', job.id)
         .is('archived_at', null)
         .order('sequence_order');
@@ -346,7 +346,7 @@ export function JobDetail({ job, open, onClose, onEdit }: JobDetailProps) {
                           <div>
                             <p className="text-sm font-medium">{t.task?.name ?? t.task_id}</p>
                             <p className="text-xs text-muted-foreground">
-                              #{t.sequence_order} &middot; {t.task?.task_code}
+                              #{t.sequence_order} &middot; {t.task?.code}
                               {t.estimated_minutes && ` \u00B7 ${t.estimated_minutes} min`}
                               {t.is_required && ' \u00B7 Required'}
                             </p>

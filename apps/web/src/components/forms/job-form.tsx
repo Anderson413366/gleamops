@@ -61,7 +61,7 @@ const BILLING_PERIOD_OPTIONS = [
 const PRIORITY_OPTIONS = [
   { value: '', label: 'None' },
   { value: 'LOW', label: 'Low' },
-  { value: 'MEDIUM', label: 'Medium' },
+  { value: 'NORMAL', label: 'Normal' },
   { value: 'HIGH', label: 'High' },
   { value: 'CRITICAL', label: 'Critical' },
 ];
@@ -175,7 +175,7 @@ interface SiteBlueprintDraft {
 
 interface TaskCatalogRow {
   id: string;
-  task_code: string;
+  code: string;
   name: string;
   category: string | null;
   subcategory: string | null;
@@ -434,7 +434,7 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
         `)
         .is('archived_at', null)
         .order('name'),
-      supabase.from('services').select('id, name, service_code').is('archived_at', null).order('name'),
+      supabase.from('services').select('id, name, code').is('archived_at', null).order('name'),
       supabase
         .from('staff')
         .select('full_name, staff_code, role')
@@ -443,7 +443,7 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
         .order('full_name'),
       supabase
         .from('tasks')
-        .select('id, task_code, name, category, subcategory, priority_level, default_minutes')
+        .select('id, code, name, category, subcategory, priority_level, default_minutes')
         .is('archived_at', null)
         .eq('is_active', true)
         .order('name'),
@@ -481,7 +481,7 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
         setServices(
           servicesRes.data.map((s) => ({
             value: s.id,
-            label: `${s.name} (${s.service_code})`,
+            label: `${s.name} (${s.code})`,
           }))
         );
       }
@@ -686,7 +686,7 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
   const taskSelectOptions = useMemo(
     () => [
       { value: '', label: 'Select task...' },
-      ...taskCatalog.map((t) => ({ value: t.id, label: `${t.name} (${t.task_code})` })),
+      ...taskCatalog.map((t) => ({ value: t.id, label: `${t.name} (${t.code})` })),
     ],
     [taskCatalog]
   );
@@ -696,7 +696,7 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
     const q = taskCatalogSearch.trim().toLowerCase();
     return taskCatalog.filter((task) =>
       task.name.toLowerCase().includes(q) ||
-      task.task_code.toLowerCase().includes(q) ||
+      task.code.toLowerCase().includes(q) ||
       (task.category ?? '').toLowerCase().includes(q) ||
       (task.subcategory ?? '').toLowerCase().includes(q)
     );
@@ -746,7 +746,7 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
         ...prev,
         {
           taskId: task.id,
-          taskCode: task.task_code,
+          taskCode: task.code,
           name: task.name,
           minutesPerVisit: minutes,
           quantity: qty,
@@ -785,7 +785,7 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
         if (!task) continue;
         byId.set(row.task_id, {
           taskId: task.id,
-          taskCode: task.task_code,
+          taskCode: task.code,
           name: task.name,
           minutesPerVisit: row.estimated_minutes ?? task.default_minutes ?? 30,
           quantity: 1,
@@ -808,7 +808,7 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
         if (!task) continue;
         byId.set(taskId, {
           taskId: task.id,
-          taskCode: task.task_code,
+          taskCode: task.code,
           name: task.name,
           minutesPerVisit: task.default_minutes ?? 30,
           quantity: 1,
@@ -1366,7 +1366,7 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
                   />
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold">{task.name}</p>
-                    <p className="text-xs text-muted-foreground font-mono">{task.task_code}</p>
+                    <p className="text-xs text-muted-foreground font-mono">{task.code}</p>
                     <p className="text-xs text-muted-foreground">
                       {(task.category ?? 'General')}{task.subcategory ? ` - ${task.subcategory}` : ''} · {task.default_minutes ?? 30} min
                       {task.priority_level ? ` · ${task.priority_level}` : ''}

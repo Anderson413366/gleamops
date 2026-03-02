@@ -426,8 +426,8 @@ export default function SupplyDetailPage() {
               </dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">Eco Rating</dt>
-              <dd className="font-medium">{supply.eco_rating ?? '\u2014'}</dd>
+              <dt className="text-muted-foreground">Product Attributes</dt>
+              <dd className="font-medium">{supply.product_attributes ? JSON.stringify(supply.product_attributes) : '\u2014'}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">PPE Required</dt>
@@ -512,8 +512,8 @@ export default function SupplyDetailPage() {
               </dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">Eco Rating</dt>
-              <dd className="font-medium">{supply.eco_rating ?? '\u2014'}</dd>
+              <dt className="text-muted-foreground">Product Attributes</dt>
+              <dd className="font-medium">{supply.product_attributes ? JSON.stringify(supply.product_attributes) : '\u2014'}</dd>
             </div>
             <div className="flex justify-between items-center">
               <dt className="text-muted-foreground">Safety Data Sheet</dt>

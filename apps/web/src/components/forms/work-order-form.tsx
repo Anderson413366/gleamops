@@ -76,9 +76,10 @@ const STEPS = [
 ] as const;
 
 const PRIORITY_OPTIONS = [
-  { value: 'standard', label: 'Standard' },
-  { value: 'high', label: 'High' },
-  { value: 'asap', label: 'ASAP (Urgent)' },
+  { value: 'LOW', label: 'Low' },
+  { value: 'NORMAL', label: 'Normal' },
+  { value: 'HIGH', label: 'High' },
+  { value: 'CRITICAL', label: 'Critical' },
 ];
 
 const DEFAULT_COMPLETION_TEMPLATE_OPTIONS = [

@@ -240,15 +240,15 @@ export interface Contact extends StandardColumns {
 // Module B: Service DNA
 // ---------------------------------------------------------------------------
 export interface Task extends StandardColumns {
-  code?: string;
-  task_code: string;
+  code: string;
+  /** @deprecated Use `code` instead. Alias kept for backward compat during migration. */
+  task_code?: string;
   name: string;
   category: string | null;
   subcategory: string | null;
   area_type: string | null;
   floor_type: string | null;
-  priority?: 'high' | 'medium' | 'low' | null;
-  priority_level: string | null; // Lookups "Priority Level"
+  priority_level: string | null; // Canonical: LOW | NORMAL | HIGH | CRITICAL
   default_minutes: number | null;
   production_rate_sqft_per_hour: number | null;
   unit_code: string; // SQFT_1000 | EACH
@@ -276,7 +276,9 @@ export interface TaskProductionRate extends StandardColumns {
 }
 
 export interface Service extends StandardColumns {
-  service_code: string;
+  code: string;
+  /** @deprecated Use `code` instead. */
+  service_code?: string;
   name: string;
   description: string | null;
   price_per_unit: number | null;
@@ -968,7 +970,7 @@ export interface SupplyCatalog extends StandardColumns {
   vendor_sku: string | null;
   barcode: string | null;
   sds_url: string | null;
-  eco_rating: string | null;
+  product_attributes: Record<string, unknown> | null;
   ppe_required: boolean;
   image_url: string | null;
   notes: string | null;

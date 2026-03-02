@@ -97,7 +97,7 @@ export default function TaskDetailPage() {
     const { data } = await supabase
       .from('tasks')
       .select('*')
-      .eq('task_code', id)
+      .eq('code', id)
       .is('archived_at', null)
       .single();
 
@@ -225,7 +225,7 @@ export default function TaskDetailPage() {
             </h1>
             <div className="flex items-center gap-2 mt-1">
               <span className="text-sm text-muted-foreground font-mono">
-                {task.task_code}
+                {task.code}
               </span>
               <Badge color={task.is_active ? 'green' : 'red'}>
                 {task.is_active ? 'Active' : 'Inactive'}

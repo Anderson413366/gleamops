@@ -9,7 +9,7 @@ import { SlideOver, Input, Textarea, Button, FormSection } from '@gleamops/ui';
 import type { Service } from '@gleamops/shared';
 
 const DEFAULTS: ServiceFormData = {
-  service_code: '',
+  code: '',
   name: '',
   description: null,
 };
@@ -29,7 +29,7 @@ export function ServiceForm({ open, onClose, initialData, onSuccess }: ServiceFo
     schema: serviceSchema,
     initialValues: initialData
       ? {
-          service_code: initialData.service_code,
+          code: initialData.code,
           name: initialData.name,
           description: initialData.description,
         }
@@ -60,9 +60,9 @@ export function ServiceForm({ open, onClose, initialData, onSuccess }: ServiceFo
 
   // Generate next code on create
   useEffect(() => {
-    if (open && !isEdit && !values.service_code) {
+    if (open && !isEdit && !values.code) {
       supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'SER' }).then(({ data }) => {
-        if (data) setValue('service_code', data);
+        if (data) setValue('code', data);
       });
     }
   }, [open, isEdit]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -77,14 +77,14 @@ export function ServiceForm({ open, onClose, initialData, onSuccess }: ServiceFo
       open={open}
       onClose={handleClose}
       title={isEdit ? 'Edit Service' : 'New Service'}
-      subtitle={isEdit ? initialData?.service_code : undefined}
+      subtitle={isEdit ? initialData?.code : undefined}
       wide
     >
       <form onSubmit={handleSubmit} className="space-y-8">
         <FormSection title="Service Details" icon={<Sparkles className="h-4 w-4" />} description="Name and description used across jobs and proposals.">
           <Input
             label="Service Code"
-            value={values.service_code}
+            value={values.code}
             readOnly
             disabled
             hint="Auto-generated"

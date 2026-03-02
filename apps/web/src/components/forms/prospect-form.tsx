@@ -36,8 +36,9 @@ const CONTACT_METHOD_OPTIONS = [
 const PRIORITY_OPTIONS = [
   { value: '', label: 'Select...' },
   { value: 'LOW', label: 'Low' },
-  { value: 'MEDIUM', label: 'Medium' },
+  { value: 'NORMAL', label: 'Normal' },
   { value: 'HIGH', label: 'High' },
+  { value: 'CRITICAL', label: 'Critical' },
 ];
 
 const INDUSTRY_FALLBACK = [

@@ -54,7 +54,7 @@ export function TaskCatalogCardGrid({ rows, onSelect }: TaskCatalogCardGridProps
             </div>
 
             <p className="truncate text-sm font-semibold text-foreground" title={item.name}>{item.name}</p>
-            <p className="mt-1 truncate font-mono text-xs text-muted-foreground" title={item.task_code}>{item.task_code}</p>
+            <p className="mt-1 truncate font-mono text-xs text-muted-foreground" title={item.code}>{item.code}</p>
             <p className="mt-2 line-clamp-2 text-xs text-muted-foreground" title={formatCategory(item.category, item.subcategory)}>
               {formatCategory(item.category, item.subcategory)}
             </p>

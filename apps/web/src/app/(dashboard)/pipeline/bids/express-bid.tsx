@@ -97,17 +97,17 @@ export function ExpressBid({ open, onClose, onSuccess }: ExpressBidProps) {
       .then(({ data }) => {
         if (data) setClients(data.map((c) => ({ value: c.id, label: `${c.name} (${c.client_code})` })));
       });
-    supabase.from('services').select('id, name, service_code').is('archived_at', null).order('name')
+    supabase.from('services').select('id, name, code').is('archived_at', null).order('name')
       .then(({ data }) => {
-        if (data) setServices(data.map((s) => ({ value: s.id, label: `${s.name} (${s.service_code})` })));
+        if (data) setServices(data.map((s) => ({ value: s.id, label: `${s.name} (${s.code})` })));
       });
-    supabase.from('task_production_rates').select('*, task:task_id(task_code)').eq('is_active', true)
+    supabase.from('task_production_rates').select('*, task:task_id(code)').eq('is_active', true)
       .then(({ data }) => {
         if (data) {
           setProductionRates(data.map((r: Record<string, unknown>) => {
-            const task = r.task as { task_code: string } | null;
+            const task = r.task as { code: string } | null;
             return {
-              task_code: task?.task_code ?? '',
+              task_code: task?.code ?? '',
               floor_type_code: r.floor_type_code as string | null,
               building_type_code: r.building_type_code as string | null,
               unit_code: (r.unit_code as 'SQFT_1000' | 'EACH') ?? 'SQFT_1000',
@@ -125,16 +125,16 @@ export function ExpressBid({ open, onClose, onSuccess }: ExpressBidProps) {
     if (!form.service_id) { setServiceTasks([]); return; }
     supabase
       .from('service_tasks')
-      .select('task_id, frequency_default, task:task_id(task_code, name)')
+      .select('task_id, frequency_default, task:task_id(code, name)')
       .eq('service_id', form.service_id)
       .is('archived_at', null)
       .then(({ data }) => {
         if (data) {
           setServiceTasks(data.map((st: Record<string, unknown>) => {
-            const task = st.task as { task_code: string; name: string } | null;
+            const task = st.task as { code: string; name: string } | null;
             return {
               task_id: st.task_id as string,
-              task_code: task?.task_code ?? '',
+              task_code: task?.code ?? '',
               task_name: task?.name ?? '',
               frequency: st.frequency_default as string,
             };

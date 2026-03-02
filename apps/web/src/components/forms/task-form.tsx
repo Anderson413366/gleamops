@@ -16,14 +16,13 @@ const UNIT_OPTIONS = [
 const PRIORITY_OPTIONS = [
   { value: '', label: 'None' },
   { value: 'LOW', label: 'Low' },
-  { value: 'MEDIUM', label: 'Medium' },
+  { value: 'NORMAL', label: 'Normal' },
   { value: 'HIGH', label: 'High' },
   { value: 'CRITICAL', label: 'Critical' },
 ];
 
 const DEFAULTS: TaskFormData = {
-  task_code: '',
-  code: null,
+  code: '',
   name: '',
   production_rate_sqft_per_hour: null,
   production_rate: null,
@@ -31,7 +30,6 @@ const DEFAULTS: TaskFormData = {
   subcategory: null,
   area_type: null,
   floor_type: null,
-  priority: null,
   priority_level: null,
   default_minutes: null,
   unit_code: 'SQFT_1000',
@@ -60,8 +58,7 @@ export function TaskForm({ open, onClose, initialData, onSuccess, focusSection }
     schema: taskSchema,
     initialValues: initialData
       ? {
-          task_code: initialData.task_code,
-          code: initialData.code ?? initialData.task_code,
+          code: initialData.code,
           name: initialData.name,
           production_rate_sqft_per_hour: initialData.production_rate_sqft_per_hour,
           production_rate: initialData.production_rate,
@@ -69,7 +66,6 @@ export function TaskForm({ open, onClose, initialData, onSuccess, focusSection }
           subcategory: initialData.subcategory,
           area_type: initialData.area_type,
           floor_type: initialData.floor_type,
-          priority: initialData.priority ?? null,
           priority_level: initialData.priority_level,
           default_minutes: initialData.default_minutes,
           unit_code: initialData.unit_code as 'SQFT_1000' | 'EACH',
@@ -85,8 +81,8 @@ export function TaskForm({ open, onClose, initialData, onSuccess, focusSection }
     onSubmit: async (data) => {
       if (isEdit) {
         // Task code is immutable after create.
-        const { task_code, ...updateData } = data;
-        void task_code;
+        const { code, ...updateData } = data;
+        void code;
         const result = await supabase
           .from('tasks')
           .update(updateData)
@@ -108,9 +104,9 @@ export function TaskForm({ open, onClose, initialData, onSuccess, focusSection }
 
   // Generate next code on create
   useEffect(() => {
-    if (open && !isEdit && !values.task_code) {
+    if (open && !isEdit && !values.code) {
       supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'TSK' }).then(({ data }) => {
-        if (data) setValue('task_code', data);
+        if (data) setValue('code', data);
       });
     }
   }, [open, isEdit]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -135,7 +131,7 @@ export function TaskForm({ open, onClose, initialData, onSuccess, focusSection }
       open={open}
       onClose={handleClose}
       title={isEdit ? 'Edit Task' : 'New Task'}
-      subtitle={isEdit ? initialData?.task_code : undefined}
+      subtitle={isEdit ? initialData?.code : undefined}
       wide
     >
       <form onSubmit={handleSubmit} className="space-y-8">
@@ -144,7 +140,7 @@ export function TaskForm({ open, onClose, initialData, onSuccess, focusSection }
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               label="Task Code"
-              value={values.task_code}
+              value={values.code}
               readOnly
               disabled
               hint="Auto-generated"

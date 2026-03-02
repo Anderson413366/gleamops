@@ -64,7 +64,7 @@ interface StaffOption {
 
 interface TaskCatalogRow {
   id: string;
-  task_code: string;
+  code: string;
   name: string;
   category: string | null;
   subcategory: string | null;
@@ -267,7 +267,7 @@ export default function JobDetailPage() {
     const supabase = getSupabaseBrowserClient();
     const { data, error } = await supabase
       .from('tasks')
-      .select('id, task_code, name, category, subcategory, priority_level, default_minutes, is_active')
+      .select('id, code, name, category, subcategory, priority_level, default_minutes, is_active')
       .is('archived_at', null)
       .eq('is_active', true)
       .order('name');
@@ -308,7 +308,7 @@ export default function JobDetailPage() {
 
     const primary = await supabase
       .from('job_tasks')
-      .select('id, task_id, task_code, task_name, sequence_order, is_required, wait_after, estimated_minutes, custom_minutes, planned_minutes, notes, status, task:task_id(id, task_code, name, category, subcategory, priority_level, default_minutes, is_active)')
+      .select('id, task_id, task_code, task_name, sequence_order, is_required, wait_after, estimated_minutes, custom_minutes, planned_minutes, notes, status, task:task_id(id, code, name, category, subcategory, priority_level, default_minutes, is_active)')
       .eq('job_id', jobId)
       .is('archived_at', null);
 
@@ -320,7 +320,7 @@ export default function JobDetailPage() {
     // Backward-compatible fallback for environments that have not applied new task columns yet.
     const fallback = await supabase
       .from('job_tasks')
-      .select('id, task_id, task_code, task_name, is_required, planned_minutes, notes, status, task:task_id(id, task_code, name, category, subcategory, priority_level, default_minutes, is_active)')
+      .select('id, task_id, task_code, task_name, is_required, planned_minutes, notes, status, task:task_id(id, code, name, category, subcategory, priority_level, default_minutes, is_active)')
       .eq('job_id', jobId)
       .is('archived_at', null);
 
@@ -445,7 +445,7 @@ export default function JobDetailPage() {
     const draft = jobTasks.map((task, index) => ({
       tempId: task.id || `${task.task_id ?? 'legacy'}-${index}`,
       taskId: task.task_id ?? null,
-      taskCode: task.task?.task_code ?? task.task_code ?? 'TASK',
+      taskCode: task.task?.code ?? task.task_code ?? 'TASK',
       taskName: task.task?.name ?? task.task_name ?? 'Unnamed Task',
       category: task.task?.category ?? null,
       isRequired: task.is_required ?? true,
@@ -469,7 +469,7 @@ export default function JobDetailPage() {
         {
           tempId: `${task.id}-${Date.now()}`,
           taskId: task.id,
-          taskCode: task.task_code,
+          taskCode: task.code,
           taskName: task.name,
           category: task.category,
           isRequired: true,
@@ -622,7 +622,7 @@ export default function JobDetailPage() {
     const q = taskSearch.trim().toLowerCase();
     return (
       task.name.toLowerCase().includes(q) ||
-      task.task_code.toLowerCase().includes(q) ||
+      task.code.toLowerCase().includes(q) ||
       (task.category ?? '').toLowerCase().includes(q) ||
       (task.subcategory ?? '').toLowerCase().includes(q)
     );
@@ -1060,7 +1060,7 @@ export default function JobDetailPage() {
             <ul className="space-y-3">
               {jobTasks.map((task) => {
                 const taskName = task.task?.name ?? task.task_name ?? 'Unnamed Task';
-                const taskCode = task.task?.task_code ?? task.task_code ?? 'TASK';
+                const taskCode = task.task?.code ?? task.task_code ?? 'TASK';
                 const minutes = Number(task.custom_minutes ?? task.estimated_minutes ?? task.planned_minutes ?? task.task?.default_minutes ?? 0);
                 return (
                   <li key={task.id} className="rounded-lg border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
@@ -1307,7 +1307,7 @@ export default function JobDetailPage() {
                               <div key={task.id} className="rounded-lg border border-border bg-card p-3">
                                 <p className="text-sm font-medium text-foreground">{task.name}</p>
                                 <p className="mt-1 text-xs text-muted-foreground">
-                                  {task.task_code}
+                                  {task.code}
                                   {task.subcategory ? ` · ${formatCategoryLabel(task.subcategory)}` : ''}
                                 </p>
                                 <div className="mt-2 flex justify-end">

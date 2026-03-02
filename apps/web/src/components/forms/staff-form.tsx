@@ -24,21 +24,24 @@ const STATUS_OPTIONS = [
   { value: 'ON_LEAVE', label: 'On Leave' },
   { value: 'INACTIVE', label: 'Inactive' },
   { value: 'TERMINATED', label: 'Terminated' },
+  { value: 'PENDING', label: 'Pending' },
 ];
 
 const EMPLOYMENT_TYPE_OPTIONS = [
   { value: '', label: 'Select...' },
   { value: 'FULL_TIME', label: 'Full Time' },
   { value: 'PART_TIME', label: 'Part Time' },
-  { value: 'CONTRACT', label: 'Contract' },
-  { value: 'TEMP', label: 'Temporary' },
+  { value: 'CONTRACTOR', label: 'Contractor' },
+  { value: 'TEMPORARY', label: 'Temporary' },
+  { value: 'SEASONAL', label: 'Seasonal' },
 ];
 
 const PAY_TYPE_OPTIONS = [
   { value: '', label: 'Select...' },
   { value: 'HOURLY', label: 'Hourly' },
   { value: 'SALARY', label: 'Salary' },
-  { value: 'CONTRACT', label: 'Contract' },
+  { value: 'PER_JOB', label: 'Per Job' },
+  { value: 'PER_SHIFT', label: 'Per Shift' },
 ];
 
 const SCHEDULE_TYPE_OPTIONS = [

@@ -36,7 +36,7 @@ type ComplaintRow = ComplaintCardItem & {
 };
 
 const STATUS_OPTIONS = ['all', 'OPEN', 'ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'ESCALATED', 'CLOSED'] as const;
-const PRIORITY_OPTIONS = ['all', 'LOW', 'NORMAL', 'HIGH', 'URGENT_SAME_NIGHT'] as const;
+const PRIORITY_OPTIONS = ['all', 'LOW', 'NORMAL', 'HIGH', 'CRITICAL'] as const;
 
 async function authHeaders() {
   const supabase = getSupabaseBrowserClient();
@@ -66,7 +66,7 @@ function statusColor(status: string): 'green' | 'yellow' | 'red' | 'orange' | 'b
 
 function priorityColor(priority: string): 'green' | 'yellow' | 'red' | 'orange' | 'blue' | 'gray' {
   switch (priority) {
-    case 'URGENT_SAME_NIGHT':
+    case 'CRITICAL':
       return 'red';
     case 'HIGH':
       return 'orange';

@@ -30,11 +30,12 @@ import { TaskForm } from '@/components/forms/task-form';
 import { TaskCatalogCardGrid } from './task-catalog-card-grid';
 
 const STATUS_OPTIONS = ['ACTIVE', 'INACTIVE', 'all'] as const;
-const PRIORITY_OPTIONS = ['all', 'HIGH', 'MEDIUM', 'LOW'] as const;
+const PRIORITY_OPTIONS = ['all', 'CRITICAL', 'HIGH', 'NORMAL', 'LOW'] as const;
 
-const PRIORITY_COLORS: Record<string, 'red' | 'yellow' | 'green' | 'gray'> = {
-  HIGH: 'red',
-  MEDIUM: 'yellow',
+const PRIORITY_COLORS: Record<string, 'red' | 'yellow' | 'blue' | 'green' | 'gray'> = {
+  CRITICAL: 'red',
+  HIGH: 'yellow',
+  NORMAL: 'blue',
   LOW: 'green',
 };
 
@@ -130,7 +131,7 @@ export default function TaskCatalogTable({ search }: TaskCatalogTableProps) {
     const q = search.toLowerCase();
     return result.filter((task) =>
       task.name.toLowerCase().includes(q) ||
-      task.task_code.toLowerCase().includes(q) ||
+      task.code.toLowerCase().includes(q) ||
       (task.category ?? '').toLowerCase().includes(q) ||
       (task.subcategory ?? '').toLowerCase().includes(q) ||
       (task.production_rate ?? '').toLowerCase().includes(q)
@@ -175,7 +176,7 @@ export default function TaskCatalogTable({ search }: TaskCatalogTableProps) {
           <ExportButton
             data={filtered.map((task) => ({
               ...task,
-              task_label: `${task.name} (${task.task_code})`,
+              task_label: `${task.name} (${task.code})`,
               category_display: formatCategory(task.category, task.subcategory),
               priority_display: task.priority_level ?? 'Not Set',
               minutes_display: formatMinutes(task.default_minutes),
@@ -262,7 +263,7 @@ export default function TaskCatalogTable({ search }: TaskCatalogTableProps) {
         ) : (
           <TaskCatalogCardGrid
             rows={pag.page}
-            onSelect={(task) => router.push(`/operations/task-catalog/${encodeURIComponent(task.task_code)}`)}
+            onSelect={(task) => router.push(`/operations/task-catalog/${encodeURIComponent(task.code)}`)}
           />
         )
       ) : (
@@ -285,12 +286,12 @@ export default function TaskCatalogTable({ search }: TaskCatalogTableProps) {
                   <TableRow
                     key={task.id}
                     className="cursor-pointer"
-                    onClick={() => router.push(`/operations/task-catalog/${encodeURIComponent(task.task_code)}`)}
+                    onClick={() => router.push(`/operations/task-catalog/${encodeURIComponent(task.code)}`)}
                   >
                     <TableCell>
                       <div className="max-w-[300px]">
                         <p className="truncate text-sm font-semibold text-foreground" title={task.name}>{task.name}</p>
-                        <p className="truncate text-xs text-muted-foreground font-mono" title={task.task_code}>{task.task_code}</p>
+                        <p className="truncate text-xs text-muted-foreground font-mono" title={task.code}>{task.code}</p>
                       </div>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">

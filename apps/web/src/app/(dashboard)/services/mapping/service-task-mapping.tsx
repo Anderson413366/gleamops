@@ -12,8 +12,8 @@ import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 
 interface ServiceTaskRow extends ServiceTask {
-  service?: { name: string; service_code: string } | null;
-  task?: { name: string; task_code: string } | null;
+  service?: { name: string; code: string } | null;
+  task?: { name: string; code: string } | null;
 }
 
 interface Props {
@@ -29,7 +29,7 @@ export default function ServiceTaskMapping({ search }: Props) {
     const supabase = getSupabaseBrowserClient();
     const { data, error } = await supabase
       .from('service_tasks')
-      .select('*, service:service_id(name, service_code), task:task_id(name, task_code)')
+      .select('*, service:service_id(name, code), task:task_id(name, code)')
       .is('archived_at', null)
       .order('created_at', { ascending: false });
     if (!error && data) setRows(data as unknown as ServiceTaskRow[]);
@@ -44,8 +44,8 @@ export default function ServiceTaskMapping({ search }: Props) {
     return rows.filter((r) =>
       (r.service?.name ?? '').toLowerCase().includes(q) ||
       (r.task?.name ?? '').toLowerCase().includes(q) ||
-      (r.service?.service_code ?? '').toLowerCase().includes(q) ||
-      (r.task?.task_code ?? '').toLowerCase().includes(q)
+      (r.service?.code ?? '').toLowerCase().includes(q) ||
+      (r.task?.code ?? '').toLowerCase().includes(q)
     );
   }, [rows, search]);
 
@@ -72,13 +72,13 @@ export default function ServiceTaskMapping({ search }: Props) {
               <TableCell>
                 <div>
                   <span className="font-medium">{row.service?.name ?? '—'}</span>
-                  <span className="text-xs text-muted-foreground ml-2">{row.service?.service_code}</span>
+                  <span className="text-xs text-muted-foreground ml-2">{row.service?.code}</span>
                 </div>
               </TableCell>
               <TableCell>
                 <div>
                   <span className="font-medium">{row.task?.name ?? '—'}</span>
-                  <span className="text-xs text-muted-foreground ml-2">{row.task?.task_code}</span>
+                  <span className="text-xs text-muted-foreground ml-2">{row.task?.code}</span>
                 </div>
               </TableCell>
               <TableCell>

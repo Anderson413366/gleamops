@@ -28,7 +28,7 @@ const RISK_OPTIONS = [
 const PRIORITY_OPTIONS = [
   { value: '', label: 'None' },
   { value: 'LOW', label: 'Low' },
-  { value: 'MEDIUM', label: 'Medium' },
+  { value: 'NORMAL', label: 'Normal' },
   { value: 'HIGH', label: 'High' },
   { value: 'CRITICAL', label: 'Critical' },
 ];

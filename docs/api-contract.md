@@ -20,7 +20,7 @@ The contract is the source of truth. Code is allowed to be wrong; the contract i
 
 ## Error format
 All errors are `application/problem+json` (Problem Details, RFC 9457; RFC 7807 is the older version).
-See `docs/07_ERROR_CATALOG.md`.
+Error codes are defined in `packages/shared/src/errors/`.
 
 ## Optimistic locking
 For concurrent edit endpoints:

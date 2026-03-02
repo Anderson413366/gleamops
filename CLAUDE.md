@@ -738,17 +738,17 @@ Each module follows the **golden module** pattern:
 
 | Doc | Purpose |
 |-----|---------|
-| `00_MASTER_DEV_PLAN.md` | Single source of truth roadmap |
-| `02_UX_RULES_ADHD.md` | ADHD-optimized UX rules |
-| `04_DATA_MODEL.md` | Table patterns, dual keys, standard columns |
-| `05_SECURITY_RLS.md` | RLS policies, tenant isolation, site scoping |
-| `07_ERROR_CATALOG.md` | All error codes (Problem Details) |
-| `08_WORKFLOWS.md` | Sequence diagrams for critical flows |
-| `09_CLEANFLOW_ENGINE.md` | Bid math: rates → workload → pricing |
-| `10_PROPOSALS_EMAIL.md` | PDF gen, send, tracking, follow-ups |
-| `11_OPERATIONS_TICKETS.md` | Service plans, recurrence, ticket lifecycle |
-| `appendices/A_TABLE_CATALOG.md` | Full ~86 table list |
-| `appendices/F_V7_SCHEMA_REFERENCE.sql` | Canonical v7.0 schema |
+| `schema-contract.md` | Table naming, standard columns, entity codes, conventions |
+| `no-delete-rules.md` | Soft delete pattern, 84 protected tables, cascade rules |
+| `api-contract.md` | REST conventions, Problem Details errors, optimistic locking |
+| `feature-flags.md` | 11 flag domains, env var setup, rollout lifecycle |
+| `clickability.md` | 39-entity routing table, EntityLink map, back-link rules |
+| `neuroinclusive-ux.md` | 12 ADHD/Dyslexia/Anxiety UX rules |
+| `cleanflow-engine.md` | Bid math: rates → workload → pricing |
+| `proposals-email.md` | PDF gen, send, tracking, follow-ups |
+| `schedule-coverage.md` | Coverage gap detection, pre-publish validation |
+| `timekeeping.md` | Geofence, clock in/out, exceptions, timesheets |
+| `rls-matrix.md` | RLS policy checklist per table |
 
 ---
 

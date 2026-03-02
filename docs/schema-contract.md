@@ -151,7 +151,7 @@ UPDATE entity SET
 WHERE id = '<uuid>';
 ```
 
-See `P0_NO_DELETE_CHECKLIST.md` for full details.
+See `no-delete-rules.md` for full details.
 
 ## Optimistic Locking Pattern
 

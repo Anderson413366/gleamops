@@ -69,3 +69,7 @@ blob-report/
 .openclaw/
 .openclaw-watch/
 .aider*
+.pi/
+
+# Temporary planning docs
+/plan.md

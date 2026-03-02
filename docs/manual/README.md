@@ -36,6 +36,7 @@
 | 07 | [Code Architecture](./07-code-architecture.md) | Folder-by-folder code structure, data flows, conventions |
 | 08 | [Supabase Architecture](./08-supabase-architecture.md) | Tables, triggers, functions, RLS, multi-tenant design |
 | 09 | [Developer Workflows](./09-developer-workflows.md) | How to add entities, pages, tabs, modules (step-by-step) |
+| 10 | [Form Field Reference](./10-form-field-reference.md) | Every form, every field — tree-branch layout (38 forms, ~344 fields) |
 
 ### Module Guides
 

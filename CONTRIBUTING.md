@@ -48,7 +48,7 @@ This is a **Turborepo monorepo** with pnpm workspaces:
 | `packages/shared` | Types, Zod schemas, error catalog |
 | `packages/domain` | Pure business rules (RBAC, status machine) |
 | `packages/cleanflow` | Bid math engine (pure functions) |
-| `packages/ui` | Design system (32 components) |
+| `packages/ui` | Design system (27 active components) |
 
 ---
 

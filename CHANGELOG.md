@@ -9,9 +9,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Changed
-- README.md rewritten with verified repo stats
-- CLAUDE.md updated with corrected counts (84 migrations, 32 UI components, 19 hooks, 29 forms, 21 detail pages, 16 service modules)
-- Added CONTRIBUTING.md, SECURITY.md, CODE_OF_CONDUCT.md, LICENSE, CHANGELOG.md
+- Deep docs cleanup: renamed all docs to clean names (removed number prefixes), archived 58 outdated/duplicated files, dissolved appendices folder
+- Archived 5 dead source files (0 imports): priority.ts, field-parity-index.ts, access-denied.tsx, bulk-actions.tsx, csv-import.tsx
+- Updated docs/README.md as mission control index
+- Updated CLAUDE.md source docs table to match renamed files
+- Fixed stale references in README.md, CONTRIBUTING.md
 
 ---
 

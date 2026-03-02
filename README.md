@@ -103,10 +103,9 @@ gleamops_dev_pack/
 │   ├── cleanflow/       → Bid math engine (pure functions, no DB deps)
 │   └── ui/              → Design system (30 components)
 ├── supabase/
-│   ├── migrations/      → 134 SQL migration files (19,682 lines)
-│   └── functions/       → Edge Functions (Deno)
+│   └── migrations/      → 134 SQL migration files (19,682 lines)
 ├── openapi/             → OpenAPI 3.1 contract
-├── docs/                → Numbered docs 00–27 + appendices
+├── docs/                → 21 reference docs + user manual + archive
 ├── CLAUDE.md            → AI development context (patterns, conventions, code examples)
 └── README.md            → This file
 ```
@@ -373,22 +372,17 @@ Deployed to **Vercel** with monorepo configuration:
 
 ## Documentation
 
-Numbered docs (00–27) plus appendices in `docs/`:
+See [`docs/README.md`](docs/README.md) for the full index. Key references:
 
-| Category | Key Files |
-|----------|-----------|
-| **Planning** | Master Dev Plan, Roadmap, Milestone tracking |
-| **UX** | ADHD-optimized UX rules, design system specs |
-| **Data Model** | Table patterns, relationships, naming conventions |
-| **Security** | Tenant isolation, RLS policies, role-based access |
-| **CleanFlow** | Bid math algorithms, production rates, pricing |
-| **Workflows** | Sequence diagrams for all critical flows |
-| **API** | OpenAPI 3.1 contract, RFC 9457 error catalog |
-| **Architecture** | Reorg reports, audit results, module structure |
-
-Additional reference:
-- `openapi/openapi.yaml` — API contract (OpenAPI 3.1)
-- `CLAUDE.md` — AI development context (patterns, conventions, code examples)
+| Doc | Purpose |
+|-----|---------|
+| `CLAUDE.md` | AI development context — architecture, patterns, code examples |
+| `docs/schema-contract.md` | Table naming, standard columns, entity codes |
+| `docs/api-contract.md` | REST conventions, Problem Details errors |
+| `docs/cleanflow-engine.md` | Bid math: production rates, workload, pricing |
+| `docs/clickability.md` | 39-entity routing table |
+| `docs/feature-flags.md` | Feature flag mechanics (11 domains) |
+| `openapi/openapi.yaml` | API contract (OpenAPI 3.1) |
 
 ---
 

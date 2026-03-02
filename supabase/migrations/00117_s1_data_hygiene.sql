@@ -20,7 +20,19 @@ BEGIN;
 -- We only delete lookups that are clearly orphaned (no category match in seeds).
 -- For S2, we will make tenant_id NOT NULL after assigning the test tenant to globals.
 
--- Assign the test tenant to all global lookups so S2 can enforce NOT NULL
+-- First, delete NULL-tenant lookups where the same (category, code) already
+-- exists with the test tenant — these are duplicates that would violate the
+-- UNIQUE(tenant_id, category, code) constraint on update.
+DELETE FROM lookups
+WHERE tenant_id IS NULL
+  AND EXISTS (
+    SELECT 1 FROM lookups AS dup
+    WHERE dup.tenant_id = 'a0000000-0000-0000-0000-000000000001'
+      AND dup.category = lookups.category
+      AND dup.code = lookups.code
+  );
+
+-- Assign the test tenant to remaining global lookups so S2 can enforce NOT NULL
 UPDATE lookups
 SET tenant_id = 'a0000000-0000-0000-0000-000000000001'
 WHERE tenant_id IS NULL;
@@ -36,13 +48,10 @@ WHERE employment_type IS NULL
   AND staff_type IS NOT NULL
   AND tenant_id = 'a0000000-0000-0000-0000-000000000001';
 
--- Where both exist but differ, keep employment_type (authoritative), clear staff_type
-UPDATE staff
-SET staff_type = employment_type
-WHERE employment_type IS NOT NULL
-  AND staff_type IS NOT NULL
-  AND staff_type <> employment_type
-  AND tenant_id = 'a0000000-0000-0000-0000-000000000001';
+-- Where both exist but differ, keep employment_type (authoritative).
+-- Skip updating staff_type here — there is a CHECK constraint (chk_staff_type)
+-- that restricts allowed values, and employment_type values like 'CONTRACTOR'
+-- may not be in that constraint. Sprint 3 deprecates staff_type anyway.
 
 -- ---------------------------------------------------------------------------
 -- S1-T3: Backfill staff.pay_type and schedule_type where NULL

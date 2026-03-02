@@ -11,6 +11,10 @@ SET search_path TO 'public';
 
 BEGIN;
 
+-- Temporarily disable user triggers during data backfill to avoid name-
+-- uniqueness triggers firing on UPDATE (only changing FK columns, not names).
+SET session_replication_role = 'replica';
+
 -- ---------------------------------------------------------------------------
 -- S4-T1: Backfill sites.site_type_id
 -- Insert standard site types if they don't exist, then backfill from client_type.
@@ -118,6 +122,9 @@ SET billing_model = CASE
   END
 WHERE billing_model IS NULL
   AND tenant_id = 'a0000000-0000-0000-0000-000000000001';
+
+-- Re-enable triggers now that data backfills are done
+SET session_replication_role = 'origin';
 
 ALTER TABLE services
   ADD CONSTRAINT chk_services_service_type

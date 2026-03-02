@@ -55,6 +55,7 @@ CREATE OR REPLACE FUNCTION run_data_hygiene_scan(p_tenant_id UUID)
 RETURNS INTEGER AS $$
 DECLARE
   v_count INTEGER := 0;
+  v_rows INTEGER;
   v_run_at TIMESTAMPTZ := now();
 BEGIN
   -- Clear previous unresolved issues for this tenant (fresh scan)
@@ -75,7 +76,8 @@ BEGIN
     AND c.status = 'ACTIVE'
     AND NOT EXISTS (SELECT 1 FROM sites s WHERE s.client_id = c.id AND s.archived_at IS NULL);
 
-  GET DIAGNOSTICS v_count = ROW_COUNT;
+  GET DIAGNOSTICS v_rows = ROW_COUNT;
+  v_count := v_count + v_rows;
 
   -- 2. Sites without any active jobs
   INSERT INTO data_hygiene_issues (tenant_id, entity_type, entity_id, entity_code, issue_type, severity, description, suggested_fix, scan_run_at)
@@ -91,7 +93,8 @@ BEGIN
     AND COALESCE(s.status, 'ACTIVE') = 'ACTIVE'
     AND NOT EXISTS (SELECT 1 FROM site_jobs sj WHERE sj.site_id = s.id AND sj.status = 'ACTIVE' AND sj.archived_at IS NULL);
 
-  GET DIAGNOSTICS v_count = v_count + ROW_COUNT;
+  GET DIAGNOSTICS v_rows = ROW_COUNT;
+  v_count := v_count + v_rows;
 
   -- 3. Staff without email
   INSERT INTO data_hygiene_issues (tenant_id, entity_type, entity_id, entity_code, issue_type, severity, description, suggested_fix, scan_run_at)
@@ -107,7 +110,8 @@ BEGIN
     AND st.status IN ('ACTIVE', 'ON_LEAVE')
     AND st.email IS NULL;
 
-  GET DIAGNOSTICS v_count = v_count + ROW_COUNT;
+  GET DIAGNOSTICS v_rows = ROW_COUNT;
+  v_count := v_count + v_rows;
 
   -- 4. Active jobs with past end_date
   INSERT INTO data_hygiene_issues (tenant_id, entity_type, entity_id, entity_code, issue_type, severity, description, suggested_fix, scan_run_at)
@@ -124,7 +128,8 @@ BEGIN
     AND sj.end_date IS NOT NULL
     AND sj.end_date < CURRENT_DATE;
 
-  GET DIAGNOSTICS v_count = v_count + ROW_COUNT;
+  GET DIAGNOSTICS v_rows = ROW_COUNT;
+  v_count := v_count + v_rows;
 
   -- 5. Staff with missing pay_rate
   INSERT INTO data_hygiene_issues (tenant_id, entity_type, entity_id, entity_code, issue_type, severity, description, suggested_fix, scan_run_at)
@@ -140,7 +145,8 @@ BEGIN
     AND st.status = 'ACTIVE'
     AND st.pay_rate IS NULL;
 
-  GET DIAGNOSTICS v_count = v_count + ROW_COUNT;
+  GET DIAGNOSTICS v_rows = ROW_COUNT;
+  v_count := v_count + v_rows;
 
   RETURN v_count;
 END;

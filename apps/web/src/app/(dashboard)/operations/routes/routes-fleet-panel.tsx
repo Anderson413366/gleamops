@@ -430,7 +430,7 @@ export default function RoutesFleetPanel({ search }: Props) {
     };
   }, [routes, stops]);
 
-  const fleetKpis = useMemo(() => {
+  const _fleetKpis = useMemo(() => {
     const activeCheckouts = checkouts.filter((row) => row.status === 'OUT');
     const checkoutVehicleIds = new Set(activeCheckouts.map((row) => row.vehicle_id));
     const readyVehicles = vehicles.filter((row) => row.status === 'ACTIVE' && !checkoutVehicleIds.has(row.id)).length;

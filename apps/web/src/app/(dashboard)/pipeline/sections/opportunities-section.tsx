@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Sparkles, Target } from 'lucide-react';
-import { Button, EmptyState, Pagination, SearchInput, TableSkeleton, cn } from '@gleamops/ui';
+import { Sparkles, Target } from 'lucide-react';
+import { EmptyState, Pagination, TableSkeleton, cn } from '@gleamops/ui';
 import { getStatusPillColor } from '@/lib/utils/status-colors';
 import type { SalesOpportunity } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -33,7 +33,7 @@ export function OpportunitiesSection({
   const [rows, setRows] = useState<OpportunityWithProspect[]>([]);
   const [loading, setLoading] = useState(true);
   const [stageFilter, setStageFilter] = useState<string>('QUALIFIED');
-  const [sectionSearch, setSectionSearch] = useState('');
+  const [_sectionSearch, _setSectionSearch] = useState('');
 
   const fetchRows = useCallback(async () => {
     setLoading(true);

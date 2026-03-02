@@ -2,26 +2,23 @@
 
 > Manage subcontractors and supply vendors.
 
-**Route:** `/vendors`
-**Sidebar icon:** Not in sidebar NAV_TREE (standalone route)
+**Route:** `/vendors` (redirects to `/inventory?tab=vendors`)
+**Sidebar icon:** Not in sidebar NAV_TREE (legacy route)
 **Accent color:** Orange (#f97316)
-**Default tab:** Subcontractors
 
 ---
 
 ## What This Module Is
 
-The Vendors module manages external companies you work with.
-There are two types: **subcontractors** and **supply vendors**.
+The `/vendors` route is a **legacy redirect**. Navigating to `/vendors` automatically redirects to `/inventory?tab=vendors`.
 
-**Subcontractors** are other cleaning companies or independent contractors you hire for jobs.
-**Supply vendors** are companies you buy cleaning supplies and equipment from.
+Vendor management is distributed across two canonical modules:
+- **Subcontractors** → available in the **Team** module (`/team?tab=subcontractors`, labeled "Partners")
+- **Supply vendors** → available in the **Inventory** module (`/inventory?tab=vendors`)
 
-This module is a standalone route. It is not in the sidebar NAV_TREE.
-You can access it directly at `/vendors` or through links from other modules.
-
-Subcontractors also appear in the **Team** module under the Subcontractors tab.
-Supply vendors also appear in the **Inventory** module under the Vendors tab.
+Detail pages still render at their original paths:
+- Subcontractor detail: `/vendors/subcontractors/[code]`
+- Supply vendor detail: `/vendors/supply-vendors/[slug]`
 
 ## When to Use It
 

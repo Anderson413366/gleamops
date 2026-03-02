@@ -27,7 +27,6 @@ import {
   ClipboardCheck,
   ClipboardList,
   Clock,
-  Clock3,
   AlertTriangle,
   ChevronDown,
   RefreshCw,
@@ -205,7 +204,7 @@ export function Sidebar() {
   const expandedInitialized = useRef(false);
   const quickRef = useRef<HTMLDivElement>(null);
   const { role } = useAuth();
-  const { t } = useLocale();
+  const { t: _t } = useLocale();
   const roleCode = normalizeRoleCode(role ?? '') ?? (role ?? '').toUpperCase();
   const showShiftsTimeNav = SHIFTS_TIME_SIDEBAR_ROLES.has(roleCode)
     && (

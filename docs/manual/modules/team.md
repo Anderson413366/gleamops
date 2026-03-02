@@ -108,7 +108,7 @@ DRAFT → ACTIVE → ON_LEAVE → INACTIVE → TERMINATED.
 
 ---
 
-## Screens & Views (9+ Tabs)
+## Screens & Views (11+ Tabs)
 
 ### Staff (`?tab=staff`)
 
@@ -129,8 +129,13 @@ Click any row to open `/team/positions/[code]`.
 
 ### Attendance (`?tab=attendance`)
 
-Daily attendance tracking. Shows:
-- Date, staff name, check-in time, check-out time, hours worked, status
+Daily attendance tracking with 6 sub-tabs:
+- **Overview** — Time entries table (default sub-tab)
+- **Add Clock Time** — Manual time entry form for missed punches
+- **Manage Time Sheets** — Timesheet approval/rejection
+- **Clocked In List** — Real-time list of staff currently clocked in
+- **Time Clock Locations** — Geofence CRUD for clock-in boundaries
+- **Auto-approval Rules** — Time policies for auto-approval and clock-in restrictions
 
 ### Timesheets (`?tab=timesheets`)
 
@@ -139,9 +144,11 @@ Weekly/bi-weekly timesheet summaries. Shows:
 
 ### Payroll (`?tab=payroll`)
 
-Payroll export preparation. Shows:
-- Pay period, staff, hours, pay rate, gross pay
-- Export to CSV for payroll processing
+Payroll export preparation with 4 sub-tabs:
+- **Scheduled Hours** — Projected hours from schedule
+- **Confirmed Hours** — Actual hours from time entries
+- **Confirmed Time Sheets** — Approved timesheets ready for export
+- **Payroll Settings** — Pay period config and export format
 
 ### HR (`?tab=hr`)
 
@@ -154,11 +161,19 @@ Human resources management. Shows:
 Microfiber towel tracking per staff member.
 Inventory of cloths assigned to each worker.
 
-### Subcontractors (`?tab=subcontractors`)
+### Partners (`?tab=subcontractors`)
 
-Subcontractor directory. Shows:
+Subcontractor/partner directory. Shows:
 - Company name, contact, services, status
-- Links to the Vendors module for full detail
+- Detail pages at `/vendors/subcontractors/[code]`
+
+### Break Rules (`?tab=break-rules`)
+
+Break policy configuration per position or site.
+
+### Shift Tags (`?tab=shift-tags`)
+
+Tag definitions for categorizing shift types (e.g., day, night, emergency).
 
 ### Messages (`?tab=messages`)
 

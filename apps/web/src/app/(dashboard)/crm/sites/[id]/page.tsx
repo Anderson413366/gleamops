@@ -770,10 +770,10 @@ export default function SiteDetailPage() {
   const earliestStartTime = site.earliest_start_time ?? site.earliest_start ?? null;
   const latestStartTime = site.latest_start_time ?? site.latest_start ?? null;
   const janitorialCloset = site.janitorial_closet_location ?? site.janitorial_closet ?? null;
-  const supplyStorage = site.supply_storage_location ?? site.supply_storage ?? null;
-  const waterSource = site.water_source_location ?? site.water_source ?? null;
+  const _supplyStorage = site.supply_storage_location ?? site.supply_storage ?? null;
+  const _waterSource = site.water_source_location ?? site.water_source ?? null;
   const dumpsterLocation = site.dumpster_location ?? site.dumpster ?? null;
-  const floors = site.number_of_floors ?? site.floors ?? null;
+  const _floors = site.number_of_floors ?? site.floors ?? null;
   const priorityLevel = site.priority_level ?? site.priority ?? null;
   const oshaComplianceRequired = site.osha_compliance_required || site.osha_compliance === true;
   const backgroundCheckRequired = site.background_check_required || site.background_check === true;

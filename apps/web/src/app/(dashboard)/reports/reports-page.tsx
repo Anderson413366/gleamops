@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { BarChart3, TrendingUp, DollarSign, Shield, Users, Package, RefreshCw, CalendarDays, ChevronDown } from 'lucide-react';
+import { BarChart3, TrendingUp, DollarSign, Users, RefreshCw, ChevronDown } from 'lucide-react';
 import { Badge, cn } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
@@ -121,7 +121,7 @@ export default function ReportsPageClient() {
     maximumFractionDigits: 0,
   }).format(value);
 
-  const activeLabel = TABS.find((t) => t.key === tab)?.label ?? 'Overview';
+  const _activeLabel = TABS.find((t) => t.key === tab)?.label ?? 'Overview';
 
   return (
     <div className="space-y-6">

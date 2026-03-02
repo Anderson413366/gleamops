@@ -11,20 +11,24 @@
 
 ## What This Module Is
 
-The Operations module is a **legacy** route.
-It hosts tabs that have not been migrated to canonical modules.
+The Operations module is a **legacy** route that acts as a redirect layer.
 
-These tabs still work but are not in the sidebar NAV_TREE:
-- **Complaints** — Customer complaint tracking
-- **Periodic** — Recurring periodic tasks
-- **Task Catalog** — Master list of task definitions
-- **Alerts** — System alerts and notifications
+**When the `schedule_liberation` feature flag is enabled** (default), most Operations tabs redirect to their canonical modules:
+- `/operations?tab=calendar` → `/schedule?tab=calendar`
+- `/operations?tab=tickets` → `/jobs?tab=tickets`
+- `/operations?tab=inspections` → `/jobs?tab=inspections`
+- `/operations?tab=routes` → `/jobs?tab=routes`
+- `/operations?tab=task-catalog` → `/settings?tab=tasks`
+- `/operations?tab=geofences` → `/settings?tab=geofences`
+- Default → `/jobs`
 
-Some Operations tabs have been migrated to other modules:
-- Jobs and tickets moved to `/jobs`
-- Staff and workforce moved to `/team`
+**Tabs that remain in Operations** (no canonical equivalent):
+- **Complaints** — Customer complaint tracking (`/operations?tab=complaints`)
+- **Periodic** — Recurring periodic tasks (`/operations?tab=periodic`)
+- **Night Bridge** — Overnight shift handoffs (`/operations?tab=night-bridge`)
 
-The tabs listed above have **no canonical equivalent** and remain here.
+Detail pages still render at their original paths:
+- `/operations/complaints/[code]`, `/operations/periodic/[code]`, `/operations/task-catalog/[id]`
 
 ## When to Use It
 

@@ -13,6 +13,13 @@
 The Home dashboard shows key metrics, alerts, and quick links for your cleaning business.
 It's the first page you see after logging in.
 
+**Role-based views:** The dashboard renders different views based on your role:
+- **Owner/Admin** → Owner Overview (aggregate business metrics)
+- **Manager** → Command Center (daily ops: tasks, projects, celebrations, alerts)
+- **Supervisor** → Supervisor Route View (your routes and team activity)
+- **Cleaner/Inspector** → Staff Home (your shifts, tickets, and messages)
+- **Default** → Dashboard with Message Wall and widgets
+
 ## When to Use It
 
 - Start of your day: check what needs attention

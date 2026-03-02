@@ -460,7 +460,7 @@ export default function WarehousePanel({ search }: Props) {
     });
   }, [purchaseOrders, search, vendorById]);
 
-  const metrics = useMemo(() => ({
+  const _metrics = useMemo(() => ({
     locationCount: locations.filter((location) => location.is_active).length,
     lowStockCount: lowStockRows.length,
     pendingRequestCount: requests.filter((request) => ['PENDING', 'APPROVED'].includes(request.status)).length,

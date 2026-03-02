@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText, Plus, Sparkles, Zap } from 'lucide-react';
-import { Badge, Button, EmptyState, Pagination, SearchInput, TableSkeleton, cn } from '@gleamops/ui';
+import { FileText, Sparkles } from 'lucide-react';
+import { Badge, EmptyState, Pagination, TableSkeleton, cn } from '@gleamops/ui';
 import { getStatusPillColor } from '@/lib/utils/status-colors';
 import type { SalesBid } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -45,14 +45,14 @@ function badgeColor(status: string): 'green' | 'blue' | 'yellow' | 'gray' | 'red
 export function BidsSection({
   globalSearch = '',
   onCreateNew,
-  onExpressBid,
+  onExpressBid: _onExpressBid,
   onCountChange,
 }: BidsSectionProps) {
   const router = useRouter();
   const [rows, setRows] = useState<BidWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('ACTIVE');
-  const [sectionSearch, setSectionSearch] = useState('');
+  const [_sectionSearch, _setSectionSearch] = useState('');
 
   const fetchRows = useCallback(async () => {
     setLoading(true);

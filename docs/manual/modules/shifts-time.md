@@ -20,8 +20,11 @@ This is where field staff clock in and out of their shifts.
 - BREAK_START — Going on break
 - BREAK_END — Coming back from break
 
-This module is **role-gated**. Field staff (Cleaners, Supervisors) see it prominently.
-Managers use it for oversight and timesheet review.
+This module is **feature-flag and role-gated**:
+- Requires `shifts_time_v1` or `shifts_time_route_execution` feature flag to be enabled
+- **Owner/Admin and Manager** roles see it when flags are active (pilot managers)
+- **Cleaner/Inspector** roles see it when flags are active
+- Unlike other modules, this does NOT use the standard ChipTabs pattern — it renders a single `ShiftsTimePanel` component with conditional sections based on role and feature flags
 
 Timesheets aggregate time events into pay-period summaries.
 

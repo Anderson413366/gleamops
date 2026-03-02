@@ -9,6 +9,7 @@ export default [
   {
     rules: {
       '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
       'react-hooks/rules-of-hooks': 'warn',
       'react/no-unescaped-entities': 'warn',
       'prefer-const': 'warn',

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Building2, ChevronDown, ChevronRight, Clock, Printer, UserCircle2, Users } from 'lucide-react';
-import { Button, Card, CardContent, EmptyState, ExportButton, Select, Skeleton, cn } from '@gleamops/ui';
+import { Button, Card, EmptyState, ExportButton, Select, Skeleton, cn } from '@gleamops/ui';
 
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
@@ -209,7 +209,7 @@ export function MasterBoard() {
     return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
   }, [filtered, groupBy]);
 
-  const unassignedCount = useMemo(
+  const _unassignedCount = useMemo(
     () => filtered.filter((t) => !t.assignments?.some((a) => a.staff && (!a.assignment_status || a.assignment_status === 'ASSIGNED'))).length,
     [filtered],
   );

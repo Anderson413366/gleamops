@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, ShieldCheck, Pencil, Trash2 } from 'lucide-react';
+import { Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,

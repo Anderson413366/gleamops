@@ -518,10 +518,9 @@ export default function SchedulePageClient() {
             { label: 'Hours This Week', value: hours > 0 ? `${hours.toFixed(1)}h` : '0h' },
           ]);
         } else if (tab === 'availability') {
-          const [activeRes, hasAvailRes, staffRes] = await Promise.all([
+          const [activeRes, hasAvailRes] = await Promise.all([
             supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'ACTIVE'),
             supabase.from('staff_availability_rules').select('staff_id').is('archived_at', null),
-            supabase.from('staff').select('id').is('archived_at', null).eq('status', 'ACTIVE'),
           ]);
           const totalStaff = activeRes.count ?? 0;
           const withAvail = new Set((hasAvailRes.data ?? []).map((r: { staff_id: string }) => r.staff_id)).size;

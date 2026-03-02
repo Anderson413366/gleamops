@@ -44,7 +44,7 @@ function formatDate(d: string | null | undefined) {
 
 export default function PositionDetailPage() {
   const { code } = useParams<{ code: string }>();
-  const router = useRouter();
+  const _router = useRouter();
   const [position, setPosition] = useState<StaffPosition | null>(null);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);

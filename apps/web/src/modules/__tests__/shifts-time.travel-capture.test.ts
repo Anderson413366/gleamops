@@ -20,7 +20,6 @@ function resetTravelFlags() {
 function createTravelDb(mode: 'ok' | 'rpc_error') {
   const calls = { rpcCount: 0, rpcName: '' };
   const db = {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     rpc(name: string, _params: Record<string, unknown>) {
       calls.rpcCount += 1;
       calls.rpcName = name;

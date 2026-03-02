@@ -430,10 +430,10 @@ export default function HrLitePanel({ search }: Props) {
     });
   }, [documents, search, staffById, fileById]);
 
-  const pendingPto = pto.filter((row) => row.status === 'PENDING').length;
-  const activeGoals = goals.filter((row) => ['ACTIVE', 'ON_TRACK', 'AT_RISK'].includes(row.status)).length;
-  const expiringDocs = documents.filter((row) => row.status === 'EXPIRING').length;
-  const submittedReviews = reviews.filter((row) => row.status === 'SUBMITTED').length;
+  const _pendingPto = pto.filter((row) => row.status === 'PENDING').length;
+  const _activeGoals = goals.filter((row) => ['ACTIVE', 'ON_TRACK', 'AT_RISK'].includes(row.status)).length;
+  const _expiringDocs = documents.filter((row) => row.status === 'EXPIRING').length;
+  const _submittedReviews = reviews.filter((row) => row.status === 'SUBMITTED').length;
   const exportRows = useMemo(() => {
     return [
       ...pto.map((row) => ({

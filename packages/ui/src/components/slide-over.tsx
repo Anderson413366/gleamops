@@ -55,7 +55,7 @@ export function SlideOver({ open, onClose, title, subtitle, children, wide = fal
 
   if (centered) {
     return (
-      <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 pt-[5vh] backdrop-blur-sm animate-fade-in">
+      <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 dark:bg-black/60 p-4 pt-[5vh] backdrop-blur-sm animate-fade-in">
         <div
           ref={panelRef}
           className="relative w-full max-w-4xl rounded-xl border border-border bg-card shadow-xl animate-scale-in"

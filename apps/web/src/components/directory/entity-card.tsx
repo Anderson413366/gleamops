@@ -4,6 +4,7 @@
 
 import { useEffect, useState } from 'react';
 import { cn } from '@gleamops/ui';
+import { getContrastTextColor } from '@/lib/utils/color-contrast';
 
 type CardTone = 'green' | 'gray' | 'yellow' | 'red' | 'blue';
 
@@ -128,7 +129,7 @@ export function EntityCard({
           />
         ) : (
           <div
-            className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full text-2xl font-bold text-white"
+            className={cn('flex h-20 w-20 shrink-0 items-center justify-center rounded-full text-2xl font-bold', getContrastTextColor(initialsColor))}
             style={{ backgroundColor: initialsColor }}
           >
             {initials}

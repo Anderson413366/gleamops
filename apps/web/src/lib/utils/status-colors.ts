@@ -6,47 +6,47 @@
 
 const STATUS_COLOR_MAP: Record<string, { bg: string; text: string }> = {
   // Active / Success / Healthy
-  ACTIVE: { bg: 'bg-emerald-600', text: 'text-white' },
-  GOOD: { bg: 'bg-emerald-600', text: 'text-white' },
-  COMPLETED: { bg: 'bg-emerald-600', text: 'text-white' },
-  VERIFIED: { bg: 'bg-emerald-600', text: 'text-white' },
-  APPROVED: { bg: 'bg-emerald-600', text: 'text-white' },
-  PASS: { bg: 'bg-emerald-600', text: 'text-white' },
+  ACTIVE: { bg: 'bg-emerald-600 dark:bg-emerald-700', text: 'text-white' },
+  GOOD: { bg: 'bg-emerald-600 dark:bg-emerald-700', text: 'text-white' },
+  COMPLETED: { bg: 'bg-emerald-600 dark:bg-emerald-700', text: 'text-white' },
+  VERIFIED: { bg: 'bg-emerald-600 dark:bg-emerald-700', text: 'text-white' },
+  APPROVED: { bg: 'bg-emerald-600 dark:bg-emerald-700', text: 'text-white' },
+  PASS: { bg: 'bg-emerald-600 dark:bg-emerald-700', text: 'text-white' },
 
   // Info / Scheduled / Pending
-  SCHEDULED: { bg: 'bg-blue-600', text: 'text-white' },
-  DRAFT: { bg: 'bg-blue-600', text: 'text-white' },
-  PENDING: { bg: 'bg-blue-600', text: 'text-white' },
-  PROSPECT: { bg: 'bg-blue-600', text: 'text-white' },
-  NEW: { bg: 'bg-blue-600', text: 'text-white' },
+  SCHEDULED: { bg: 'bg-blue-600 dark:bg-blue-700', text: 'text-white' },
+  DRAFT: { bg: 'bg-blue-600 dark:bg-blue-700', text: 'text-white' },
+  PENDING: { bg: 'bg-blue-600 dark:bg-blue-700', text: 'text-white' },
+  PROSPECT: { bg: 'bg-blue-600 dark:bg-blue-700', text: 'text-white' },
+  NEW: { bg: 'bg-blue-600 dark:bg-blue-700', text: 'text-white' },
 
   // In Progress / Working
-  IN_PROGRESS: { bg: 'bg-violet-600', text: 'text-white' },
-  WORKING: { bg: 'bg-violet-600', text: 'text-white' },
-  SUBMITTED: { bg: 'bg-violet-600', text: 'text-white' },
+  IN_PROGRESS: { bg: 'bg-violet-600 dark:bg-violet-700', text: 'text-white' },
+  WORKING: { bg: 'bg-violet-600 dark:bg-violet-700', text: 'text-white' },
+  SUBMITTED: { bg: 'bg-violet-600 dark:bg-violet-700', text: 'text-white' },
 
-  // Warning / On Hold
-  ON_HOLD: { bg: 'bg-amber-500', text: 'text-white' },
-  FAIR: { bg: 'bg-amber-500', text: 'text-white' },
-  EXPIRING: { bg: 'bg-amber-500', text: 'text-white' },
-  STALE: { bg: 'bg-amber-500', text: 'text-white' },
-  ON_LEAVE: { bg: 'bg-amber-500', text: 'text-white' },
+  // Warning / On Hold — amber-600 for better contrast (amber-500 was 4.1:1 FAIL)
+  ON_HOLD: { bg: 'bg-amber-600 dark:bg-amber-700', text: 'text-white' },
+  FAIR: { bg: 'bg-amber-600 dark:bg-amber-700', text: 'text-white' },
+  EXPIRING: { bg: 'bg-amber-600 dark:bg-amber-700', text: 'text-white' },
+  STALE: { bg: 'bg-amber-600 dark:bg-amber-700', text: 'text-white' },
+  ON_LEAVE: { bg: 'bg-amber-600 dark:bg-amber-700', text: 'text-white' },
 
-  // Inactive / Discontinued
-  INACTIVE: { bg: 'bg-slate-500', text: 'text-white' },
-  DISCONTINUED: { bg: 'bg-slate-500', text: 'text-white' },
+  // Inactive / Discontinued — slate-600 for better contrast (slate-500 was 3.8:1 FAIL)
+  INACTIVE: { bg: 'bg-slate-600 dark:bg-slate-700', text: 'text-white' },
+  DISCONTINUED: { bg: 'bg-slate-600 dark:bg-slate-700', text: 'text-white' },
 
   // Danger / Expired / Cancelled
-  CANCELLED: { bg: 'bg-red-600', text: 'text-white' },
-  CANCELED: { bg: 'bg-red-600', text: 'text-white' },
-  TERMINATED: { bg: 'bg-red-600', text: 'text-white' },
-  EXPIRED: { bg: 'bg-red-600', text: 'text-white' },
-  REVOKED: { bg: 'bg-red-600', text: 'text-white' },
-  POOR: { bg: 'bg-red-600', text: 'text-white' },
-  OUT_OF_SERVICE: { bg: 'bg-red-600', text: 'text-white' },
-  LOST: { bg: 'bg-red-600', text: 'text-white' },
-  REJECTED: { bg: 'bg-red-600', text: 'text-white' },
-  FAIL: { bg: 'bg-red-600', text: 'text-white' },
+  CANCELLED: { bg: 'bg-red-600 dark:bg-red-700', text: 'text-white' },
+  CANCELED: { bg: 'bg-red-600 dark:bg-red-700', text: 'text-white' },
+  TERMINATED: { bg: 'bg-red-600 dark:bg-red-700', text: 'text-white' },
+  EXPIRED: { bg: 'bg-red-600 dark:bg-red-700', text: 'text-white' },
+  REVOKED: { bg: 'bg-red-600 dark:bg-red-700', text: 'text-white' },
+  POOR: { bg: 'bg-red-600 dark:bg-red-700', text: 'text-white' },
+  OUT_OF_SERVICE: { bg: 'bg-red-600 dark:bg-red-700', text: 'text-white' },
+  LOST: { bg: 'bg-red-600 dark:bg-red-700', text: 'text-white' },
+  REJECTED: { bg: 'bg-red-600 dark:bg-red-700', text: 'text-white' },
+  FAIL: { bg: 'bg-red-600 dark:bg-red-700', text: 'text-white' },
 
   // "All" filter — brand primary
   all: { bg: 'bg-primary', text: 'text-primary-foreground' },

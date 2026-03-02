@@ -4,6 +4,7 @@
 
 import { useEffect, useState, type ReactNode } from 'react';
 import { cn } from '@gleamops/ui';
+import { getContrastFillColor, getContrastTextColor } from '@/lib/utils/color-contrast';
 
 interface EntityAvatarProps {
   name: string;
@@ -35,7 +36,8 @@ const INITIALS_BG_COLORS = [
 
 function buildInitialsAvatarDataUri(initials: string, bgColor: string): string {
   const safeInitials = initials.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect width="96" height="96" rx="48" fill="${bgColor}"/><text x="50%" y="50%" fill="#ffffff" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="700" text-anchor="middle" dominant-baseline="central">${safeInitials}</text></svg>`;
+  const fillColor = getContrastFillColor(bgColor);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect width="96" height="96" rx="48" fill="${bgColor}"/><text x="50%" y="50%" fill="${fillColor}" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="700" text-anchor="middle" dominant-baseline="central">${safeInitials}</text></svg>`;
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
@@ -113,7 +115,8 @@ export function EntityAvatar({
   return (
     <div
       className={cn(
-        'flex shrink-0 items-center justify-center rounded-full border border-border font-semibold text-white',
+        'flex shrink-0 items-center justify-center rounded-full border border-border font-semibold',
+        getContrastTextColor(bgColor),
         avatarSizeClass,
         className,
       )}

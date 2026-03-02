@@ -563,8 +563,8 @@ export function ClockInButton({ onStatusChange }: ClockInButtonProps) {
         className={[
           'h-12 w-full text-sm font-semibold sm:text-base',
           isClockedIn
-            ? 'bg-red-600 text-white hover:bg-red-500'
-            : 'bg-green-600 text-white hover:bg-green-500',
+            ? 'bg-red-600 dark:bg-red-700 text-white hover:bg-red-500 dark:hover:bg-red-600'
+            : 'bg-green-600 dark:bg-green-700 text-white hover:bg-green-500 dark:hover:bg-green-600',
         ].join(' ')}
       >
         {isClockedIn ? <LogOut className="h-5 w-5" /> : <LogIn className="h-5 w-5" />}

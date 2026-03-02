@@ -584,6 +584,18 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect, o
                               draggable
                               onDragStart={(e) => handleDragStart(e, row.id, staffName, dateKey, row.positionType)}
                               onDragEnd={handleDragEnd}
+                              onClick={() => {
+                                if (moveSource) {
+                                  const fakeEvent = {
+                                    preventDefault: () => {},
+                                    dataTransfer: { getData: () => JSON.stringify(moveSource) },
+                                  } as unknown as DragEvent;
+                                  void handleDrop(fakeEvent, staffName, dateKey);
+                                  setMoveSource(null);
+                                } else {
+                                  onSelect?.(row);
+                                }
+                              }}
                             />
                             {isMoving && (
                               <span className="block text-[10px] text-primary mt-0.5 text-center">Moving... Esc to cancel</span>

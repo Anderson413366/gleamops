@@ -105,7 +105,7 @@ export const PositionBlock = memo(function PositionBlock(props: PositionBlockPro
       draggable={draggable}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      onClick={onClick}
+      onClick={onClick ? (e) => { e.stopPropagation(); onClick(); } : undefined}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       className={cn(

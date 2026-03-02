@@ -33,7 +33,6 @@ export function useUiPreferences() {
     root.classList.toggle('large-text', preferences.large_text);
     // Attributes enable pre-hydration CSS (via inline script) and deterministic styling.
     root.dataset.focusMode = preferences.focus_mode ? 'true' : 'false';
-    root.dataset.simpleView = preferences.simple_view ? 'true' : 'false';
   }, [
     mounted,
     preferences.dyslexia_font,
@@ -42,7 +41,6 @@ export function useUiPreferences() {
     preferences.high_contrast,
     preferences.large_text,
     preferences.focus_mode,
-    preferences.simple_view,
   ]);
 
   useEffect(() => {

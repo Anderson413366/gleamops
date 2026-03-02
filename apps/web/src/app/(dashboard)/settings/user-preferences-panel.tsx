@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Save, Building2, Bell, Shield, Sun, Moon, Palette, Brain, Focus, Clock3, Sparkles, ScanLine, Type, Highlighter, Contrast, TextCursor, Rabbit } from 'lucide-react';
+import { Save, Building2, Bell, Shield, Sun, Moon, Palette, Brain, Focus, Clock3, Sparkles, Type, Highlighter, Contrast, TextCursor, Rabbit } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardHeader, CardTitle, CardContent, Input, Button } from '@gleamops/ui';
 import { roleDisplayName } from '@gleamops/shared';
@@ -297,7 +297,6 @@ export default function UserPreferencesPanel() {
           </CardHeader>
           <CardContent className="space-y-3">
             <PrefRow title="Focus Mode" description="Hide navigation chrome and keep one task at a time in view." icon={<Focus className="h-4 w-4" />} onClick={() => togglePreference('focus_mode')} enabled={preferences.focus_mode} />
-            <PrefRow title="Simple View (Low-Energy Mode)" description="Show only the most important cards and actions on dense pages." icon={<ScanLine className="h-4 w-4" />} onClick={() => togglePreference('simple_view')} enabled={preferences.simple_view} />
             <PrefRow title="Time Awareness" description="Show subtle time context like refresh times and time-sensitive indicators." icon={<Clock3 className="h-4 w-4" />} onClick={() => togglePreference('time_awareness')} enabled={preferences.time_awareness} />
             <PrefRow title="Positive Completion Feedback" description="Enable gentle success feedback after key actions complete." icon={<Sparkles className="h-4 w-4" />} onClick={() => togglePreference('celebration_effects')} enabled={preferences.celebration_effects} />
             <PrefRow title="Dyslexia Font Assist" description="Use stronger letter shapes and spacing for easier reading (Atkinson Hyperlegible)." icon={<Type className="h-4 w-4" />} onClick={() => togglePreference('dyslexia_font')} enabled={preferences.dyslexia_font} />

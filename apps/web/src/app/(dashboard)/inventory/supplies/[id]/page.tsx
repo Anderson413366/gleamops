@@ -18,7 +18,6 @@ import {
   FileText,
   ExternalLink,
   ShieldCheck,
-  Sparkles,
   SprayCan,
   Brush,
   Upload,
@@ -85,7 +84,6 @@ export default function SupplyDetailPage() {
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [supplyFormFocus, setSupplyFormFocus] = useState<'details' | undefined>(undefined);
-  const [simpleView, setSimpleView] = useState(false);
   const [imageLoadError, setImageLoadError] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
   const [imageUploadError, setImageUploadError] = useState<string | null>(null);
@@ -112,14 +110,6 @@ export default function SupplyDetailPage() {
   useEffect(() => {
     fetchSupply();
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    setSimpleView(localStorage.getItem('gleamops-inventory-simple-view') === 'true');
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('gleamops-inventory-simple-view', String(simpleView));
-  }, [simpleView]);
 
   useEffect(() => {
     setImageLoadError(false);
@@ -318,14 +308,6 @@ export default function SupplyDetailPage() {
           </button>
           <button
             type="button"
-            onClick={() => setSimpleView((value) => !value)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            {simpleView ? 'Simple View On' : 'Simple View'}
-          </button>
-          <button
-            type="button"
             onClick={() => setFormOpen(true)}
             className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           >
@@ -388,7 +370,6 @@ export default function SupplyDetailPage() {
       </div>
 
       {/* Section Cards */}
-      {!simpleView && (
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Product Info */}
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
@@ -564,7 +545,6 @@ export default function SupplyDetailPage() {
           </dl>
         </div>
       </div>
-      )}
 
       <ActivityHistorySection
         entityType="supply_catalog"

@@ -24,7 +24,6 @@ import {
   Trophy,
   Mail,
   Focus,
-  ScanLine,
   Clock3,
   ClipboardList,
   CheckCircle2,
@@ -713,7 +712,6 @@ export default function HomePage() {
   }, [now]);
 
   const displayName = user?.email?.split('@')[0]?.replace(/[._-]/g, ' ')?.replace(/\b\w/g, (c) => c.toUpperCase()) ?? '';
-  const simpleView = prefMounted && preferences.simple_view;
   const focusMode = prefMounted && preferences.focus_mode;
   const timeAwareness = prefMounted ? preferences.time_awareness : true;
 
@@ -778,16 +776,6 @@ export default function HomePage() {
               <Focus className="h-3.5 w-3.5" />
               Focus Mode
             </button>
-            <button
-              type="button"
-              onClick={() => togglePreference('simple_view')}
-              className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
-                simpleView ? 'border-module-accent/40 bg-module-accent/10 text-module-accent' : 'border-border text-muted-foreground hover:bg-muted'
-              }`}
-            >
-              <ScanLine className="h-3.5 w-3.5" />
-              Simple View
-            </button>
           </div>
         )}
       </div>
@@ -845,9 +833,7 @@ export default function HomePage() {
                 icon={<Users className="h-5 w-5" />}
                 href="/team?tab=staff"
               />
-              {!simpleView && (
-                <>
-                  <StatCard
+              <StatCard
                     label="Pending Bids"
                     value={metrics.pendingBids ?? 0}
                     icon={<FileText className="h-5 w-5" />}
@@ -865,15 +851,12 @@ export default function HomePage() {
                     icon={<ShieldAlert className="h-5 w-5" />}
                     href="/jobs?tab=inspections"
                   />
-                </>
-              )}
             </>
           )}
         </div>
       </div>
 
       {/* Sales Pipeline KPIs */}
-      {!simpleView && (
         <div>
         <h2 className="text-sm font-semibold text-muted-foreground tracking-wide mb-3">Sales Pipeline</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -914,9 +897,7 @@ export default function HomePage() {
           )}
         </div>
         </div>
-      )}
 
-      {!simpleView && (
         <div>
           <h2 className="text-sm font-semibold text-muted-foreground tracking-wide mb-3">Operational Risk</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -940,13 +921,11 @@ export default function HomePage() {
             />
           </div>
         </div>
-      )}
 
       {/* Operations Dashboard — 2x2 grid */}
       <h2 className="text-sm font-semibold text-muted-foreground tracking-wide">Operations</h2>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Activity */}
-        {!simpleView && (
           <CollapsibleCard
             id="dashboard-activity"
             title="Recent Activity"
@@ -980,7 +959,6 @@ export default function HomePage() {
               </ul>
             )}
           </CollapsibleCard>
-        )}
 
         {/* Upcoming Tickets */}
         <CollapsibleCard
@@ -1020,7 +998,6 @@ export default function HomePage() {
         </CollapsibleCard>
 
         {/* Pipeline Overview */}
-        {!simpleView && (
           <CollapsibleCard
             id="dashboard-pipeline"
             title="Pipeline Overview"
@@ -1060,7 +1037,6 @@ export default function HomePage() {
               </ul>
             )}
           </CollapsibleCard>
-        )}
 
         {/* Team on Shift */}
         <CollapsibleCard
@@ -1143,8 +1119,6 @@ export default function HomePage() {
       </div>
 
       {/* Inventory & Data Quality Dashboards */}
-      {!simpleView && (
-        <>
       <h2 className="text-sm font-semibold text-muted-foreground tracking-wide">Inventory & Data Quality</h2>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <CollapsibleCard
@@ -1261,8 +1235,6 @@ export default function HomePage() {
           )}
         </CollapsibleCard>
       </div>
-        </>
-      )}
     </div>
   );
 }

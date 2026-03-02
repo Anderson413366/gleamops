@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   Package, Box, MapPin, ClipboardList, ShoppingCart, BrainCircuit,
-  Plus, Sparkles, Store,
+  Plus, Store,
 } from 'lucide-react';
 import { SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -42,13 +42,8 @@ export default function InventoryPageClient() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const action = searchParams.get('action');
-  const [simpleView, setSimpleView] = useState(false);
-  const visibleTabs = useMemo(() => {
-    if (!simpleView) return TABS;
-    return TABS.filter((tabOption) => ['supplies', 'orders', 'counts', 'forecasting', 'warehouse'].includes(tabOption.key));
-  }, [simpleView]);
   const [tab, setTab] = useSyncedTab({
-    tabKeys: visibleTabs.map((tabOption) => tabOption.key),
+    tabKeys: TABS.map((tabOption) => tabOption.key),
     defaultTab: 'supplies',
   });
   const [search, setSearch] = useState('');
@@ -65,15 +60,6 @@ export default function InventoryPageClient() {
   const [autoCreateSupply, setAutoCreateSupply] = useState(false);
   const [autoCreateKit, setAutoCreateKit] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
-
-  useEffect(() => {
-    const stored = localStorage.getItem('gleamops-inventory-simple-view') === 'true';
-    setSimpleView(stored);
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('gleamops-inventory-simple-view', String(simpleView));
-  }, [simpleView]);
 
   useEffect(() => {
     async function fetchKpis() {
@@ -193,17 +179,9 @@ export default function InventoryPageClient() {
         <SearchInput
           value={search}
           onChange={setSearch}
-          placeholder={simpleView ? 'Search core inventory...' : `Search ${tab}...`}
+          placeholder={`Search ${tab}...`}
           className="w-56 sm:w-72 lg:w-80"
         />
-        <Button
-          variant="secondary"
-          className="shrink-0"
-          onClick={() => setSimpleView((value) => !value)}
-        >
-          <Sparkles className="h-4 w-4" />
-          {simpleView ? 'Simple View On' : 'Simple View'}
-        </Button>
         {addLabel && (
           <Button className="shrink-0" onClick={handleAdd}>
             <Plus className="h-4 w-4" />

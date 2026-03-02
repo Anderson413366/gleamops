@@ -61,7 +61,6 @@ export default function RootLayout({
                   if (p.high_contrast) document.documentElement.classList.add('high-contrast');
                   if (p.large_text) document.documentElement.classList.add('large-text');
                   document.documentElement.dataset.focusMode = p.focus_mode ? 'true' : 'false';
-                  document.documentElement.dataset.simpleView = p.simple_view ? 'true' : 'false';
                 }
               } catch(e) {}
             `,

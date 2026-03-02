@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Building2, MapPin, Users, Handshake, Plus, MessageSquareWarning } from 'lucide-react';
+import { Building2, MapPin, Users, Plus, MessageSquareWarning } from 'lucide-react';
 import { SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import type { Contact } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -15,10 +15,6 @@ import { ClientForm } from '@/components/forms/client-form';
 import { SiteForm } from '@/components/forms/site-form';
 import { ContactForm } from '@/components/forms/contact-form';
 
-// Partners tab — re-use Vendors components
-import SubcontractorsTable from '../vendors/subcontractors/subcontractors-table';
-import { SubcontractorForm } from '@/components/forms/subcontractor-form';
-import VendorsTable from '../vendors/vendor-directory/vendors-table';
 import ChangeRequestsTable from './change-requests/change-requests-table';
 
 const TABS = [
@@ -26,10 +22,7 @@ const TABS = [
   { key: 'sites', label: 'Sites', icon: <MapPin className="h-4 w-4" /> },
   { key: 'contacts', label: 'Contacts', icon: <Users className="h-4 w-4" /> },
   { key: 'requests', label: 'Requests', icon: <MessageSquareWarning className="h-4 w-4" /> },
-  { key: 'partners', label: 'Partners', icon: <Handshake className="h-4 w-4" /> },
 ];
-
-type PartnerFilter = 'all' | 'subcontractors' | 'vendors';
 
 export default function ClientsPageClient() {
   const router = useRouter();
@@ -40,13 +33,8 @@ export default function ClientsPageClient() {
   const [tab, setTab] = useSyncedTab({
     tabKeys: TABS.map((entry) => entry.key),
     defaultTab: 'clients',
-    aliases: {
-      subcontractors: 'partners',
-      'supply-vendors': 'partners',
-    },
   });
   const [search, setSearch] = useState('');
-  const [partnerFilter, setPartnerFilter] = useState<PartnerFilter>('all');
   const [kpis, setKpis] = useState({
     clients: 0,
     activeClients: 0,
@@ -60,8 +48,6 @@ export default function ClientsPageClient() {
   const [clientFormOpen, setClientFormOpen] = useState(false);
   const [siteFormOpen, setSiteFormOpen] = useState(false);
   const [contactFormOpen, setContactFormOpen] = useState(false);
-  const [subFormOpen, setSubFormOpen] = useState(false);
-  const [vendorFormOpen, setVendorFormOpen] = useState(false);
   const [editContact, setEditContact] = useState<Contact | null>(null);
 
   // Refresh keys
@@ -158,12 +144,6 @@ export default function ClientsPageClient() {
     } else if (tab === 'contacts') {
       setEditContact(null);
       setContactFormOpen(true);
-    } else if (tab === 'partners') {
-      if (partnerFilter === 'vendors') {
-        setVendorFormOpen(true);
-      } else {
-        setSubFormOpen(true);
-      }
     }
   };
 
@@ -172,15 +152,9 @@ export default function ClientsPageClient() {
       ? 'Add Client'
       : tab === 'sites'
         ? 'Add Site'
-      : tab === 'contacts'
+        : tab === 'contacts'
           ? 'Add Contact'
-          : tab === 'requests'
-            ? ''
-          : tab === 'partners'
-            ? partnerFilter === 'vendors'
-              ? 'Add Vendor'
-              : 'Add Partner'
-            : '';
+          : '';
 
   return (
     <div className="space-y-6">
@@ -238,56 +212,6 @@ export default function ClientsPageClient() {
       {tab === 'requests' && (
         <ChangeRequestsTable key={`requests-${refreshKey}`} search={search} />
       )}
-      {tab === 'partners' && (
-        <div className="space-y-4">
-          <div className="flex gap-2">
-            <Button
-              variant={partnerFilter === 'all' ? 'primary' : 'ghost'}
-              size="sm"
-              onClick={() => setPartnerFilter('all')}
-            >
-              All
-            </Button>
-            <Button
-              variant={partnerFilter === 'subcontractors' ? 'primary' : 'ghost'}
-              size="sm"
-              onClick={() => setPartnerFilter('subcontractors')}
-            >
-              Subcontractors
-            </Button>
-            <Button
-              variant={partnerFilter === 'vendors' ? 'primary' : 'ghost'}
-              size="sm"
-              onClick={() => setPartnerFilter('vendors')}
-            >
-              Supply Vendors
-            </Button>
-          </div>
-          {(partnerFilter === 'all' || partnerFilter === 'subcontractors') && (
-            <div>
-              {partnerFilter === 'all' && (
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">Subcontractors</h3>
-              )}
-              <SubcontractorsTable key={`sub-${refreshKey}`} search={search} />
-            </div>
-          )}
-          {(partnerFilter === 'all' || partnerFilter === 'vendors') && (
-            <div>
-              {partnerFilter === 'all' && (
-                <h3 className="text-sm font-medium text-muted-foreground mb-2 mt-6">Supply Vendors</h3>
-              )}
-              <VendorsTable
-                key={`vendors-${refreshKey}`}
-                search={search}
-                formOpen={vendorFormOpen}
-                onFormClose={() => setVendorFormOpen(false)}
-                onRefresh={refresh}
-              />
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Forms */}
       <ClientForm
         open={clientFormOpen}
@@ -308,12 +232,6 @@ export default function ClientsPageClient() {
           setEditContact(null);
         }}
         initialData={editContact}
-        onSuccess={refresh}
-      />
-      <SubcontractorForm
-        open={subFormOpen}
-        onClose={() => setSubFormOpen(false)}
-        initialData={null}
         onSuccess={refresh}
       />
     </div>

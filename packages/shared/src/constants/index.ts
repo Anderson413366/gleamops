@@ -75,7 +75,6 @@ export const NAV_TREE: NavItem[] = [
       { id: 'clients', label: 'Sites', href: '/clients?tab=sites', icon: 'MapPin' },
       { id: 'clients', label: 'Contacts', href: '/clients?tab=contacts', icon: 'Contact' },
       { id: 'clients', label: 'Requests', href: '/clients?tab=requests', icon: 'Inbox' },
-      { id: 'clients', label: 'Partners', href: '/clients?tab=partners', icon: 'Handshake' },
     ],
   },
   // 7. Sales Pipeline
@@ -104,7 +103,7 @@ export const NAV_TREE: NavItem[] = [
     children: [
       { id: 'team', label: 'Staff Directory', href: '/team?tab=staff', icon: 'Users' },
       { id: 'team', label: 'Roles & Positions', href: '/team?tab=positions', icon: 'BriefcaseBusiness' },
-      { id: 'team', label: 'Subcontractors', href: '/team?tab=subcontractors', icon: 'HardHat' },
+      { id: 'team', label: 'Partners', href: '/team?tab=subcontractors', icon: 'HardHat' },
       { id: 'team', label: 'HR & Reviews', href: '/team?tab=hr', icon: 'UserRoundCheck' },
       { id: 'team', label: 'Team Messages', href: '/team?tab=messages', icon: 'MessageSquare' },
     ],
@@ -230,7 +229,8 @@ export function getModuleFromPathname(pathname: string): ModuleKey {
   if (pathname.startsWith('/operations')) return 'jobs';
   if (pathname.startsWith('/workforce') || pathname.startsWith('/people')) return 'team';
   if (pathname.startsWith('/assets')) return 'equipment';
-  if (pathname.startsWith('/vendors') || pathname.startsWith('/subcontractors')) return 'clients';
+  if (pathname.startsWith('/vendors')) return 'inventory';
+  if (pathname.startsWith('/subcontractors')) return 'team';
   if (pathname.startsWith('/admin')) return 'settings';
   if (pathname.startsWith('/services')) return 'catalog';
   if (pathname.startsWith('/financial-intelligence')) return 'reports';

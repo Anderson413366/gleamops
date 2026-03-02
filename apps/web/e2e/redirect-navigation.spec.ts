@@ -6,7 +6,7 @@ const REDIRECT_CASES = [
   { from: '/people', to: '/team' },
   { from: '/workforce', to: '/team' },
   { from: '/operations', to: '/jobs' },
-  { from: '/subcontractors', to: '/clients' },
+  { from: '/subcontractors', to: '/team' },
   { from: '/admin/services', to: '/settings' },
   { from: '/services', to: '/settings' },
   { from: '/financial', to: '/reports' },
@@ -41,8 +41,8 @@ test.describe('Redirect navigation hygiene', () => {
 
     await page.goto('/subcontractors?src=legacy');
     const u3 = new URL(page.url());
-    expect(u3.pathname).toBe('/clients');
+    expect(u3.pathname).toBe('/team');
     expect(u3.searchParams.get('src')).toBe('legacy');
-    expect(u3.searchParams.get('tab')).toBe('partners');
+    expect(u3.searchParams.get('tab')).toBe('subcontractors');
   });
 });

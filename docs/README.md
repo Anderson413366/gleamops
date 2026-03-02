@@ -1,6 +1,7 @@
 # GleamOps Documentation Index
 
 > Quick-reference index for all project documentation.
+> For full architecture, code patterns, and conventions see [`/CLAUDE.md`](/CLAUDE.md).
 
 ---
 
@@ -8,73 +9,61 @@
 
 | File | Purpose |
 |------|---------|
+| [`/CLAUDE.md`](/CLAUDE.md) | **Primary context** — architecture, patterns, code examples, conventions |
+| [`/README.md`](/README.md) | Project truth — tech stack, quickstart |
 | [`/AGENTS.md`](/AGENTS.md) | Universal AI entry point — read order, rules, repo map |
-| [`/README.md`](/README.md) | Project truth — tech stack, quickstart, architecture |
-| [`/CLAUDE.md`](/CLAUDE.md) | Claude-specific context — patterns, code examples, conventions |
 | [`/CONTRIBUTING.md`](/CONTRIBUTING.md) | Dev setup, coding standards, PR process |
 
 ---
 
-## Core Documentation
+## Active Reference Docs
 
-### Planning & Scope
-
-| # | Doc | Summary |
-|---|-----|---------|
-| 00 | [Executive Summary](00_EXEC_SUMMARY.md) | One-page project overview |
-| 00 | [Master Dev Plan](00_MASTER_DEV_PLAN.md) | Roadmap and milestone tracking |
-| 01 | [Product Scope](01_PRODUCT_SCOPE.md) | Feature boundaries, what's in/out |
-
-### Design & UX
+### Product & API
 
 | # | Doc | Summary |
 |---|-----|---------|
-| 02 | [UX Rules (ADHD)](02_UX_RULES_ADHD.md) | Neuro-optimized accessibility rules |
-| 03 | [Architecture](03_ARCHITECTURE.md) | System architecture decisions |
+| 01 | [Product Scope](01_PRODUCT_SCOPE.md) | Feature boundaries — what's in/out |
+| 06 | [API Contract](06_API_CONTRACT.md) | API conventions, Problem Details format |
+| 07 | [Error Catalog](07_ERROR_CATALOG.md) | RFC 9457 error codes |
+| 20 | [ADR Log](20_ADR_LOG.md) | Architecture Decision Records — the *why* behind decisions |
 
-### Data & Security
-
-| # | Doc | Summary |
-|---|-----|---------|
-| 04 | [Data Model](04_DATA_MODEL.md) | Table patterns, dual keys, standard columns |
-| 05 | [Security & RLS](05_SECURITY_RLS.md) | Tenant isolation, RLS policies, site scoping |
-| 06 | [API Contract](06_API_CONTRACT.md) | API conventions, OpenAPI reference |
-| 07 | [Error Catalog](07_ERROR_CATALOG.md) | RFC 9457 Problem Details error codes |
-
-### Business Logic
+### Domain Logic
 
 | # | Doc | Summary |
 |---|-----|---------|
-| 08 | [Workflows](08_WORKFLOWS.md) | Sequence diagrams for critical flows |
 | 09 | [CleanFlow Engine](09_CLEANFLOW_ENGINE.md) | Bid math: rates, workload, pricing |
 | 10 | [Proposals & Email](10_PROPOSALS_EMAIL.md) | PDF gen, send, tracking, follow-ups |
-| 11 | [Operations & Tickets](11_OPERATIONS_TICKETS.md) | Service plans, recurrence, ticket lifecycle |
-| 12 | [Timekeeping](12_TIMEKEEPING.md) | Clock in/out, timesheet logic |
+| 12 | [Timekeeping](12_TIMEKEEPING.md) | Clock in/out, geofence, timesheet derivation |
 | 13 | [Quality](13_QUALITY.md) | Inspections, quality control |
 | 14 | [Inventory, Assets, Safety](14_INVENTORY_ASSETS_SAFETY.md) | Supply management, equipment, safety certs |
+| 27 | [Messaging](27_MESSAGING.md) | Thread messaging system |
 
-### Infrastructure
+### Infrastructure & Operations
 
 | # | Doc | Summary |
 |---|-----|---------|
 | 15 | [Search & Performance](15_SEARCH_PERFORMANCE.md) | Search implementation, performance tuning |
 | 16 | [Testing & QA](16_TESTING_QA.md) | Test strategy, coverage goals |
-| 17 | [Migration Strategy](17_MIGRATION_STRATEGY.md) | Database migration approach |
+| 18 | [AI Developer Runbook](18_AI_DEVELOPER_RUNBOOK.md) | AI-assisted development playbook |
 | 22 | [Reporting & Dashboards](22_REPORTING_DASHBOARDS.md) | Dashboard widgets, reports |
 | 23 | [Mobile & Offline](23_MOBILE_OFFLINE.md) | Expo app, offline sync |
-| 27 | [Messaging](27_MESSAGING.md) | Thread messaging system |
-
-### Operations
-
-| # | Doc | Summary |
-|---|-----|---------|
-| 18 | [AI Developer Runbook](18_AI_DEVELOPER_RUNBOOK.md) | AI-assisted development guide |
-| 19 | [AI Agent Prompts](19_AI_AGENT_PROMPTS.md) | AI agent prompt library |
-| 20 | [ADR Log](20_ADR_LOG.md) | Architecture Decision Records |
-| 21 | [Claude Code God Prompt](21_CLAUDE_CODE_GOD_PROMPT.md) | Claude Code configuration |
 | 24 | [Operations Runbooks](24_OPERATIONS_RUNBOOKS.md) | Production operations playbook |
-| 25 | [JIRA Backlog](25_JIRA_BACKLOG.md) | Backlog tracking and prioritization |
-| 26 | [Verification Checklist](26_VERIFICATION_CHECKLIST.md) | Pre-deploy verification |
+
+### Contracts & Governance
+
+| Doc | Summary |
+|-----|---------|
+| [P0 Feature Flag Guide](P0_FEATURE_FLAG_GUIDE.md) | Feature flag mechanics (17 domains) |
+| [P0 No-Delete Checklist](P0_NO_DELETE_CHECKLIST.md) | Hard delete prevention rules |
+| [P0 Schema Contract](P0_SCHEMA_CONTRACT.md) | Naming conventions frozen at P0 |
+| [Architecture Handoff](ARCHITECTURE_HANDOFF.md) | Current-state summary + future roadmap |
+| [App Clickability Contract](app-clickability-contract.md) | Every entity navigates to detail page |
+| [App Integrity Audit](app-integrity-audit.md) | Full route inventory (76 pages) |
+| [Neuroinclusive UX Contract](neuroinclusive-ux-contract.md) | 12 ADHD/Dyslexia/Anxiety UX rules |
+| [Terminology Glossary](terminology-glossary.md) | Canonical terms for UI labels |
+| [Ops Hardening](ops-hardening.md) | P0/P1 security hardening checklist |
+| [QA Manual Checklist](qa-manual-checklist.md) | Manual QA test checklist |
+| [Schedule Coverage Warnings](schedule-coverage-warnings-spec.md) | Coverage gap detection spec |
 
 ---
 
@@ -82,7 +71,7 @@
 
 | Doc | Summary |
 |-----|---------|
-| [A — Table Catalog](appendices/A_TABLE_CATALOG.md) | Full ~86 table reference |
+| [A — Table Catalog](appendices/A_TABLE_CATALOG.md) | Full ~251 object reference |
 | [B — Endpoint Catalog](appendices/B_ENDPOINT_CATALOG.md) | All API endpoints |
 | [C — Lookup Seed](appendices/C_LOOKUP_SEED.md) | Lookup data seed values |
 | [D — SQL Migration Plan](appendices/D_SQL_MIGRATION_PLAN.md) | Migration sequence |
@@ -91,15 +80,34 @@
 
 ---
 
-## Specialized Docs
+## User Manual
 
-| Folder | Purpose |
+The [`manual/`](manual/) folder contains the full 40-file user instruction manual — module guides, reference docs, navigation cheatsheets, and troubleshooting.
+
+See [`manual/README.md`](manual/README.md) for the manual index.
+
+---
+
+## Feature Dev Plans
+
+| Folder | Summary |
 |--------|---------|
-| [`reorg/`](reorg/) | Code reorganization reports, audit, validation results |
-| [`scheduling/`](scheduling/) | Schedule system design (state analysis, gap matrix, RPC contracts) |
-| [`schema/`](schema/) | Schema JSON definitions |
-| [`ui-refresh/`](ui-refresh/) | UI token migration, theme modes, quality gaps |
-| [`execution/`](execution/) | Execution checklists |
+| [`dev/`](dev/) | Shifts & Time master plan + phase 0 baseline |
+
+---
+
+## Archive
+
+Historical docs from completed milestones. Kept for reference, not active development.
+
+| Folder | What was completed |
+|--------|-------------------|
+| [`_archive/completed-plans/`](_archive/completed-plans/) | UI refresh, scheduling P1-P8, Monday.com replacement, verification |
+| [`_archive/duplicated-by-claude-md/`](_archive/duplicated-by-claude-md/) | Docs whose content was absorbed into CLAUDE.md |
+| [`_archive/historical/`](_archive/historical/) | Migration strategy, JIRA backlog, AI prompts, P0 defects |
+| [`_archive/reorg/`](_archive/reorg/) | Previous restructuring attempt |
+| [`_archive/execution/`](_archive/execution/) | Session close-out logs |
+| [`_archive/schema-snapshots/`](_archive/schema-snapshots/) | Legacy schema JSON definitions |
 
 ---
 

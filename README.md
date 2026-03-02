@@ -4,7 +4,7 @@
 
 **Production:** [gleamops.vercel.app](https://gleamops.vercel.app) | **Repo:** [github.com/Anderson413366/gleamops](https://github.com/Anderson413366/gleamops)
 
-**Program status (2026-02-28):** All milestones A–H complete. Monday.com replacement phases P1–P8 done. Project North Star navigation overhaul shipped. Full QA cycle completed (24 issues resolved across 2 rounds). PT-BR internationalization backfill complete.
+**Program status (2026-03-02):** All milestones A–H complete. Monday.com replacement P1–P8 done. Project North Star shipped. QA cycle complete (24 issues). Data Quality & Automation Sprints 1–14 applied (00117–00130). Empty Tables Audit complete (ANALYZE, triggers, feature_flags). 134 migrations, 220+ tables, 30 detail pages, 42 forms, 108 API routes.
 
 ---
 
@@ -83,7 +83,7 @@ gleamops_dev_pack/
 │   │   └── src/
 │   │       ├── app/
 │   │       │   ├── (auth)/        → Login page
-│   │       │   ├── (dashboard)/   → 20 route directories + 28 detail pages
+│   │       │   ├── (dashboard)/   → 20 route directories + 30 detail pages
 │   │       │   └── api/           → 108 route handlers (thin delegates → modules)
 │   │       ├── components/
 │   │       │   ├── forms/         → 42 entity form components
@@ -92,18 +92,18 @@ gleamops_dev_pack/
 │   │       │   ├── detail/        → ProfileCompletenessCard, StatusToggleDialog
 │   │       │   ├── directory/     → EntityAvatar, EntityCard
 │   │       │   └── links/         → EntityLink (cross-entity navigation)
-│   │       ├── hooks/             → 22 custom hooks
+│   │       ├── hooks/             → 23 custom hooks
 │   │       ├── lib/               → Supabase clients, auth guard, audit, utils
 │   │       └── modules/           → 28 domain service modules
 │   ├── worker/          → Background jobs (PDF generation, follow-ups)
 │   └── mobile/          → Expo React Native (production setup in progress)
 ├── packages/
-│   ├── shared/          → Types, Zod schemas, constants, NAV_TREE, error catalog
+│   ├── shared/          → Types, Zod schemas, constants, NAV_TREE, error catalog, feature flags
 │   ├── domain/          → Pure business rules (RBAC, status machine)
 │   ├── cleanflow/       → Bid math engine (pure functions, no DB deps)
 │   └── ui/              → Design system (30 components)
 ├── supabase/
-│   ├── migrations/      → 113 SQL migration files (17,559 lines)
+│   ├── migrations/      → 134 SQL migration files (19,682 lines)
 │   └── functions/       → Edge Functions (Deno)
 ├── openapi/             → OpenAPI 3.1 contract
 ├── docs/                → Numbered docs 00–27 + appendices
@@ -149,7 +149,7 @@ GleamOps is organized into 13 navigation modules rendered in a **hierarchical si
 
 ### Key Features
 
-- **28 detail pages** — Every major entity has a dedicated page with profile completeness tracking, stats, sections, edit, and deactivate
+- **30 detail pages** — Every major entity has a dedicated page with profile completeness tracking, stats, sections, edit, and deactivate
 - **42 form components** — Create and edit forms with Zod validation, optimistic locking (`version_etag`), and wizard mode for complex entities
 - **20 card grid views** — Toggle between list (table) and card layouts on every table
 - **Status filter chips** — Quick-filter by status with count badges (default to active status, "all" at end)
@@ -213,13 +213,22 @@ RBAC controls what you can do. Site scoping controls where you can do it.
 
 ## Database
 
-- **113 migration files** totaling 17,559 lines of SQL
+- **220+ tables** across 18 functional domains in Supabase PostgreSQL
+- **134 migration files** totaling 19,682 lines of SQL
 - **Standard columns** on every table: `tenant_id`, `created_at`, `updated_at`, `archived_at`, `version_etag`
-- **Soft delete** via `archived_at` (no hard deletes)
-- **Optimistic locking** via `version_etag` UUID
+- **Standard triggers** on every business table: `set_updated_at`, `set_version_etag`, `prevent_hard_delete`
+- **Soft delete** via `archived_at` (no hard deletes — enforced by trigger)
+- **Optimistic locking** via `version_etag` UUID (auto-rolled on every write)
 - **Dual-key pattern** — `id UUID` (internal) + `*_code TEXT` (human-readable)
-- **RLS policies** on every table with tenant isolation
-- **SQL helpers** — `current_tenant_id()`, `has_role()`, `next_code()`, `validate_status_transition()`
+- **RLS policies** on every table with tenant isolation via `current_tenant_id()`
+- **Status enforcement** — `enforce_status_transition()` trigger validates state machine on 6 entity types (28 transitions)
+- **Cascade archive** — `cascade_archive()` propagates soft-delete from parent to child entities
+- **Auto-archive** — `auto_archive_on_terminal_status()` archives on CANCELED/TERMINATED
+- **Name normalization** — `normalize_name_fields()` trims whitespace on INSERT/UPDATE
+- **Data hygiene** — `run_data_hygiene_scan(tenant_id)` RPC scans for quality issues
+- **Ticket generation** — `fn_generate_tickets_for_period(period_id)` RPC generates work tickets from schedule rules
+- **Feature flags** — `feature_flags` table with 18 domain seeds for DB readiness tracking
+- **Operational views** — `v_active_sites`, `v_staff_roster`, `v_upcoming_tickets`, `v_sites_full`
 - **Cron job** — Inventory count reminders at 13:00 UTC daily via Vercel Cron
 
 ### Entity Code Formats
@@ -260,7 +269,7 @@ Archive Dialog, Badge, Button, Card, ChipTabs, Collapsible Card, Command Palette
 
 ---
 
-## Detail Pages (28 dynamic routes)
+## Detail Pages (30 dynamic routes)
 
 Every detail page follows a consistent layout pattern:
 
@@ -300,6 +309,7 @@ Every detail page follows a consistent layout pattern:
 | Task (admin) | `/admin/services/tasks/[id]` | task_code |
 | Subcontractor | `/vendors/subcontractors/[code]` | subcontractor_code |
 | Supply Vendor | `/vendors/supply-vendors/[slug]` | slug |
+| Position | `/team/positions/[code]` | position_code |
 
 ---
 
@@ -389,7 +399,7 @@ Additional reference:
 | **No invoicing/payments/taxes** | Out of scope by design — integrate with QBO/Xero |
 | **Pure math engine** | CleanFlow has zero DB dependencies, fully testable |
 | **RFC 9457 errors** | Stable error codes, not string messages |
-| **Status state machine** | Legal transitions enforced in SQL via `validate_status_transition()` |
+| **Status state machine** | Legal transitions enforced in SQL via `enforce_status_transition()` trigger on 6 entity types |
 | **Soft delete only** | All "deletes" set `archived_at`, reversible |
 | **Thin delegate routes** | Auth → validate → service → respond (max ~40 LOC per route) |
 | **Service/repository split** | Business logic separated from data access |
@@ -398,6 +408,9 @@ Additional reference:
 | **Module accent colors** | Each module has a unique color applied via CSS variable for visual differentiation |
 | **Neuro-optimized UX** | Designed for ADHD, dyslexia, and anxiety accessibility |
 | **Canonical route migration** | `/clients` over `/crm`, `/jobs` over `/operations`, `/team` over `/workforce` |
+| **Dual feature flag systems** | Env-var flags (17 domains, UI features) + DB-backed flags (18 domains, DB readiness tracking) |
+| **Sites decomposition** | Access details + compliance extracted to sub-tables; `v_sites_full` view for backward compat |
+| **Cascade archive** | Parent soft-delete propagates to children (clients→sites→jobs→tickets→assignments) |
 
 ---
 
@@ -416,6 +429,8 @@ Additional reference:
 | P1–P8 | Monday.com replacement (boards, scheduling, shifts, routes, complaints, field reports, night bridge, customer portal) | DONE |
 | NS | Project North Star — hierarchical nav, /catalog route, tab consolidation | DONE |
 | QA | Full QA cycle — 24 issues resolved across 2 rounds | DONE |
+| DQ | Data Quality & Automation — 14 sprints: hygiene, constraints, staff column rename, FK linkage, triggers, status enforcement, indexes, decomposition, cascade, financials, scheduling, views | DONE |
+| ETA | Empty Tables Audit — ANALYZE, missing triggers, task_categories restore, feature_flags | DONE |
 
 ---
 

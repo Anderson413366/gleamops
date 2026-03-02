@@ -17,7 +17,7 @@ GleamOps is a **B2B SaaS ERP for commercial cleaning** that replaces spreadsheet
 - **UI Library**: @gleamops/ui — 30 components, semantic HSL token system
 - **i18n**: EN, ES, PT-BR
 - **Deploy**: Vercel (web), worker TBD
-- **Status**: Milestones A–H complete + Monday.com replacement + Project North Star navigation overhaul. 13 navigation modules (hierarchical sidebar with children), 108 API routes, 28 detail pages, 42 forms, 113 migrations, 28 service modules.
+- **Status**: Milestones A–H complete + Monday.com replacement + Project North Star + Data Quality Sprint 1-14 + Empty Tables Audit. 13 navigation modules (hierarchical sidebar), 108 API routes, 30 detail pages, 42 forms, 134 migrations (19,682 lines SQL), 28 service modules, 23 hooks.
 
 ---
 
@@ -98,7 +98,7 @@ gleamops_dev_pack/
 │   │   └── src/
 │   │       ├── app/
 │   │       │   ├── (auth)/login/  # Login page
-│   │       │   └── (dashboard)/   # 20 route directories + detail pages
+│   │       │   └── (dashboard)/   # 20 route directories + 30 detail pages
 │   │       │       ├── home/              # Dashboard widgets (owner KPIs)
 │   │       │       ├── schedule/          # Recurring, work orders, calendar, planning, boards
 │   │       │       ├── jobs/              # Service plans, tickets, inspections, time, routes, checklists, forms
@@ -133,7 +133,7 @@ gleamops_dev_pack/
 │   │       │   ├── detail/        # ProfileCompletenessCard, StatusToggleDialog
 │   │       │   ├── directory/     # EntityAvatar, EntityCard
 │   │       │   └── links/         # EntityLink
-│   │       ├── hooks/             # 22 custom hooks
+│   │       ├── hooks/             # 23 custom hooks
 │   │       ├── lib/               # Supabase clients, auth guard, audit, utils
 │   │       │   └── utils/         # date.ts, job-financials.ts, format-zip.ts
 │   │       └── modules/           # 28 domain service modules
@@ -145,7 +145,7 @@ gleamops_dev_pack/
 │   ├── cleanflow/                 # Bid math engine (pure functions)
 │   └── ui/                        # Design system (30 components)
 ├── supabase/
-│   ├── migrations/                # 113 SQL migration files (17,559 lines)
+│   ├── migrations/                # 134 SQL migration files (19,682 lines)
 │   └── functions/                 # Edge Functions (Deno)
 ├── docs/                          # Numbered docs 00–27 + appendices
 ├── openapi/                       # OpenAPI 3.1 contract
@@ -208,7 +208,7 @@ When adding back-links or cross-links in new code, use these canonical routes:
 
 ---
 
-## Detail Pages (28 dynamic routes)
+## Detail Pages (30 dynamic routes)
 
 Every detail page follows the same layout: Back link → Breadcrumb → Avatar circle → Stat cards → ProfileCompletenessCard → Section cards (`<dl>` key-value) → Edit + Deactivate buttons → ActivityHistorySection → Metadata footer.
 
@@ -238,6 +238,7 @@ Every detail page follows the same layout: Back link → Breadcrumb → Avatar c
 | Task (admin) | `/admin/services/tasks/[id]` | — | task_code |
 | Subcontractor | `/vendors/subcontractors/[code]` | — | subcontractor_code |
 | Supply Vendor | `/vendors/supply-vendors/[slug]` | — | slug |
+| Position | `/team/positions/[code]` | `/workforce/positions/[code]` | position_code |
 
 ---
 
@@ -269,6 +270,18 @@ STF-XXXX   (staff)        CON-XXXX   (contact)
 - `user_can_access_site(user_id, site_id)` — site scoping
 - `next_code(tenant_id, prefix, padding)` — generate entity codes
 - `validate_status_transition(tenant_id, entity, from, to)` — state machine
+- `enforce_status_transition()` — trigger function: blocks invalid status changes (Sprint 8)
+- `cascade_archive()` — trigger function: cascades soft-delete to child entities (expanded Sprint 11)
+- `auto_archive_on_terminal_status()` — trigger: auto-archives on CANCELED/TERMINATED (Sprint 11)
+- `normalize_name_fields()` — trigger: trims whitespace on name columns (Sprint 5)
+- `auto_set_tenant_id()` — trigger: sets tenant_id from JWT if not provided (Sprint 5)
+- `run_data_hygiene_scan(p_tenant_id)` — RPC: automated data quality scan (Sprint 10)
+- `fn_generate_tickets_for_period(p_period_id)` — RPC: generate work tickets from schedule rules (Sprint 13)
+
+### Standard trigger set (every business table)
+- `set_updated_at` — auto-sets `updated_at = now()` on UPDATE
+- `set_version_etag` — auto-rolls `version_etag` on INSERT/UPDATE
+- `prevent_hard_delete` — blocks DELETE; forces soft-delete via `archived_at`
 
 ---
 
@@ -510,7 +523,7 @@ Located at `apps/web/src/components/forms/`.
 
 ---
 
-## Custom Hooks (22 hooks)
+## Custom Hooks (23 hooks)
 
 Located at `apps/web/src/hooks/`:
 
@@ -521,15 +534,16 @@ Located at `apps/web/src/hooks/`:
 | `use-bulk-select` | `{ selected, toggle, selectAll, clear }` | Multi-row selection |
 | `use-camera` | `{ capture }` | Camera access (mobile) |
 | `use-density` | `{ density, setDensity }` | Comfortable/compact toggle |
-| `use-feature-flag` | `boolean` | Feature flag management |
+| `use-feature-flag` | `boolean` | Env-var feature flag management |
 | `use-form` | `{ values, errors, loading, setValue, handleSubmit, onBlur }` | Form state + Zod validation |
 | `use-geolocation` | `{ coords }` | GPS location (mobile) |
 | `use-keyboard-shortcuts` | — | Keyboard shortcut handling |
 | `use-locale` | `{ locale, setLocale, t }` | Internationalization (EN, ES, PT-BR) |
-| `use-lookups` | `{ lookups }` | Lookup data fetching |
+| `use-lookups` | `{ data, options, isLoading }` | Lookup data fetching + 13 preset hooks (useStaffStatuses, useClientTypes, useSiteTypes, usePositionTypes, useServicesList, etc.) |
 | `use-media-query` | `boolean` | CSS media query matching |
 | `use-offline-mutation-sync` | — | Offline mutation queue + sync |
 | `use-pagination` | `{ page, currentPage, totalPages, ... }` | Client-side pagination (default 25/page) |
+| `use-position-types` | `{ positionTypes, resolvePositionTheme }` | Dynamic position type colors from DB |
 | `use-realtime` | — | Supabase realtime channel subscriptions |
 | `use-role` | `{ can, isAtLeast, isAdmin, isManager }` | RBAC permission checks |
 | `use-server-pagination` | `{ ... }` | Server-side pagination |
@@ -612,11 +626,20 @@ CONVERT_001..003, TICKET_001..002, AUTH_001..003, SYS_001
 
 ### Validation
 clientSchema, siteSchema, contactSchema, taskSchema, serviceSchema,
-prospectSchema, bidSchema, convertBidSchema, loginSchema
+prospectSchema, bidSchema, convertBidSchema, loginSchema, staffSchema
+
+### Feature Flags (env-var based)
+`packages/shared/src/constants/feature-flags.ts` — 17 domains read from `NEXT_PUBLIC_FF_*` env vars.
+Defaults enabled: `v2_navigation`, `schedule_liberation`, `unified_sales`, `standalone_calculator`.
+`useFeatureFlag(domain)` hook in `apps/web/src/hooks/use-feature-flag.ts`.
+
+### Feature Flags (DB-backed)
+`feature_flags` table — 18 domain seeds tracking which DB table groups are activated.
+Separate from env-var flags; used for database domain readiness tracking.
 
 ---
 
-## Migration Files (113 SQL files, 17,559 lines)
+## Migration Files (134 SQL files, 19,682 lines)
 
 | Range | What |
 |-------|------|
@@ -629,7 +652,25 @@ prospectSchema, bidSchema, convertBidSchema, loginSchema
 | 00050–00060 | HR tables, fleet DVIR, messaging, schedule availability, inventory counts |
 | 00061–00084 | Safety certs, training, production rates, geofences, mobile sync, warehouse, PIN codes |
 | 00085–00097 | Complaints, periodic tasks, route templates, field reports, night bridge, customer portal |
-| 00098–00113 | Shifts & time, schedule boards, work orders, payroll export, access windows |
+| 00098–00111 | Shifts & time, schedule boards, work orders, payroll export, access windows |
+| 00112–00116 | Scheduling parity: position colors, eligible positions, schedule templates, period types, work ticket notes |
+| 00117–00130 | **Data Quality Sprints 1–14:** hygiene, constraints, staff column rename (staff_status→status), FK linkage, automation triggers, lookups alignment, sites decomposition, status transition enforcement, performance indexes, hygiene automation RPC, cascade archive expansion, financials extraction, scheduling chain, operational views |
+| 20260302* | **Empty Tables Audit:** ANALYZE stats, missing triggers on 5 tables, task_categories FK restore, feature_flags table (18 domain seeds) |
+
+### New tables added in Sprints 1–14
+`site_access_details`, `site_compliance`, `data_hygiene_issues`, `site_job_financials`, `feature_flags`
+
+### New views added in Sprints 1–14
+`v_sites_full`, `v_active_sites`, `v_staff_roster`, `v_upcoming_tickets`
+
+### Key schema changes in Sprints 1–14
+- `staff.staff_status` renamed → `staff.status` (aligns with other entity tables)
+- `staff.staff_type` renamed → `staff_type_deprecated` (use `employment_type` instead)
+- `lookups.tenant_id` now `NOT NULL` (global lookups assigned to test tenant)
+- `site_jobs.start_date` now `NOT NULL DEFAULT CURRENT_DATE`
+- Status transition enforcement via `enforce_status_transition()` trigger on 6 tables
+- 10 composite performance indexes on hot query paths
+- `normalized_name` generated columns on clients, sites, staff
 
 ---
 
@@ -726,22 +767,24 @@ Each module follows the **golden module** pattern:
 | P1–P8 | Monday.com replacement (boards, scheduling, shifts, routes, complaints, field reports, night bridge, customer portal) | DONE |
 | NS | Project North Star — hierarchical nav, /catalog route, tab consolidation, legacy route migration | DONE |
 | QA | Full QA cycle — 24 issues fixed across 2 rounds (original 11 + supplemental 14) | DONE |
+| DQ | Data Quality & Automation — 14 sprints (00117–00130): hygiene, constraints, column consolidation, FK linkage, automation, status enforcement, indexes, decomposition, cascade, financials, scheduling chain, views | DONE |
+| ETA | Empty Tables Audit — ANALYZE, triggers on 5 tables, task_categories FK restore, feature_flags table | DONE |
 
 ---
 
 ## Git History (Key Commits)
 
 ```
+93da334 fix(schedule): make shift blocks clickable with pointer cursor + edit toolbar
+90c81bd feat(db): empty tables audit migrations + fix Sprint 1-14 push errors
+7348d3c fix(safety): fix incidents page query — use correct FK column name
+712669c feat(db): Sprint 14 — operational views (00130)
+9ab4c62 feat(db): Sprint 8 — status transition enforcement (00124)
+a329445 feat(db+ui): Sprint 3 — staff column consolidation + frontend rename (00119)
+2afa650 feat(db): Sprint 1 — data hygiene migration (00117)
 2162581 fix(nav): update legacy route back-links to canonical module routes
 4dc2a48 fix(qa): resolve remaining 5 data/backend issues (S01, S02, S09, S10, S14)
-8948f59 fix(qa): resolve all supplemental QA issues (S03–S13)
-3bd49d4 fix(qa): hydration mismatch + mobile header responsive layout
-c5b70b0 fix(qa): address QA round 2 — root 404, supply cost errors, KPI loading, breadcrumbs, redirect
-c2af4f6 fix(qa): address QA report — 404 page, KPI links, pipeline sections, tab overflow, breadcrumbs
-ccca37a fix(nav): resolve tab bounce loop when navigating via sidebar children
 d4e239f feat(nav): implement Project North Star — hierarchical nav, /catalog route, tab consolidation
-2ee5fbf feat(schedule): fix Humanity-style UX gaps — copy-week, day timeline DnD, month labels
-4a3af57 feat(schedule): redesign boards with Monday.com visual language
 6cc6048 feat(schedule): add Humanity-style scheduling + Monday.com-style boards
 ```
 

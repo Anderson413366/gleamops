@@ -34,7 +34,7 @@ interface EligibleStaffRow {
   staff_id: string;
   position_code: string;
   is_primary: boolean;
-  staff?: { full_name: string; staff_code: string; staff_status: string | null } | null;
+  staff?: { full_name: string; staff_code: string; status: string | null } | null;
 }
 
 function formatDate(d: string | null | undefined) {
@@ -81,7 +81,7 @@ export default function PositionDetailPage() {
     // Fetch eligible staff
     const { data: eligRows } = await supabase
       .from('staff_eligible_positions')
-      .select('staff_id, position_code, is_primary, staff:staff_id(full_name, staff_code, staff_status)')
+      .select('staff_id, position_code, is_primary, staff:staff_id(full_name, staff_code, status)')
       .eq('position_code', pos.position_code)
       .is('archived_at', null);
 
@@ -277,8 +277,8 @@ export default function PositionDetailPage() {
                         <Badge color="blue" className="text-[10px]">Primary</Badge>
                       )}
                     </div>
-                    <Badge color={row.staff?.staff_status === 'ACTIVE' ? 'green' : 'gray'}>
-                      {row.staff?.staff_status ?? 'N/A'}
+                    <Badge color={row.staff?.status === 'ACTIVE' ? 'green' : 'gray'}>
+                      {row.staff?.status ?? 'N/A'}
                     </Badge>
                   </li>
                 ))}

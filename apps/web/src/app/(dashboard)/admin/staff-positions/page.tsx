@@ -15,7 +15,7 @@ interface StaffRow {
   display_name: string | null;
   staff_code: string;
   role: string;
-  staff_status: string | null;
+  status: string | null;
 }
 
 export default function StaffPositionAssignmentPage() {
@@ -30,7 +30,7 @@ export default function StaffPositionAssignmentPage() {
     const [{ data: staffData }, posData] = await Promise.all([
       supabase
         .from('staff')
-        .select('id, full_name, display_name, staff_code, role, staff_status')
+        .select('id, full_name, display_name, staff_code, role, status')
         .is('archived_at', null)
         .order('full_name'),
       getStaffPositions(),
@@ -121,8 +121,8 @@ export default function StaffPositionAssignmentPage() {
                     <td className="p-3 font-medium">{member.display_name ?? member.full_name}</td>
                     <td className="p-3 font-mono text-xs text-muted-foreground">{member.staff_code}</td>
                     <td className="p-3">
-                      <Badge color={member.staff_status === 'ACTIVE' ? 'green' : 'gray'}>
-                        {member.staff_status ?? 'N/A'}
+                      <Badge color={member.status === 'ACTIVE' ? 'green' : 'gray'}>
+                        {member.status ?? 'N/A'}
                       </Badge>
                     </td>
                     <td className="p-3">

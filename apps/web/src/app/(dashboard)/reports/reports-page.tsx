@@ -88,7 +88,7 @@ export default function ReportsPageClient() {
       supabase.from('sales_opportunities').select('estimated_monthly_value, stage_code, created_at').is('archived_at', null).gte('created_at', startISO),
       supabase.from('site_jobs').select('billing_amount').is('archived_at', null).eq('status', 'ACTIVE'),
       supabase.from('inspections').select('status, passed, created_at').is('archived_at', null).gte('created_at', startISO),
-      supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('staff_status', 'ACTIVE'),
+      supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'ACTIVE'),
       supabase.from('supply_catalog').select('id', { count: 'exact', head: true }).is('archived_at', null).neq('supply_status', 'DISCONTINUED'),
     ]);
 

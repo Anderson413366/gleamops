@@ -212,7 +212,7 @@ export const staffSchema = z.object({
   preferred_name: z.string().nullable().default(null),
   date_of_birth: z.string().nullable().default(null),
   role: z.string().min(1, 'Role is required'),
-  staff_status: z.string().default('ACTIVE'),
+  status: z.string().default('ACTIVE'),
   // Employment
   employment_type: z.string().nullable().default(null),
   is_subcontractor: z.boolean().default(false),

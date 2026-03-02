@@ -188,7 +188,7 @@ export function ScheduleSidebar({
       const [sitesRes, clientsRes, staffRes] = await Promise.all([
         supabase.from('sites').select('id, name, site_code, client_id').is('archived_at', null).order('name'),
         supabase.from('clients').select('id, name, client_code').is('archived_at', null).order('name'),
-        supabase.from('staff').select('full_name').is('archived_at', null).eq('staff_status', 'ACTIVE').order('full_name'),
+        supabase.from('staff').select('full_name').is('archived_at', null).eq('status', 'ACTIVE').order('full_name'),
       ]);
       if (!cancelled) {
         if (sitesRes.data) setSites(sitesRes.data as SiteOption[]);

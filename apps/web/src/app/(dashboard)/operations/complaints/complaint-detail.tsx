@@ -136,7 +136,7 @@ export function ComplaintDetail({ complaintCode }: ComplaintDetailProps) {
       .from('staff')
       .select('id, full_name, staff_code')
       .is('archived_at', null)
-      .eq('staff_status', 'ACTIVE')
+      .eq('status', 'ACTIVE')
       .order('full_name')
       .then(({ data }) => {
         const rows = (data ?? []) as Array<{ id: string; full_name: string | null; staff_code: string }>;

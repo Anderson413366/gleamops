@@ -12826,8 +12826,8 @@ export type Database = {
           role: string
           schedule_type: string | null
           staff_code: string
-          staff_status: string | null
-          staff_type: string | null
+          status: string | null
+          staff_type_deprecated: string | null
           supervisor_id: string | null
           tenant_id: string
           termination_date: string | null
@@ -12876,8 +12876,8 @@ export type Database = {
           role?: string
           schedule_type?: string | null
           staff_code: string
-          staff_status?: string | null
-          staff_type?: string | null
+          status?: string | null
+          staff_type_deprecated?: string | null
           supervisor_id?: string | null
           tenant_id: string
           termination_date?: string | null
@@ -12926,8 +12926,8 @@ export type Database = {
           role?: string
           schedule_type?: string | null
           staff_code?: string
-          staff_status?: string | null
-          staff_type?: string | null
+          status?: string | null
+          staff_type_deprecated?: string | null
           supervisor_id?: string | null
           tenant_id?: string
           termination_date?: string | null

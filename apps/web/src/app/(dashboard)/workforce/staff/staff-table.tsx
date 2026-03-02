@@ -64,7 +64,7 @@ function profilePercent(staff: Staff): number {
   const tracked: unknown[] = [
     staff.full_name,
     staff.role,
-    staff.staff_status,
+    staff.status,
     staff.employment_type,
     staff.hire_date,
     staff.email,
@@ -162,7 +162,7 @@ export default function StaffTable({
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = { all: rows.length };
     for (const r of rows) {
-      const s = r.staff_status ?? 'ACTIVE';
+      const s = r.status ?? 'ACTIVE';
       counts[s] = (counts[s] || 0) + 1;
     }
     return counts;
@@ -171,7 +171,7 @@ export default function StaffTable({
   const filtered = useMemo(() => {
     let result = rows;
     if (statusFilter !== 'all') {
-      result = result.filter((r) => (r.staff_status ?? 'ACTIVE') === statusFilter);
+      result = result.filter((r) => (r.status ?? 'ACTIVE') === statusFilter);
     }
     if (search) {
       const q = search.toLowerCase();
@@ -285,7 +285,7 @@ export default function StaffTable({
               </TableHeader>
               <TableBody>
                 {pag.page.map((row) => {
-                  const rowStatus = row.staff_status ?? 'ACTIVE';
+                  const rowStatus = row.status ?? 'ACTIVE';
                   const isTerminated = rowStatus === 'TERMINATED';
                   return (
                   <TableRow

@@ -818,8 +818,8 @@ export interface Staff extends StandardColumns {
   last_name: string | null;
   preferred_name: string | null;
   role: string; // Lookups "Staff Role"
-  staff_status: string | null; // Lookups "Staff Status"
-  staff_type: string | null; // Lookups "Staff Type"
+  status: string | null; // Lookups "Staff Status" (renamed from staff_status)
+  staff_type_deprecated: string | null; // DEPRECATED — use employment_type
   employment_type: string | null; // Lookups "Employment Type"
   is_subcontractor: boolean;
   hire_date: string | null;
@@ -1524,7 +1524,7 @@ export interface MvStaffPerformance {
   staff_code: string;
   full_name: string;
   role: string;
-  staff_status: string | null;
+  status: string | null;
   hours_last_30d: number;
   entries_last_30d: number;
   exceptions_last_30d: number;

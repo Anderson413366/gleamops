@@ -51,7 +51,7 @@ interface JobStaffAssignmentRow {
     id: string;
     staff_code: string;
     full_name: string;
-    staff_status: string | null;
+    status: string | null;
   } | null;
 }
 
@@ -59,7 +59,7 @@ interface StaffOption {
   id: string;
   staff_code: string;
   full_name: string;
-  staff_status: string | null;
+  status: string | null;
 }
 
 interface TaskCatalogRow {
@@ -255,7 +255,7 @@ export default function JobDetailPage() {
         role,
         start_date,
         end_date,
-        staff:staff_id(id, staff_code, full_name, staff_status)
+        staff:staff_id(id, staff_code, full_name, status)
       `)
       .eq('job_id', jobId)
       .is('archived_at', null)
@@ -367,16 +367,16 @@ export default function JobDetailPage() {
             role,
             start_date,
             end_date,
-            staff:staff_id(id, staff_code, full_name, staff_status)
+            staff:staff_id(id, staff_code, full_name, status)
           `)
           .eq('job_id', j.id)
           .is('archived_at', null)
           .order('start_date', { ascending: false }),
         supabase
           .from('staff')
-          .select('id, staff_code, full_name, staff_status')
+          .select('id, staff_code, full_name, status')
           .is('archived_at', null)
-          .in('staff_status', ['ACTIVE', 'ON_LEAVE'])
+          .in('status', ['ACTIVE', 'ON_LEAVE'])
           .order('full_name'),
       ]);
       setAssignments((assignmentRes.data as unknown as JobStaffAssignmentRow[]) ?? []);

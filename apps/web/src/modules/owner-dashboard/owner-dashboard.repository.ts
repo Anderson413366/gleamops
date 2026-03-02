@@ -29,7 +29,7 @@ export async function listSpecialistStaff(
 ) {
   return db
     .from('staff')
-    .select('id, staff_status, updated_at, archived_at, microfiber_exited_at')
+    .select('id, status, updated_at, archived_at, microfiber_exited_at')
     .eq('role', 'CLEANER')
     .is('archived_at', null);
 }

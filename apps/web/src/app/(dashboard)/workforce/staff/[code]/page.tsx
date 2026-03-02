@@ -464,13 +464,13 @@ export default function StaffDetailPage() {
     if (!staff) return;
     setArchiveLoading(true);
     const supabase = getSupabaseBrowserClient();
-    const isInactive = (staff.staff_status ?? '').toUpperCase() === 'INACTIVE' || (staff.staff_status ?? '').toUpperCase() === 'TERMINATED';
+    const isInactive = (staff.status ?? '').toUpperCase() === 'INACTIVE' || (staff.status ?? '').toUpperCase() === 'TERMINATED';
     const nextStatus = isInactive ? 'ACTIVE' : 'INACTIVE';
     try {
       const { error } = await supabase
         .from('staff')
         .update({
-          staff_status: nextStatus,
+          status: nextStatus,
         })
         .eq('id', staff.id)
         .eq('version_etag', staff.version_etag);
@@ -518,7 +518,7 @@ export default function StaffDetailPage() {
   }
 
   const activeJobCount = jobs.filter((j) => j.job?.status === 'ACTIVE').length;
-  const isInactive = (staff.staff_status ?? '').toUpperCase() === 'INACTIVE' || (staff.staff_status ?? '').toUpperCase() === 'TERMINATED';
+  const isInactive = (staff.status ?? '').toUpperCase() === 'INACTIVE' || (staff.status ?? '').toUpperCase() === 'TERMINATED';
   const updatedAgo = formatRelativeDateTime(staff.updated_at);
   const bg = bgCheckBadge(staff.background_check_date ?? null);
 
@@ -592,7 +592,7 @@ export default function StaffDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Badge color={STATUS_COLORS[staff.staff_status ?? ''] ?? 'gray'}>{staff.staff_status ?? 'N/A'}</Badge>
+          <Badge color={STATUS_COLORS[staff.status ?? ''] ?? 'gray'}>{staff.status ?? 'N/A'}</Badge>
           <Badge color="gray">{`Updated ${updatedAgo}`}</Badge>
           <Button variant="secondary" size="sm" onClick={() => setFormOpen(true)}>
             <Pencil className="h-3.5 w-3.5" /> Edit

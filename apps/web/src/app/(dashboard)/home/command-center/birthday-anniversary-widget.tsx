@@ -12,7 +12,7 @@ interface StaffCelebrationRow {
   full_name: string;
   date_of_birth: string | null;
   hire_date: string | null;
-  staff_status: string | null;
+  status: string | null;
 }
 
 interface CelebrationWidgetProps {
@@ -74,7 +74,7 @@ export function BirthdayAnniversaryWidget({ date, filter }: CelebrationWidgetPro
       const supabase = getSupabaseBrowserClient();
       const { data, error } = await supabase
         .from('staff')
-        .select('id, full_name, date_of_birth, hire_date, staff_status')
+        .select('id, full_name, date_of_birth, hire_date, status')
         .is('archived_at', null)
         .order('full_name', { ascending: true });
 
@@ -87,7 +87,7 @@ export function BirthdayAnniversaryWidget({ date, filter }: CelebrationWidgetPro
       }
 
       const activeRows = (data as StaffCelebrationRow[]).filter((row) => {
-        const status = String(row.staff_status ?? 'ACTIVE').toUpperCase();
+        const status = String(row.status ?? 'ACTIVE').toUpperCase();
         return status !== 'INACTIVE' && status !== 'TERMINATED';
       });
       setRows(activeRows);

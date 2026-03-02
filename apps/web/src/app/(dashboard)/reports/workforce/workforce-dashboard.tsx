@@ -74,7 +74,7 @@ export default function WorkforceDashboard(props: { rangeDays: number; refreshKe
     const [staffRes, clockedInRes, timeRes, timeRangeRes, exceptionsRes, timesheetsRes] = await Promise.all([
       supabase
         .from('staff')
-        .select('id, staff_status')
+        .select('id, status')
         .is('archived_at', null),
       supabase
         .from('time_entries')
@@ -104,7 +104,7 @@ export default function WorkforceDashboard(props: { rangeDays: number; refreshKe
 
     // Staff
     if (staffRes.data) {
-      const active = staffRes.data.filter((s) => s.staff_status === 'ACTIVE').length;
+      const active = staffRes.data.filter((s) => s.status === 'ACTIVE').length;
       setStats((prev) => ({
         ...prev,
         totalStaff: staffRes.data!.length,

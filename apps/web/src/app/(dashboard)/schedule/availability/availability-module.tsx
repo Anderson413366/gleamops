@@ -197,7 +197,7 @@ export function AvailabilityModule() {
     const supabase = getSupabaseBrowserClient();
 
     const [staffRes, rulesRes] = await Promise.all([
-      supabase.from('staff').select('id, full_name').is('archived_at', null).eq('staff_status', 'ACTIVE').order('full_name'),
+      supabase.from('staff').select('id, full_name').is('archived_at', null).eq('status', 'ACTIVE').order('full_name'),
       supabase.from('staff_availability_rules').select('id, staff_id, weekday, start_time, end_time, notes, rule_type, availability_type, one_off_start, one_off_end, staff:staff_id(full_name)').is('archived_at', null),
     ]);
 

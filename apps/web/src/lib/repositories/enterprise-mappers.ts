@@ -170,7 +170,7 @@ export function mapStaffToEmployeeRow(staff: Staff): EmployeeCompatRow {
     first_name: staff.first_name,
     last_name: staff.last_name,
     full_name: staff.full_name,
-    status: staff.staff_status ?? 'ACTIVE',
+    status: staff.status ?? 'ACTIVE',
     employment_type: staff.employment_type,
     pay_rate: staff.pay_rate,
   };

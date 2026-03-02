@@ -104,7 +104,7 @@ export function DashboardWidgets() {
       const { count: onLeave } = await supabase
         .from('staff')
         .select('id', { count: 'exact', head: true })
-        .eq('staff_status', 'ON_LEAVE')
+        .eq('status', 'ON_LEAVE')
         .is('archived_at', null);
 
       setClockedInCount(clockedIn ?? 0);

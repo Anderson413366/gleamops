@@ -99,7 +99,7 @@ export function ComplaintForm({ open, onClose, onSuccess }: ComplaintFormProps) 
         .from('staff')
         .select('id, staff_code, full_name')
         .is('archived_at', null)
-        .eq('staff_status', 'ACTIVE')
+        .eq('status', 'ACTIVE')
         .order('full_name'),
     ]).then(([siteResult, staffResult]) => {
       const sites = (siteResult.data ?? []) as Array<{ id: string; site_code: string; name: string }>;

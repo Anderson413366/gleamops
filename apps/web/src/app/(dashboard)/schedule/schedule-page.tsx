@@ -519,9 +519,9 @@ export default function SchedulePageClient() {
           ]);
         } else if (tab === 'availability') {
           const [activeRes, hasAvailRes, staffRes] = await Promise.all([
-            supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('staff_status', 'ACTIVE'),
+            supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'ACTIVE'),
             supabase.from('staff_availability_rules').select('staff_id').is('archived_at', null),
-            supabase.from('staff').select('id').is('archived_at', null).eq('staff_status', 'ACTIVE'),
+            supabase.from('staff').select('id').is('archived_at', null).eq('status', 'ACTIVE'),
           ]);
           const totalStaff = activeRes.count ?? 0;
           const withAvail = new Set((hasAvailRes.data ?? []).map((r: { staff_id: string }) => r.staff_id)).size;
@@ -536,7 +536,7 @@ export default function SchedulePageClient() {
             supabase.from('hr_leave_requests').select('id', { count: 'exact', head: true }).eq('status', 'PENDING').is('archived_at', null),
             supabase.from('hr_leave_requests').select('id', { count: 'exact', head: true }).eq('status', 'APPROVED').is('archived_at', null).gte('updated_at', new Date(Date.now() - 30 * 86400000).toISOString()),
             supabase.from('hr_leave_requests').select('id', { count: 'exact', head: true }).eq('status', 'APPROVED').lte('start_date', today).gte('end_date', today).is('archived_at', null),
-            supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('staff_status', 'ACTIVE'),
+            supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'ACTIVE'),
           ]);
           setTabKpis([
             { label: 'Pending Requests', value: pendingRes.count ?? 0 },

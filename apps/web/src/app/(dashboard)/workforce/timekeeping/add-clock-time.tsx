@@ -67,7 +67,7 @@ export default function AddClockTime({ search: _search, onSaved }: AddClockTimeP
         .from('staff')
         .select('id, full_name, staff_code')
         .is('archived_at', null)
-        .eq('staff_status', 'ACTIVE')
+        .eq('status', 'ACTIVE')
         .order('full_name'),
       supabase
         .from('sites')

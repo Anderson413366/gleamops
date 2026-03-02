@@ -142,7 +142,7 @@ export async function getOwnerDashboard(
   const inventoryOnTimeCount = inventoryRows.filter((row) => ['SUBMITTED', 'COMPLETED'].includes(row.status)).length;
 
   const specialistRows = (specialistRowsRes.data ?? []) as Array<{
-    staff_status: string | null;
+    status: string | null;
     updated_at: string;
     microfiber_exited_at: string | null;
   }>;
@@ -153,7 +153,7 @@ export async function getOwnerDashboard(
     }
     if (!row.updated_at) return false;
     return (
-      ['INACTIVE', 'TERMINATED', 'EXITED'].includes(String(row.staff_status ?? '').toUpperCase())
+      ['INACTIVE', 'TERMINATED', 'EXITED'].includes(String(row.status ?? '').toUpperCase())
       && new Date(row.updated_at).getTime() >= new Date(ninetyDaysAgoIso).getTime()
     );
   }).length;

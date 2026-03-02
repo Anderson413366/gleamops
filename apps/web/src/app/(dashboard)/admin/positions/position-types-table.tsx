@@ -31,7 +31,7 @@ interface Props {
 
 interface StaffCountLite {
   role: string | null;
-  staff_type: string | null;
+  employment_type: string | null;
 }
 
 function normalize(value: string | null | undefined): string {
@@ -71,7 +71,7 @@ export default function PositionTypesTable({ search }: Props) {
 
       const { data: staffRows } = await supabase
         .from('staff')
-        .select('role, staff_type')
+        .select('role, employment_type')
         .is('archived_at', null);
 
       const staff = (staffRows ?? []) as StaffCountLite[];
@@ -81,7 +81,7 @@ export default function PositionTypesTable({ search }: Props) {
         const byTitle = normalize(position.title);
         counts[position.id] = staff.filter((member) => {
           const role = normalize(member.role);
-          const staffType = normalize(member.staff_type);
+          const staffType = normalize(member.employment_type);
           return role === byCode || role === byTitle || staffType === byCode || staffType === byTitle;
         }).length;
       }

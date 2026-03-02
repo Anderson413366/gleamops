@@ -233,7 +233,7 @@ export default function TimeEntriesTable({ search, onRefresh }: TimeEntriesTable
         .from('staff')
         .select('id, tenant_id, full_name, staff_code')
         .is('archived_at', null)
-        .eq('staff_status', 'ACTIVE')
+        .eq('status', 'ACTIVE')
         .order('full_name', { ascending: true })
         .limit(100);
 

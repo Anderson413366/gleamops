@@ -60,7 +60,7 @@ const DEFAULTS: StaffFormData = {
   preferred_name: null,
   date_of_birth: null,
   role: '',
-  staff_status: 'ACTIVE',
+  status: 'ACTIVE',
   employment_type: null,
   is_subcontractor: false,
   hire_date: null,
@@ -141,7 +141,7 @@ export function StaffForm({ open, onClose, initialData, onSuccess, focusSection 
           preferred_name: initialData.preferred_name ?? null,
           date_of_birth: initialData.date_of_birth ?? null,
           role: initialData.role,
-          staff_status: initialData.staff_status ?? 'ACTIVE',
+          status: initialData.status ?? 'ACTIVE',
           employment_type: initialData.employment_type ?? null,
           is_subcontractor: initialData.is_subcontractor,
           hire_date: initialData.hire_date ?? null,
@@ -310,7 +310,7 @@ export function StaffForm({ open, onClose, initialData, onSuccess, focusSection 
               <Input label="Date of Birth" type="date" value={values.date_of_birth ?? ''} onChange={(e) => setValue('date_of_birth', e.target.value || null)} />
             </div>
             <Select label="Role" value={values.role} onChange={(e) => setValue('role', e.target.value)} options={ROLE_OPTIONS} required />
-            <Select label="Status" value={values.staff_status} onChange={(e) => setValue('staff_status', e.target.value)} options={STATUS_OPTIONS} />
+            <Select label="Status" value={values.status} onChange={(e) => setValue('status', e.target.value)} options={STATUS_OPTIONS} />
             <div className="space-y-1">
               <label className="text-sm font-medium text-foreground">Photo</label>
               <input type="file" accept="image/*" onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)} className="block text-sm text-muted-foreground file:mr-2 file:rounded file:border-0 file:bg-muted file:px-3 file:py-1 file:text-sm file:font-medium" />
@@ -404,7 +404,7 @@ export function StaffForm({ open, onClose, initialData, onSuccess, focusSection 
               <Input label="Date of Birth" type="date" value={values.date_of_birth ?? ''} onChange={(e) => setValue('date_of_birth', e.target.value || null)} />
             </div>
             <Select label="Role" value={values.role} onChange={(e) => setValue('role', e.target.value)} onBlur={() => onBlur('role')} error={errors.role} options={[{ value: '', label: 'Select a role...' }, ...ROLE_OPTIONS]} required />
-            <Select label="Status" value={values.staff_status} onChange={(e) => setValue('staff_status', e.target.value)} options={STATUS_OPTIONS} />
+            <Select label="Status" value={values.status} onChange={(e) => setValue('status', e.target.value)} options={STATUS_OPTIONS} />
             <div className="space-y-1">
               <label className="text-sm font-medium text-foreground">Photo</label>
               <input type="file" accept="image/*" onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)} className="block text-sm text-muted-foreground file:mr-2 file:rounded file:border-0 file:bg-muted file:px-3 file:py-1 file:text-sm file:font-medium" />

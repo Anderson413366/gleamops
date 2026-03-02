@@ -380,7 +380,7 @@ export default function HomePage() {
       supabase
         .from('staff')
         .select('id', { count: 'exact', head: true })
-        .eq('staff_status', 'ACTIVE')
+        .eq('status', 'ACTIVE')
         .is('archived_at', null),
       supabase
         .from('sales_bids')

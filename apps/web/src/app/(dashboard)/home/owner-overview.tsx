@@ -57,7 +57,7 @@ async function fetchKpiTrends(): Promise<Record<string, number[]>> {
   const { data: terminations } = await supabase
     .from('staff')
     .select('updated_at')
-    .eq('staff_status', 'TERMINATED')
+    .eq('status', 'TERMINATED')
     .gte('updated_at', `${startDate}T00:00:00`);
 
   const termByDay: Record<string, number> = {};

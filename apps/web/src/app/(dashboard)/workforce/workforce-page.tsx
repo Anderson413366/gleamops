@@ -61,10 +61,10 @@ export default function WorkforcePageClient() {
     async function fetchKpis() {
       const supabase = getSupabaseBrowserClient();
       const [activeRes, supervisorsRes, exceptionsRes, leaveRes] = await Promise.all([
-        supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('staff_status', 'ACTIVE'),
+        supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'ACTIVE'),
         supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).in('role', ['SUPERVISOR', 'MANAGER']),
         supabase.from('alerts').select('id', { count: 'exact', head: true }).eq('alert_type', 'TIME_EXCEPTION').is('dismissed_at', null),
-        supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('staff_status', 'ON_LEAVE'),
+        supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'ON_LEAVE'),
       ]);
 
       setKpis({

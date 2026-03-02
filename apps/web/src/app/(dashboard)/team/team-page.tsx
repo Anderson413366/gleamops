@@ -128,8 +128,8 @@ export default function TeamPageClient() {
 
     if (activeTab === 'staff') {
       const [activeRes, superRes, excRes, tsRes] = await Promise.all([
-        supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('staff_status', 'ACTIVE'),
-        supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('staff_status', 'ACTIVE').eq('role', 'SUPERVISOR'),
+        supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'ACTIVE'),
+        supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'ACTIVE').eq('role', 'SUPERVISOR'),
         supabase.from('time_exceptions').select('id', { count: 'exact', head: true }).is('resolved_at', null),
         supabase.from('timesheets').select('id', { count: 'exact', head: true }).eq('status', 'SUBMITTED'),
       ]);
@@ -143,7 +143,7 @@ export default function TeamPageClient() {
       const [posRes, assignedRes, staffRes] = await Promise.all([
         supabase.from('staff_positions').select('id', { count: 'exact', head: true }).is('archived_at', null),
         supabase.from('staff_eligible_positions').select('staff_id').is('archived_at', null),
-        supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('staff_status', 'ACTIVE'),
+        supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'ACTIVE'),
       ]);
       const totalPos = posRes.count ?? 0;
       const uniqueStaff = new Set((assignedRes.data ?? []).map((r: { staff_id: string }) => r.staff_id)).size;
@@ -190,7 +190,7 @@ export default function TeamPageClient() {
       ]);
     } else if (activeTab === 'payroll') {
       const [staffRes, schedRes, confirmedRes, pendingRes] = await Promise.all([
-        supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('staff_status', 'ACTIVE'),
+        supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'ACTIVE'),
         supabase.from('timesheets').select('total_hours').in('status', ['SUBMITTED', 'APPROVED']),
         supabase.from('timesheets').select('total_hours').eq('status', 'APPROVED'),
         supabase.from('timesheets').select('id', { count: 'exact', head: true }).eq('status', 'SUBMITTED'),
@@ -219,7 +219,7 @@ export default function TeamPageClient() {
     } else {
       // Shared fallback for microfiber, subs, break-rules, shift-tags
       const [activeRes, posRes, excRes, tsRes] = await Promise.all([
-        supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('staff_status', 'ACTIVE'),
+        supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'ACTIVE'),
         supabase.from('staff_positions').select('id', { count: 'exact', head: true }).is('archived_at', null),
         supabase.from('time_exceptions').select('id', { count: 'exact', head: true }).is('resolved_at', null),
         supabase.from('timesheets').select('id', { count: 'exact', head: true }).eq('status', 'SUBMITTED'),

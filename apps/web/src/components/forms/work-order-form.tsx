@@ -238,7 +238,7 @@ export function WorkOrderForm({ open, onClose, onSuccess, initialValues }: WorkO
       supabase
         .from('staff')
         .select('id, full_name, staff_code')
-        .eq('staff_status', 'ACTIVE')
+        .eq('status', 'ACTIVE')
         .is('archived_at', null)
         .order('full_name', { ascending: true }),
     ]);

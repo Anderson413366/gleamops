@@ -10,7 +10,7 @@ type CommandCenterFilter = 'all' | 'regular-shifts' | 'projects' | 'requests';
 interface DriverStaffRow {
   id: string;
   full_name: string;
-  staff_status?: string | null;
+  status?: string | null;
   driver_license_number?: string | null;
   driver_license_expiry?: string | null;
   driver_approved?: boolean | null;
@@ -77,7 +77,7 @@ export function DriverLicenseWidget({ date, filter }: DriverLicenseWidgetProps) 
       }
 
       const activeRows = (data as DriverStaffRow[]).filter((row) => {
-        const status = String(row.staff_status ?? 'ACTIVE').toUpperCase();
+        const status = String(row.status ?? 'ACTIVE').toUpperCase();
         return status !== 'INACTIVE' && status !== 'TERMINATED';
       });
       setRows(activeRows);

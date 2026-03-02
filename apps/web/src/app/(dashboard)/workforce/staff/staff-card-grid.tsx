@@ -29,8 +29,8 @@ export function StaffCardGrid({ rows, onSelect, activeJobsByStaff }: StaffCardGr
           name={item.full_name}
           subtitle={item.role.replace(/_/g, ' ')}
           secondaryLine={item.employment_type ?? 'Not Set'}
-          statusLabel={statusVisual(item.staff_status).label}
-          statusTone={statusVisual(item.staff_status).tone}
+          statusLabel={statusVisual(item.status).label}
+          statusTone={statusVisual(item.status).tone}
           metricsLine={`${activeJobsByStaff?.[item.id] ?? 0} active job${(activeJobsByStaff?.[item.id] ?? 0) === 1 ? '' : 's'}`}
           code={item.staff_code}
           imageUrl={item.photo_thumbnail_url || item.photo_url}

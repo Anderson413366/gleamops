@@ -26,6 +26,7 @@ import ShiftTagsTable from '../workforce/shift-tags/shift-tags-table';
 import TimeClockLocations from '../workforce/timekeeping/time-clock-locations';
 import AddClockTime from '../workforce/timekeeping/add-clock-time';
 import ClockedInList from '../workforce/timekeeping/clocked-in-list';
+import ManageTimesheets from '../workforce/timekeeping/manage-timesheets';
 
 const ATTENDANCE_SUB_TABS = ['Overview', 'Add Clock Time', 'Manage Time Sheets', 'Clocked In List', 'Time Clock Locations', 'Auto-approval Rules'] as const;
 const PAYROLL_SUB_TABS = ['Scheduled Hours', 'Confirmed Hours', 'Confirmed Time Sheets', 'Payroll Settings'] as const;
@@ -50,9 +51,10 @@ function AttendanceWrapper({ search }: { search: string }) {
       </div>
       {subTab === 'Overview' && <TimeEntriesTable search={search} />}
       {subTab === 'Add Clock Time' && <AddClockTime search={search} />}
+      {subTab === 'Manage Time Sheets' && <ManageTimesheets search={search} />}
       {subTab === 'Clocked In List' && <ClockedInList search={search} />}
       {subTab === 'Time Clock Locations' && <TimeClockLocations search={search} />}
-      {!['Overview', 'Add Clock Time', 'Clocked In List', 'Time Clock Locations'].includes(subTab) && (
+      {!['Overview', 'Add Clock Time', 'Manage Time Sheets', 'Clocked In List', 'Time Clock Locations'].includes(subTab) && (
         <div className="rounded-xl border border-dashed border-border p-12 text-center">
           <p className="text-sm text-muted-foreground">{subTab} — coming soon</p>
         </div>

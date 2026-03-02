@@ -17,7 +17,7 @@
 
 ## Table of Contents
 
-### Foundation
+### Foundation (For Everyone)
 
 | # | Document | What It Covers |
 |---|----------|---------------|
@@ -28,6 +28,14 @@
 | 04 | [Data Model Overview](./04-data-model-overview.md) | Key entities and how they connect |
 | 05 | [Troubleshooting](./05-troubleshooting.md) | Panic guide: what to do when stuck |
 | 06 | [Glossary](./06-glossary.md) | Plain-language definitions |
+
+### Developer Deep Dives
+
+| # | Document | What It Covers |
+|---|----------|---------------|
+| 07 | [Code Architecture](./07-code-architecture.md) | Folder-by-folder code structure, data flows, conventions |
+| 08 | [Supabase Architecture](./08-supabase-architecture.md) | Tables, triggers, functions, RLS, multi-tenant design |
+| 09 | [Developer Workflows](./09-developer-workflows.md) | How to add entities, pages, tabs, modules (step-by-step) |
 
 ### Module Guides
 
@@ -99,4 +107,4 @@ These appear inline when a step might not work as expected.
 
 ---
 
-*This manual was generated from the GleamOps source code (v134 migrations, 30 detail pages, 42 forms, 108 API routes). Last updated: March 2026.*
+*This manual was generated from the GleamOps source code (134 migrations, 30 detail pages, 38 forms, 108 API routes, 21 hooks, 28 service modules). Last updated: March 2026.*

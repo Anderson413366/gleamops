@@ -23,6 +23,7 @@ export interface RecurringScheduleRow {
   staffName: string;
   positionType: string;
   siteName: string;
+  siteId?: string | null;
   siteCode?: string | null;
   clientName?: string | null;
   clientId?: string | null;

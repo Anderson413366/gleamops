@@ -77,6 +77,7 @@ type RecurringHorizon = '1w' | '2w' | '4w' | '1m';
 
 interface RecurringTicketRow {
   id: string;
+  site_id?: string | null;
   scheduled_date: string;
   start_time?: string | null;
   end_time?: string | null;
@@ -617,15 +618,27 @@ export default function SchedulePageClient() {
     if (!targetDate) return;
 
     const supabase = getSupabaseBrowserClient();
-    const { data: tickets } = await supabase
+    let query = supabase
       .from('work_tickets')
       .select('id, version_etag, site_id, job_id, position_code, scheduled_date, start_time, end_time, required_staff_count, note, status')
       .eq('scheduled_date', targetDate)
-      .eq('position_code', row.positionType)
-      .eq('start_time', `${row.startTime}:00`)
-      .eq('end_time', `${row.endTime}:00`)
-      .is('archived_at', null)
-      .limit(1);
+      .is('archived_at', null);
+
+    // Match site precisely when available
+    if (row.siteId) {
+      query = query.eq('site_id', row.siteId);
+    }
+
+    // Handle position_code: 'General' means null in DB
+    if (row.positionType && row.positionType !== 'General') {
+      query = query.eq('position_code', row.positionType);
+    }
+
+    // Match times — use .like() pattern to handle HH:MM vs HH:MM:SS formats
+    query = query.like('start_time', `${row.startTime}%`);
+    query = query.like('end_time', `${row.endTime}%`);
+
+    const { data: tickets } = await query.limit(1);
 
     const ticket = tickets?.[0];
     if (!ticket) {
@@ -1058,6 +1071,7 @@ export default function SchedulePageClient() {
         .from('work_tickets')
         .select(`
           id,
+          site_id,
           scheduled_date,
           start_time,
           end_time,
@@ -1097,6 +1111,7 @@ export default function SchedulePageClient() {
         staffName: string;
         positionType: string;
         siteName: string;
+        siteId: string | null;
         siteCode: string | null;
         clientName: string | null;
         clientId: string | null;
@@ -1113,6 +1128,7 @@ export default function SchedulePageClient() {
         const dayCode = dayCodeFromDate(raw.scheduled_date);
         const positionType = raw.position_code?.trim() || 'General';
         const siteName = raw.site?.name?.trim() || 'Unassigned Site';
+        const siteId = raw.site_id || null;
         const siteCode = raw.site?.site_code?.trim() || null;
         const clientName = raw.site?.client?.name?.trim() || null;
         const clientId = raw.site?.client_id || null;
@@ -1154,6 +1170,7 @@ export default function SchedulePageClient() {
             staffName,
             positionType,
             siteName,
+            siteId,
             siteCode,
             clientName,
             clientId,
@@ -1182,6 +1199,7 @@ export default function SchedulePageClient() {
         staffName: entry.staffName,
         positionType: entry.positionType,
         siteName: entry.siteName,
+        siteId: entry.siteId,
         siteCode: entry.siteCode,
         clientName: entry.clientName,
         clientId: entry.clientId,

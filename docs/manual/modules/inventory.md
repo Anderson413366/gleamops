@@ -117,9 +117,9 @@ Supplies are assigned to sites, counted regularly, and reordered as needed.
 
 ---
 
-## Screens & Views (6 Tabs)
+## Screens & Views (8 Tabs)
 
-### Supplies (`?tab=supplies`)
+### Supply Catalog (`?tab=supplies`)
 
 The supply catalog. Shows:
 - Supply name, code, category, unit, current stock, reorder point
@@ -151,6 +151,20 @@ Click any row to open `/inventory/counts/[id]`.
 Purchase orders. Shows:
 - Order number, vendor, order date, expected delivery, total, status
 - **Status filter chips:** PENDING, ORDERED, DELIVERED, CANCELED, All
+
+### Forecasting (`?tab=forecasting`)
+
+Supply usage forecasting and demand planning. Shows:
+- Projected usage by supply and site
+- Reorder recommendations based on consumption trends
+- Seasonal demand patterns
+
+### Warehouse (`?tab=warehouse`)
+
+Warehouse inventory management. Shows:
+- Warehouse locations and stock levels
+- Transfer records between warehouses and sites
+- Receiving and put-away tracking
 
 ### Vendors (`?tab=vendors`)
 

@@ -68,7 +68,7 @@ Dashboard with KPI widgets. No sub-tabs.
 |-----|-----|--------------|
 | Prospects | `/pipeline?tab=prospects` | Sales prospects |
 | Opportunities | `/pipeline?tab=opportunities` | Qualified opportunities |
-| Bids | `/pipeline?tab=bids` | Bid proposals with CleanFlow math |
+| Bids & Pricing | `/pipeline?tab=bids` | Bid proposals with CleanFlow math |
 | Proposals | `/pipeline?tab=proposals` | Sent proposals and tracking |
 | Admin | `/pipeline/admin` | Production rates, follow-up templates, marketing |
 
@@ -100,11 +100,13 @@ Dashboard with KPI widgets. No sub-tabs.
 ### 8. Inventory `/inventory`
 | Tab | URL | What It Shows |
 |-----|-----|--------------|
-| Supplies | `/inventory?tab=supplies` | Supply catalog |
+| Supply Catalog | `/inventory?tab=supplies` | Supply catalog |
 | Kits | `/inventory?tab=kits` | Pre-built supply kits |
 | Site Assignments | `/inventory?tab=site-assignments` | Supplies assigned to sites |
 | Counts | `/inventory?tab=counts` | Inventory count submissions |
 | Orders | `/inventory?tab=orders` | Supply orders |
+| Forecasting | `/inventory?tab=forecasting` | Usage forecasting and demand planning |
+| Warehouse | `/inventory?tab=warehouse` | Warehouse stock and transfers |
 | Vendors | `/inventory?tab=vendors` | Supply vendors |
 
 ### 9. Equipment `/equipment`
@@ -127,12 +129,14 @@ Dashboard with KPI widgets. No sub-tabs.
 ### 11. Reports `/reports`
 | Tab | URL | What It Shows |
 |-----|-----|--------------|
+| Overview | `/reports?tab=overview` | Cross-domain summary dashboard |
 | Ops | `/reports?tab=ops` | Operations dashboard |
 | Sales | `/reports?tab=sales` | Sales pipeline metrics |
 | Financial | `/reports?tab=financial` | Financial overview |
-| Quality | `/reports?tab=quality` | Quality inspection metrics |
+| Compliance | `/reports?tab=quality` | Quality and compliance metrics |
 | Workforce | `/reports?tab=workforce` | Workforce analytics |
 | Inventory | `/reports?tab=inventory` | Inventory metrics |
+| Schedule | `/reports?tab=schedule` | Schedule performance metrics |
 
 ### 12. Settings `/settings`
 | Tab | URL | What It Shows |
@@ -145,6 +149,7 @@ Dashboard with KPI widgets. No sub-tabs.
 | Sequences | `/settings?tab=sequences` | Auto-numbering sequences |
 | Import | `/settings?tab=import` | Data import tools |
 | Schedule | `/settings?tab=schedule-settings` | Schedule configuration |
+| Time Clock | `/settings?tab=time-clock-settings` | Clock-in policies and auto-approval |
 
 ### 13. Shifts & Time `/shifts-time`
 Clock in/out, timesheets, shift management. Role-gated for field staff.

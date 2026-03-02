@@ -135,7 +135,7 @@ Qualified sales opportunities. Shows:
 
 Click any row to open `/pipeline/opportunities/[id]`.
 
-### Bids (`?tab=bids`)
+### Bids & Pricing (`?tab=bids`)
 
 Price quotes built with CleanFlow. Shows:
 - Bid code, opportunity, site, total value, status

@@ -99,7 +99,13 @@ operations, sales, financial, quality, workforce, and inventory.
 
 ---
 
-## Screens & Views (6 Tabs)
+## Screens & Views (8 Tabs)
+
+### Overview (`?tab=overview`)
+
+High-level summary dashboard across all report categories.
+- Key metrics from each domain
+- Quick links to individual report tabs
 
 ### Ops (`?tab=ops`)
 
@@ -122,9 +128,9 @@ Financial performance dashboards.
 - Margin analysis by client/site
 - Contract value tracking
 
-### Quality (`?tab=quality`)
+### Compliance (`?tab=quality`)
 
-Quality assurance dashboards.
+Compliance and quality assurance dashboards.
 - Inspection score averages
 - Complaint trends
 - Client satisfaction metrics
@@ -144,6 +150,14 @@ Inventory analytics.
 - Usage trends
 - Cost analysis
 - Reorder alerts
+
+### Schedule (`?tab=schedule`)
+
+Schedule performance analytics.
+- Coverage rates by site and position
+- Shift fill rates
+- Overtime trends
+- Schedule conflict metrics
 
 ---
 

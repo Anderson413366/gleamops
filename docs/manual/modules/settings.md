@@ -99,7 +99,7 @@ This module is restricted to **Owner/Admin** roles only.
 
 ---
 
-## Screens & Views (8 Tabs)
+## Screens & Views (9 Tabs)
 
 ### General (`?tab=general`)
 
@@ -155,6 +155,14 @@ Schedule configuration. Shows:
 - Default shift durations
 - Schedule period types
 - Overtime rules
+
+### Time Clock Settings (`?tab=time-clock-settings`)
+
+Time clock and attendance configuration. Shows:
+- Clock-in restriction policies (geofence, schedule, both)
+- Early clock-in / late clock-out tolerance (minutes)
+- Photo requirements for manual edits
+- Auto-approval rules
 
 ---
 

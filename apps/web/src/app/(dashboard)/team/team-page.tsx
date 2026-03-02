@@ -27,6 +27,7 @@ import TimeClockLocations from '../workforce/timekeeping/time-clock-locations';
 import AddClockTime from '../workforce/timekeeping/add-clock-time';
 import ClockedInList from '../workforce/timekeeping/clocked-in-list';
 import ManageTimesheets from '../workforce/timekeeping/manage-timesheets';
+import AutoApprovalRules from '../workforce/timekeeping/auto-approval-rules';
 
 const ATTENDANCE_SUB_TABS = ['Overview', 'Add Clock Time', 'Manage Time Sheets', 'Clocked In List', 'Time Clock Locations', 'Auto-approval Rules'] as const;
 const PAYROLL_SUB_TABS = ['Scheduled Hours', 'Confirmed Hours', 'Confirmed Time Sheets', 'Payroll Settings'] as const;
@@ -54,11 +55,7 @@ function AttendanceWrapper({ search }: { search: string }) {
       {subTab === 'Manage Time Sheets' && <ManageTimesheets search={search} />}
       {subTab === 'Clocked In List' && <ClockedInList search={search} />}
       {subTab === 'Time Clock Locations' && <TimeClockLocations search={search} />}
-      {!['Overview', 'Add Clock Time', 'Manage Time Sheets', 'Clocked In List', 'Time Clock Locations'].includes(subTab) && (
-        <div className="rounded-xl border border-dashed border-border p-12 text-center">
-          <p className="text-sm text-muted-foreground">{subTab} — coming soon</p>
-        </div>
-      )}
+      {subTab === 'Auto-approval Rules' && <AutoApprovalRules search={search} />}
     </div>
   );
 }
@@ -159,16 +156,22 @@ export default function TeamPageClient() {
       ]);
     } else if (activeTab === 'attendance') {
       const today = new Date().toISOString().slice(0, 10);
-      const [clockedInRes, clockInsRes, excRes] = await Promise.all([
+      const [clockedInRes, clockInsRes, excRes, avgRes] = await Promise.all([
         supabase.from('time_entries').select('id', { count: 'exact', head: true }).is('clock_out', null).gte('clock_in', `${today}T00:00:00`),
         supabase.from('time_entries').select('id', { count: 'exact', head: true }).gte('clock_in', `${today}T00:00:00`),
         supabase.from('time_exceptions').select('id', { count: 'exact', head: true }).is('resolved_at', null),
+        supabase.from('time_entries').select('duration_minutes').gte('start_at', `${today}T00:00:00`).eq('status', 'CLOSED').not('duration_minutes', 'is', null),
       ]);
+      const durations = (avgRes.data ?? []).map((r: { duration_minutes: number }) => Number(r.duration_minutes)).filter((d) => d > 0);
+      const avgMinutes = durations.length > 0 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : 0;
+      const avgLabel = avgMinutes > 0
+        ? `${Math.floor(avgMinutes / 60)}h ${avgMinutes % 60}m`
+        : '—';
       setTabKpis([
         { label: 'Clocked In Now', value: clockedInRes.count ?? 0 },
         { label: 'Clock-ins Today', value: clockInsRes.count ?? 0 },
         { label: 'Open Exceptions', value: excRes.count ?? 0, warn: (excRes.count ?? 0) > 0 },
-        { label: 'Avg Duration', value: '—' },
+        { label: 'Avg Duration', value: avgLabel },
       ]);
     } else if (activeTab === 'timesheets') {
       const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();

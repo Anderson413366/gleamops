@@ -128,7 +128,7 @@ export default function IncidentsTable({ search }: Props) {
           due_at,
           resolved_at,
           site:site_id(site_code, name),
-          assigned:staff_id(staff_code, full_name)
+          assigned:assigned_to_staff_id(staff_code, full_name)
         `)
         .in('issue_type', ['SAFETY_ISSUE', 'MAINTENANCE_REPAIR', 'ACCESS_PROBLEM', 'OTHER'])
         .is('archived_at', null)

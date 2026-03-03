@@ -2,13 +2,14 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { BriefcaseBusiness } from 'lucide-react';
+import { BriefcaseBusiness, Plus } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { StaffPosition } from '@gleamops/shared';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Pagination, TableSkeleton, ExportButton
+  EmptyState, Pagination, TableSkeleton, ExportButton, Button
 } from '@gleamops/ui';
+import { PositionForm } from '@/components/forms/position-form';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 
@@ -39,6 +40,7 @@ export default function PositionsTable({ search }: Props) {
   const [rows, setRows] = useState<StaffPosition[]>([]);
   const [loading, setLoading] = useState(true);
   const [staffCountByPositionId, setStaffCountByPositionId] = useState<Record<string, number>>({});
+  const [formOpen, setFormOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -89,7 +91,11 @@ export default function PositionsTable({ search }: Props) {
 
   return (
     <div>
-      <div className="flex justify-end mb-4">
+      <div className="flex justify-end gap-2 mb-4">
+        <Button size="sm" onClick={() => setFormOpen(true)}>
+          <Plus className="h-4 w-4" />
+          Add Position
+        </Button>
         <ExportButton
           data={filtered.map((row) => ({
             ...row,
@@ -177,6 +183,12 @@ export default function PositionsTable({ search }: Props) {
           />
         </div>
       )}
+      <PositionForm
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        initialData={null}
+        onSuccess={fetchData}
+      />
     </div>
   );
 }

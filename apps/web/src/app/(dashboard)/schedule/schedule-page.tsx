@@ -378,8 +378,11 @@ export default function SchedulePageClient() {
       setKpisLoading(true);
       try {
         const supabase = getSupabaseBrowserClient();
-        const today = new Date().toISOString().slice(0, 10);
-        const weekEnd = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+        const _now = new Date();
+        const today = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, '0')}-${String(_now.getDate()).padStart(2, '0')}`;
+        const _weekEndDate = new Date(_now);
+        _weekEndDate.setDate(_weekEndDate.getDate() + 7);
+        const weekEnd = `${_weekEndDate.getFullYear()}-${String(_weekEndDate.getMonth() + 1).padStart(2, '0')}-${String(_weekEndDate.getDate()).padStart(2, '0')}`;
 
         if (tab === 'recurring') {
           const [workingRes, openRes, gapsRes, leaveRes] = await Promise.all([
@@ -446,8 +449,8 @@ export default function SchedulePageClient() {
           // KPIs are computed by SupervisorDashboard from its own filtered data
         } else if (tab === 'forms') {
           const [supplyRes, timeOffRes, submittedRes, alertsRes] = await Promise.all([
-            supabase.from('alerts').select('id', { count: 'exact', head: true }).eq('alert_type', 'SUPPLY_REQUEST').is('dismissed_at', null),
-            supabase.from('hr_leave_requests').select('id', { count: 'exact', head: true }).eq('status', 'PENDING').is('archived_at', null),
+            supabase.from('alerts').select('id', { count: 'exact', head: true }).eq('alert_type', 'FIELD_REQUEST').is('dismissed_at', null),
+            supabase.from('staff_availability_rules').select('id', { count: 'exact', head: true }).eq('rule_type', 'ONE_OFF').eq('availability_type', 'UNAVAILABLE').is('archived_at', null),
             supabase.from('alerts').select('id', { count: 'exact', head: true }).gte('created_at', `${today}T00:00:00`).is('dismissed_at', null),
             supabase.from('alerts').select('id', { count: 'exact', head: true }).is('dismissed_at', null),
           ]);
@@ -1555,7 +1558,7 @@ export default function SchedulePageClient() {
       )}
 
       {tab === 'forms' && (
-        <FormsHub key={`forms-${refreshKey}`} search={search} />
+        <FormsHub key={`forms-${refreshKey}`} search={search} onSubmitted={() => setRefreshKey((k) => k + 1)} />
       )}
 
       {tab === 'checklists' && (

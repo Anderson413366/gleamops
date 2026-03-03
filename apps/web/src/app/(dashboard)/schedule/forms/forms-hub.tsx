@@ -49,6 +49,7 @@ type RequestUrgency = 'asap' | 'high' | 'normal';
 
 interface FormsHubProps {
   search: string;
+  onSubmitted?: () => void;
 }
 
 interface SiteOption {
@@ -127,7 +128,7 @@ function sanitizeFileBaseName(fileName: string): string {
   return cleaned.slice(0, 32);
 }
 
-export function FormsHub({ search }: FormsHubProps) {
+export function FormsHub({ search, onSubmitted }: FormsHubProps) {
   const { tenantId, user } = useAuth();
   const [activeForm, setActiveForm] = useState<SelfServiceType>('supply');
   const [submitting, setSubmitting] = useState(false);
@@ -510,6 +511,7 @@ export function FormsHub({ search }: FormsHubProps) {
       setVacuumNotes('');
 
       await loadData();
+      onSubmitted?.();
     } catch (error) {
       if (uploadedPhotoPathForCleanup) {
         await supabase.storage.from('documents').remove([uploadedPhotoPathForCleanup]);

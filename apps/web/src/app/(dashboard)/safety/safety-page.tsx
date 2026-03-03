@@ -33,6 +33,7 @@ export default function SafetyPageClient() {
       'safety-documents': 'training',
       'audit-center': 'calendar',
       'compliance-calendar': 'calendar',
+      'expiration-tracker': 'calendar',
     },
   });
   const [search, setSearch] = useState('');

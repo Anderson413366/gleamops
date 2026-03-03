@@ -71,7 +71,14 @@ export function WorkOrderCardGrid({ rows, onSelect }: WorkOrderCardGridProps) {
                   <Users className="h-3.5 w-3.5" aria-hidden="true" />
                   Crew
                 </p>
-                <p className="mt-1 font-medium text-foreground">{crewSummary(row)}</p>
+                <p className="mt-1 font-medium text-foreground">
+                  {crewSummary(row)}
+                  {(() => {
+                    const assignedCount = row.assigned_crew.trim() ? row.assigned_crew.split(',').filter(Boolean).length : 0;
+                    const required = row.required_staff_count ?? 1;
+                    return required > assignedCount ? <span className="ml-1 text-[11px] font-medium text-destructive">{assignedCount}/{required}</span> : null;
+                  })()}
+                </p>
               </div>
             </div>
 

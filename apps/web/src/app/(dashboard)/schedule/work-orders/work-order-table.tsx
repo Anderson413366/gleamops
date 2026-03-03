@@ -270,6 +270,9 @@ export function WorkOrderTable({ search, openCreateToken = 0 }: WorkOrderTablePr
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {crew.length ? `${crew.slice(0, 2).join(', ')}${crew.length > 2 ? ` +${crew.length - 2}` : ''}` : 'Unassigned'}
+                      {(row.required_staff_count ?? 1) > crew.length && (
+                        <span className="ml-1.5 text-[11px] font-medium text-destructive">{crew.length}/{row.required_staff_count ?? 1}</span>
+                      )}
                     </TableCell>
                     <TableCell>{formatDate(row.scheduled_date)}</TableCell>
                     <TableCell>

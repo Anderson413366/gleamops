@@ -443,20 +443,7 @@ export default function SchedulePageClient() {
         } else if (tab === 'floater') {
           // KPIs are computed by FloaterBoard from user-filtered data
         } else if (tab === 'supervisor') {
-          const [shiftsRes, assignedRes, unassignedRes, staffRes] = await Promise.all([
-            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('scheduled_date', today).is('archived_at', null),
-            supabase.from('work_tickets').select('id, assignments:ticket_assignments(id)').eq('scheduled_date', today).is('archived_at', null),
-            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('scheduled_date', today).is('archived_at', null).eq('status', 'SCHEDULED'),
-            supabase.from('time_entries').select('staff_id').is('clock_out', null).gte('clock_in', `${today}T00:00:00`),
-          ]);
-          const assignedRows = (assignedRes.data ?? []) as unknown as Array<{ id: string; assignments?: Array<{ id: string }> }>;
-          const withAssignment = assignedRows.filter(r => (r.assignments ?? []).length > 0).length;
-          setTabKpis([
-            { label: 'Shifts Today', value: shiftsRes.count ?? 0 },
-            { label: 'Assigned', value: withAssignment },
-            { label: 'Unassigned', value: unassignedRes.count ?? 0, warn: (unassignedRes.count ?? 0) > 0 },
-            { label: 'Staff on Site', value: staffRes.data?.length ?? 0 },
-          ]);
+          // KPIs are computed by SupervisorDashboard from its own filtered data
         } else if (tab === 'forms') {
           const [supplyRes, timeOffRes, submittedRes, alertsRes] = await Promise.all([
             supabase.from('alerts').select('id', { count: 'exact', head: true }).eq('alert_type', 'SUPPLY_REQUEST').is('dismissed_at', null),
@@ -1564,7 +1551,7 @@ export default function SchedulePageClient() {
       )}
 
       {tab === 'supervisor' && showSupervisorTab && (
-        <SupervisorDashboard key={`supervisor-${refreshKey}`} />
+        <SupervisorDashboard key={`supervisor-${refreshKey}`} onKpisComputed={setTabKpis} />
       )}
 
       {tab === 'forms' && (

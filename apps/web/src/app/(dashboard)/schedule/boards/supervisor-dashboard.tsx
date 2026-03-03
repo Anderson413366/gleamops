@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  AlertTriangle, Building2, CheckCircle2, ChevronDown, ChevronRight,
+  AlertTriangle, Building2, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight,
   Clock, MapPinned, Phone, RefreshCw,
 } from 'lucide-react';
 import { Button, Card, CardContent, EmptyState, Select, Skeleton, cn } from '@gleamops/ui';
@@ -95,7 +95,11 @@ interface SiteGroup {
   hasIssues: boolean;
 }
 
-export function SupervisorDashboard() {
+interface SupervisorDashboardProps {
+  onKpisComputed?: (kpis: Array<{ label: string; value: string | number; warn?: boolean }>) => void;
+}
+
+export function SupervisorDashboard({ onKpisComputed }: SupervisorDashboardProps) {
   const [tickets, setTickets] = useState<SupervisorTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -103,8 +107,16 @@ export function SupervisorDashboard() {
   const [availableStaff, setAvailableStaff] = useState<Array<{ id: string; full_name: string }>>([]);
   const [collapsedSites, setCollapsedSites] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<'sites' | 'staff'>('sites');
+  const [selectedDate, setSelectedDate] = useState(() => toDateInput(new Date()));
 
-  const today = useMemo(() => toDateInput(new Date()), []);
+  const todayStr = useMemo(() => toDateInput(new Date()), []);
+  const isToday = selectedDate === todayStr;
+
+  function shiftDateBy(dateStr: string, days: number): string {
+    const d = new Date(`${dateStr}T12:00:00`);
+    d.setDate(d.getDate() + days);
+    return toDateInput(d);
+  }
 
   const toggleSiteCollapse = useCallback((siteId: string) => {
     setCollapsedSites((prev) => {
@@ -126,12 +138,27 @@ export function SupervisorDashboard() {
         site:site_id(id, name, site_code),
         assignments:ticket_assignments(id, assignment_status, staff:staff_id(id, full_name, phone))
       `)
-      .eq('scheduled_date', today)
+      .eq('scheduled_date', selectedDate)
       .is('archived_at', null)
       .order('start_time', { ascending: true });
 
     if (data) {
-      setTickets(data as unknown as SupervisorTicket[]);
+      const allTickets = data as unknown as SupervisorTicket[];
+      setTickets(allTickets);
+
+      // Emit KPIs from the same data
+      if (onKpisComputed) {
+        const staffedCount = allTickets.filter((t) =>
+          t.assignments?.some((a) => a.staff && (!a.assignment_status || a.assignment_status === 'ASSIGNED')),
+        ).length;
+        const clockedIn = allTickets.filter((t) => t.status === 'IN_PROGRESS').length;
+        onKpisComputed([
+          { label: 'Shifts Today', value: allTickets.length },
+          { label: 'Assigned', value: staffedCount },
+          { label: 'Unassigned', value: Math.max(allTickets.length - staffedCount, 0), warn: allTickets.length - staffedCount > 0 },
+          { label: 'Staff on Site', value: clockedIn },
+        ]);
+      }
     }
 
     const { data: staffData } = await supabase
@@ -146,7 +173,7 @@ export function SupervisorDashboard() {
     }
 
     setLoading(false);
-  }, [today]);
+  }, [selectedDate, onKpisComputed]);
 
   useEffect(() => {
     void fetchTickets();
@@ -282,24 +309,49 @@ export function SupervisorDashboard() {
     );
   }
 
+  const DateNavBar = () => (
+    <div className="flex items-center gap-2">
+      <button type="button" onClick={() => setSelectedDate(shiftDateBy(selectedDate, -1))} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+        <ChevronLeft className="h-4 w-4" />
+      </button>
+      <button type="button" onClick={() => setSelectedDate(todayStr)} className={`rounded-lg px-3 py-1 text-xs font-medium transition-colors ${isToday ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}>
+        Today
+      </button>
+      <button type="button" onClick={() => setSelectedDate(shiftDateBy(todayStr, 1))} className={`rounded-lg px-3 py-1 text-xs font-medium transition-colors ${selectedDate === shiftDateBy(todayStr, 1) ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}>
+        Tomorrow
+      </button>
+      <button type="button" onClick={() => setSelectedDate(shiftDateBy(selectedDate, 1))} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+        <ChevronRight className="h-4 w-4" />
+      </button>
+      <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="h-8 rounded-lg border border-border bg-background px-2 text-xs text-foreground" />
+    </div>
+  );
+
   if (tickets.length === 0) {
     return (
-      <EmptyState
-        icon={<MapPinned className="h-12 w-12" />}
-        title="No shifts for today"
-        description="There are no scheduled shifts for today. Check back later."
-      />
+      <div className="space-y-4">
+        <DateNavBar />
+        <EmptyState
+          icon={<MapPinned className="h-12 w-12" />}
+          title={`No shifts${isToday ? ' for today' : ''}`}
+          description={isToday
+            ? 'There are no scheduled shifts for today. Check back later.'
+            : `No shifts scheduled for ${new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}.`
+          }
+        />
+      </div>
     );
   }
 
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h3 className="text-lg font-semibold text-foreground">Supervisor Dashboard</h3>
-          <p className="text-xs text-muted-foreground">{today} — Tonight&apos;s overview</p>
+          <p className="text-xs text-muted-foreground">{selectedDate}{isToday ? ' — Tonight\'s overview' : ''}</p>
         </div>
+        <DateNavBar />
         <div className="flex items-center gap-2">
           <Select
             value={viewMode}

@@ -138,7 +138,7 @@ export function FloaterBoard({ onKpisComputed }: FloaterBoardProps) {
         return;
       }
 
-      const { data: routeData } = await supabase
+      const { data: routeData, error: routeError } = await supabase
         .from('daily_routes')
         .select('id, route_code, route_date, status')
         .eq('route_date', selectedDate)
@@ -146,7 +146,7 @@ export function FloaterBoard({ onKpisComputed }: FloaterBoardProps) {
         .is('archived_at', null)
         .order('route_code', { ascending: true });
 
-      if (!cancelled && routeData) {
+      if (!cancelled && routeData && !routeError) {
         setRoutes(routeData as unknown as RouteRow[]);
         if (routeData.length > 0 && !selectedRouteId) {
           setSelectedRouteId(routeData[0].id);

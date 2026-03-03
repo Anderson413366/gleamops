@@ -59,7 +59,6 @@ interface UseLookupsOptions {
 
 export function useLookups(category: string | string[], options: UseLookupsOptions = {}) {
   const { includeInactive = false, enabled = true, valueMode = 'code' } = options;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const categories = useMemo(() => normalizeCategoryInput(category), [category]);
 
@@ -144,7 +143,6 @@ export const useScheduleTypes = (opts?: Partial<UseLookupsOptions>) => useLookup
 
 // Sprint 6 — Reference table hooks
 export const usePositionTypes = () => {
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const [data, setData] = useState<Array<{ value: string; label: string }>>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -170,7 +168,6 @@ export const usePositionTypes = () => {
 };
 
 export const useSiteTypes = () => {
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const [data, setData] = useState<Array<{ value: string; label: string }>>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -196,7 +193,6 @@ export const useSiteTypes = () => {
 };
 
 export const useServicesList = () => {
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const [data, setData] = useState<Array<{ value: string; label: string }>>([]);
   const [isLoading, setIsLoading] = useState(false);

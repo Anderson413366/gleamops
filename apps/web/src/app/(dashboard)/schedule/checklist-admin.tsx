@@ -303,13 +303,6 @@ export function ChecklistAdmin({ search = '' }: ChecklistAdminProps) {
     setSelectedTemplateId(templateInsert.id);
   }, [loadTemplates, newTemplateName, supabase, tenantId]);
 
-  // Apply the same tenant fallback to other write operations
-  const resolveTenant = useCallback(async () => {
-    if (tenantId) return tenantId;
-    const { data: auth } = await supabase.auth.getUser();
-    return auth.user?.app_metadata?.tenant_id ?? null;
-  }, [supabase, tenantId]);
-
   const addChecklistItem = useCallback(async () => {
     if (!tenantId || !selectedTemplateId) {
       toast.error('Select a template first.');

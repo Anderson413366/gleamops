@@ -123,7 +123,7 @@ const FREQUENCY_COLORS: Record<string, 'green' | 'blue' | 'yellow' | 'gray' | 'p
   ONE_TIME: 'purple',
 };
 
-const LOG_SEVERITY_COLORS: Record<string, 'red' | 'orange' | 'yellow' | 'gray'> = {
+const _LOG_SEVERITY_COLORS: Record<string, 'red' | 'orange' | 'yellow' | 'gray'> = {
   CRITICAL: 'red',
   MAJOR: 'orange',
   MINOR: 'yellow',
@@ -137,7 +137,7 @@ const TICKET_STATUS_COLORS: Record<string, 'blue' | 'yellow' | 'green' | 'gray' 
   CANCELED: 'gray',
 };
 
-const LOG_STATUS_COLORS: Record<string, 'red' | 'yellow' | 'green' | 'gray'> = {
+const _LOG_STATUS_COLORS: Record<string, 'red' | 'yellow' | 'green' | 'gray'> = {
   OPEN: 'red',
   IN_PROGRESS: 'yellow',
   RESOLVED: 'green',

@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { ArrowLeft, Calculator } from 'lucide-react';
 import { Button, Card, CardContent, CardHeader, CardTitle, Input, Select } from '@gleamops/ui';
 import {
@@ -165,6 +166,34 @@ export default function CalculatorPage() {
   const [supplyAllowanceSqft, setSupplyAllowanceSqft] = useState(0.01);
   const serviceConfig = useMemo(() => getServiceTypeConfig(serviceType), [serviceType]);
 
+  const saveDraft = useCallback(() => {
+    try {
+      const draft = { serviceType, buildingTypeCode, pricingMethod, totalSqft, selectedTemplateCodes, daysPerWeek, hoursPerShift, targetMarginPct, costPlusPct, marketPriceMonthly, monthlyOverhead, supplyAllowanceSqft, savedAt: new Date().toISOString() };
+      localStorage.setItem('gleamops-calculator-draft', JSON.stringify(draft));
+      toast.success('Draft saved locally.');
+    } catch { toast.error('Could not save draft.'); }
+  }, [serviceType, buildingTypeCode, pricingMethod, totalSqft, selectedTemplateCodes, daysPerWeek, hoursPerShift, targetMarginPct, costPlusPct, marketPriceMonthly, monthlyOverhead, supplyAllowanceSqft]);
+
+  // Restore draft on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('gleamops-calculator-draft');
+      if (!raw) return;
+      const d = JSON.parse(raw);
+      if (d.serviceType) setServiceType(d.serviceType);
+      if (d.buildingTypeCode) setBuildingTypeCode(d.buildingTypeCode);
+      if (d.pricingMethod) setPricingMethod(d.pricingMethod);
+      if (d.totalSqft) setTotalSqft(d.totalSqft);
+      if (d.selectedTemplateCodes) setSelectedTemplateCodes(d.selectedTemplateCodes);
+      if (d.daysPerWeek) setDaysPerWeek(d.daysPerWeek);
+      if (d.hoursPerShift) setHoursPerShift(d.hoursPerShift);
+      if (d.targetMarginPct) setTargetMarginPct(d.targetMarginPct);
+      if (d.costPlusPct) setCostPlusPct(d.costPlusPct);
+      if (d.monthlyOverhead != null) setMonthlyOverhead(d.monthlyOverhead);
+      if (d.supplyAllowanceSqft != null) setSupplyAllowanceSqft(d.supplyAllowanceSqft);
+    } catch { /* ignore corrupt draft */ }
+  }, []);
+
   const calculatedAreas = useMemo(
     () => buildAreasFromTemplates(selectedTemplateCodes, totalSqft),
     [selectedTemplateCodes, totalSqft],
@@ -299,7 +328,7 @@ export default function CalculatorPage() {
             Build a quick estimate with service mix, scope assumptions, and pricing strategy.
           </p>
         </div>
-        <Button variant="secondary">
+        <Button variant="secondary" onClick={saveDraft}>
           <Calculator className="h-4 w-4" />
           Save Draft
         </Button>

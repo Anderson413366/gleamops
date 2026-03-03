@@ -239,8 +239,13 @@ export function ChecklistAdmin({ search = '' }: ChecklistAdminProps) {
   }, [loadTemplateDetail, selectedTemplateId]);
 
   const createStarterTemplate = useCallback(async () => {
-    if (!tenantId) {
-      toast.error('Tenant context is required.');
+    let resolvedTenantId = tenantId;
+    if (!resolvedTenantId) {
+      const { data: auth } = await supabase.auth.getUser();
+      resolvedTenantId = auth.user?.app_metadata?.tenant_id ?? null;
+    }
+    if (!resolvedTenantId) {
+      toast.error('Tenant context is required. Please sign out and sign in again.');
       return;
     }
 
@@ -256,7 +261,7 @@ export function ChecklistAdmin({ search = '' }: ChecklistAdminProps) {
     const { data: templateInsert, error: templateError } = await supabase
       .from('checklist_templates')
       .insert({
-        tenant_id: tenantId,
+        tenant_id: resolvedTenantId,
         template_code: templateCode,
         name,
         template_name: name,
@@ -274,7 +279,7 @@ export function ChecklistAdmin({ search = '' }: ChecklistAdminProps) {
     }
 
     const sectionPayload = STARTER_SECTIONS.map((sectionTitle, index) => ({
-      tenant_id: tenantId,
+      tenant_id: resolvedTenantId,
       checklist_template_id: templateInsert.id,
       section_title: sectionTitle,
       sort_order: index,
@@ -297,6 +302,13 @@ export function ChecklistAdmin({ search = '' }: ChecklistAdminProps) {
     await loadTemplates();
     setSelectedTemplateId(templateInsert.id);
   }, [loadTemplates, newTemplateName, supabase, tenantId]);
+
+  // Apply the same tenant fallback to other write operations
+  const resolveTenant = useCallback(async () => {
+    if (tenantId) return tenantId;
+    const { data: auth } = await supabase.auth.getUser();
+    return auth.user?.app_metadata?.tenant_id ?? null;
+  }, [supabase, tenantId]);
 
   const addChecklistItem = useCallback(async () => {
     if (!tenantId || !selectedTemplateId) {

@@ -225,11 +225,11 @@ export default function SubcontractorDetailPage() {
     return (
       <div className="space-y-4">
         <Link
-          href="/vendors?tab=subcontractors"
+          href="/team?tab=subcontractors"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Vendors
+          Back to Partners
         </Link>
         <EmptyState
           icon={<Building2 className="h-12 w-12" />}
@@ -271,11 +271,11 @@ export default function SubcontractorDetailPage() {
   return (
     <div className="space-y-6">
       <Link
-        href="/vendors?tab=subcontractors"
+        href="/team?tab=subcontractors"
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to Vendors
+        Back to Partners
       </Link>
 
       <nav className="inline-flex items-center gap-1 text-xs text-muted-foreground">

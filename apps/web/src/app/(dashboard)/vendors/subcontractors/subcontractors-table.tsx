@@ -2,14 +2,15 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { HardHat } from 'lucide-react';
+import { HardHat, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { Subcontractor } from '@gleamops/shared';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Pagination, TableSkeleton, ExportButton, ViewToggle, Badge, StatusDot, statusRowAccentClass, cn,
+  EmptyState, Pagination, TableSkeleton, ExportButton, ViewToggle, Badge, StatusDot, statusRowAccentClass, cn, Button,
 } from '@gleamops/ui';
+import { SubcontractorForm } from '@/components/forms/subcontractor-form';
 import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 import { getStatusPillColor } from '@/lib/utils/status-colors';
@@ -75,6 +76,7 @@ export default function SubcontractorsTable({ search }: Props) {
   const [rows, setRows] = useState<Subcontractor[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('ACTIVE');
+  const [formOpen, setFormOpen] = useState(false);
   const [activeJobsBySubcontractor, setActiveJobsBySubcontractor] = useState<Record<string, number>>({});
   const { view, setView } = useViewPreference('subcontractors');
 
@@ -163,6 +165,10 @@ export default function SubcontractorsTable({ search }: Props) {
   return (
     <div>
       <div className="flex items-center justify-end gap-3 mb-4">
+        <Button size="sm" onClick={() => setFormOpen(true)}>
+          <Plus className="h-4 w-4" />
+          New Partner
+        </Button>
         <ViewToggle view={view} onChange={setView} />
         <ExportButton
           data={filtered.map((row) => ({
@@ -313,6 +319,12 @@ export default function SubcontractorsTable({ search }: Props) {
           onNext={pag.nextPage} onPrev={pag.prevPage}
         />
       )}
+      <SubcontractorForm
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        initialData={null}
+        onSuccess={fetchData}
+      />
     </div>
   );
 }

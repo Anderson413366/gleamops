@@ -65,6 +65,23 @@ export default function InventoryPageClient() {
     async function fetchKpis() {
       const supabase = getSupabaseBrowserClient();
 
+      if (tab === 'counts') {
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+        const [allCountsRes, pendingRes, recentRes, detailsRes] = await Promise.all([
+          supabase.from('inventory_counts').select('id').is('archived_at', null),
+          supabase.from('inventory_counts').select('id').is('archived_at', null).in('status', ['DRAFT', 'IN_PROGRESS']),
+          supabase.from('inventory_counts').select('id').is('archived_at', null).gte('count_date', thirtyDaysAgo),
+          supabase.from('inventory_count_details').select('id').is('archived_at', null),
+        ]);
+        setTabKpis([
+          { label: 'Total Counts', value: allCountsRes.data?.length ?? 0 },
+          { label: 'Pending', value: pendingRes.data?.length ?? 0, warn: (pendingRes.data?.length ?? 0) > 0 },
+          { label: 'This Month', value: recentRes.data?.length ?? 0 },
+          { label: 'Items Counted', value: detailsRes.data?.length ?? 0 },
+        ]);
+        return;
+      }
+
       if (tab === 'site-assignments') {
         const [assignRes, sitesRes, suppliesRes] = await Promise.all([
           supabase.from('site_supplies').select('id, site_id').is('archived_at', null),

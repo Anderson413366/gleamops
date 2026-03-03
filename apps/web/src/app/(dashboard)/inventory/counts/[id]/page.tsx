@@ -41,7 +41,13 @@ interface SupplyLookup {
 }
 
 function formatDate(value: string) {
-  return new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  // Parse date-only strings as local time to avoid UTC off-by-one (W5)
+  const m = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const date = m
+    ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+    : new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function formatCurrency(value: number) {
@@ -151,7 +157,7 @@ export default function InventoryCountDetailPage() {
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to Inventory
+        Back to Stock Counts
       </Link>
 
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">

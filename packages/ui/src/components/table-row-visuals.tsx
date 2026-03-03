@@ -18,6 +18,14 @@ export function resolveStatusColor(status: string | null | undefined): StatusCol
   if (!status) return 'gray';
   const normalized = status.trim().toUpperCase();
 
+  // Check gray/inactive BEFORE green/active to avoid 'INACTIVE'.includes('ACTIVE') false positive
+  if (
+    normalized.includes('DRAFT') ||
+    normalized.includes('INACTIVE') ||
+    normalized.includes('RETIRED') ||
+    normalized.includes('SUPERSEDED')
+  ) return 'gray';
+
   if (
     normalized.includes('ACTIVE') ||
     normalized.includes('COMPLETE') ||
@@ -46,13 +54,6 @@ export function resolveStatusColor(status: string | null | undefined): StatusCol
     normalized.includes('REVOKED') ||
     normalized.includes('CRITICAL')
   ) return 'red';
-
-  if (
-    normalized.includes('DRAFT') ||
-    normalized.includes('INACTIVE') ||
-    normalized.includes('RETIRED') ||
-    normalized.includes('SUPERSEDED')
-  ) return 'gray';
 
   if (
     normalized.includes('SCHEDULED') ||

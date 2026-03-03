@@ -573,6 +573,9 @@ export default function ShiftsTimePanel({ search }: ShiftsTimePanelProps) {
       const count = Array.isArray(body.data) ? body.data.length : 0;
       toast.success(t('shiftsTime.routes.generateSuccess', { count }));
       await load();
+      if (count === 0) {
+        toast.info('No routes were generated. This may be because route data is not yet configured.');
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('shiftsTime.routes.generateError'));
     } finally {
@@ -880,7 +883,7 @@ export default function ShiftsTimePanel({ search }: ShiftsTimePanelProps) {
         />
       )}
 
-      <Card>
+      {(isFieldRole || activeTab === 'board') && <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             <Moon className="h-4 w-4 text-module-accent" />
@@ -980,7 +983,7 @@ export default function ShiftsTimePanel({ search }: ShiftsTimePanelProps) {
             )}
           </div>
         </CardContent>
-      </Card>
+      </Card>}
 
       {!isFieldRole && (
         <div className="space-y-4">

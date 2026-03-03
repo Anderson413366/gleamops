@@ -42,9 +42,14 @@ export default function SupplyCalculatorPage() {
   }, [loadDraft]);
 
   const handleRestoreDraft = useCallback(() => {
+    const draft = loadDraft();
     restoreDraft();
     setDraftAvailable(false);
-  }, [restoreDraft]);
+    // Advance to the appropriate step based on restored data
+    if (draft && draft.items.length > 0) {
+      setTimeout(() => goToStep(1), 50);
+    }
+  }, [restoreDraft, loadDraft, goToStep]);
 
   const handleDismissDraft = useCallback(() => {
     setDraftAvailable(false);

@@ -145,6 +145,15 @@ export function ThreadDetail({ threadId, open, onClose }: ThreadDetailProps) {
     });
 
     if (!error) {
+      // Optimistically append sent message to conversation view
+      setMessages((prev) => [...prev, {
+        id: `optimistic-${Date.now()}`,
+        sender_id: user.id,
+        sender_name: 'You',
+        body: newMessage.trim(),
+        created_at: new Date().toISOString(),
+      }]);
+
       // Also bump thread updated_at
       await supabase
         .from('message_threads')

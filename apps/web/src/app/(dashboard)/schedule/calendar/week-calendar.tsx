@@ -8,7 +8,7 @@ import type { WorkTicket } from '@gleamops/shared';
 // Position bar colors are inlined via POSITION_BAR_COLORS constant
 
 interface TicketWithRelations extends WorkTicket {
-  job?: { job_code: string; frequency?: string | null; job_type?: string | null } | null;
+  job?: { job_code: string; job_name?: string | null } | null;
   site?: { site_code: string; name: string; client?: { name: string } | null } | null;
   assignments?: { assignment_status?: string | null; staff?: { full_name: string | null } | null }[];
 }
@@ -34,7 +34,6 @@ interface WeekCalendarProps {
 }
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const WORK_ORDER_FREQUENCIES = new Set(['AS_NEEDED', 'ONE_TIME', 'ON_DEMAND', 'AD_HOC']);
 const CALENDAR_VIEW_OPTIONS: Array<{ value: CalendarViewMode; label: string }> = [
   { value: 'day', label: 'Day' },
   { value: 'week', label: 'Week' },
@@ -145,13 +144,6 @@ function formatRangeLabel(start: Date, end: Date): string {
   return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
 }
 
-function normalizeToken(value: string | null | undefined): string {
-  return (value ?? '')
-    .trim()
-    .replace(/[\s-]+/g, '_')
-    .toUpperCase();
-}
-
 function assignedNames(ticket: TicketWithRelations): string[] {
   return (ticket.assignments ?? [])
     .filter((assignment) => !assignment.assignment_status || assignment.assignment_status === 'ASSIGNED')
@@ -160,19 +152,12 @@ function assignedNames(ticket: TicketWithRelations): string[] {
 }
 
 function classifySource(ticket: TicketWithRelations): TicketSource {
-  const normalizedFrequency = normalizeToken(ticket.job?.frequency);
-  if (WORK_ORDER_FREQUENCIES.has(normalizedFrequency)) {
-    return 'work-orders';
-  }
+  // Classify based on planning_status: tickets with planning workflow are work orders
+  const ps = (ticket as unknown as Record<string, unknown>).planning_status as string | null;
+  if (ps && ps !== 'NOT_STARTED') return 'work-orders';
 
-  const normalizedJobType = normalizeToken(ticket.job?.job_type);
-  if (normalizedJobType.includes('PROJECT') || normalizedJobType.includes('WORK_ORDER')) {
-    return 'work-orders';
-  }
-
-  if (ticket.position_code?.trim()) {
-    return 'recurring';
-  }
+  // Tickets without a position code or with one-off characteristics are work orders
+  if (!ticket.position_code?.trim()) return 'work-orders';
 
   return 'recurring';
 }
@@ -364,7 +349,7 @@ export default function WeekCalendar({ onSelectTicket, onCreatedTicket }: WeekCa
       .from('work_tickets')
       .select(`
         *,
-        job:job_id(job_code, frequency, job_type),
+        job:job_id(job_code, job_name),
         site:site_id(site_code, name, client:client_id(name)),
         assignments:ticket_assignments(assignment_status, staff:staff_id(full_name))
       `)

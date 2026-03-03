@@ -55,6 +55,8 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
   const [rows, setRows] = useState<ServiceWithTaskCount[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [taskCountFilter, setTaskCountFilter] = useState<'all' | 'has-tasks' | 'no-tasks'>('all');
+
   // SlideOver state
   const [configOpen, setConfigOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
@@ -135,15 +137,21 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
   // Filter + Sort + Paginate
   // ---------------------------------------------------------------------------
   const filtered = useMemo(() => {
-    if (!search) return rows;
+    let result = rows;
+    if (taskCountFilter === 'has-tasks') {
+      result = result.filter((r) => (r.task_count ?? 0) > 0);
+    } else if (taskCountFilter === 'no-tasks') {
+      result = result.filter((r) => (r.task_count ?? 0) === 0);
+    }
+    if (!search) return result;
     const q = search.toLowerCase();
-    return rows.filter(
+    return result.filter(
       (r) =>
-        r.name.toLowerCase().includes(q) ||
-        r.code.toLowerCase().includes(q) ||
-        r.description?.toLowerCase().includes(q)
+        (r.name ?? '').toLowerCase().includes(q) ||
+        (r.code ?? '').toLowerCase().includes(q) ||
+        (r.description ?? '').toLowerCase().includes(q)
     );
-  }, [rows, search]);
+  }, [rows, search, taskCountFilter]);
 
   const { sorted, sortKey, sortDir, onSort } = useTableSort(
     filtered as unknown as Record<string, unknown>[], 'name', 'asc'
@@ -377,6 +385,26 @@ export default function ServiceConfig({ search, autoCreate, onAutoCreateHandled,
           ]}
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
+      </div>
+      <div className="mb-4 flex flex-wrap gap-1.5">
+        {(['all', 'has-tasks', 'no-tasks'] as const).map((key) => {
+          const label = key === 'all' ? 'All' : key === 'has-tasks' ? 'Has Tasks' : 'No Tasks';
+          const count = key === 'all' ? rows.length : key === 'has-tasks' ? rows.filter((r) => (r.task_count ?? 0) > 0).length : rows.filter((r) => (r.task_count ?? 0) === 0).length;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setTaskCountFilter(key)}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                taskCountFilter === key
+                  ? 'bg-module-accent/15 text-module-accent border border-module-accent/30'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+              }`}
+            >
+              {label} ({count})
+            </button>
+          );
+        })}
       </div>
       <Table>
         <TableHeader>

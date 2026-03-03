@@ -126,6 +126,7 @@ const TAB_GROUP_LABELS: Record<string, string> = {
   'schedule:calendar': 'Work Orders',
   'schedule:checklists': 'Field Tools',
   'schedule:forms': 'Field Tools',
+  'jobs:time': 'Field Tools',
 };
 
 // Context-aware overrides for segments that differ based on parent path

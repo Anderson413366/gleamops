@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import { Building2, CreditCard, FileText, StickyNote } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
@@ -292,7 +293,12 @@ export function ClientForm({ open, onClose, initialData, onSuccess, focusSection
 
   // Validate step
   const validateStep = (step: number): boolean => {
-    if (step === 0) return !!values.name.trim();
+    if (step === 0) {
+      if (!values.name.trim()) {
+        toast.error('Client name is required.');
+        return false;
+      }
+    }
     return true;
   };
 

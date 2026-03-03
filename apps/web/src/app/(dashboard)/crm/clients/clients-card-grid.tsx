@@ -3,6 +3,11 @@
 import type { Client } from '@gleamops/shared';
 import { EntityCard, getEntityInitials } from '@/components/directory/entity-card';
 
+function humanizeEnum(value: string | null | undefined): string {
+  if (!value) return 'Not Set';
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 interface ClientRow extends Client {
   photo_url?: string | null;
 }
@@ -50,7 +55,7 @@ export function ClientsCardGrid({ rows, onSelect, metaByClientId }: ClientsCardG
           initials={getEntityInitials(item.name)}
           initialsSeed={item.client_code}
           name={item.name}
-          subtitle={item.client_type ?? item.industry ?? 'Not Set'}
+          subtitle={humanizeEnum(item.client_type) !== 'Not Set' ? humanizeEnum(item.client_type) : humanizeEnum(item.industry)}
           statusLabel={statusVisual(item.status).label}
           statusTone={statusVisual(item.status).tone}
           metricsLine={`${metaByClientId?.[item.id]?.activeSites ?? 0} site${(metaByClientId?.[item.id]?.activeSites ?? 0) === 1 ? '' : 's'} · ${formatCurrencyPerMonth(metaByClientId?.[item.id]?.monthlyRevenue ?? 0)}`}

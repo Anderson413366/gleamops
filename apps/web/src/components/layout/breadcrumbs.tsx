@@ -80,7 +80,7 @@ const TAB_LABELS: Record<string, string> = {
 
 const SEGMENT_LABELS: Record<string, string> = {
   home: 'Home',
-  crm: 'Clients',
+  crm: 'Client Hub',
   clients: 'Client Hub',
   sites: 'Sites',
   contacts: 'Contacts',

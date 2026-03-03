@@ -195,3 +195,21 @@ Safety calendar view. Shows:
 - [Clients](./clients.md) — Sites where incidents occur
 - [Equipment](./equipment.md) — Equipment-related safety certifications
 - [Settings](./settings.md) — Certification types and training categories in lookups
+
+---
+
+## QA Fixes (March 2026)
+
+### All Tabs
+- All 4 Compliance KPIs converted from HEAD (503) to GET.
+- KPIs now tab-aware: incidents tab shows different metrics than other tabs.
+
+### Incidents
+- Added "Assigned To" staff dropdown (persists assigned_to_staff_id).
+- Added Status dropdown: Open, In Progress, Resolved, Closed.
+- Due date auto-fills with today's local date.
+- Empty state is search-aware.
+- **Incidents tab KPIs:** Open Incidents (warn), High/Critical (warn), Total Incidents, Resolved.
+
+### Expiration Tracker
+- Added 'expiration-tracker' as URL tab alias (works alongside canonical 'calendar' param).

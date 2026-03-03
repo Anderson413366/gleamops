@@ -254,3 +254,12 @@ IN_PROGRESS → CANCELED
 - [Team](./team.md) — Staff assigned to jobs
 - [Catalog](./catalog.md) — Task and service definitions used in jobs
 - [Shifts & Time](./shifts-time.md) — Clock in/out for job tickets
+
+---
+
+## QA Fixes (March 2026)
+
+### Tab-Specific KPIs
+KPIs are now tab-aware:
+- **Time tab:** Open Exceptions (warn), Critical (warn), Warnings, This Week
+- **All other tabs:** Tickets Today, Open Tickets, Active Service Plans, Open Alerts

@@ -291,3 +291,32 @@ Maintenance records for all assets. Shows:
 - [Clients](./clients.md) — Sites where equipment is used and keys are assigned
 - [Inventory](./inventory.md) — Supplies used with equipment (e.g., vacuum bags)
 - [Safety](./safety.md) — Equipment-related safety certifications
+
+---
+
+## QA Fixes (March 2026)
+
+### Asset List
+- Added IN_SERVICE to condition filter tabs (all 9 items now visible under "In service" tab).
+- Added IN_SERVICE: green to EQUIPMENT_CONDITION_COLORS constant.
+- Widened equipment name column from 220px to 320px.
+- All 4 Asset KPIs converted from HEAD (503) to GET.
+
+### Assigned Gear
+- Empty state is now search-aware ("No matching assignments" vs "No assignments yet").
+
+### Keys
+- Key creation form now includes "Assigned To" staff dropdown (47 active staff).
+- Key codes auto-generated via next_code RPC with KEY prefix (editable fallback).
+
+### Fleet
+- Vehicle creation form now includes "Assigned To" staff dropdown.
+- Vehicle codes auto-generated via next_code RPC with VEH prefix (editable fallback).
+- Make/Model column is now sortable.
+
+### Maintenance
+- **Critical fix:** Added "Vehicle / Equipment" dropdown to maintenance form (was missing — created orphaned records).
+- Service date default uses local timezone instead of UTC.
+- Table headers render even with 0 records.
+- Added Export CSV button.
+- Empty state is search-aware.

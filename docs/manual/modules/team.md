@@ -325,3 +325,40 @@ INACTIVE → TERMINATED
 - [Shifts & Time](./shifts-time.md) — Clock in/out and time tracking
 - [Safety](./safety.md) — Staff certifications and training
 - [Vendors](./vendors.md) — Subcontractor details
+
+---
+
+## QA Fixes (March 2026)
+
+### Timesheets Tab
+- Added status filter chips (All/Draft/Submitted/Approved/Rejected) with live counts above the table.
+
+### Payroll Tab — Complete Rewrite
+- **Scheduled Hours:** Enhanced with pay_type badge (Hourly/Salary), approved hours per staff, CSV export. Salary employees display rate as `/biweekly` instead of `/hr`.
+- **Confirmed Hours (NEW):** Timesheets table with staff join, status filter chips, approve/reject actions, CSV export.
+- **Confirmed Time Sheets (NEW):** Payroll runs with DRAFT → CALCULATED → APPROVED → EXPORTED workflow, "+ New Payroll Run" button.
+- **Payroll Settings (NEW):** Pay periods CRUD, earning codes CRUD, overtime rules display (40 hrs/week default).
+
+### Microfiber Payouts Tab
+- Fixed enrolled date off-by-one UTC timezone bug.
+- Added confirmation dialogs before Enroll/Remove actions.
+- Empty state is now search-aware.
+
+### Break Rules Tab — New Database Table + Full CRUD
+- Created `break_rules` table in Supabase with RLS and standard triggers.
+- Full CRUD via SlideOver form: Rule Name, Duration (minutes), Paid/Unpaid, Applies To, Min Shift Hours.
+- Edit via row click or pencil icon. Delete via trash icon with ConfirmDialog.
+- Column sorting on Rule Name, Duration, Min Shift Hours.
+
+### Shift Tags Tab — New Database Table + Full CRUD
+- Created `shift_tags` table in Supabase with RLS, unique constraint on (tenant_id, name).
+- Full CRUD via SlideOver form: Tag Name, Color (7 presets), Description.
+- Live color preview badge in form. Friendly duplicate name error.
+- Edit via row click or pencil icon. Delete via trash icon with ConfirmDialog.
+
+### Tab-Specific KPIs
+All tabs now show domain-specific KPIs instead of generic Workforce metrics:
+- **Payroll:** Staff on Payroll, Scheduled Hours, Confirmed Hours, Pending Confirm
+- **Microfiber:** Enrolled Specialists, Total Staff, Avg Rate/Set, Enrollment %
+- **Break Rules:** Rules Configured, Paid Breaks, Unpaid Breaks, Positions
+- **Shift Tags:** Tags Configured, Colors Used, Active Staff, Positions

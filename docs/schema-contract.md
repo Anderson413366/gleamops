@@ -47,6 +47,8 @@ Human-readable codes follow the format `PREFIX-DIGITS`:
 | Vehicle | `VEH` | `VEH-XXXX` | `VEH-0001` | `^VEH-\d{4,}$` |
 | Supply Order | `ORD` | `ORD-XXXX` | `ORD-0001` | `^ORD-\d{4,}$` |
 | Inventory Count | `CNT` | `CNT-XXXX` | `CNT-0001` | `^CNT-\d{4,}$` |
+| Key | `KEY` | `KEY-XXXX` | `KEY-0001` | `^KEY-\d{4,}$` |
+| Kit | `KIT` | `KIT-XXXX` | `KIT-0001` | `^KIT-\d{4,}$` |
 
 ### Code Generation
 

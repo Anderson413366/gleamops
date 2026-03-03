@@ -240,3 +240,17 @@ Used for tracking inbound requests from clients.
 - [Pipeline](./pipeline.md) — Prospects and bids for potential clients
 - [Schedule](./schedule.md) — Shifts assigned to client sites
 - [Inventory](./inventory.md) — Supplies assigned to sites
+
+---
+
+## QA Fixes (March 2026)
+
+### Tab-Specific KPIs
+KPIs are now tab-aware instead of showing the same 4 generic metrics on all tabs:
+- **Clients tab:** Total Clients, Active Clients, Total Sites, Active Sites
+- **Sites tab:** Total Sites, Active Sites, Total Clients, Active Clients
+- **Contacts tab:** Total Contacts, Primary Contacts, With Email, With Phone
+- **Requests tab:** Open Requests (warn), Approved, Rejected, Total Requests
+
+### Requests Tab
+- Empty state now renders table header with 7 column headers above the EmptyState component.

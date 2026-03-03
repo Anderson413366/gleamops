@@ -238,3 +238,17 @@ Time clock and attendance configuration. Shows:
 - [Shifts & Time](./shifts-time.md) — Uses geofences for clock-in verification
 - [Clients](./clients.md) — Uses client type and site type lookups
 - [Team](./team.md) — Uses position types and leave types
+
+---
+
+## QA Fixes (March 2026)
+
+### General Tab
+- KPI cards now display on the General tab (previously hidden — only showed on other 8 tabs).
+
+### Data Hub
+- Export buttons now show dynamic row counts ("Export CSV (185 rows)") instead of hardcoded "(500 rows)".
+- Count queries converted from HEAD (503) to GET for accurate counts.
+
+### All Tabs
+- All 4 Settings KPIs (Lookup Values, Status Rules, Geofences, Sequences) converted from HEAD to GET.

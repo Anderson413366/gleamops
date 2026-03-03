@@ -294,3 +294,51 @@ Supply vendors. Shows:
 - [Vendors](./vendors.md) — Supply vendors for ordering
 - [Equipment](./equipment.md) — Equipment that uses supplies (e.g., vacuum bags)
 - [Reports](./reports.md) — Inventory usage reports
+
+---
+
+## QA Fixes (March 2026)
+
+### Supply Catalog
+- Search now matches brand and preferred_vendor (not just name/code/category).
+- Product name column widened from 220px to 320px to reduce truncation.
+- Supply form now includes Markup (%) and Billing Rate ($) fields with auto-calculation.
+- Back link from detail page updated to `/inventory?tab=supplies` with label "Back to Supply Catalog".
+
+### Kits
+- Fixed Kit Code auto-generation: passes proper tenant_id to next_code RPC (was null). Client-side fallback code if RPC fails.
+- Table header and Export CSV render even with 0 kits.
+
+### Site Assignments
+- Filters out broken via.placeholder.com image URLs — shows Package icon fallback.
+- Responsive column hiding: Par Level and Action always visible on mobile.
+
+### Stock Counts
+- Fixed UTC date off-by-one on count detail page.
+- Back link updated to "Back to Stock Counts".
+
+### Warehouse
+- Search feedback message when all sections are empty and search is active.
+
+### Purchase Orders
+- Removed duplicate "+ New Order" button (table has its own).
+- Onboarding CTA with guidance bullets shows on ALL status tabs when zero orders.
+- Breadcrumb shows "Procurement" for orders/forecasting/vendors tabs.
+
+### Forecasting
+- Location dropdown hidden when no locations configured (shows hint text instead).
+- Shared Inventory KPIs skipped — panel renders its own 4 forecasting-specific cards.
+
+### Vendor Directory
+- Back link from detail page fixed from `/vendors?tab=vendors` to `/inventory?tab=vendors`.
+- Breadcrumb PATH_OVERRIDES added for vendors/supply-vendors.
+
+### Tab-Specific KPIs
+Each inventory tab now shows domain-specific KPIs:
+- **Supplies:** Active Supplies, Below Par, Open Orders, Pending Counts
+- **Kits:** Total Kits, Kit Items, Catalog Supplies, Avg Items/Kit
+- **Site Assignments:** Total Assignments, Sites Assigned, Total Sites, Catalog Supplies
+- **Counts:** Total Counts, Pending, This Month, Items Counted
+- **Warehouse:** Locations, Movements, Open Requests, Purchase Orders
+- **Orders:** Total Orders, Ordered, Shipped, Drafts
+- **Vendors:** Total Vendors, Linked Supplies, Total Orders, Avg Supplies/Vendor

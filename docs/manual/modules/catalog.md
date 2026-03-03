@@ -188,3 +188,24 @@ Pre-built scope templates for common building types and cleaning requirements.
 - [Pipeline](./pipeline.md) — Bids use tasks and production rates from the catalog
 - [Jobs](./jobs.md) — Service plans reference services from the catalog
 - [Settings](./settings.md) — Lookup values that feed into task categories
+
+---
+
+## QA Fixes (March 2026)
+
+### All Tabs
+- All catalog KPIs converted from HEAD (503) to GET.
+- Consolidated from 4+1 sequential queries to 3 parallel queries.
+
+### Task Library
+- Added category filter pill buttons with live counts above the table.
+- Categories auto-computed from task data — adapts as tasks are added.
+
+### Service Definitions
+- **Critical fix:** Fixed search crash (TypeError on null field) — added null-safe fallbacks for name/code/description.
+- Added task count filter chips: All / Has Tasks / No Tasks.
+
+### Task Mapping — Complete Rewrite
+- **Critical fix:** 330 mappings existed but none rendered. Rewrote query with explicit column select, error handling, limit 500.
+- Added Category column, Export CSV button, pagination (25/page), 4 sortable columns.
+- Added mapping count display and search-aware empty state.

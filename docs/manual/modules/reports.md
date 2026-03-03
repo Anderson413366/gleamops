@@ -204,3 +204,21 @@ Schedule performance analytics.
 - [Team](./team.md) — Source of workforce data
 - [Inventory](./inventory.md) — Source of inventory data
 - [Clients](./clients.md) — Source of client and site data
+
+---
+
+## QA Fixes (March 2026)
+
+### Overview Dashboard (NEW)
+The Overview report now has a full executive dashboard instead of just 4 bare KPIs:
+- **8 KPI cards:** Monthly Revenue, Annual Projection, Open Tickets (with today count), Pipeline Value (with opportunity count), Active Staff, Supply Items, Active Jobs, Inspection Pass Rate.
+- **4 visualization cards:**
+  - Top Clients by Revenue — top 5 with progress bars + "View Clients" link
+  - Ticket Status — breakdown by status with color badges + "View Jobs" link
+  - Staff by Role — distribution with progress bars + "View Team" link
+  - Supplies by Category — breakdown with progress bars + "View Inventory" link
+- Queries 7 Supabase tables (site_jobs, work_tickets, staff, supply_catalog, sales_opportunities, inspections).
+
+### MetricCard Component
+- Fixed KPI value line-break at 768px: replaced overflow-wrap:anywhere with whitespace-nowrap.
+- Reduced font clamp minimum for tighter mobile fit.

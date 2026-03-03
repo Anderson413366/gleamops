@@ -55,24 +55,24 @@ export default function PipelineAnalytics() {
         activeOppsRes,
         wonOppsRes,
       ] = await Promise.all([
-        // Total prospects
-        supabase.from('sales_prospects').select('id', { count: 'exact', head: true }).is('archived_at', null),
+        // Total prospects (use GET instead of HEAD to avoid 503)
+        supabase.from('sales_prospects').select('id').is('archived_at', null),
         // Active opportunities (not won/lost)
         supabase.from('sales_opportunities')
           .select('id, stage_code, estimated_monthly_value, created_at, updated_at')
           .is('archived_at', null),
         // All bids
-        supabase.from('sales_bids').select('id, status', { count: 'exact', head: true }),
+        supabase.from('sales_bids').select('id').is('archived_at', null),
         // All proposals
-        supabase.from('sales_proposals').select('id, status', { count: 'exact', head: true }),
+        supabase.from('sales_proposals').select('id, status').is('archived_at', null),
         // Won proposals in last 90 days
         supabase.from('sales_proposals')
-          .select('id', { count: 'exact', head: true })
+          .select('id')
           .eq('status', 'WON')
           .gte('updated_at', ninetyDaysAgo),
         // Lost proposals in last 90 days
         supabase.from('sales_proposals')
-          .select('id', { count: 'exact', head: true })
+          .select('id')
           .eq('status', 'LOST')
           .gte('updated_at', ninetyDaysAgo),
         // Active opportunities (pipeline value)
@@ -87,19 +87,25 @@ export default function PipelineAnalytics() {
           .is('archived_at', null),
       ]);
 
-      // Build funnel
+      // Build funnel (use .data.length instead of .count to avoid HEAD 503)
+      const prospectsCount = prospectsRes.data?.length ?? 0;
+      const bidsCount = bidsRes.data?.length ?? 0;
+      const proposalsCount = proposalsRes.data?.length ?? 0;
+      const wonCount = wonProposalsRes.data?.length ?? 0;
+      const lostCount = lostProposalsRes.data?.length ?? 0;
+
       const funnelData: FunnelStage[] = [
-        { label: 'Prospects', count: prospectsRes.count ?? 0, color: 'bg-info' },
+        { label: 'Prospects', count: prospectsCount, color: 'bg-info' },
         { label: 'Opportunities', count: (opportunitiesRes.data ?? []).length, color: 'bg-primary' },
-        { label: 'Bids', count: bidsRes.count ?? 0, color: 'bg-primary/70' },
-        { label: 'Proposals', count: proposalsRes.count ?? 0, color: 'bg-primary/50' },
-        { label: 'Won', count: wonProposalsRes.count ?? 0, color: 'bg-success' },
+        { label: 'Bids', count: bidsCount, color: 'bg-primary/70' },
+        { label: 'Proposals', count: proposalsCount, color: 'bg-primary/50' },
+        { label: 'Won', count: wonCount, color: 'bg-success' },
       ];
       setFunnel(funnelData);
 
       // Win rate (last 90 days)
-      const won = wonProposalsRes.count ?? 0;
-      const lost = lostProposalsRes.count ?? 0;
+      const won = wonCount;
+      const lost = lostCount;
       const total = won + lost;
       setWinRate(total > 0 ? (won / total) * 100 : null);
 

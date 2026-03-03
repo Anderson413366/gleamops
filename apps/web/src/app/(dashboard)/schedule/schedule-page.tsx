@@ -441,25 +441,7 @@ export default function SchedulePageClient() {
             { label: 'Unassigned', value: Math.max(totalTickets - withAssignment, 0), warn: (totalTickets - withAssignment) > 0 },
           ]);
         } else if (tab === 'floater') {
-          const [stopsRes, completedRes, scheduledRes] = await Promise.all([
-            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('scheduled_date', today).is('archived_at', null),
-            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('scheduled_date', today).is('archived_at', null).eq('status', 'COMPLETED'),
-            supabase.from('work_tickets').select('start_time, end_time').eq('scheduled_date', today).is('archived_at', null),
-          ]);
-          const totalStops = stopsRes.count ?? 0;
-          const completedCount = completedRes.count ?? 0;
-          const hours = (scheduledRes.data ?? []).reduce((sum, r: { start_time?: string | null; end_time?: string | null }) => {
-            if (!r.start_time || !r.end_time) return sum;
-            const [sh, sm] = r.start_time.slice(0, 5).split(':').map(Number);
-            const [eh, em] = r.end_time.slice(0, 5).split(':').map(Number);
-            return sum + ((eh * 60 + em) - (sh * 60 + sm)) / 60;
-          }, 0);
-          setTabKpis([
-            { label: 'Stops Today', value: totalStops },
-            { label: 'Completed', value: completedCount },
-            { label: 'Remaining', value: Math.max(totalStops - completedCount, 0) },
-            { label: 'Hours Scheduled', value: hours > 0 ? `${hours.toFixed(1)}h` : '0h' },
-          ]);
+          // KPIs are computed by FloaterBoard from user-filtered data
         } else if (tab === 'supervisor') {
           const [shiftsRes, assignedRes, unassignedRes, staffRes] = await Promise.all([
             supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('scheduled_date', today).is('archived_at', null),
@@ -1578,7 +1560,7 @@ export default function SchedulePageClient() {
       )}
 
       {tab === 'floater' && showFloaterBoard && (
-        <FloaterBoard key={`floater-${refreshKey}`} />
+        <FloaterBoard key={`floater-${refreshKey}`} onKpisComputed={setTabKpis} />
       )}
 
       {tab === 'supervisor' && showSupervisorTab && (

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  CheckCircle2, Clock, MapPin, MapPinned, Navigation, Route,
+  CheckCircle2, ChevronLeft, ChevronRight, Clock, MapPin, MapPinned, Navigation, Route,
 } from 'lucide-react';
 import { Button, Card, CardContent, EmptyState, Skeleton, cn } from '@gleamops/ui';
 
@@ -90,15 +90,27 @@ const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> =
   CANCELED: { bg: 'bg-gray-100 dark:bg-gray-800/30', text: 'text-gray-600 dark:text-gray-400', dot: 'bg-gray-400' },
 };
 
-export function FloaterBoard() {
+interface FloaterBoardProps {
+  onKpisComputed?: (kpis: Array<{ label: string; value: string | number; warn?: boolean }>) => void;
+}
+
+export function FloaterBoard({ onKpisComputed }: FloaterBoardProps) {
   const [routes, setRoutes] = useState<RouteRow[]>([]);
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
   const [stops, setStops] = useState<StopViewData[]>([]);
   const [myTickets, setMyTickets] = useState<MyTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [checkingSaving, setCheckingSaving] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState(() => toDateInput(new Date()));
 
-  const today = useMemo(() => toDateInput(new Date()), []);
+  const todayStr = useMemo(() => toDateInput(new Date()), []);
+  const isToday = selectedDate === todayStr;
+
+  function shiftDateBy(dateStr: string, days: number): string {
+    const d = new Date(`${dateStr}T12:00:00`);
+    d.setDate(d.getDate() + days);
+    return toDateInput(d);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -129,7 +141,7 @@ export function FloaterBoard() {
       const { data: routeData } = await supabase
         .from('daily_routes')
         .select('id, route_code, route_date, status')
-        .eq('route_date', today)
+        .eq('route_date', selectedDate)
         .eq('assigned_to', staffRow.id)
         .is('archived_at', null)
         .order('route_code', { ascending: true });
@@ -148,13 +160,33 @@ export function FloaterBoard() {
           site:site_id(name, site_code),
           assignments:ticket_assignments!inner(staff_id)
         `)
-        .eq('scheduled_date', today)
+        .eq('scheduled_date', selectedDate)
         .eq('assignments.staff_id', staffRow.id)
         .is('archived_at', null)
         .order('start_time', { ascending: true });
 
       if (!cancelled && ticketData) {
-        setMyTickets(ticketData as unknown as MyTicket[]);
+        const tickets = ticketData as unknown as MyTicket[];
+        setMyTickets(tickets);
+
+        // Compute KPIs from user-filtered data
+        if (onKpisComputed) {
+          const completedCount = tickets.filter((t) => t.status === 'COMPLETED').length;
+          const hours = tickets.reduce((sum, t) => {
+            if (!t.start_time || !t.end_time) return sum;
+            const [sh, sm] = t.start_time.slice(0, 5).split(':').map(Number);
+            const [eh, em] = t.end_time.slice(0, 5).split(':').map(Number);
+            let mins = (eh * 60 + em) - (sh * 60 + sm);
+            if (mins <= 0) mins += 24 * 60;
+            return sum + mins / 60;
+          }, 0);
+          onKpisComputed([
+            { label: 'Stops Today', value: tickets.length },
+            { label: 'Completed', value: completedCount },
+            { label: 'Remaining', value: Math.max(tickets.length - completedCount, 0) },
+            { label: 'Hours Scheduled', value: hours > 0 ? `${hours.toFixed(1)}h` : '0h' },
+          ]);
+        }
       }
 
       if (!cancelled) setLoading(false);
@@ -162,7 +194,7 @@ export function FloaterBoard() {
 
     void fetchRoutes();
     return () => { cancelled = true; };
-  }, [today, selectedRouteId]);
+  }, [selectedDate, selectedRouteId, onKpisComputed]);
 
   useEffect(() => {
     if (!selectedRouteId) return;
@@ -265,6 +297,24 @@ export function FloaterBoard() {
     }
   }, []);
 
+  const DateNavBar = () => (
+    <div className="flex items-center gap-2">
+      <button type="button" onClick={() => setSelectedDate(shiftDateBy(selectedDate, -1))} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+        <ChevronLeft className="h-4 w-4" />
+      </button>
+      <button type="button" onClick={() => setSelectedDate(todayStr)} className={`rounded-lg px-3 py-1 text-xs font-medium transition-colors ${isToday ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}>
+        Today
+      </button>
+      <button type="button" onClick={() => setSelectedDate(shiftDateBy(todayStr, 1))} className={`rounded-lg px-3 py-1 text-xs font-medium transition-colors ${selectedDate === shiftDateBy(todayStr, 1) ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}>
+        Tomorrow
+      </button>
+      <button type="button" onClick={() => setSelectedDate(shiftDateBy(selectedDate, 1))} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+        <ChevronRight className="h-4 w-4" />
+      </button>
+      <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="h-8 rounded-lg border border-border bg-background px-2 text-xs text-foreground" />
+    </div>
+  );
+
   const completedStops = stops.filter((s) => s.checkedOut).length;
   const totalStops = stops.length;
   const totalTravelMinutes = stops.reduce((sum, s) => sum + (s.estimatedTravel ?? 0), 0);
@@ -285,16 +335,30 @@ export function FloaterBoard() {
 
   if (routes.length === 0 && myTickets.length === 0) {
     return (
-      <EmptyState
-        icon={<Route className="h-12 w-12" />}
-        title="No route assigned today"
-        description="You have no routes or assignments for today. Check back later or contact your supervisor."
-      />
+      <div className="space-y-4">
+        <DateNavBar />
+        <EmptyState
+          icon={<Route className="h-12 w-12" />}
+          title={`No route assigned${isToday ? ' today' : ''}`}
+          description={isToday
+            ? 'You have no routes or assignments for today. Check back later or contact your supervisor.'
+            : `No routes or assignments for ${new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}.`
+          }
+        />
+        {isToday && (
+          <div className="flex justify-center gap-3">
+            <Button variant="secondary" size="sm" onClick={() => setSelectedDate(shiftDateBy(selectedDate, 1))}>
+              View Tomorrow
+            </Button>
+          </div>
+        )}
+      </div>
     );
   }
 
   return (
     <div className="space-y-5">
+      <DateNavBar />
       {routes.length > 0 && (
         <>
           {/* Route header card */}
@@ -307,7 +371,7 @@ export function FloaterBoard() {
                     Tonight&apos;s Route
                   </h3>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {today} — {totalStops} stops — ~{totalTravelMinutes} min total travel
+                    {selectedDate} — {totalStops} stops — ~{totalTravelMinutes} min total travel
                   </p>
                 </div>
                 {routes.length > 1 && (

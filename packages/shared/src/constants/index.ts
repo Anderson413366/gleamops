@@ -562,6 +562,7 @@ export const KEY_STATUS_COLORS: Record<string, StatusColor> = {
 };
 
 export const EQUIPMENT_CONDITION_COLORS: Record<string, StatusColor> = {
+  IN_SERVICE: 'green',
   GOOD: 'green',
   FAIR: 'yellow',
   POOR: 'orange',

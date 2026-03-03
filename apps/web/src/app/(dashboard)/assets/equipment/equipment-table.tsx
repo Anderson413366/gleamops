@@ -41,7 +41,7 @@ interface Props {
   onRefresh?: () => void;
 }
 
-const STATUS_OPTIONS = ['GOOD', 'FAIR', 'POOR', 'OUT_OF_SERVICE', 'all'] as const;
+const STATUS_OPTIONS = ['IN_SERVICE', 'GOOD', 'FAIR', 'POOR', 'OUT_OF_SERVICE', 'all'] as const;
 
 export default function EquipmentTable({ search, onSelect, formOpen, onFormClose, onRefresh }: Props) {
   const router = useRouter();
@@ -257,7 +257,7 @@ export default function EquipmentTable({ search, onSelect, formOpen, onFormClose
                       size="sm"
                     />
                     <StatusDot color={(EQUIPMENT_CONDITION_COLORS[row.condition ?? ''] as StatusColor) ?? 'gray'} />
-                    <span className="inline-block max-w-[220px] truncate" title={row.name}>{row.name}</span>
+                    <span className="inline-block max-w-[320px] truncate" title={row.name}>{row.name}</span>
                   </div>
                 </TableCell>
                 <TableCell className="text-muted-foreground">

@@ -61,22 +61,22 @@ export default function EquipmentPageClient() {
       in30Days.setDate(in30Days.getDate() + 30);
 
       const [equipmentRes, vehiclesRes, keysRiskRes, maintenanceRes] = await Promise.all([
-        supabase.from('equipment').select('id', { count: 'exact', head: true }).is('archived_at', null),
-        supabase.from('vehicles').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'ACTIVE'),
-        supabase.from('key_inventory').select('id', { count: 'exact', head: true }).is('archived_at', null).in('status', ['LOST', 'ASSIGNED']),
+        supabase.from('equipment').select('id').is('archived_at', null),
+        supabase.from('vehicles').select('id').is('archived_at', null).eq('status', 'ACTIVE'),
+        supabase.from('key_inventory').select('id').is('archived_at', null).in('status', ['LOST', 'ASSIGNED']),
         supabase
           .from('vehicle_maintenance')
-          .select('id', { count: 'exact', head: true })
+          .select('id')
           .is('archived_at', null)
           .gte('next_service_date', today.toISOString().slice(0, 10))
           .lte('next_service_date', in30Days.toISOString().slice(0, 10)),
       ]);
 
       setKpis({
-        equipment: equipmentRes.count ?? 0,
-        activeVehicles: vehiclesRes.count ?? 0,
-        keysAtRisk: keysRiskRes.count ?? 0,
-        maintenanceDueSoon: maintenanceRes.count ?? 0,
+        equipment: equipmentRes.data?.length ?? 0,
+        activeVehicles: vehiclesRes.data?.length ?? 0,
+        keysAtRisk: keysRiskRes.data?.length ?? 0,
+        maintenanceDueSoon: maintenanceRes.data?.length ?? 0,
       });
     }
     fetchKpis();

@@ -39,7 +39,11 @@ export default function ProspectsTable({ search }: ProspectsTableProps) {
       .select('*')
       .is('archived_at', null)
       .order('created_at', { ascending: false });
-    if (!error && data) setRows(data as unknown as SalesProspect[]);
+    if (error) {
+      console.error('[ProspectsTable] Failed to fetch prospects:', error.message);
+    } else if (data) {
+      setRows(data as unknown as SalesProspect[]);
+    }
     setLoading(false);
   }, []);
 

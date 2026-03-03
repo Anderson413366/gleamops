@@ -185,7 +185,7 @@ export default function VehiclesTable({ search, formOpen, onFormClose, onRefresh
                 <tr>
                   <TableHead sortable sorted={sortKey === 'vehicle_code' && sortDir} onSort={() => onSort('vehicle_code')}>Code</TableHead>
                   <TableHead sortable sorted={sortKey === 'name' && sortDir} onSort={() => onSort('name')}>Name</TableHead>
-                  <TableHead>Make / Model</TableHead>
+                  <TableHead sortable sorted={sortKey === 'make' && sortDir} onSort={() => onSort('make')}>Make / Model</TableHead>
                   <TableHead sortable sorted={sortKey === 'year' && sortDir} onSort={() => onSort('year')}>Year</TableHead>
                   <TableHead>License Plate</TableHead>
                   <TableHead>Assigned To</TableHead>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ClipboardList, FileText, Truck } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
@@ -39,6 +39,8 @@ interface VehicleFormProps {
 export function VehicleForm({ open, onClose, initialData, onSuccess, focusSection }: VehicleFormProps) {
   const isEdit = !!initialData?.id;
   const supabase = getSupabaseBrowserClient();
+  const [staffOptions, setStaffOptions] = useState<{ value: string; label: string }[]>([]);
+  const [assignedTo, setAssignedTo] = useState<string | null>(null);
 
   const { values, errors, loading, setValue, onBlur, handleSubmit, reset } = useForm<VehicleFormData>({
     schema: vehicleSchema,
@@ -70,6 +72,7 @@ export function VehicleForm({ open, onClose, initialData, onSuccess, focusSectio
             vin: data.vin,
             color: data.color,
             status: data.status,
+            assigned_to: assignedTo,
             notes: data.notes,
           })
           .eq('id', initialData!.id)
@@ -79,6 +82,7 @@ export function VehicleForm({ open, onClose, initialData, onSuccess, focusSectio
       } else {
         const { error } = await supabase.from('vehicles').insert({
           ...data,
+          assigned_to: assignedTo,
           tenant_id: (await supabase.auth.getUser()).data.user?.app_metadata?.tenant_id,
         });
         if (error) throw error;
@@ -87,6 +91,41 @@ export function VehicleForm({ open, onClose, initialData, onSuccess, focusSectio
       handleClose();
     },
   });
+
+  // Load staff for dropdown, sync assigned_to, auto-generate code
+  useEffect(() => {
+    if (!open) return;
+
+    supabase
+      .from('staff')
+      .select('id, staff_code, full_name')
+      .is('archived_at', null)
+      .eq('status', 'ACTIVE')
+      .order('full_name')
+      .then(({ data }) => {
+        if (data) {
+          setStaffOptions(data.map((s) => ({ value: s.id, label: `${s.full_name ?? s.staff_code} (${s.staff_code})` })));
+        }
+      });
+
+    setAssignedTo(initialData?.assigned_to ?? null);
+
+    // Auto-generate vehicle code for new vehicles
+    if (!isEdit) {
+      (async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        const tenantId = user?.app_metadata?.tenant_id;
+        let generated = false;
+        if (tenantId) {
+          const { data } = await supabase.rpc('next_code', { p_tenant_id: tenantId, p_prefix: 'VEH' });
+          if (data) { setValue('vehicle_code', data); generated = true; }
+        }
+        if (!generated) {
+          setValue('vehicle_code', `VEH-${String(Date.now()).slice(-6)}`);
+        }
+      })();
+    }
+  }, [open, isEdit, initialData, supabase, setValue]);
 
   useEffect(() => {
     if (!open || !focusSection) return;
@@ -100,6 +139,7 @@ export function VehicleForm({ open, onClose, initialData, onSuccess, focusSectio
 
   const handleClose = () => {
     reset();
+    setAssignedTo(null);
     onClose();
   };
 
@@ -123,6 +163,7 @@ export function VehicleForm({ open, onClose, initialData, onSuccess, focusSectio
             required
             readOnly={isEdit}
             disabled={isEdit}
+            hint={isEdit ? undefined : 'Auto-generated — editable if needed'}
           />
           <Input
             label="Name"
@@ -137,6 +178,12 @@ export function VehicleForm({ open, onClose, initialData, onSuccess, focusSectio
             value={values.status}
             onChange={(e) => setValue('status', e.target.value as 'ACTIVE' | 'IN_SHOP' | 'RETIRED')}
             options={STATUS_OPTIONS}
+          />
+          <Select
+            label="Assigned To"
+            value={assignedTo ?? ''}
+            onChange={(e) => setAssignedTo(e.target.value || null)}
+            options={[{ value: '', label: 'Unassigned' }, ...staffOptions]}
           />
           </FormSection>
         </div>

@@ -38,11 +38,13 @@ export function useSyncedTab({ tabKeys, defaultTab, aliases }: UseSyncedTabOptio
   const [tab, setTab] = useState<string>(resolvedUrlTab);
   const pendingTabRef = useRef<string | null>(null);
 
+  // Sync state from URL. When a sidebar <Link> navigates to a new tab on the
+  // same route, this effect picks up the URL change and updates local state.
+  // Previous implementation had a pendingTabRef guard that could block external
+  // navigation (sidebar clicks) if a programmatic change was still propagating.
   useEffect(() => {
-    // Avoid tab "bounce" while router.replace is still propagating search params.
-    // When we trigger a tab change, keep local state stable until URL catches up.
-    if (pendingTabRef.current && resolvedUrlTab !== pendingTabRef.current) return;
-    if (pendingTabRef.current && resolvedUrlTab === pendingTabRef.current) {
+    if (pendingTabRef.current === resolvedUrlTab) {
+      // Our programmatic change arrived in the URL — clear pending
       pendingTabRef.current = null;
     }
     setTab(resolvedUrlTab);

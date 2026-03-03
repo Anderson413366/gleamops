@@ -45,28 +45,19 @@ export default function CatalogPageClient() {
   useEffect(() => {
     async function fetchKpis() {
       const supabase = getSupabaseBrowserClient();
-      const [tasksRes, servicesRes, mappingsRes, tasksForMappingRes] = await Promise.all([
-        supabase.from('tasks').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('is_active', true),
-        supabase.from('services').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('is_active', true),
-        supabase.from('service_tasks').select('id', { count: 'exact', head: true }).is('archived_at', null),
+      const [tasksRes, servicesRes, mappingsRes] = await Promise.all([
         supabase.from('tasks').select('id').is('archived_at', null).eq('is_active', true),
+        supabase.from('services').select('id').is('archived_at', null).eq('is_active', true),
+        supabase.from('service_tasks').select('id, task_id').is('archived_at', null),
       ]);
 
-      const activeTaskIds = new Set((tasksForMappingRes.data ?? []).map((row) => row.id));
-      let mappedTaskIds = new Set<string>();
-      if (activeTaskIds.size > 0) {
-        const { data: mappedTaskRows } = await supabase
-          .from('service_tasks')
-          .select('task_id')
-          .in('task_id', Array.from(activeTaskIds))
-          .is('archived_at', null);
-        mappedTaskIds = new Set((mappedTaskRows ?? []).map((row) => row.task_id));
-      }
+      const activeTaskIds = new Set((tasksRes.data ?? []).map((row) => row.id));
+      const mappedTaskIds = new Set((mappingsRes.data ?? []).map((row: { task_id: string }) => row.task_id));
 
       setKpis({
-        activeTasks: tasksRes.count ?? 0,
-        activeServices: servicesRes.count ?? 0,
-        mappedTasks: mappingsRes.count ?? 0,
+        activeTasks: tasksRes.data?.length ?? 0,
+        activeServices: servicesRes.data?.length ?? 0,
+        mappedTasks: mappingsRes.data?.length ?? 0,
         unmappedActiveTasks: Math.max(activeTaskIds.size - mappedTaskIds.size, 0),
       });
       setKpisLoaded(true);

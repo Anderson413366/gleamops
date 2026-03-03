@@ -252,3 +252,8 @@ Time clock and attendance configuration. Shows:
 
 ### All Tabs
 - All 4 Settings KPIs (Lookup Values, Status Rules, Geofences, Sequences) converted from HEAD to GET.
+
+### Company Profile Seeded
+- Migration added `phone` and `email` columns to the `tenants` table.
+- Anderson Cleaning profile populated: name="Anderson Cleaning Services", phone="(413) 555-0100", email="info@andersoncleaning.com".
+- General tab Company Profile section now displays real data instead of blank placeholders.

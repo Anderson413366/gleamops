@@ -57,3 +57,13 @@ Write audit events for:
 - time entry edits
 - exception resolution
 - timesheet approvals/unapprovals
+
+## 7) Date Handling — UTC Off-by-One Prevention (QA Fix March 2026)
+
+**Problem:** `new Date().toISOString().slice(0, 10)` returns UTC date — off by one day in US timezones.
+
+**Writing dates:** Use local components: `now.getFullYear()-padStart(now.getMonth()+1)-padStart(now.getDate())`
+
+**Reading dates:** Use `toSafeDate()` from `apps/web/src/lib/utils/date.ts` — parses YYYY-MM-DD as local time.
+
+**Modules fixed:** Microfiber (enroll date), Stock Counts (detail), Maintenance (service date).

@@ -222,3 +222,9 @@ The Overview report now has a full executive dashboard instead of just 4 bare KP
 ### MetricCard Component
 - Fixed KPI value line-break at 768px: replaced overflow-wrap:anywhere with whitespace-nowrap.
 - Reduced font clamp minimum for tighter mobile fit.
+
+### Schedule Reports — Wired 26 Report Cards
+All 26 schedule report cards are now clickable with real navigation:
+- **7 live-data reports** (green "Live" badge): Schedule Summary, Shifts Scheduled, Time Sheets, Time Sheets Summary, Attendance, Availability, Skills Expiration — each queries a real Supabase table and renders data in a dynamic table with Export CSV.
+- **19 placeholder reports:** Show table headers + empty state with "will be connected in future update" message.
+- **ReportDetailView component:** Back button, report title/description, category badge, row count badge, Export CSV, full data table.

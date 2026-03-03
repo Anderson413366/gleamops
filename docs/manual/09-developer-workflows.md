@@ -292,3 +292,7 @@ gh api repos/Anderson413366/gleamops/commits/$(git rev-parse HEAD)/statuses
 | Forgetting `version_etag` on updates | Always `.eq('version_etag', data.version_etag)` |
 | Using admin client for user queries | Use browser/server client (RLS-scoped) |
 | `search_path` set to empty string in SQL | Always use `'public'` |
+| HEAD requests for KPI counts → 503 | Use `select('id')` with `.data?.length` instead of `{ count: 'exact', head: true }` |
+| `new Date().toISOString().slice(0,10)` for dates | Use local date components: `now.getFullYear()-getMonth()-getDate()` (avoids UTC off-by-one) |
+| Sidebar tab switching fails on same route | `useSyncedTab` hook always syncs from URL — never blocks external navigation |
+| Views with SECURITY DEFINER | Use `ALTER VIEW SET (security_invoker = on)` for RLS enforcement |

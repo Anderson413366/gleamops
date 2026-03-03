@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { FileText } from 'lucide-react';
+import { FileText, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
@@ -26,6 +26,7 @@ export default function TimesheetsTable({ search }: TimesheetsTableProps) {
   const [rows, setRows] = useState<TimesheetWithStaff[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<TimesheetWithStaff | null>(null);
+  const [generating, setGenerating] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -39,7 +40,11 @@ export default function TimesheetsTable({ search }: TimesheetsTableProps) {
       .is('archived_at', null)
       .order('week_start', { ascending: false })
       .limit(100);
-    if (!error && data) setRows(data as unknown as TimesheetWithStaff[]);
+    if (error) {
+      console.error('[Timesheets] Fetch error:', error.message);
+    } else if (data) {
+      setRows(data as unknown as TimesheetWithStaff[]);
+    }
     setLoading(false);
   }, []);
 
@@ -83,6 +88,84 @@ export default function TimesheetsTable({ search }: TimesheetsTableProps) {
     fetchData();
   };
 
+  const handleGenerate = async () => {
+    setGenerating(true);
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      const tenantId = user?.app_metadata?.tenant_id;
+      if (!tenantId) { toast.error('Tenant context required.'); return; }
+
+      // Get current week boundaries (Mon-Sun)
+      const now = new Date();
+      const dayOfWeek = now.getDay();
+      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() + mondayOffset);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      const wsStr = `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, '0')}-${String(weekStart.getDate()).padStart(2, '0')}`;
+      const weStr = `${weekEnd.getFullYear()}-${String(weekEnd.getMonth() + 1).padStart(2, '0')}-${String(weekEnd.getDate()).padStart(2, '0')}`;
+
+      // Find staff with time entries this week who don't already have timesheets
+      const { data: entries } = await supabase
+        .from('time_entries')
+        .select('staff_id, duration_minutes')
+        .gte('clock_in', `${wsStr}T00:00:00`)
+        .lte('clock_in', `${weStr}T23:59:59`)
+        .not('clock_out', 'is', null);
+
+      if (!entries || entries.length === 0) {
+        toast.info('No completed time entries found for this week.');
+        return;
+      }
+
+      // Group by staff
+      const staffHours: Record<string, number> = {};
+      for (const e of entries as Array<{ staff_id: string; duration_minutes: number | null }>) {
+        staffHours[e.staff_id] = (staffHours[e.staff_id] ?? 0) + (e.duration_minutes ?? 0);
+      }
+
+      // Check existing timesheets for this week
+      const { data: existing } = await supabase
+        .from('timesheets')
+        .select('staff_id')
+        .eq('week_start', wsStr)
+        .is('archived_at', null);
+
+      const existingStaffIds = new Set((existing ?? []).map((t: { staff_id: string }) => t.staff_id));
+      const newTimesheets = Object.entries(staffHours)
+        .filter(([staffId]) => !existingStaffIds.has(staffId))
+        .map(([staffId, totalMinutes]) => ({
+          tenant_id: tenantId,
+          staff_id: staffId,
+          week_start: wsStr,
+          week_end: weStr,
+          total_hours: Math.round((totalMinutes / 60) * 10) / 10,
+          regular_hours: Math.min(Math.round((totalMinutes / 60) * 10) / 10, 40),
+          overtime_hours: Math.max(0, Math.round((totalMinutes / 60 - 40) * 10) / 10),
+          break_hours: 0,
+          exception_count: 0,
+          status: 'DRAFT',
+        }));
+
+      if (newTimesheets.length === 0) {
+        toast.info('Timesheets already exist for all staff this week.');
+        return;
+      }
+
+      const { error } = await supabase.from('timesheets').insert(newTimesheets);
+      if (error) { toast.error(error.message); return; }
+
+      toast.success(`Generated ${newTimesheets.length} timesheet(s) for this week.`);
+      await fetchData();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to generate timesheets.');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const filtered = useMemo(() => {
     if (!search) return rows;
     const q = search.toLowerCase();
@@ -104,17 +187,29 @@ export default function TimesheetsTable({ search }: TimesheetsTableProps) {
 
   if (filtered.length === 0) {
     return (
-      <EmptyState
-        icon={<FileText className="h-12 w-12" />}
-        title="No timesheets"
-        description={search ? 'Try a different search term.' : 'Timesheets are generated weekly from time entries.'}
-      />
+      <div className="space-y-4">
+        <div className="flex justify-end">
+          <Button onClick={handleGenerate} loading={generating}>
+            <RefreshCw className="h-4 w-4" />
+            Generate Timesheets
+          </Button>
+        </div>
+        <EmptyState
+          icon={<FileText className="h-12 w-12" />}
+          title="No timesheets"
+          description={search ? 'Try a different search term.' : 'Click "Generate Timesheets" to create timesheets from this week\'s time entries.'}
+        />
+      </div>
     );
   }
 
   return (
     <div>
-      <div className="flex justify-end mb-4">
+      <div className="flex justify-end gap-2 mb-4">
+        <Button size="sm" variant="secondary" onClick={handleGenerate} loading={generating}>
+          <RefreshCw className="h-4 w-4" />
+          Generate
+        </Button>
         <ExportButton
           data={filtered as unknown as Record<string, unknown>[]}
           filename="timesheets"

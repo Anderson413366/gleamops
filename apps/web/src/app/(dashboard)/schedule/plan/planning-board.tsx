@@ -159,9 +159,10 @@ function normalizeTicket(row: Partial<PlanningTicket>): PlanningTicket {
 interface PlanningBoardProps {
   search?: string;
   openCreateToken?: number;
+  onDateChange?: (date: string) => void;
 }
 
-export default function PlanningBoard({ search = '', openCreateToken = 0 }: PlanningBoardProps) {
+export default function PlanningBoard({ search = '', openCreateToken = 0, onDateChange }: PlanningBoardProps) {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const [selectedDate, setSelectedDate] = useState('');
   const [tickets, setTickets] = useState<PlanningTicket[]>([]);
@@ -188,6 +189,10 @@ export default function PlanningBoard({ search = '', openCreateToken = 0 }: Plan
   useEffect(() => {
     setSelectedDate(today());
   }, []);
+
+  useEffect(() => {
+    if (selectedDate) onDateChange?.(selectedDate);
+  }, [selectedDate, onDateChange]);
 
   // ----- data fetching -----
   const loadTickets = useCallback(async () => {
@@ -419,7 +424,6 @@ export default function PlanningBoard({ search = '', openCreateToken = 0 }: Plan
       );
       if (active.length < (ticket.required_staff_count ?? 1)) {
         toast.warning('Almost ready — assign remaining staff first.');
-        void updatePlanningStatus(ticketId, 'IN_PROGRESS');
         return;
       }
       void updatePlanningStatus(ticketId, 'READY');
@@ -434,7 +438,10 @@ export default function PlanningBoard({ search = '', openCreateToken = 0 }: Plan
         return;
       }
       setBusy(true);
+      const { data: authData } = await supabase.auth.getUser();
+      const tenantId = authData.user?.app_metadata?.tenant_id ?? null;
       const { error } = await supabase.from('ticket_assignments').insert({
+        tenant_id: tenantId,
         ticket_id: ticketId,
         staff_id: staffId,
         role: 'CLEANER',
@@ -803,7 +810,7 @@ export default function PlanningBoard({ search = '', openCreateToken = 0 }: Plan
                 key={ticket.id}
                 ticket={ticket}
                 onMarkReady={handleMarkReady}
-                onAssign={() => toast.info('Use the Staffing Gaps panel to assign staff.')}
+                onAssign={() => { toast.info('Use the Staffing Gaps panel below to assign staff.'); document.getElementById('staffing-gaps')?.scrollIntoView({ behavior: 'smooth' }); }}
                 onUpdateNotes={handleUpdateNotes}
               />
             ))}
@@ -873,7 +880,7 @@ export default function PlanningBoard({ search = '', openCreateToken = 0 }: Plan
                           <PlanningCard
                             ticket={ticket}
                             onMarkReady={handleMarkReady}
-                            onAssign={() => toast.info('Use the Staffing Gaps panel to assign staff.')}
+                            onAssign={() => { toast.info('Use the Staffing Gaps panel below to assign staff.'); document.getElementById('staffing-gaps')?.scrollIntoView({ behavior: 'smooth' }); }}
                             onUpdateNotes={handleUpdateNotes}
                             draggable
                             onDragStart={handleDragStart}
@@ -897,6 +904,7 @@ export default function PlanningBoard({ search = '', openCreateToken = 0 }: Plan
       )}
 
       {/* Staffing gap panel */}
+      <div id="staffing-gaps" />
       <StaffingGapPanel
         tickets={filteredTickets}
         availableStaff={staff}

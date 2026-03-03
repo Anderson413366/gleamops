@@ -115,6 +115,19 @@ const SEGMENT_LABELS: Record<string, string> = {
   'shifts-time': 'Shifts & Time',
 };
 
+// Tab-aware overrides for the module-level breadcrumb label.
+// Tabs in these groups replace the default segment label (e.g. "Staff Schedule" → "Dispatch").
+const TAB_GROUP_LABELS: Record<string, string> = {
+  'schedule:planning': 'Dispatch',
+  'schedule:master': 'Dispatch',
+  'schedule:floater': 'Dispatch',
+  'schedule:supervisor': 'Dispatch',
+  'schedule:work-orders': 'Work Orders',
+  'schedule:calendar': 'Work Orders',
+  'schedule:checklists': 'Field Tools',
+  'schedule:forms': 'Field Tools',
+};
+
 // Context-aware overrides for segments that differ based on parent path
 const PATH_OVERRIDES: Record<string, Record<string, string>> = {
   'pipeline/admin': { admin: 'Sales Admin' },
@@ -161,7 +174,13 @@ export function Breadcrumbs() {
   const tabParam = searchParams.get('tab');
   if (tabParam && normalized.length > 0) {
     const moduleSegment = normalized[normalized.length - 1];
-    const tabLabel = TAB_LABELS[`${moduleSegment}:${tabParam}`];
+    const tabKey = `${moduleSegment}:${tabParam}`;
+    // Override module-level label if this tab belongs to a different nav group
+    const groupLabel = TAB_GROUP_LABELS[tabKey];
+    if (groupLabel && crumbs.length > 1) {
+      crumbs[crumbs.length - 1] = { ...crumbs[crumbs.length - 1], label: groupLabel };
+    }
+    const tabLabel = TAB_LABELS[tabKey];
     if (tabLabel && tabLabel !== crumbs[crumbs.length - 1]?.label) {
       crumbs.push({ label: tabLabel, href: '' });
     }

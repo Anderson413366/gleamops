@@ -220,6 +220,7 @@ export default function SchedulePageClient() {
   const [recurringRows, setRecurringRows] = useState<RecurringScheduleRow[]>([]);
   const [recurringLoading, setRecurringLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [planningDate, setPlanningDate] = useState('');
   const [conflictCount, setConflictCount] = useState(0);
   const [copyWeekOpen, setCopyWeekOpen] = useState(false);
   const [copyWeekLoading, setCopyWeekLoading] = useState(false);
@@ -406,14 +407,16 @@ export default function SchedulePageClient() {
             { label: 'Completed This Week', value: completedRes.count ?? 0 },
           ]);
         } else if (tab === 'planning') {
-          const [todayRes, notStartedRes, inProgressRes, readyRes] = await Promise.all([
-            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('scheduled_date', today).is('archived_at', null),
-            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('status', 'SCHEDULED').is('archived_at', null),
-            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('status', 'IN_PROGRESS').is('archived_at', null),
-            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('status', 'COMPLETED').is('archived_at', null).gte('updated_at', today),
+          const boardDate = planningDate || today;
+          const [totalRes, notStartedRes, inProgressRes, readyRes] = await Promise.all([
+            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('scheduled_date', boardDate).is('archived_at', null),
+            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('scheduled_date', boardDate).eq('planning_status', 'NOT_STARTED').is('archived_at', null),
+            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('scheduled_date', boardDate).eq('planning_status', 'IN_PROGRESS').is('archived_at', null),
+            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('scheduled_date', boardDate).eq('planning_status', 'READY').is('archived_at', null),
           ]);
+          const dateLabel = boardDate === today ? 'Today' : new Date(`${boardDate}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
           setTabKpis([
-            { label: 'Tasks Today', value: todayRes.count ?? 0 },
+            { label: `Tasks ${dateLabel}`, value: totalRes.count ?? 0 },
             { label: 'Not Started', value: notStartedRes.count ?? 0 },
             { label: 'In Progress', value: inProgressRes.count ?? 0 },
             { label: 'Ready', value: readyRes.count ?? 0 },
@@ -546,7 +549,7 @@ export default function SchedulePageClient() {
       }
     }
     fetchTabKpis();
-  }, [refreshKey, tab]);
+  }, [refreshKey, tab, planningDate]);
 
   // Fetch conflict count for toolbar badge
   useEffect(() => {
@@ -1563,6 +1566,7 @@ export default function SchedulePageClient() {
           key={`planning-${refreshKey}`}
           search={search}
           openCreateToken={openPlanningCreateToken}
+          onDateChange={setPlanningDate}
         />
       )}
 

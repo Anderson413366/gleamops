@@ -127,7 +127,9 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
       (r) =>
         r.name.toLowerCase().includes(q) ||
         r.code.toLowerCase().includes(q) ||
-        (r.category && r.category.toLowerCase().includes(q))
+        (r.category && r.category.toLowerCase().includes(q)) ||
+        (r.brand && r.brand.toLowerCase().includes(q)) ||
+        (r.preferred_vendor && r.preferred_vendor.toLowerCase().includes(q))
     );
   }, [rows, search, statusFilter]);
 
@@ -435,7 +437,7 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
                           fallbackIcon={<Package className="h-3.5 w-3.5" />}
                           size="sm"
                         />
-                        <span className="inline-block max-w-[220px] truncate" title={row.name}>{toTitleCase(row.name)}</span>
+                        <span className="inline-block max-w-[320px] truncate" title={row.name}>{toTitleCase(row.name)}</span>
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{row.category ?? '—'}</TableCell>

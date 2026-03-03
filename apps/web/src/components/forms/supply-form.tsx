@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Package } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
@@ -30,6 +30,10 @@ export function SupplyForm({ open, onClose, initialData, onSuccess, focusSection
   const isEdit = !!initialData?.id;
   const supabase = getSupabaseBrowserClient();
 
+  // Markup & billing rate are outside the Zod schema — managed separately
+  const [markupPct, setMarkupPct] = useState<number | null>(null);
+  const [billingRate, setBillingRate] = useState<number | null>(null);
+
   const { values, errors, loading, setValue, onBlur, handleSubmit, reset } = useForm<SupplyFormData>({
     schema: supplySchema,
     initialValues: initialData
@@ -44,6 +48,11 @@ export function SupplyForm({ open, onClose, initialData, onSuccess, focusSection
         }
       : DEFAULTS,
     onSubmit: async (data) => {
+      const pricingFields = {
+        markup_percentage: markupPct,
+        billing_rate: billingRate,
+      };
+
       if (isEdit) {
         const result = await supabase
           .from('supply_catalog')
@@ -52,6 +61,7 @@ export function SupplyForm({ open, onClose, initialData, onSuccess, focusSection
             category: data.category,
             unit: data.unit,
             unit_cost: data.unit_cost,
+            ...pricingFields,
             sds_url: data.sds_url,
             notes: data.notes,
           })
@@ -62,6 +72,7 @@ export function SupplyForm({ open, onClose, initialData, onSuccess, focusSection
       } else {
         const { error } = await supabase.from('supply_catalog').insert({
           ...data,
+          ...pricingFields,
           tenant_id: (await supabase.auth.getUser()).data.user?.app_metadata?.tenant_id,
         });
         if (error) throw error;
@@ -70,6 +81,17 @@ export function SupplyForm({ open, onClose, initialData, onSuccess, focusSection
       handleClose();
     },
   });
+
+  // Sync markup/billing from initialData when form opens
+  useEffect(() => {
+    if (open && initialData) {
+      setMarkupPct(initialData.markup_percentage ?? null);
+      setBillingRate(initialData.billing_rate ?? null);
+    } else if (open) {
+      setMarkupPct(null);
+      setBillingRate(null);
+    }
+  }, [open, initialData]);
 
   useEffect(() => {
     if (!open || !focusSection) return;
@@ -83,6 +105,8 @@ export function SupplyForm({ open, onClose, initialData, onSuccess, focusSection
 
   const handleClose = () => {
     reset();
+    setMarkupPct(null);
+    setBillingRate(null);
     onClose();
   };
 
@@ -135,6 +159,28 @@ export function SupplyForm({ open, onClose, initialData, onSuccess, focusSection
             value={values.unit_cost ?? ''}
             onChange={(e) => setValue('unit_cost', e.target.value ? Number(e.target.value) : null)}
           />
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Markup (%)"
+              type="number"
+              value={markupPct ?? ''}
+              onChange={(e) => {
+                const markup = e.target.value ? Number(e.target.value) : null;
+                setMarkupPct(markup);
+                if (markup != null && values.unit_cost != null) {
+                  setBillingRate(Math.round(values.unit_cost * (1 + markup / 100) * 100) / 100);
+                }
+              }}
+              hint="Auto-calculates billing rate"
+            />
+            <Input
+              label="Billing Rate ($)"
+              type="number"
+              value={billingRate ?? ''}
+              onChange={(e) => setBillingRate(e.target.value ? Number(e.target.value) : null)}
+              hint="Override or auto-calculated"
+            />
+          </div>
           <Input
             label="SDS URL"
             value={values.sds_url ?? ''}

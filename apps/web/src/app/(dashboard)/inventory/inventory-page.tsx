@@ -67,8 +67,8 @@ export default function InventoryPageClient() {
       const [statusRes, siteSuppliesRes, openOrdersRes, pendingCountsRes] = await Promise.all([
         supabase.from('supply_catalog').select('supply_status').is('archived_at', null),
         supabase.from('site_supplies').select('id, par_level, supply_id, site_id').is('archived_at', null).gt('par_level', 0),
-        supabase.from('supply_orders').select('id', { count: 'exact', head: true }).is('archived_at', null).in('status', ['ORDERED', 'SHIPPED']),
-        supabase.from('inventory_counts').select('id', { count: 'exact', head: true }).is('archived_at', null).in('status', ['DRAFT', 'IN_PROGRESS']),
+        supabase.from('supply_orders').select('id').is('archived_at', null).in('status', ['ORDERED', 'SHIPPED']),
+        supabase.from('inventory_counts').select('id').is('archived_at', null).in('status', ['DRAFT', 'IN_PROGRESS']),
       ]);
 
       const activeSupplies = (statusRes.data ?? []).filter((row) => {
@@ -107,8 +107,8 @@ export default function InventoryPageClient() {
       setKpis({
         activeSupplies,
         belowPar: belowParCount,
-        openOrders: openOrdersRes.count ?? 0,
-        pendingCounts: pendingCountsRes.count ?? 0,
+        openOrders: openOrdersRes.data?.length ?? 0,
+        pendingCounts: pendingCountsRes.data?.length ?? 0,
       });
     }
     fetchKpis();

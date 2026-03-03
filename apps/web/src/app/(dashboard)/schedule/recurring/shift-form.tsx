@@ -84,6 +84,7 @@ function nextDateForDay(startDate: Date, targetJsDay: number): Date {
 }
 
 function computeDuration(start: string, end: string): string {
+  if (!start || !end) return '';
   const [sh, sm] = start.split(':').map(Number);
   const [eh, em] = end.split(':').map(Number);
   let totalMinutes = (eh * 60 + em) - (sh * 60 + sm);
@@ -109,9 +110,9 @@ export function ShiftForm({ open, onClose, onCreated, prefill, initialData }: Sh
   const [jobId, setJobId] = useState(initialData?.jobId ?? '');
   const [positionCode, setPositionCode] = useState(initialData?.positionCode ?? 'GENERAL_SPECIALIST');
   const [requiredStaffCount, setRequiredStaffCount] = useState(String(initialData?.requiredStaff ?? 1));
-  const [startDate, setStartDate] = useState(initialData?.startDate ?? toDateInputValue(new Date()));
-  const [startTime, setStartTime] = useState(initialData?.startTime ?? '18:00');
-  const [endTime, setEndTime] = useState(initialData?.endTime ?? '22:00');
+  const [startDate, setStartDate] = useState(initialData?.startDate || toDateInputValue(new Date()));
+  const [startTime, setStartTime] = useState(initialData?.startTime ?? '');
+  const [endTime, setEndTime] = useState(initialData?.endTime ?? '');
   const [weeksAhead, setWeeksAhead] = useState(String(initialData?.weeksAhead ?? 1));
   const [selectedDays, setSelectedDays] = useState<string[]>(initialData?.selectedDays ?? ['MON', 'TUE', 'WED', 'THU', 'FRI']);
   const [note, setNote] = useState(initialData?.note ?? '');
@@ -144,9 +145,9 @@ export function ShiftForm({ open, onClose, onCreated, prefill, initialData }: Sh
     setJobId(initialData?.jobId ?? '');
     setPositionCode(initialData?.positionCode ?? 'GENERAL_SPECIALIST');
     setRequiredStaffCount(String(initialData?.requiredStaff ?? 1));
-    setStartDate(initialData?.startDate ?? toDateInputValue(new Date()));
-    setStartTime(initialData?.startTime ?? '18:00');
-    setEndTime(initialData?.endTime ?? '22:00');
+    setStartDate(initialData?.startDate || toDateInputValue(new Date()));
+    setStartTime(initialData?.startTime ?? '');
+    setEndTime(initialData?.endTime ?? '');
     setWeeksAhead(String(initialData?.weeksAhead ?? 1));
     setSelectedDays(initialData?.selectedDays ?? ['MON', 'TUE', 'WED', 'THU', 'FRI']);
     setNote(initialData?.note ?? '');
@@ -303,6 +304,10 @@ export function ShiftForm({ open, onClose, onCreated, prefill, initialData }: Sh
     }
     if (!selectedDays.length) {
       toast.error('Select at least one weekday.');
+      return;
+    }
+    if (!startTime || !endTime) {
+      toast.error('Start time and end time are required.');
       return;
     }
 
@@ -463,13 +468,15 @@ export function ShiftForm({ open, onClose, onCreated, prefill, initialData }: Sh
             />
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Input
-              label="Position Code"
-              value={positionCode}
-              onChange={(event) => setPositionCode(event.target.value)}
-              placeholder="FLOOR_SPECIALIST"
-            />
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="sm:col-span-2">
+              <Input
+                label="Position Code"
+                value={positionCode}
+                onChange={(event) => setPositionCode(event.target.value)}
+                placeholder="FLOOR_SPECIALIST"
+              />
+            </div>
             <Input
               label="Required Staff"
               type="number"

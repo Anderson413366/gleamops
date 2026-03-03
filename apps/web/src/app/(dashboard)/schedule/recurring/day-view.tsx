@@ -18,8 +18,9 @@ interface DayViewProps {
 const HOUR_SLOTS = Array.from({ length: 24 }, (_, i) => i);
 
 function timeToMinutes(time: string): number {
+  if (!time.includes(':')) return 0;
   const [h, m] = time.split(':').map(Number);
-  return h * 60 + m;
+  return (h || 0) * 60 + (m || 0);
 }
 
 export function DayView({ rows, dateKey, search = '', onSelect }: DayViewProps) {

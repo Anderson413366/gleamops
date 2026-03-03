@@ -121,7 +121,7 @@ function dayCodeFromDate(dateString: string) {
 }
 
 function normalizeTime(value: string | null | undefined) {
-  if (!value) return '00:00';
+  if (!value) return '—';
   return value.slice(0, 5);
 }
 

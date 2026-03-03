@@ -15,10 +15,12 @@ export function computeStaffHours(
   let totalMinutes = 0;
   const dateSet = new Set(dateColumns);
   for (const row of staffRows) {
+    if (!row.startTime.includes(':') || !row.endTime.includes(':')) continue;
     const [sh, sm] = row.startTime.split(':').map(Number);
     const [eh, em] = row.endTime.split(':').map(Number);
     let shiftMinutes = (eh * 60 + em) - (sh * 60 + sm);
-    if (shiftMinutes <= 0) shiftMinutes += 24 * 60;
+    if (Number.isNaN(shiftMinutes) || shiftMinutes <= 0) shiftMinutes += 24 * 60;
+    if (Number.isNaN(shiftMinutes)) continue;
     const daysInRange = row.scheduledDates.filter((d) => dateSet.has(d)).length;
     totalMinutes += shiftMinutes * daysInRange;
   }
@@ -31,8 +33,9 @@ function formatHours(hours: number): string {
 }
 
 function timeToMinutes(time: string): number {
+  if (!time.includes(':')) return NaN;
   const [h, m] = time.split(':').map(Number);
-  return h * 60 + m;
+  return h * 60 + (m || 0);
 }
 
 /** Build a set of row-id+date keys that have overlapping time ranges for the same staff on the same date. */
@@ -53,6 +56,7 @@ export function buildConflictKeys(rows: RecurringScheduleRow[]): Set<string> {
         const aEnd = timeToMinutes(a.endTime);
         const bStart = timeToMinutes(b.startTime);
         const bEnd = timeToMinutes(b.endTime);
+        if (Number.isNaN(aStart) || Number.isNaN(aEnd) || Number.isNaN(bStart) || Number.isNaN(bEnd)) continue;
         if (aStart < bEnd && bStart < aEnd) {
           const sharedDates = a.scheduledDates.filter((d) => b.scheduledDates.includes(d));
           for (const date of sharedDates) {

@@ -74,33 +74,33 @@ export default function SafetyPageClient() {
       const [expiringRes, expiredRes, docsReviewRes, completionRes] = await Promise.all([
         supabase
           .from('staff_certifications')
-          .select('id', { count: 'exact', head: true })
+          .select('id')
           .is('archived_at', null)
           .gte('expiry_date', todayStr)
           .lte('expiry_date', in30DaysStr),
         supabase
           .from('staff_certifications')
-          .select('id', { count: 'exact', head: true })
+          .select('id')
           .is('archived_at', null)
           .eq('status', 'EXPIRED'),
         supabase
           .from('safety_documents')
-          .select('id', { count: 'exact', head: true })
+          .select('id')
           .is('archived_at', null)
           .in('status', ['UNDER_REVIEW', 'EXPIRED']),
         supabase
           .from('training_completions')
-          .select('id', { count: 'exact', head: true })
+          .select('id')
           .is('archived_at', null)
           .gte('expiry_date', todayStr)
           .lte('expiry_date', in30DaysStr),
       ]);
 
       setKpis({
-        certsExpiring30d: expiringRes.count ?? 0,
-        certsExpired: expiredRes.count ?? 0,
-        docsNeedReview: docsReviewRes.count ?? 0,
-        completionsExpiring30d: completionRes.count ?? 0,
+        certsExpiring30d: expiringRes.data?.length ?? 0,
+        certsExpired: expiredRes.data?.length ?? 0,
+        docsNeedReview: docsReviewRes.data?.length ?? 0,
+        completionsExpiring30d: completionRes.data?.length ?? 0,
       });
     }
     fetchKpis();

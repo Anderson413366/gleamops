@@ -102,7 +102,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   financial: 'Financial',
   settings: 'Settings',
   admin: 'Settings',
-  team: 'Workforce',
+  team: 'Team',
   vendors: 'Partners',
   subcontractors: 'Subcontractors',
   services: 'Services',
@@ -211,13 +211,13 @@ export function Breadcrumbs() {
               <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             )}
             {isLast || !crumb.href ? (
-              <span className="text-foreground font-medium truncate max-w-[120px] sm:max-w-[160px] md:max-w-[200px]">
+              <span className="text-foreground font-medium truncate max-w-[160px] sm:max-w-[200px] md:max-w-[260px]">
                 {crumb.label}
               </span>
             ) : (
               <Link
                 href={crumb.href}
-                className="text-muted-foreground hover:text-foreground transition-colors truncate max-w-[120px] sm:max-w-[160px] md:max-w-[200px]"
+                className="text-muted-foreground hover:text-foreground transition-colors truncate max-w-[160px] sm:max-w-[200px] md:max-w-[260px]"
               >
                 {crumb.label}
               </Link>

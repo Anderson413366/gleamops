@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import {
   Badge,
   Button,
+  ConfirmDialog,
   EmptyState,
   ExportButton,
   Pagination,
@@ -63,7 +64,11 @@ function statusFor(row: MicrofiberEnrollmentListItem): StatusFilter {
 
 function formatDate(value: string | null) {
   if (!value) return '—';
-  const date = new Date(`${value}T00:00:00.000Z`);
+  // Parse date-only strings as local time to avoid UTC off-by-one (BUG-C49)
+  const m = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const date = m
+    ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+    : new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
@@ -94,6 +99,7 @@ export default function MicrofiberTable({ search }: MicrofiberTableProps) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('enrolled');
   const [defaultRate, setDefaultRate] = useState(5);
   const [savingStaffId, setSavingStaffId] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ row: MicrofiberRow; type: 'enroll' | 'remove' } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -296,8 +302,8 @@ export default function MicrofiberTable({ search }: MicrofiberTableProps) {
         filtered.length === 0 ? (
           <EmptyState
             icon={<Droplets className="h-12 w-12" />}
-            title="No microfiber specialists"
-            description="Enroll specialists to start tracking wash payouts."
+            title={search ? 'No matching specialists' : 'No microfiber specialists'}
+            description={search ? 'Try a different search term.' : 'Enroll specialists to start tracking wash payouts.'}
           />
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -331,7 +337,7 @@ export default function MicrofiberTable({ search }: MicrofiberTableProps) {
                         size="sm"
                         variant="secondary"
                         disabled={savingStaffId === row.id}
-                        onClick={() => void exit(row)}
+                        onClick={() => setConfirmAction({ row, type: 'remove' })}
                       >
                         Remove
                       </Button>
@@ -339,7 +345,7 @@ export default function MicrofiberTable({ search }: MicrofiberTableProps) {
                       <Button
                         size="sm"
                         disabled={savingStaffId === row.id}
-                        onClick={() => void enroll(row)}
+                        onClick={() => setConfirmAction({ row, type: 'enroll' })}
                       >
                         Enroll
                       </Button>
@@ -390,7 +396,7 @@ export default function MicrofiberTable({ search }: MicrofiberTableProps) {
                             disabled={savingStaffId === row.id}
                             onClick={(event) => {
                               event.stopPropagation();
-                              void exit(row);
+                              setConfirmAction({ row, type: 'remove' });
                             }}
                           >
                             Remove
@@ -401,7 +407,7 @@ export default function MicrofiberTable({ search }: MicrofiberTableProps) {
                             disabled={savingStaffId === row.id}
                             onClick={(event) => {
                               event.stopPropagation();
-                              void enroll(row);
+                              setConfirmAction({ row, type: 'enroll' });
                             }}
                           >
                             Enroll
@@ -434,6 +440,28 @@ export default function MicrofiberTable({ search }: MicrofiberTableProps) {
         hasPrev={pag.hasPrev}
         onNext={pag.nextPage}
         onPrev={pag.prevPage}
+      />
+
+      <ConfirmDialog
+        open={!!confirmAction}
+        onClose={() => setConfirmAction(null)}
+        onConfirm={() => {
+          if (!confirmAction) return;
+          if (confirmAction.type === 'enroll') {
+            void enroll(confirmAction.row);
+          } else {
+            void exit(confirmAction.row);
+          }
+          setConfirmAction(null);
+        }}
+        title={confirmAction?.type === 'enroll' ? 'Enroll Specialist' : 'Remove Specialist'}
+        description={
+          confirmAction?.type === 'enroll'
+            ? `Enroll ${confirmAction.row.full_name ?? confirmAction.row.staff_code} at $${defaultRate.toFixed(2)}/set?`
+            : `Remove ${confirmAction?.row.full_name ?? confirmAction?.row.staff_code ?? ''} from the microfiber program?`
+        }
+        confirmLabel={confirmAction?.type === 'enroll' ? 'Enroll' : 'Remove'}
+        variant={confirmAction?.type === 'remove' ? 'danger' : 'default'}
       />
     </div>
   );

@@ -213,19 +213,35 @@ export default function TeamPageClient() {
         { label: 'Submitted Reviews', value: reviewsRes.data?.length ?? 0 },
         { label: 'Expiring Docs', value: docsRes.data?.length ?? 0, warn: (docsRes.data?.length ?? 0) > 0 },
       ]);
+    } else if (activeTab === 'microfiber') {
+      const [enrolledRes, allStaffRes, rateRes] = await Promise.all([
+        supabase.from('staff').select('id, microfiber_rate_per_set').is('archived_at', null).eq('microfiber_enrolled', true),
+        supabase.from('staff').select('id').is('archived_at', null).eq('status', 'ACTIVE'),
+        supabase.from('staff').select('microfiber_rate_per_set').is('archived_at', null).eq('microfiber_enrolled', true).not('microfiber_rate_per_set', 'is', null),
+      ]);
+      const enrolled = enrolledRes.data?.length ?? 0;
+      const avgRate = (rateRes.data ?? []).length > 0
+        ? (rateRes.data as { microfiber_rate_per_set: number }[]).reduce((sum, r) => sum + Number(r.microfiber_rate_per_set || 0), 0) / rateRes.data!.length
+        : 0;
+      setTabKpis([
+        { label: 'Enrolled Specialists', value: enrolled },
+        { label: 'Total Staff', value: allStaffRes.data?.length ?? 0 },
+        { label: 'Avg Rate/Set', value: avgRate > 0 ? `$${avgRate.toFixed(2)}` : '$0.00' },
+        { label: 'Enrollment %', value: enrolled > 0 && (allStaffRes.data?.length ?? 0) > 0 ? `${Math.round((enrolled / allStaffRes.data!.length) * 100)}%` : '0%' },
+      ]);
     } else {
-      // Shared fallback for microfiber, subs, break-rules, shift-tags
+      // Shared fallback for subs, break-rules, shift-tags
       const [activeRes, posRes, excRes, tsRes] = await Promise.all([
-        supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'ACTIVE'),
-        supabase.from('staff_positions').select('id', { count: 'exact', head: true }).is('archived_at', null),
-        supabase.from('time_exceptions').select('id', { count: 'exact', head: true }).is('resolved_at', null),
-        supabase.from('timesheets').select('id', { count: 'exact', head: true }).eq('status', 'SUBMITTED'),
+        supabase.from('staff').select('id').is('archived_at', null).eq('status', 'ACTIVE'),
+        supabase.from('staff_positions').select('id').is('archived_at', null),
+        supabase.from('time_exceptions').select('id').is('resolved_at', null),
+        supabase.from('timesheets').select('id').eq('status', 'SUBMITTED'),
       ]);
       setTabKpis([
-        { label: 'Active Staff', value: activeRes.count ?? 0 },
-        { label: 'Positions', value: posRes.count ?? 0 },
-        { label: 'Exceptions', value: excRes.count ?? 0, warn: (excRes.count ?? 0) > 0 },
-        { label: 'Timesheets', value: tsRes.count ?? 0 },
+        { label: 'Active Staff', value: activeRes.data?.length ?? 0 },
+        { label: 'Positions', value: posRes.data?.length ?? 0 },
+        { label: 'Exceptions', value: excRes.data?.length ?? 0, warn: (excRes.data?.length ?? 0) > 0 },
+        { label: 'Timesheets', value: tsRes.data?.length ?? 0 },
       ]);
     }
   }, []);

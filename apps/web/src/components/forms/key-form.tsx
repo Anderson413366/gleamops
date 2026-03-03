@@ -45,6 +45,8 @@ export function KeyForm({ open, onClose, initialData, onSuccess, focusSection }:
   const isEdit = !!initialData?.id;
   const supabase = getSupabaseBrowserClient();
   const [sites, setSites] = useState<{ value: string; label: string }[]>([]);
+  const [staffOptions, setStaffOptions] = useState<{ value: string; label: string }[]>([]);
+  const [assignedTo, setAssignedTo] = useState<string | null>(null);
 
   const { values, errors, loading, setValue, onBlur, handleSubmit, reset } = useForm<KeyFormData>({
     schema: keySchema,
@@ -69,6 +71,7 @@ export function KeyForm({ open, onClose, initialData, onSuccess, focusSection }:
             label: data.label,
             total_count: data.total_count,
             status: data.status,
+            assigned_to: assignedTo,
             notes: data.notes,
           })
           .eq('id', initialData!.id)
@@ -78,6 +81,7 @@ export function KeyForm({ open, onClose, initialData, onSuccess, focusSection }:
       } else {
         const { error } = await supabase.from('key_inventory').insert({
           ...data,
+          assigned_to: assignedTo,
           tenant_id: (await supabase.auth.getUser()).data.user?.app_metadata?.tenant_id,
         });
         if (error) throw error;
@@ -87,23 +91,52 @@ export function KeyForm({ open, onClose, initialData, onSuccess, focusSection }:
     },
   });
 
-  // Load sites for dropdown
+  // Load sites + staff for dropdowns, and auto-generate key code
   useEffect(() => {
-    if (open) {
-      supabase
-        .from('sites')
-        .select('id, site_code, name')
-        .is('archived_at', null)
-        .order('site_code')
-        .then(({ data }) => {
-          if (data) {
-            setSites(
-              data.map((s) => ({ value: s.id, label: `${s.name} (${s.site_code})` }))
-            );
-          }
+    if (!open) return;
+
+    supabase
+      .from('sites')
+      .select('id, site_code, name')
+      .is('archived_at', null)
+      .order('site_code')
+      .then(({ data }) => {
+        if (data) {
+          setSites(data.map((s) => ({ value: s.id, label: `${s.name} (${s.site_code})` })));
+        }
       });
+
+    supabase
+      .from('staff')
+      .select('id, staff_code, full_name')
+      .is('archived_at', null)
+      .eq('status', 'ACTIVE')
+      .order('full_name')
+      .then(({ data }) => {
+        if (data) {
+          setStaffOptions(data.map((s) => ({ value: s.id, label: `${s.full_name ?? s.staff_code} (${s.staff_code})` })));
+        }
+      });
+
+    // Sync assigned_to from initialData
+    setAssignedTo(initialData?.assigned_to ?? null);
+
+    // Auto-generate key code for new keys
+    if (!isEdit) {
+      (async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        const tenantId = user?.app_metadata?.tenant_id;
+        let generated = false;
+        if (tenantId) {
+          const { data } = await supabase.rpc('next_code', { p_tenant_id: tenantId, p_prefix: 'KEY' });
+          if (data) { setValue('key_code', data); generated = true; }
+        }
+        if (!generated) {
+          setValue('key_code', `KEY-${String(Date.now()).slice(-6)}`);
+        }
+      })();
     }
-  }, [open, supabase]);
+  }, [open, isEdit, initialData, supabase, setValue]);
 
   useEffect(() => {
     if (!open || !focusSection) return;
@@ -117,6 +150,7 @@ export function KeyForm({ open, onClose, initialData, onSuccess, focusSection }:
 
   const handleClose = () => {
     reset();
+    setAssignedTo(null);
     onClose();
   };
 
@@ -140,7 +174,7 @@ export function KeyForm({ open, onClose, initialData, onSuccess, focusSection }:
             required
             readOnly={isEdit}
             disabled={isEdit}
-            hint={isEdit ? undefined : 'Free-text code (e.g. KEY-FRONT-01)'}
+            hint={isEdit ? undefined : 'Auto-generated — editable if needed'}
           />
           <Input
             label="Label"
@@ -155,6 +189,12 @@ export function KeyForm({ open, onClose, initialData, onSuccess, focusSection }:
             value={values.site_id ?? ''}
             onChange={(e) => setValue('site_id', e.target.value || null)}
             options={[{ value: '', label: 'None' }, ...sites]}
+          />
+          <Select
+            label="Assigned To"
+            value={assignedTo ?? ''}
+            onChange={(e) => setAssignedTo(e.target.value || null)}
+            options={[{ value: '', label: 'Unassigned' }, ...staffOptions]}
           />
           <Select
             label="Key Type"

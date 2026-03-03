@@ -502,8 +502,16 @@ export default function WarehousePanel({ search }: Props) {
     return [...lowStockExport, ...requestExport, ...purchaseExport];
   }, [locationById, lowStockRows, purchaseOrders, requests, vendorById]);
 
+  const allEmpty = locations.length === 0 && lowStockRows.length === 0 && movements.length === 0 && requests.length === 0 && purchaseOrders.length === 0;
+
   return (
     <div className="space-y-4">
+      {!loading && search && allEmpty && (
+        <p className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground text-center">
+          No warehouse data matches &ldquo;{search}&rdquo;. Warehouse sections will populate as inventory locations, movements, and orders are created.
+        </p>
+      )}
+
       <div className="flex items-center justify-end gap-2">
         <Button type="button" variant="secondary" size="sm" onClick={() => window.print()}>
           Print PDF

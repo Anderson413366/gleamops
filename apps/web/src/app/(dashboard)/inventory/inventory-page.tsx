@@ -65,6 +65,22 @@ export default function InventoryPageClient() {
     async function fetchKpis() {
       const supabase = getSupabaseBrowserClient();
 
+      if (tab === 'warehouse') {
+        const [locationsRes, movementsRes, requestsRes, ordersRes] = await Promise.all([
+          supabase.from('inventory_locations').select('id').is('archived_at', null),
+          supabase.from('stock_movements').select('id').is('archived_at', null),
+          supabase.from('supply_requests').select('id').is('archived_at', null).in('status', ['PENDING', 'APPROVED']),
+          supabase.from('purchase_orders').select('id').is('archived_at', null),
+        ]);
+        setTabKpis([
+          { label: 'Locations', value: locationsRes.data?.length ?? 0 },
+          { label: 'Movements', value: movementsRes.data?.length ?? 0 },
+          { label: 'Open Requests', value: requestsRes.data?.length ?? 0, warn: (requestsRes.data?.length ?? 0) > 0 },
+          { label: 'Purchase Orders', value: ordersRes.data?.length ?? 0 },
+        ]);
+        return;
+      }
+
       if (tab === 'counts') {
         const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
         const [allCountsRes, pendingRes, recentRes, detailsRes] = await Promise.all([

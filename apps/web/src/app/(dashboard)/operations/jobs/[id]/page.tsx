@@ -91,11 +91,11 @@ interface JobTaskWithCatalogRow {
 
 interface JobLogRow {
   id: string;
-  log_date: string | null;
-  event_type: string | null;
-  severity: string | null;
-  message: string | null;
+  ticket_code: string;
+  scheduled_date: string | null;
   status: string | null;
+  start_time: string | null;
+  end_time: string | null;
 }
 
 interface AssignedTaskDraft {
@@ -127,6 +127,14 @@ const LOG_SEVERITY_COLORS: Record<string, 'red' | 'orange' | 'yellow' | 'gray'> 
   CRITICAL: 'red',
   MAJOR: 'orange',
   MINOR: 'yellow',
+};
+
+const TICKET_STATUS_COLORS: Record<string, 'blue' | 'yellow' | 'green' | 'gray' | 'red'> = {
+  SCHEDULED: 'blue',
+  IN_PROGRESS: 'yellow',
+  COMPLETED: 'green',
+  VERIFIED: 'green',
+  CANCELED: 'gray',
 };
 
 const LOG_STATUS_COLORS: Record<string, 'red' | 'yellow' | 'green' | 'gray'> = {
@@ -281,15 +289,14 @@ export default function JobDetailPage() {
   const fetchJobLogs = async (jobId: string) => {
     const supabase = getSupabaseBrowserClient();
     const { data, error } = await supabase
-      .from('job_logs')
-      .select('id, log_date, event_type, severity, message, status')
+      .from('work_tickets')
+      .select('id, ticket_code, scheduled_date, status, start_time, end_time')
       .eq('job_id', jobId)
       .is('archived_at', null)
-      .order('log_date', { ascending: false })
+      .order('scheduled_date', { ascending: false })
       .limit(30);
 
     if (error) {
-      toast.error(error.message);
       setJobLogs([]);
       return;
     }
@@ -1085,35 +1092,33 @@ export default function JobDetailPage() {
           </div>
         </div>
 
-        {/* Job Log */}
+        {/* Work Tickets */}
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm lg:col-span-2">
           <h3 className="mb-4 text-sm font-semibold text-foreground">
             <span className="inline-flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-              Job Log ({jobLogs.length})
+              Work Tickets ({jobLogs.length})
             </span>
           </h3>
 
           {jobLogs.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No job log entries recorded yet.</p>
+            <p className="text-sm text-muted-foreground">No work tickets for this service plan.</p>
           ) : (
             <ul className="divide-y divide-border">
               {jobLogs.map((log) => (
                 <li key={log.id} className="py-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-foreground">{log.event_type ?? 'Log Entry'}</p>
-                      {log.message ? <p className="mt-0.5 text-xs text-muted-foreground">{log.message}</p> : null}
-                      <p className="mt-1 text-xs text-muted-foreground">{formatDateText(log.log_date) ?? 'Unknown date'}</p>
+                      <p className="truncate text-sm font-medium text-foreground font-mono">{log.ticket_code}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {formatDateText(log.scheduled_date) ?? 'No date'}
+                        {log.start_time ? ` · ${log.start_time.slice(0, 5)}` : ''}
+                        {log.end_time ? `–${log.end_time.slice(0, 5)}` : ''}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge color={LOG_SEVERITY_COLORS[(log.severity ?? '').toUpperCase()] ?? 'gray'}>
-                        {log.severity ?? 'n/a'}
-                      </Badge>
-                      <Badge color={LOG_STATUS_COLORS[(log.status ?? '').toUpperCase()] ?? 'gray'}>
-                        {log.status ?? 'n/a'}
-                      </Badge>
-                    </div>
+                    <Badge color={TICKET_STATUS_COLORS[(log.status ?? '').toUpperCase()] ?? 'gray'}>
+                      {log.status ?? 'n/a'}
+                    </Badge>
                   </div>
                 </li>
               ))}
@@ -1143,11 +1148,14 @@ export default function JobDetailPage() {
               className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
             >
               <option value="">Select staff member...</option>
-              {staffOptions.map((staff) => (
-                <option key={staff.id} value={staff.id}>
-                  {staff.full_name} ({staff.staff_code})
-                </option>
-              ))}
+              {staffOptions.map((staff) => {
+                const name = staff.full_name && staff.full_name !== staff.staff_code ? staff.full_name : '(Name not set)';
+                return (
+                  <option key={staff.id} value={staff.id}>
+                    {name} ({staff.staff_code})
+                  </option>
+                );
+              })}
             </select>
             <select
               value={assignRole}

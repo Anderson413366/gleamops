@@ -78,12 +78,7 @@ function PayrollWrapper({ search }: { search: string }) {
           </button>
         ))}
       </div>
-      {subTab === 'Scheduled Hours' && <PayrollTable search={search} />}
-      {subTab !== 'Scheduled Hours' && (
-        <div className="rounded-xl border border-dashed border-border p-12 text-center">
-          <p className="text-sm text-muted-foreground">{subTab} — coming soon</p>
-        </div>
-      )}
+      <PayrollTable search={search} subTab={subTab} />
     </div>
   );
 }
@@ -190,18 +185,18 @@ export default function TeamPageClient() {
       ]);
     } else if (activeTab === 'payroll') {
       const [staffRes, schedRes, confirmedRes, pendingRes] = await Promise.all([
-        supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'ACTIVE'),
+        supabase.from('staff').select('id').is('archived_at', null).eq('status', 'ACTIVE'),
         supabase.from('timesheets').select('total_hours').in('status', ['SUBMITTED', 'APPROVED']),
         supabase.from('timesheets').select('total_hours').eq('status', 'APPROVED'),
-        supabase.from('timesheets').select('id', { count: 'exact', head: true }).eq('status', 'SUBMITTED'),
+        supabase.from('timesheets').select('id').eq('status', 'SUBMITTED'),
       ]);
       const schedHours = (schedRes.data ?? []).reduce((sum, r: { total_hours: number | null }) => sum + (Number(r.total_hours) || 0), 0);
       const confirmedHours = (confirmedRes.data ?? []).reduce((sum, r: { total_hours: number | null }) => sum + (Number(r.total_hours) || 0), 0);
       setTabKpis([
-        { label: 'Staff on Payroll', value: staffRes.count ?? 0 },
+        { label: 'Staff on Payroll', value: staffRes.data?.length ?? 0 },
         { label: 'Scheduled Hours', value: schedHours > 0 ? `${schedHours.toFixed(0)}h` : '0h' },
         { label: 'Confirmed Hours', value: confirmedHours > 0 ? `${confirmedHours.toFixed(0)}h` : '0h' },
-        { label: 'Pending Confirm', value: pendingRes.count ?? 0 },
+        { label: 'Pending Confirm', value: pendingRes.data?.length ?? 0 },
       ]);
     } else if (activeTab === 'hr') {
       const thirtyDaysOut = new Date(Date.now() + 30 * 86400000);

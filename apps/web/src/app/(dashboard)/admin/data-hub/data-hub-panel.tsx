@@ -104,10 +104,11 @@ export default function DataHubPanel({ search }: Props) {
 
     const counts = await Promise.all(
       datasetDefs.map(async (dataset) => {
-        const { count } = await supabase
+        const { data } = await supabase
           .from(dataset.table)
-          .select('id', { count: 'exact', head: true });
-        return { ...dataset, count: count ?? 0 };
+          .select('id')
+          .is('archived_at', null);
+        return { ...dataset, count: data?.length ?? 0 };
       })
     );
 
@@ -198,7 +199,7 @@ export default function DataHubPanel({ search }: Props) {
                 disabled={exportingTable === dataset.table}
               >
                 <Download className="h-4 w-4" />
-                {exportingTable === dataset.table ? 'Exporting...' : 'Export CSV (500 rows)'}
+                {exportingTable === dataset.table ? 'Exporting...' : `Export CSV (${dataset.count ?? 0} rows)`}
               </Button>
             </CardContent>
           </Card>

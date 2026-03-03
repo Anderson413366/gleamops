@@ -76,17 +76,17 @@ export default function SettingsPageClient() {
     async function fetchKpis() {
       const supabase = getSupabaseBrowserClient();
       const [lookupsRes, rulesRes, geofencesRes, sequencesRes] = await Promise.all([
-        supabase.from('lookups').select('id', { count: 'exact', head: true }).eq('is_active', true),
-        supabase.from('status_transitions').select('id', { count: 'exact', head: true }),
-        supabase.from('geofences').select('id', { count: 'exact', head: true }).is('archived_at', null),
-        supabase.from('system_sequences').select('id', { count: 'exact', head: true }),
+        supabase.from('lookups').select('id').eq('is_active', true),
+        supabase.from('status_transitions').select('id'),
+        supabase.from('geofences').select('id').is('archived_at', null),
+        supabase.from('system_sequences').select('id'),
       ]);
 
       setKpis({
-        lookupRows: lookupsRes.count ?? 0,
-        transitionRules: rulesRes.count ?? 0,
-        geofences: geofencesRes.count ?? 0,
-        sequences: sequencesRes.count ?? 0,
+        lookupRows: lookupsRes.data?.length ?? 0,
+        transitionRules: rulesRes.data?.length ?? 0,
+        geofences: geofencesRes.data?.length ?? 0,
+        sequences: sequencesRes.data?.length ?? 0,
       });
     }
     fetchKpis();
@@ -107,14 +107,12 @@ export default function SettingsPageClient() {
         )}
       </div>
 
-      {tab !== 'general' && (
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Lookup Values</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.lookupRows}</p></CardContent></Card>
           <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Status Rules</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.transitionRules}</p></CardContent></Card>
           <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Geofences</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.geofences}</p></CardContent></Card>
           <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Sequences</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.sequences}</p></CardContent></Card>
-        </div>
-      )}
+      </div>
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0 lg:flex-1">

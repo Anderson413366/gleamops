@@ -107,7 +107,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   subcontractors: 'Subcontractors',
   services: 'Services',
   mapping: 'Mapping',
-  jobs: 'Work Orders',
+  jobs: 'Jobs',
   payroll: 'Payroll',
   positions: 'Positions',
   safety: 'Compliance',

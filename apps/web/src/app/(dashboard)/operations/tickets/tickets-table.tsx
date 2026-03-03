@@ -170,9 +170,9 @@ export default function TicketsTable({ search, onGoToServicePlans }: TicketsTabl
               onClick={() => handleRowClick(row)}
               initials={getEntityInitials(row.site?.name ?? row.ticket_code)}
               initialsSeed={row.ticket_code}
-              name={row.ticket_code}
-              subtitle={row.site?.name ?? 'Unassigned site'}
-              secondaryLine={row.site?.client?.name ?? row.job?.job_code ?? 'No client'}
+              name={row.site?.name ?? row.ticket_code}
+              subtitle={row.job?.job_code ?? 'No service plan'}
+              secondaryLine={row.site?.client?.name ?? 'No client'}
               statusLabel={statusLabel(row.status)}
               statusTone={statusTone(row.status)}
               metricsLine={`Scheduled ${formatDate(row.scheduled_date)}`}

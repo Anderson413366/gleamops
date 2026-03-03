@@ -48,17 +48,23 @@ export const NAV_TREE: NavItem[] = [
   },
   // 4. Work Orders
   {
-    id: 'jobs', label: 'Work Orders', href: '/schedule?tab=work-orders', icon: 'ClipboardList',
+    id: 'schedule', label: 'Work Orders', href: '/schedule?tab=work-orders', icon: 'ClipboardList',
     children: [
       { id: 'schedule', label: 'Open Orders', href: '/schedule?tab=work-orders', icon: 'FileText' },
       { id: 'schedule', label: 'Calendar', href: '/schedule?tab=calendar', icon: 'CalendarDays' },
-      { id: 'jobs', label: 'Job Log', href: '/jobs?tab=tickets', icon: 'ClipboardList' },
+    ],
+  },
+  // 5. Jobs (Service Plans, Inspections, Routes)
+  {
+    id: 'jobs', label: 'Jobs', href: '/jobs', icon: 'Briefcase',
+    children: [
       { id: 'jobs', label: 'Service Plans', href: '/jobs?tab=service-plans', icon: 'Briefcase' },
+      { id: 'jobs', label: 'Job Log', href: '/jobs?tab=tickets', icon: 'ClipboardList' },
       { id: 'jobs', label: 'Inspections', href: '/jobs?tab=inspections', icon: 'ClipboardCheck' },
       { id: 'jobs', label: 'Routes', href: '/jobs?tab=routes', icon: 'Route' },
     ],
   },
-  // 5. Field Tools
+  // 6. Field Tools
   {
     id: 'jobs', label: 'Field Tools', href: '/schedule?tab=checklists', icon: 'Wrench',
     children: [
@@ -67,7 +73,7 @@ export const NAV_TREE: NavItem[] = [
       { id: 'jobs', label: 'Time Alerts', href: '/jobs?tab=time', icon: 'AlertTriangle' },
     ],
   },
-  // 6. Client Hub
+  // 7. Client Hub
   {
     id: 'clients', label: 'Client Hub', href: '/clients', icon: 'Building2',
     children: [
@@ -77,7 +83,7 @@ export const NAV_TREE: NavItem[] = [
       { id: 'clients', label: 'Requests', href: '/clients?tab=requests', icon: 'Inbox' },
     ],
   },
-  // 7. Sales Pipeline
+  // 8. Sales Pipeline
   {
     id: 'pipeline', label: 'Sales Pipeline', href: '/pipeline', icon: 'TrendingUp',
     children: [
@@ -88,7 +94,7 @@ export const NAV_TREE: NavItem[] = [
       { id: 'pipeline', label: 'Funnel Analytics', href: '/pipeline?tab=analytics', icon: 'BarChart3' },
     ],
   },
-  // 8. Estimating
+  // 9. Estimating
   {
     id: 'pipeline', label: 'Estimating', href: '/pipeline/calculator', icon: 'Calculator',
     children: [
@@ -97,7 +103,7 @@ export const NAV_TREE: NavItem[] = [
       { id: 'pipeline', label: 'Sales Admin', href: '/pipeline/admin', icon: 'Settings' },
     ],
   },
-  // 9. Workforce
+  // 10. Workforce
   {
     id: 'team', label: 'Workforce', href: '/team', icon: 'Users',
     children: [
@@ -108,7 +114,7 @@ export const NAV_TREE: NavItem[] = [
       { id: 'team', label: 'Team Messages', href: '/team?tab=messages', icon: 'MessageSquare' },
     ],
   },
-  // 10. Time & Pay
+  // 11. Time & Pay
   {
     id: 'team', label: 'Time & Pay', href: '/team?tab=attendance', icon: 'Clock',
     children: [
@@ -118,7 +124,7 @@ export const NAV_TREE: NavItem[] = [
       { id: 'team', label: 'Microfiber Payouts', href: '/team?tab=microfiber', icon: 'Droplets' },
     ],
   },
-  // 11. Shift Config
+  // 12. Shift Config
   {
     id: 'team', label: 'Shift Config', href: '/team?tab=break-rules', icon: 'Settings',
     children: [
@@ -126,7 +132,7 @@ export const NAV_TREE: NavItem[] = [
       { id: 'team', label: 'Shift Tags', href: '/team?tab=shift-tags', icon: 'Tag' },
     ],
   },
-  // 12. Inventory
+  // 13. Inventory
   {
     id: 'inventory', label: 'Inventory', href: '/inventory', icon: 'Package',
     children: [
@@ -137,7 +143,7 @@ export const NAV_TREE: NavItem[] = [
       { id: 'inventory', label: 'Warehouse', href: '/inventory?tab=warehouse', icon: 'Warehouse' },
     ],
   },
-  // 13. Procurement
+  // 14. Procurement
   {
     id: 'inventory', label: 'Procurement', href: '/inventory?tab=orders', icon: 'ShoppingCart',
     children: [
@@ -146,7 +152,7 @@ export const NAV_TREE: NavItem[] = [
       { id: 'inventory', label: 'Vendor Directory', href: '/inventory?tab=vendors', icon: 'Store' },
     ],
   },
-  // 14. Assets
+  // 15. Assets
   {
     id: 'equipment', label: 'Assets', href: '/equipment', icon: 'Wrench',
     children: [
@@ -157,7 +163,7 @@ export const NAV_TREE: NavItem[] = [
       { id: 'equipment', label: 'Maintenance', href: '/equipment?tab=maintenance', icon: 'Settings' },
     ],
   },
-  // 15. Compliance
+  // 16. Compliance
   {
     id: 'safety', label: 'Compliance', href: '/safety', icon: 'ShieldCheck',
     children: [
@@ -167,9 +173,9 @@ export const NAV_TREE: NavItem[] = [
       { id: 'safety', label: 'Expiration Tracker', href: '/safety?tab=calendar', icon: 'CalendarDays' },
     ],
   },
-  // 16. Reports
+  // 17. Reports
   { id: 'reports', label: 'Reports', href: '/reports', icon: 'BarChart3' },
-  // 17. Service Catalog
+  // 18. Service Catalog
   {
     id: 'catalog', label: 'Service Catalog', href: '/catalog', icon: 'BookOpen',
     children: [
@@ -179,7 +185,7 @@ export const NAV_TREE: NavItem[] = [
       { id: 'catalog', label: 'Scope Library', href: '/catalog?tab=scope-library', icon: 'BookOpen' },
     ],
   },
-  // 18. Settings
+  // 19. Settings
   { id: 'settings', label: 'Settings', href: '/settings', icon: 'Settings' },
 ];
 

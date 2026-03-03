@@ -73,7 +73,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      <div className={`app-shell-content transition-[margin] duration-300 ease-out ${focusMode ? '' : sidebarCollapsed ? '' : 'md:ml-64'}`}>
+      <div className={`app-shell-content transition-[margin] duration-300 ease-out ${focusMode ? '' : sidebarCollapsed ? '' : 'lg:ml-64'}`}>
         {!focusMode && (
           <div className="app-shell-header">
             <Suspense>
@@ -81,7 +81,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </Suspense>
           </div>
         )}
-        <main id="main-content" tabIndex={-1} className="app-shell-main w-full max-w-none px-4 pt-14 pb-6 md:pt-6 sm:px-6 lg:px-8">
+        <main id="main-content" tabIndex={-1} className="app-shell-main w-full max-w-none px-4 pt-14 pb-6 lg:pt-6 sm:px-6 lg:px-8">
           <ErrorBoundary>{children}</ErrorBoundary>
         </main>
       </div>

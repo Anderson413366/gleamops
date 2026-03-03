@@ -495,7 +495,7 @@ export function Sidebar() {
       <button
         type="button"
         onClick={() => setMobileOpen(true)}
-        className="fixed top-4 left-4 z-50 md:hidden rounded-lg bg-card p-2 shadow-md border border-border transition-all duration-200 ease-in-out"
+        className="fixed top-4 left-4 z-50 lg:hidden rounded-lg bg-card p-2 shadow-md border border-border transition-all duration-200 ease-in-out"
         aria-label="Open navigation"
       >
         <Menu className="h-5 w-5 text-foreground" />
@@ -504,7 +504,7 @@ export function Sidebar() {
       {/* Overlay — backdrop blur for depth */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden animate-fade-in"
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden animate-fade-in"
           onClick={() => setMobileOpen(false)}
         />
       )}
@@ -514,7 +514,7 @@ export function Sidebar() {
         <button
           type="button"
           onClick={toggleSidebarCollapsed}
-          className="fixed top-4 left-4 z-50 hidden md:flex rounded-lg bg-card p-2 shadow-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200 ease-in-out"
+          className="fixed top-4 left-4 z-50 hidden lg:flex rounded-lg bg-card p-2 shadow-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200 ease-in-out"
           aria-label="Expand navigation"
         >
           <PanelLeft className="h-5 w-5" />
@@ -525,7 +525,7 @@ export function Sidebar() {
       <aside
         className={`fixed inset-y-0 left-0 z-50 w-64 bg-sidebar-bg border-r border-white/10 flex flex-col transition-transform duration-300 ease-out ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
-        } ${sidebarCollapsed ? 'md:-translate-x-full' : 'md:translate-x-0'}`}
+        } ${sidebarCollapsed ? 'lg:-translate-x-full' : 'lg:translate-x-0'}`}
       >
         {/* Header / Logo */}
         <div className="flex items-center justify-between h-16 px-5 border-b border-white/10">
@@ -539,7 +539,7 @@ export function Sidebar() {
             <button
               type="button"
               onClick={toggleSidebarCollapsed}
-              className="hidden md:flex rounded-lg p-1.5 text-sidebar-text hover:bg-sidebar-hover hover:text-white transition-all duration-200 ease-in-out"
+              className="hidden lg:flex rounded-lg p-1.5 text-sidebar-text hover:bg-sidebar-hover hover:text-white transition-all duration-200 ease-in-out"
               aria-label="Collapse navigation"
             >
               <PanelLeftClose className="h-4 w-4" />
@@ -547,7 +547,7 @@ export function Sidebar() {
             <button
               type="button"
               onClick={() => setMobileOpen(false)}
-              className="md:hidden rounded-lg p-1.5 text-sidebar-text hover:bg-sidebar-hover hover:text-white transition-all duration-200 ease-in-out"
+              className="lg:hidden rounded-lg p-1.5 text-sidebar-text hover:bg-sidebar-hover hover:text-white transition-all duration-200 ease-in-out"
               aria-label="Close navigation"
             >
               <X className="h-5 w-5" />

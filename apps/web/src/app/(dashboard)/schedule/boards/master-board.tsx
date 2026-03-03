@@ -13,6 +13,7 @@ interface MasterTicket {
   start_time: string | null;
   end_time: string | null;
   status: string;
+  planning_status: string | null;
   position_code: string | null;
   site: {
     id: string;
@@ -40,6 +41,12 @@ const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> =
   COMPLETED: { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-300', dot: 'bg-emerald-500' },
   VERIFIED: { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-300', dot: 'bg-emerald-500' },
   CANCELED: { bg: 'bg-gray-100 dark:bg-gray-800/30', text: 'text-gray-600 dark:text-gray-400', dot: 'bg-gray-400' },
+};
+
+const PLANNING_STATUS_COLORS: Record<string, { bg: string; text: string }> = {
+  NOT_STARTED: { bg: 'bg-gray-100 dark:bg-gray-800/30', text: 'text-gray-600 dark:text-gray-400' },
+  IN_PROGRESS: { bg: 'bg-cyan-100 dark:bg-cyan-900/30', text: 'text-cyan-700 dark:text-cyan-300' },
+  READY: { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-300' },
 };
 
 const GROUP_ACCENT_COLORS = [
@@ -102,7 +109,11 @@ function formatPositionLabel(code: string | null): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export function MasterBoard() {
+interface MasterBoardProps {
+  onDateChange?: (date: string) => void;
+}
+
+export function MasterBoard({ onDateChange }: MasterBoardProps) {
   const [selectedDate, setSelectedDate] = useState(() => toDateInput(new Date()));
   const [tickets, setTickets] = useState<MasterTicket[]>([]);
   const [loading, setLoading] = useState(true);
@@ -124,6 +135,10 @@ export function MasterBoard() {
     });
   }, []);
 
+  useEffect(() => {
+    if (selectedDate) onDateChange?.(selectedDate);
+  }, [selectedDate, onDateChange]);
+
   const fetchTickets = useCallback(async () => {
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
@@ -131,7 +146,7 @@ export function MasterBoard() {
     const { data, error } = await supabase
       .from('work_tickets')
       .select(`
-        id, ticket_code, scheduled_date, start_time, end_time, status, position_code,
+        id, ticket_code, scheduled_date, start_time, end_time, status, planning_status, position_code,
         site:site_id(id, name, site_code),
         assignments:ticket_assignments(id, assignment_status, staff:staff_id(id, full_name))
       `)
@@ -156,7 +171,7 @@ export function MasterBoard() {
         .from('staff')
         .select('id, full_name, staff_code')
         .is('archived_at', null)
-        .eq('employment_status', 'ACTIVE')
+        .eq('status', 'ACTIVE')
         .order('full_name', { ascending: true });
 
       if (allStaff) {
@@ -414,7 +429,7 @@ export function MasterBoard() {
                               </div>
 
                               {/* Status — Monday.com-style colored pill */}
-                              <div>
+                              <div className="flex items-center gap-1.5 flex-wrap">
                                 <span
                                   className={cn(
                                     'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold',
@@ -425,6 +440,14 @@ export function MasterBoard() {
                                   <span className={cn('h-1.5 w-1.5 rounded-full', statusStyle.dot)} />
                                   {ticket.status}
                                 </span>
+                                {ticket.planning_status && ticket.planning_status !== 'NOT_STARTED' && (() => {
+                                  const ps = PLANNING_STATUS_COLORS[ticket.planning_status] ?? PLANNING_STATUS_COLORS.NOT_STARTED;
+                                  return (
+                                    <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium', ps.bg, ps.text)}>
+                                      {ticket.planning_status === 'READY' ? 'Ready' : 'Planning'}
+                                    </span>
+                                  );
+                                })()}
                               </div>
 
                               {/* Person — Monday.com-style avatars */}

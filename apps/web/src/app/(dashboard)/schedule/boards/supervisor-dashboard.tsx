@@ -138,7 +138,7 @@ export function SupervisorDashboard() {
       .from('staff')
       .select('id, full_name')
       .is('archived_at', null)
-      .eq('employment_status', 'ACTIVE')
+      .eq('status', 'ACTIVE')
       .order('full_name', { ascending: true });
 
     if (staffData) {

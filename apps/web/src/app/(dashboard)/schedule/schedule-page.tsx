@@ -221,6 +221,7 @@ export default function SchedulePageClient() {
   const [recurringLoading, setRecurringLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [planningDate, setPlanningDate] = useState('');
+  const [masterBoardDate, setMasterBoardDate] = useState('');
   const [conflictCount, setConflictCount] = useState(0);
   const [copyWeekOpen, setCopyWeekOpen] = useState(false);
   const [copyWeekLoading, setCopyWeekLoading] = useState(false);
@@ -422,17 +423,19 @@ export default function SchedulePageClient() {
             { label: 'Ready', value: readyRes.count ?? 0 },
           ]);
         } else if (tab === 'master') {
+          const boardDate = masterBoardDate || today;
           const [totalRes, sitesRes, assignedRes, unassignedRes] = await Promise.all([
-            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).is('archived_at', null).in('status', ['SCHEDULED', 'IN_PROGRESS']),
+            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('scheduled_date', boardDate).is('archived_at', null),
             supabase.from('sites').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'ACTIVE'),
-            supabase.from('work_tickets').select('id, assignments:ticket_assignments(id)').is('archived_at', null).eq('status', 'SCHEDULED'),
-            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'SCHEDULED'),
+            supabase.from('work_tickets').select('id, assignments:ticket_assignments(id)').eq('scheduled_date', boardDate).is('archived_at', null),
+            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('scheduled_date', boardDate).is('archived_at', null),
           ]);
           const assignedRows = (assignedRes.data ?? []) as unknown as Array<{ id: string; assignments?: Array<{ id: string }> }>;
           const withAssignment = assignedRows.filter(r => (r.assignments ?? []).length > 0).length;
           const totalTickets = unassignedRes.count ?? 0;
+          const dateLabel = boardDate === today ? 'Today' : new Date(`${boardDate}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
           setTabKpis([
-            { label: 'Total Tickets', value: totalRes.count ?? 0 },
+            { label: `Tickets ${dateLabel}`, value: totalRes.count ?? 0 },
             { label: 'Sites', value: sitesRes.count ?? 0 },
             { label: 'Assigned', value: withAssignment },
             { label: 'Unassigned', value: Math.max(totalTickets - withAssignment, 0), warn: (totalTickets - withAssignment) > 0 },
@@ -549,7 +552,7 @@ export default function SchedulePageClient() {
       }
     }
     fetchTabKpis();
-  }, [refreshKey, tab, planningDate]);
+  }, [refreshKey, tab, planningDate, masterBoardDate]);
 
   // Fetch conflict count for toolbar badge
   useEffect(() => {
@@ -1571,7 +1574,7 @@ export default function SchedulePageClient() {
       )}
 
       {tab === 'master' && showMasterBoard && (
-        <MasterBoard key={`master-${refreshKey}`} />
+        <MasterBoard key={`master-${refreshKey}`} onDateChange={setMasterBoardDate} />
       )}
 
       {tab === 'floater' && showFloaterBoard && (

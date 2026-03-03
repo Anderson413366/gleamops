@@ -169,7 +169,10 @@ export default function RoutesFleetPanel({ search }: Props) {
   const [expandedLoadItems, setExpandedLoadItems] = useState<Record<string, boolean>>({});
 
   const [selectedRouteId, setSelectedRouteId] = useState<string>('');
-  const [newRouteDate, setNewRouteDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [newRouteDate, setNewRouteDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
   const [newRouteType, setNewRouteType] = useState<RouteRow['route_type']>('DAILY_ROUTE');
   const [newRouteOwnerStaffId, setNewRouteOwnerStaffId] = useState('');
 
@@ -597,7 +600,7 @@ export default function RoutesFleetPanel({ search }: Props) {
     try {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const targetDate = tomorrow.toISOString().slice(0, 10);
+      const targetDate = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
 
@@ -865,7 +868,7 @@ export default function RoutesFleetPanel({ search }: Props) {
             <option value="">Unassigned owner</option>
             {staff.map((person) => (
               <option key={person.id} value={person.id}>
-                {(person.full_name ?? person.staff_code)} ({person.staff_code})
+                {(person.full_name?.trim() || person.staff_code)} ({person.staff_code})
               </option>
             ))}
           </select>
@@ -909,7 +912,7 @@ export default function RoutesFleetPanel({ search }: Props) {
                         <Badge color={badgeColorForStatus(route.status)}>{route.status}</Badge>
                       </div>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Owner: {owner ? `${owner.full_name ?? owner.staff_code} (${owner.staff_code})` : 'Unassigned'} · Stops: {routeStops.length} · Travel: {totalTravel}m
+                        Owner: {owner ? `${owner.full_name?.trim() || owner.staff_code} (${owner.staff_code})` : 'Unassigned'} · Stops: {routeStops.length} · Travel: {totalTravel}m
                       </p>
                     </button>
                   );
@@ -973,7 +976,7 @@ export default function RoutesFleetPanel({ search }: Props) {
                     className="w-full rounded-md border border-border bg-background px-2 py-2 text-sm"
                   />
                 </div>
-                <Button onClick={addStop} disabled={savingStop} className="w-full">
+                <Button onClick={addStop} disabled={savingStop || !newStopJobId} className="w-full">
                   <PlusCircle className="h-4 w-4" />
                   {savingStop ? 'Adding Stop...' : 'Add Stop'}
                 </Button>

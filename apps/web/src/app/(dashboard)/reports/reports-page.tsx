@@ -7,6 +7,7 @@ import { Badge, cn } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
 
+import OverviewDashboard from './overview/overview-dashboard';
 import OpsDashboard from './ops/ops-dashboard';
 import SalesDashboard from './sales/sales-dashboard';
 import FinancialDashboard from './financial/financial-dashboard';
@@ -176,35 +177,7 @@ export default function ReportsPageClient() {
         </div>
       </div>
 
-      {tab === 'overview' && (
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <MetricCard
-            icon={<BarChart3 className="h-5 w-5" />}
-            tone="primary"
-            label="Open Tickets"
-            value={snapshot.openTickets}
-          />
-          <MetricCard
-            icon={<TrendingUp className="h-5 w-5" />}
-            tone="accent"
-            label="Pipeline Value"
-            value={formatCurrency(snapshot.pipelineValue)}
-            sublabel="/month"
-          />
-          <MetricCard
-            icon={<DollarSign className="h-5 w-5" />}
-            tone="success"
-            label="Monthly Revenue"
-            value={formatCurrency(snapshot.monthlyRevenue)}
-          />
-          <MetricCard
-            icon={<Users className="h-5 w-5" />}
-            tone="primary"
-            label="Active Staff"
-            value={snapshot.activeStaff}
-          />
-        </div>
-      )}
+      {tab === 'overview' && <OverviewDashboard rangeDays={rangeDays} refreshKey={refreshKey} />}
 
       {tab === 'ops' && <OpsDashboard rangeDays={rangeDays} refreshKey={refreshKey} />}
       {tab === 'sales' && <SalesDashboard rangeDays={rangeDays} refreshKey={refreshKey} />}

@@ -231,6 +231,29 @@ export function StaffForm({ open, onClose, initialData, onSuccess, focusSection 
     },
   });
 
+  // Hydrate form when editing an existing record
+  useEffect(() => {
+    if (!open) return;
+    if (initialData) {
+      setValue('staff_code', initialData.staff_code ?? '');
+      setValue('full_name', initialData.full_name ?? '');
+      setValue('first_name', initialData.first_name ?? null);
+      setValue('last_name', initialData.last_name ?? null);
+      setValue('role', initialData.role ?? 'CLEANER');
+      setValue('status', initialData.status ?? 'ACTIVE');
+      setValue('employment_type', initialData.employment_type ?? null);
+      setValue('hire_date', initialData.hire_date ?? null);
+      setValue('pay_rate', initialData.pay_rate ?? null);
+      setValue('email', initialData.email ?? '');
+      setValue('phone', initialData.phone ?? '');
+      setValue('mobile_phone', initialData.mobile_phone ?? null);
+      setValue('address', initialData.address ?? null);
+      setValue('notes', initialData.notes ?? null);
+    } else {
+      reset();
+    }
+  }, [open, initialData]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Load supervisors
   useEffect(() => {
     if (open) {

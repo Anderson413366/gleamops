@@ -49,6 +49,7 @@ export default function TasksTable({ search, autoCreate, onAutoCreateHandled, on
   const router = useRouter();
   const [rows, setRows] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
   // Create form state (SlideOver for NEW only)
   const [formOpen, setFormOpen] = useState(false);
@@ -84,16 +85,35 @@ export default function TasksTable({ search, autoCreate, onAutoCreateHandled, on
   // ---------------------------------------------------------------------------
   // Filter + Sort + Paginate
   // ---------------------------------------------------------------------------
+  const categoryOptions = useMemo(() => {
+    const cats = new Set<string>();
+    for (const r of rows) { if (r.category) cats.add(r.category); }
+    return Array.from(cats).sort();
+  }, [rows]);
+
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: rows.length };
+    for (const r of rows) {
+      const cat = r.category || 'Uncategorized';
+      counts[cat] = (counts[cat] || 0) + 1;
+    }
+    return counts;
+  }, [rows]);
+
   const filtered = useMemo(() => {
-    if (!search) return rows;
+    let result = rows;
+    if (categoryFilter !== 'all') {
+      result = result.filter((r) => (r.category || 'Uncategorized') === categoryFilter);
+    }
+    if (!search) return result;
     const q = search.toLowerCase();
-    return rows.filter(
+    return result.filter(
       (r) =>
         r.name.toLowerCase().includes(q) ||
         r.code.toLowerCase().includes(q) ||
         r.category?.toLowerCase().includes(q)
     );
-  }, [rows, search]);
+  }, [rows, search, categoryFilter]);
 
   const { sorted, sortKey, sortDir, onSort } = useTableSort(
     filtered as unknown as Record<string, unknown>[], 'name', 'asc'
@@ -132,6 +152,35 @@ export default function TasksTable({ search, autoCreate, onAutoCreateHandled, on
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
       </div>
+      {categoryOptions.length > 1 && (
+        <div className="mb-4 flex flex-wrap items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setCategoryFilter('all')}
+            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              categoryFilter === 'all'
+                ? 'bg-module-accent/15 text-module-accent border border-module-accent/30'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+            }`}
+          >
+            All ({categoryCounts['all'] ?? 0})
+          </button>
+          {categoryOptions.map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setCategoryFilter(cat)}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                categoryFilter === cat
+                  ? 'bg-module-accent/15 text-module-accent border border-module-accent/30'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+              }`}
+            >
+              {cat.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())} ({categoryCounts[cat] ?? 0})
+            </button>
+          ))}
+        </div>
+      )}
       <Table>
         <TableHeader>
           <tr>

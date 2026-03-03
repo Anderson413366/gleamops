@@ -152,9 +152,7 @@ export default function ClientsPageClient() {
       ? 'Add Client'
       : tab === 'sites'
         ? 'Add Site'
-        : tab === 'contacts'
-          ? 'Add Contact'
-          : '';
+        : '';
 
   return (
     <div className="space-y-6">

@@ -59,7 +59,8 @@ interface UseLookupsOptions {
 
 export function useLookups(category: string | string[], options: UseLookupsOptions = {}) {
   const { includeInactive = false, enabled = true, valueMode = 'code' } = options;
-  const supabase = getSupabaseBrowserClient();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const categories = useMemo(() => normalizeCategoryInput(category), [category]);
 
   const [data, setData] = useState<LookupRecord[]>([]);
@@ -125,25 +126,26 @@ export function useLookups(category: string | string[], options: UseLookupsOptio
   };
 }
 
-export const useClientStatuses = () => useLookups(['Client Status', 'CLIENT_STATUS']);
-export const useClientTypes = () => useLookups(['Client Type', 'CLIENT_TYPE'], { valueMode: 'label' });
-export const useIndustries = () => useLookups(['Industry', 'INDUSTRY'], { valueMode: 'label' });
-export const usePaymentTerms = () => useLookups(['Payment Terms', 'PAYMENT_TERMS']);
-export const useInvoiceFrequencies = () => useLookups(['Invoice Frequency', 'INVOICE_FREQUENCY']);
-export const useSiteStatuses = () => useLookups(['Site Status', 'SITE_STATUS']);
-export const useRiskLevels = () => useLookups(['Risk Level', 'RISK_LEVEL']);
-export const usePriorityLevels = () => useLookups(['Priority Level', 'PRIORITY_LEVEL']);
+export const useClientStatuses = (opts?: Partial<UseLookupsOptions>) => useLookups(['Client Status', 'CLIENT_STATUS'], opts);
+export const useClientTypes = (opts?: Partial<UseLookupsOptions>) => useLookups(['Client Type', 'CLIENT_TYPE'], { valueMode: 'label', ...opts });
+export const useIndustries = (opts?: Partial<UseLookupsOptions>) => useLookups(['Industry', 'INDUSTRY'], { valueMode: 'label', ...opts });
+export const usePaymentTerms = (opts?: Partial<UseLookupsOptions>) => useLookups(['Payment Terms', 'PAYMENT_TERMS'], opts);
+export const useInvoiceFrequencies = (opts?: Partial<UseLookupsOptions>) => useLookups(['Invoice Frequency', 'INVOICE_FREQUENCY'], opts);
+export const useSiteStatuses = (opts?: Partial<UseLookupsOptions>) => useLookups(['Site Status', 'SITE_STATUS'], opts);
+export const useRiskLevels = (opts?: Partial<UseLookupsOptions>) => useLookups(['Risk Level', 'RISK_LEVEL'], opts);
+export const usePriorityLevels = (opts?: Partial<UseLookupsOptions>) => useLookups(['Priority Level', 'PRIORITY_LEVEL'], opts);
 
 // Sprint 6 — Staff category presets
-export const useStaffStatuses = () => useLookups(['Staff Status', 'staff_status']);
-export const useStaffRoles = () => useLookups(['Staff Role', 'STAFF_ROLE']);
-export const useEmploymentTypes = () => useLookups(['Employment Type', 'EMPLOYMENT_TYPE']);
-export const usePayTypes = () => useLookups(['Pay Type', 'PAY_TYPE']);
-export const useScheduleTypes = () => useLookups(['Schedule Type', 'SCHEDULE_TYPE']);
+export const useStaffStatuses = (opts?: Partial<UseLookupsOptions>) => useLookups(['Staff Status', 'staff_status'], opts);
+export const useStaffRoles = (opts?: Partial<UseLookupsOptions>) => useLookups(['Staff Role', 'STAFF_ROLE'], opts);
+export const useEmploymentTypes = (opts?: Partial<UseLookupsOptions>) => useLookups(['Employment Type', 'EMPLOYMENT_TYPE'], opts);
+export const usePayTypes = (opts?: Partial<UseLookupsOptions>) => useLookups(['Pay Type', 'PAY_TYPE'], opts);
+export const useScheduleTypes = (opts?: Partial<UseLookupsOptions>) => useLookups(['Schedule Type', 'SCHEDULE_TYPE'], opts);
 
 // Sprint 6 — Reference table hooks
 export const usePositionTypes = () => {
-  const supabase = getSupabaseBrowserClient();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const [data, setData] = useState<Array<{ value: string; label: string }>>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -168,7 +170,8 @@ export const usePositionTypes = () => {
 };
 
 export const useSiteTypes = () => {
-  const supabase = getSupabaseBrowserClient();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const [data, setData] = useState<Array<{ value: string; label: string }>>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -193,7 +196,8 @@ export const useSiteTypes = () => {
 };
 
 export const useServicesList = () => {
-  const supabase = getSupabaseBrowserClient();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const [data, setData] = useState<Array<{ value: string; label: string }>>([]);
   const [isLoading, setIsLoading] = useState(false);
 

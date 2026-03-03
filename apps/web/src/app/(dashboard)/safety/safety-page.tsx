@@ -39,12 +39,12 @@ export default function SafetyPageClient() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [autoCreate, setAutoCreate] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
-  const [kpis, setKpis] = useState({
-    certsExpiring30d: 0,
-    certsExpired: 0,
-    docsNeedReview: 0,
-    completionsExpiring30d: 0,
-  });
+  const [tabKpis, setTabKpis] = useState<{ label: string; value: number | string; warn?: boolean }[]>([
+    { label: 'Certs Expiring (30d)', value: 0 },
+    { label: 'Expired Certifications', value: 0 },
+    { label: 'Docs Needing Review', value: 0 },
+    { label: 'Completions Expiring', value: 0 },
+  ]);
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   const canAdd = ['certifications', 'training'].includes(tab);
@@ -71,48 +71,47 @@ export default function SafetyPageClient() {
       const todayStr = today.toISOString().slice(0, 10);
       const in30DaysStr = in30Days.toISOString().slice(0, 10);
 
-      const [expiringRes, expiredRes, docsReviewRes, completionRes] = await Promise.all([
-        supabase
-          .from('staff_certifications')
-          .select('id')
-          .is('archived_at', null)
-          .gte('expiry_date', todayStr)
-          .lte('expiry_date', in30DaysStr),
-        supabase
-          .from('staff_certifications')
-          .select('id')
-          .is('archived_at', null)
-          .eq('status', 'EXPIRED'),
-        supabase
-          .from('safety_documents')
-          .select('id')
-          .is('archived_at', null)
-          .in('status', ['UNDER_REVIEW', 'EXPIRED']),
-        supabase
-          .from('training_completions')
-          .select('id')
-          .is('archived_at', null)
-          .gte('expiry_date', todayStr)
-          .lte('expiry_date', in30DaysStr),
-      ]);
-
-      setKpis({
-        certsExpiring30d: expiringRes.data?.length ?? 0,
-        certsExpired: expiredRes.data?.length ?? 0,
-        docsNeedReview: docsReviewRes.data?.length ?? 0,
-        completionsExpiring30d: completionRes.data?.length ?? 0,
-      });
+      if (tab === 'incidents') {
+        const [openRes, totalRes, highPriorityRes] = await Promise.all([
+          supabase.from('issues').select('id').is('archived_at', null).in('issue_type', ['SAFETY_ISSUE', 'MAINTENANCE_REPAIR', 'ACCESS_PROBLEM', 'OTHER']).in('status', ['OPEN', 'IN_PROGRESS']),
+          supabase.from('issues').select('id').is('archived_at', null).in('issue_type', ['SAFETY_ISSUE', 'MAINTENANCE_REPAIR', 'ACCESS_PROBLEM', 'OTHER']),
+          supabase.from('issues').select('id').is('archived_at', null).in('issue_type', ['SAFETY_ISSUE', 'MAINTENANCE_REPAIR', 'ACCESS_PROBLEM', 'OTHER']).in('priority', ['HIGH', 'CRITICAL']),
+        ]);
+        setTabKpis([
+          { label: 'Open Incidents', value: openRes.data?.length ?? 0, warn: (openRes.data?.length ?? 0) > 0 },
+          { label: 'High/Critical', value: highPriorityRes.data?.length ?? 0, warn: (highPriorityRes.data?.length ?? 0) > 0 },
+          { label: 'Total Incidents', value: totalRes.data?.length ?? 0 },
+          { label: 'Resolved', value: Math.max((totalRes.data?.length ?? 0) - (openRes.data?.length ?? 0), 0) },
+        ]);
+      } else {
+        const [expiringRes, expiredRes, docsReviewRes, completionRes] = await Promise.all([
+          supabase.from('staff_certifications').select('id').is('archived_at', null).gte('expiry_date', todayStr).lte('expiry_date', in30DaysStr),
+          supabase.from('staff_certifications').select('id').is('archived_at', null).eq('status', 'EXPIRED'),
+          supabase.from('safety_documents').select('id').is('archived_at', null).in('status', ['UNDER_REVIEW', 'EXPIRED']),
+          supabase.from('training_completions').select('id').is('archived_at', null).gte('expiry_date', todayStr).lte('expiry_date', in30DaysStr),
+        ]);
+        setTabKpis([
+          { label: 'Certs Expiring (30d)', value: expiringRes.data?.length ?? 0, warn: (expiringRes.data?.length ?? 0) > 0 },
+          { label: 'Expired Certifications', value: expiredRes.data?.length ?? 0, warn: (expiredRes.data?.length ?? 0) > 0 },
+          { label: 'Docs Needing Review', value: docsReviewRes.data?.length ?? 0, warn: (docsReviewRes.data?.length ?? 0) > 0 },
+          { label: 'Completions Expiring', value: completionRes.data?.length ?? 0 },
+        ]);
+      }
     }
     fetchKpis();
-  }, [refreshKey]);
+  }, [tab, refreshKey]);
 
   return (
     <div className="space-y-6">
       <div className="pt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Certs Expiring (30d)</p><p className={`text-lg font-semibold sm:text-xl leading-tight${kpis.certsExpiring30d > 0 ? ' text-warning' : ' text-muted-foreground'}`}>{kpis.certsExpiring30d}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Expired Certifications</p><p className={`text-lg font-semibold sm:text-xl leading-tight${kpis.certsExpired > 0 ? ' text-destructive' : ' text-muted-foreground'}`}>{kpis.certsExpired}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Docs Needing Review</p><p className={`text-lg font-semibold sm:text-xl leading-tight${kpis.docsNeedReview > 0 ? ' text-warning' : ' text-muted-foreground'}`}>{kpis.docsNeedReview}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Completions Expiring (30d)</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.completionsExpiring30d}</p></CardContent></Card>
+        {tabKpis.map((kpi) => (
+          <Card key={kpi.label}>
+            <CardContent className="pt-4">
+              <p className="text-xs text-muted-foreground">{kpi.label}</p>
+              <p className={`text-lg font-semibold sm:text-xl leading-tight${kpi.warn ? ' text-warning' : ''}`}>{kpi.value}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border/60 bg-muted/30 px-3 py-2">

@@ -13,6 +13,14 @@ type SiteOption = {
   name: string;
 };
 
+type StaffOption = {
+  id: string;
+  staff_code: string;
+  full_name: string | null;
+};
+
+const STATUSES = ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'] as const;
+
 type IncidentRow = {
   id: string;
   issue_type: string;
@@ -98,6 +106,7 @@ export default function IncidentsTable({ search }: Props) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [sites, setSites] = useState<SiteOption[]>([]);
+  const [staffList, setStaffList] = useState<StaffOption[]>([]);
   const [rows, setRows] = useState<IncidentRow[]>([]);
 
   const [title, setTitle] = useState('');
@@ -105,16 +114,27 @@ export default function IncidentsTable({ search }: Props) {
   const [siteId, setSiteId] = useState('');
   const [issueType, setIssueType] = useState<(typeof ISSUE_TYPES)[number]>('SAFETY_ISSUE');
   const [priority, setPriority] = useState<(typeof PRIORITIES)[number]>('MEDIUM');
-  const [dueDate, setDueDate] = useState('');
+  const [assignedToStaffId, setAssignedToStaffId] = useState('');
+  const [incidentStatus, setIncidentStatus] = useState<(typeof STATUSES)[number]>('OPEN');
+  const [dueDate, setDueDate] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [siteRes, incidentRes] = await Promise.all([
+    const [siteRes, staffRes, incidentRes] = await Promise.all([
       supabase
         .from('sites')
         .select('id, site_code, name')
         .is('archived_at', null)
         .order('name', { ascending: true }),
+      supabase
+        .from('staff')
+        .select('id, staff_code, full_name')
+        .is('archived_at', null)
+        .eq('status', 'ACTIVE')
+        .order('full_name'),
       supabase
         .from('issues')
         .select(`
@@ -137,9 +157,11 @@ export default function IncidentsTable({ search }: Props) {
     ]);
 
     if (siteRes.error) toast.error(siteRes.error.message);
+    if (staffRes.error) toast.error(staffRes.error.message);
     if (incidentRes.error) toast.error(incidentRes.error.message);
 
     setSites((siteRes.data ?? []) as SiteOption[]);
+    setStaffList((staffRes.data ?? []) as StaffOption[]);
     const normalized = ((incidentRes.data ?? []) as IncidentQueryRow[]).map((row) => ({
       ...row,
       site: Array.isArray(row.site) ? (row.site[0] ?? null) : row.site,
@@ -184,11 +206,12 @@ export default function IncidentsTable({ search }: Props) {
         site_id: siteId,
         issue_type: issueType,
         priority,
-        status: 'OPEN',
+        status: incidentStatus,
         title: title.trim(),
         description: description.trim(),
         client_visible: false,
         reported_by_user_id: user.id,
+        assigned_to_staff_id: assignedToStaffId || null,
         due_at: dueDate ? new Date(`${dueDate}T17:00:00`).toISOString() : null,
       });
 
@@ -204,10 +227,12 @@ export default function IncidentsTable({ search }: Props) {
     setSiteId('');
     setIssueType('SAFETY_ISSUE');
     setPriority('MEDIUM');
+    setAssignedToStaffId('');
+    setIncidentStatus('OPEN');
     setDueDate('');
     toast.success('Incident reported.');
     await load();
-  }, [description, dueDate, issueType, load, priority, siteId, supabase, tenantId, title, user?.id]);
+  }, [assignedToStaffId, description, dueDate, incidentStatus, issueType, load, priority, siteId, supabase, tenantId, title, user?.id]);
 
   return (
     <div className="space-y-4">
@@ -225,7 +250,7 @@ export default function IncidentsTable({ search }: Props) {
           {loading ? (
             <p className="text-sm text-muted-foreground">Loading incidents...</p>
           ) : filteredRows.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No incidents found.</p>
+            <p className="text-sm text-muted-foreground">{search ? 'No matching incidents. Try a different search term.' : 'No incidents found.'}</p>
           ) : (
             <div className="space-y-2">
               {filteredRows.map((row) => (
@@ -297,10 +322,26 @@ export default function IncidentsTable({ search }: Props) {
           >
             {PRIORITIES.map((level) => <option key={level} value={level}>{PRIORITY_LABELS[level] ?? level}</option>)}
           </select>
+          <select
+            value={incidentStatus}
+            onChange={(e) => setIncidentStatus(e.target.value as (typeof STATUSES)[number])}
+            className="w-full rounded-md border border-border bg-background px-2 py-2 text-sm"
+          >
+            {STATUSES.map((s) => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
+          </select>
+          <select
+            value={assignedToStaffId}
+            onChange={(e) => setAssignedToStaffId(e.target.value)}
+            className="w-full rounded-md border border-border bg-background px-2 py-2 text-sm"
+          >
+            <option value="">Unassigned</option>
+            {staffList.map((s) => <option key={s.id} value={s.id}>{s.full_name ?? s.staff_code} ({s.staff_code})</option>)}
+          </select>
           <input
             type="date"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
+            placeholder="Due date"
             className="w-full rounded-md border border-border bg-background px-2 py-2 text-sm"
           />
           <div className="md:col-span-2">

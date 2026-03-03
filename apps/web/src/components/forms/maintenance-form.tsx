@@ -1,15 +1,21 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { CalendarDays, FileText, Wrench } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { vehicleMaintenanceSchema, type VehicleMaintenanceFormData } from '@gleamops/shared';
-import { SlideOver, Input, Textarea, Button, FormSection } from '@gleamops/ui';
+import { SlideOver, Input, Select, Textarea, Button, FormSection } from '@gleamops/ui';
 import type { VehicleMaintenance } from '@gleamops/shared';
+
+function todayLocal() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
 
 const DEFAULTS: VehicleMaintenanceFormData = {
   vehicle_id: '',
-  service_date: new Date().toISOString().slice(0, 10),
+  service_date: todayLocal(),
   service_type: '',
   description: null,
   cost: null,
@@ -30,6 +36,7 @@ interface MaintenanceFormProps {
 export function MaintenanceForm({ open, onClose, vehicleId, initialData, onSuccess }: MaintenanceFormProps) {
   const isEdit = !!initialData?.id;
   const supabase = getSupabaseBrowserClient();
+  const [vehicleOptions, setVehicleOptions] = useState<{ value: string; label: string }[]>([]);
 
   const { values, errors, loading, setValue, onBlur, handleSubmit, reset } = useForm<VehicleMaintenanceFormData>({
     schema: vehicleMaintenanceSchema,
@@ -51,6 +58,7 @@ export function MaintenanceForm({ open, onClose, vehicleId, initialData, onSucce
         const result = await supabase
           .from('vehicle_maintenance')
           .update({
+            vehicle_id: data.vehicle_id || null,
             service_date: data.service_date,
             service_type: data.service_type,
             description: data.description,
@@ -67,6 +75,7 @@ export function MaintenanceForm({ open, onClose, vehicleId, initialData, onSucce
       } else {
         const { error } = await supabase.from('vehicle_maintenance').insert({
           ...data,
+          vehicle_id: data.vehicle_id || null,
           tenant_id: (await supabase.auth.getUser()).data.user?.app_metadata?.tenant_id,
         });
         if (error) throw error;
@@ -75,6 +84,21 @@ export function MaintenanceForm({ open, onClose, vehicleId, initialData, onSucce
       handleClose();
     },
   });
+
+  // Load vehicles for dropdown
+  useEffect(() => {
+    if (!open) return;
+    supabase
+      .from('vehicles')
+      .select('id, vehicle_code, name')
+      .is('archived_at', null)
+      .order('name')
+      .then(({ data }) => {
+        if (data) {
+          setVehicleOptions(data.map((v) => ({ value: v.id, label: `${v.name} (${v.vehicle_code})` })));
+        }
+      });
+  }, [open, supabase]);
 
   const handleClose = () => {
     reset();
@@ -89,7 +113,14 @@ export function MaintenanceForm({ open, onClose, vehicleId, initialData, onSucce
       wide
     >
       <form onSubmit={handleSubmit} className="space-y-8">
-        <FormSection title="Service Record" icon={<CalendarDays className="h-4 w-4" />} description="When the service happened and what was done.">
+        <FormSection title="Service Record" icon={<CalendarDays className="h-4 w-4" />} description="Which vehicle/equipment was serviced and what was done.">
+          <Select
+            label="Vehicle / Equipment"
+            value={values.vehicle_id}
+            onChange={(e) => setValue('vehicle_id', e.target.value)}
+            options={[{ value: '', label: 'Select a vehicle...' }, ...vehicleOptions]}
+            error={errors.vehicle_id}
+          />
           <Input
             label="Service Date"
             type="date"

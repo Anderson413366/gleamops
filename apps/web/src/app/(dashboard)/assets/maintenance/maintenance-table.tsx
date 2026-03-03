@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Settings2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { VehicleMaintenance } from '@gleamops/shared';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
-  EmptyState, Pagination, TableSkeleton, Badge,
+  EmptyState, Pagination, TableSkeleton, Badge, ExportButton,
   StatusDot, statusRowAccentClass, cn,
 } from '@gleamops/ui';
 import { useTableSort } from '@/hooks/use-table-sort';
@@ -97,29 +98,26 @@ export default function MaintenanceTable({ search, formOpen, onFormClose, onRefr
 
   if (loading) return <TableSkeleton rows={8} cols={6} />;
 
-  if (filtered.length === 0) {
-    return (
-      <>
-        <EmptyState
-          icon={<Settings2 className="h-12 w-12" />}
-          title="No maintenance records"
-          description="Equipment and vehicle service history will appear here."
-        />
-        <MaintenanceForm
-          open={createOpen}
-          onClose={handleFormClose}
-          initialData={editItem}
-          onSuccess={handleFormSuccess}
-        />
-      </>
-    );
-  }
-
   const dateFmt = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   const currFmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
   return (
     <div>
+      <div className="flex justify-end mb-4">
+        <ExportButton
+          data={filtered as unknown as Record<string, unknown>[]}
+          filename="maintenance-records"
+          columns={[
+            { key: 'service_date', label: 'Date' },
+            { key: 'service_type', label: 'Type' },
+            { key: 'performed_by', label: 'Performed By' },
+            { key: 'cost', label: 'Cost' },
+            { key: 'next_service_date', label: 'Next Service' },
+          ]}
+          onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
+        />
+      </div>
+
       <Table>
         <TableHeader>
           <tr>
@@ -133,7 +131,6 @@ export default function MaintenanceTable({ search, formOpen, onFormClose, onRefr
             <TableHead>Performed By</TableHead>
             <TableHead>Cost</TableHead>
             <TableHead>Next Service</TableHead>
-            <TableHead>Next Svc Odometer</TableHead>
           </tr>
         </TableHeader>
         <TableBody>
@@ -171,23 +168,33 @@ export default function MaintenanceTable({ search, formOpen, onFormClose, onRefr
                   );
                 })()}
               </TableCell>
-              <TableCell className="text-sm">
-                {row.next_service_odometer != null ? `${row.next_service_odometer.toLocaleString()} mi` : '—'}
-              </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
-      <Pagination
-        currentPage={pag.currentPage}
-        totalPages={pag.totalPages}
-        totalItems={pag.totalItems}
-        pageSize={pag.pageSize}
-        hasNext={pag.hasNext}
-        hasPrev={pag.hasPrev}
-        onNext={pag.nextPage}
-        onPrev={pag.prevPage}
-      />
+
+      {filtered.length === 0 && (
+        <div className="mt-4">
+          <EmptyState
+            icon={<Settings2 className="h-10 w-10" />}
+            title={search ? 'No matching records' : 'No maintenance records'}
+            description={search ? 'Try a different search term.' : 'Equipment and vehicle service history will appear here.'}
+          />
+        </div>
+      )}
+
+      {filtered.length > 0 && (
+        <Pagination
+          currentPage={pag.currentPage}
+          totalPages={pag.totalPages}
+          totalItems={pag.totalItems}
+          pageSize={pag.pageSize}
+          hasNext={pag.hasNext}
+          hasPrev={pag.hasPrev}
+          onNext={pag.nextPage}
+          onPrev={pag.prevPage}
+        />
+      )}
 
       <MaintenanceForm
         open={createOpen}

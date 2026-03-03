@@ -128,7 +128,7 @@ export default function ProposalsTable({ search, onGoToBids }: ProposalsTablePro
     <div>
       <div className="mb-4 flex items-center justify-between gap-3">
         <Button size="sm" onClick={() => onGoToBids?.()} disabled={!onGoToBids}>
-          <Plus className="h-4 w-4" /> New Proposal
+          <Plus className="h-4 w-4" /> Create from Bid
         </Button>
         <ExportButton
           data={filtered as unknown as Record<string, unknown>[]}

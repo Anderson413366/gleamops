@@ -303,7 +303,7 @@ function UnifiedPipelinePageClient() {
           <ProposalsSection
             key={`proposals-${refreshKey}`}
             globalSearch={search}
-            onGoToBids={() => setWizardOpen(true)}
+            onGoToBids={() => router.push('/pipeline?tab=bids')}
             refreshToken={refreshKey}
             onCountChange={handleProposalsCountChange}
           />

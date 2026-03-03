@@ -79,7 +79,7 @@ export function ProposalsSection({
       <div className="flex flex-wrap items-center gap-2">
         <Badge color="blue">Sent {stats.sent}</Badge>
         <Badge color="yellow">Opened {stats.opened}</Badge>
-        <Badge color="green">Signed {stats.signed}</Badge>
+        <Badge color="green">Won {stats.signed}</Badge>
         <Badge color="red">Expired {stats.expired}</Badge>
       </div>
 

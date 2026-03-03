@@ -229,8 +229,22 @@ export default function TeamPageClient() {
         { label: 'Avg Rate/Set', value: avgRate > 0 ? `$${avgRate.toFixed(2)}` : '$0.00' },
         { label: 'Enrollment %', value: enrolled > 0 && (allStaffRes.data?.length ?? 0) > 0 ? `${Math.round((enrolled / allStaffRes.data!.length) * 100)}%` : '0%' },
       ]);
+    } else if (activeTab === 'break-rules') {
+      const [rulesRes, paidRes, posRes] = await Promise.all([
+        supabase.from('break_rules').select('id').is('archived_at', null),
+        supabase.from('break_rules').select('id').is('archived_at', null).eq('is_paid', true),
+        supabase.from('staff_positions').select('id').is('archived_at', null),
+      ]);
+      const total = rulesRes.data?.length ?? 0;
+      const paid = paidRes.data?.length ?? 0;
+      setTabKpis([
+        { label: 'Rules Configured', value: total },
+        { label: 'Paid Breaks', value: paid },
+        { label: 'Unpaid Breaks', value: Math.max(total - paid, 0) },
+        { label: 'Positions', value: posRes.data?.length ?? 0 },
+      ]);
     } else {
-      // Shared fallback for subs, break-rules, shift-tags
+      // Shared fallback for subs, shift-tags
       const [activeRes, posRes, excRes, tsRes] = await Promise.all([
         supabase.from('staff').select('id').is('archived_at', null).eq('status', 'ACTIVE'),
         supabase.from('staff_positions').select('id').is('archived_at', null),

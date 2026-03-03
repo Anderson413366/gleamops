@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { toast } from 'sonner';
 import { Plus, Trash2, ChevronLeft, ChevronRight, Check, AlertTriangle, DollarSign, Shield, Wrench, Lightbulb, FileText, Moon } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
@@ -1024,6 +1025,17 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
   };
 
   const goNext = () => {
+    if (!canNext()) {
+      const hints: Record<string, string> = {
+        Basics: 'Select a client to continue.',
+        Areas: 'Add at least one area with square footage.',
+        Tasks: 'Add at least one task to each area.',
+        Schedule: 'Select at least one day.',
+        Costs: 'Set a cleaner hourly rate.',
+      };
+      toast.error(hints[currentStepName] ?? 'Complete required fields to continue.');
+      return;
+    }
     if (currentStepName === 'Pricing') {
       runCalculation();
     }
@@ -2007,7 +2019,7 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
           {step === 0 ? 'Cancel' : 'Back'}
         </Button>
         {!isLastStep ? (
-          <Button onClick={goNext} disabled={!canNext()}>
+          <Button onClick={goNext}>
             Next
             <ChevronRight className="h-4 w-4" />
           </Button>

@@ -151,7 +151,7 @@ export default function MarketingInsertsTable({ search }: Props) {
           ...payload,
           tenant_id: tenantId,
           insert_code: insertCode,
-          file_id: '00000000-0000-0000-0000-000000000000', // placeholder — file upload is a future enhancement
+          // file_id omitted — file upload is a future enhancement (column is nullable)
         });
       if (insertErr) {
         setError(insertErr.message);

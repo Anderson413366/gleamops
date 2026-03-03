@@ -31,17 +31,17 @@ export default function SalesAdminPageClient() {
     async function fetchKpis() {
       const supabase = getSupabaseBrowserClient();
       const [ratesRes, templatesRes, insertsRes, activeFollowupsRes] = await Promise.all([
-        supabase.from('sales_production_rates').select('id', { count: 'exact', head: true }),
-        supabase.from('sales_followup_templates').select('id', { count: 'exact', head: true }),
-        supabase.from('sales_marketing_inserts').select('id', { count: 'exact', head: true }),
-        supabase.from('sales_followup_templates').select('id', { count: 'exact', head: true }).eq('is_active', true),
+        supabase.from('sales_production_rates').select('id'),
+        supabase.from('sales_followup_templates').select('id'),
+        supabase.from('sales_marketing_inserts').select('id'),
+        supabase.from('sales_followup_templates').select('id').eq('is_active', true),
       ]);
 
       setKpis({
-        productionRates: ratesRes.count ?? 0,
-        followupTemplates: templatesRes.count ?? 0,
-        marketingInserts: insertsRes.count ?? 0,
-        activeFollowups: activeFollowupsRes.count ?? 0,
+        productionRates: ratesRes.data?.length ?? 0,
+        followupTemplates: templatesRes.data?.length ?? 0,
+        marketingInserts: insertsRes.data?.length ?? 0,
+        activeFollowups: activeFollowupsRes.data?.length ?? 0,
       });
     }
 

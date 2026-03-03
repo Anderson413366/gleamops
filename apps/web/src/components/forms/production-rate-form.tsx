@@ -100,6 +100,24 @@ export function ProductionRateForm({ open, onClose, initialData, onSuccess }: Pr
     },
   });
 
+  // Hydrate form when editing an existing record
+  useEffect(() => {
+    if (!open) return;
+    if (initialData) {
+      setValue('rate_code', initialData.rate_code ?? '');
+      setValue('task_name', initialData.task_name ?? '');
+      setValue('unit_code', (initialData.unit_code as 'SQFT_1000' | 'EACH') ?? 'SQFT_1000');
+      setValue('base_minutes', initialData.base_minutes ?? 0);
+      setValue('default_ml_adjustment', initialData.default_ml_adjustment ?? 0);
+      setValue('floor_type_code', initialData.floor_type_code ?? '');
+      setValue('building_type_code', initialData.building_type_code ?? '');
+      setValue('is_active', initialData.is_active ?? true);
+      setValue('notes', initialData.notes ?? '');
+    } else {
+      reset();
+    }
+  }, [open, initialData]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Auto-generate rate code on create
   useEffect(() => {
     if (open && !isEdit && !values.rate_code) {

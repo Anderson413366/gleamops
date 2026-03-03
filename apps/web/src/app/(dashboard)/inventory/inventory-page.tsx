@@ -64,6 +64,12 @@ export default function InventoryPageClient() {
     async function fetchKpis() {
       const supabase = getSupabaseBrowserClient();
 
+      if (tab === 'forecasting') {
+        // Forecasting panel renders its own KPI cards — skip shared KPIs
+        setTabKpis([]);
+        return;
+      }
+
       if (tab === 'orders') {
         const [totalRes, orderedRes, shippedRes, draftRes] = await Promise.all([
           supabase.from('supply_orders').select('id').is('archived_at', null),
@@ -248,16 +254,18 @@ export default function InventoryPageClient() {
 
   return (
     <div className="space-y-6">
-      <div className="pt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {tabKpis.map((kpi) => (
-          <Card key={kpi.label}>
-            <CardContent className="pt-4">
-              <p className="text-xs text-muted-foreground">{kpi.label}</p>
-              <p className={`text-lg font-semibold sm:text-xl leading-tight${kpi.warn ? ' text-destructive' : ''}`}>{kpi.value}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {tabKpis.length > 0 && (
+        <div className="pt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {tabKpis.map((kpi) => (
+            <Card key={kpi.label}>
+              <CardContent className="pt-4">
+                <p className="text-xs text-muted-foreground">{kpi.label}</p>
+                <p className={`text-lg font-semibold sm:text-xl leading-tight${kpi.warn ? ' text-destructive' : ''}`}>{kpi.value}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border/60 bg-muted/30 px-3 py-2">
         <SearchInput

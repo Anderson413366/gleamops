@@ -310,18 +310,22 @@ export default function ForecastingPanel({ search }: Props) {
               <BrainCircuit className="h-4 w-4 text-primary" />
               <h3 className="text-sm font-semibold text-foreground">Forecasting & Auto-Replenish</h3>
             </div>
-            <select
-              value={locationFilter}
-              onChange={(event) => setLocationFilter(event.target.value)}
-              className="rounded-md border border-border bg-background px-2 py-1.5 text-xs"
-            >
-              <option value="ALL">All inventory locations</option>
-              {locations.map((location) => (
-                <option key={location.id} value={location.id}>
-                  {location.name} ({location.location_type})
-                </option>
-              ))}
-            </select>
+            {locations.length > 0 ? (
+              <select
+                value={locationFilter}
+                onChange={(event) => setLocationFilter(event.target.value)}
+                className="rounded-md border border-border bg-background px-2 py-1.5 text-xs"
+              >
+                <option value="ALL">All inventory locations</option>
+                {locations.map((location) => (
+                  <option key={location.id} value={location.id}>
+                    {location.name} ({location.location_type})
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span className="text-xs text-muted-foreground">No locations configured</span>
+            )}
           </div>
           <p className="text-xs text-muted-foreground">Recommendations use last 90 days of consumption movements with reorder-point and pending-PO adjustments.</p>
         </CardHeader>

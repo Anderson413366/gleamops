@@ -146,7 +146,7 @@ function ScheduledHoursPanel({ search }: { search: string }) {
               <TableCell className="font-mono text-xs">{row.staff_code}</TableCell>
               <TableCell className="font-medium">{row.full_name}</TableCell>
               <TableCell>{row.role}</TableCell>
-              <TableCell>{row.pay_rate ? `${usd.format(row.pay_rate)}/hr` : '—'}</TableCell>
+              <TableCell>{row.pay_rate ? `${usd.format(row.pay_rate)}${row.pay_type === 'Salary' ? '/biweekly' : '/hr'}` : '—'}</TableCell>
               <TableCell>
                 {row.pay_type ? (
                   <Badge color={row.pay_type === 'Hourly' ? 'blue' : 'green'}>{row.pay_type}</Badge>

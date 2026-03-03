@@ -75,51 +75,52 @@ export default function JobsPageClient() {
   const [selectedInspection, setSelectedInspection] = useState<InspectionWithRelations | null>(null);
   const [showCreateInspection, setShowCreateInspection] = useState(false);
   const [openServicePlanCreateToken, setOpenServicePlanCreateToken] = useState(0);
-  const [kpis, setKpis] = useState({
-    todayTickets: 0,
-    openTickets: 0,
-    activeJobs: 0,
-    openAlerts: 0,
-  });
+  const [tabKpis, setTabKpis] = useState<{ label: string; value: number | string; warn?: boolean }[]>([
+    { label: 'Tickets Today', value: 0 },
+    { label: 'Open Tickets', value: 0 },
+    { label: 'Active Service Plans', value: 0 },
+    { label: 'Open Alerts', value: 0 },
+  ]);
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
-  useEffect(() => {
-    async function fetchKpis() {
-      const supabase = getSupabaseBrowserClient();
+  const fetchKpis = useCallback(async (activeTab: string) => {
+    const supabase = getSupabaseBrowserClient();
+
+    if (activeTab === 'time') {
+      const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+      const [openRes, criticalRes, warningRes, recentRes] = await Promise.all([
+        supabase.from('alerts').select('id').eq('alert_type', 'TIME_EXCEPTION').is('dismissed_at', null),
+        supabase.from('alerts').select('id').eq('alert_type', 'TIME_EXCEPTION').is('dismissed_at', null).eq('severity', 'CRITICAL'),
+        supabase.from('alerts').select('id').eq('alert_type', 'TIME_EXCEPTION').is('dismissed_at', null).eq('severity', 'WARNING'),
+        supabase.from('alerts').select('id').eq('alert_type', 'TIME_EXCEPTION').is('dismissed_at', null).gte('created_at', weekAgo),
+      ]);
+      setTabKpis([
+        { label: 'Open Exceptions', value: openRes.data?.length ?? 0, warn: (openRes.data?.length ?? 0) > 0 },
+        { label: 'Critical', value: criticalRes.data?.length ?? 0, warn: (criticalRes.data?.length ?? 0) > 0 },
+        { label: 'Warnings', value: warningRes.data?.length ?? 0 },
+        { label: 'This Week', value: recentRes.data?.length ?? 0 },
+      ]);
+    } else {
       const _now = new Date();
       const today = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, '0')}-${String(_now.getDate()).padStart(2, '0')}`;
       const [todayRes, openRes, jobsRes, alertsRes] = await Promise.all([
-        supabase
-          .from('work_tickets')
-          .select('id', { count: 'exact', head: true })
-          .eq('scheduled_date', today)
-          .is('archived_at', null),
-        supabase
-          .from('work_tickets')
-          .select('id', { count: 'exact', head: true })
-          .in('status', ['SCHEDULED', 'IN_PROGRESS'])
-          .is('archived_at', null),
-        supabase
-          .from('site_jobs')
-          .select('id', { count: 'exact', head: true })
-          .eq('status', 'ACTIVE')
-          .is('archived_at', null),
-        supabase
-          .from('alerts')
-          .select('id', { count: 'exact', head: true })
-          .eq('alert_type', 'TIME_EXCEPTION')
-          .is('dismissed_at', null),
+        supabase.from('work_tickets').select('id').eq('scheduled_date', today).is('archived_at', null),
+        supabase.from('work_tickets').select('id').in('status', ['SCHEDULED', 'IN_PROGRESS']).is('archived_at', null),
+        supabase.from('site_jobs').select('id').eq('status', 'ACTIVE').is('archived_at', null),
+        supabase.from('alerts').select('id').eq('alert_type', 'TIME_EXCEPTION').is('dismissed_at', null),
       ]);
-
-      setKpis({
-        todayTickets: todayRes.count ?? 0,
-        openTickets: openRes.count ?? 0,
-        activeJobs: jobsRes.count ?? 0,
-        openAlerts: alertsRes.count ?? 0,
-      });
+      setTabKpis([
+        { label: 'Tickets Today', value: todayRes.data?.length ?? 0 },
+        { label: 'Open Tickets', value: openRes.data?.length ?? 0 },
+        { label: 'Active Service Plans', value: jobsRes.data?.length ?? 0 },
+        { label: 'Open Alerts', value: alertsRes.data?.length ?? 0, warn: (alertsRes.data?.length ?? 0) > 0 },
+      ]);
     }
-    fetchKpis();
-  }, [refreshKey]);
+  }, []);
+
+  useEffect(() => {
+    fetchKpis(tab);
+  }, [tab, fetchKpis, refreshKey]);
 
   // Handle quick create actions from URL params
   const clearActionParam = useCallback(
@@ -201,54 +202,14 @@ export default function JobsPageClient() {
   return (
     <div className="space-y-6">
       <div className="pt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Card>
-          <CardContent className="pt-4">
-            <p className="text-xs text-muted-foreground">Tickets Today</p>
-            <p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.todayTickets}</p>
-          </CardContent>
-        </Card>
-        <Card
-          role="button"
-          tabIndex={0}
-          onClick={() => setTab('tickets')}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              setTab('tickets');
-            }
-          }}
-          className="cursor-pointer hover:border-module-accent/40 hover:shadow-md"
-        >
-          <CardContent className="pt-4">
-            <p className="text-xs text-muted-foreground">Open Tickets</p>
-            <p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.openTickets}</p>
-            <p className="text-[11px] text-muted-foreground">Open Job Log</p>
-          </CardContent>
-        </Card>
-        <Card
-          role="button"
-          tabIndex={0}
-          onClick={() => setTab('service-plans')}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              setTab('service-plans');
-            }
-          }}
-          className="cursor-pointer hover:border-module-accent/40 hover:shadow-md"
-        >
-          <CardContent className="pt-4">
-            <p className="text-xs text-muted-foreground">Active Service Plans</p>
-            <p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.activeJobs}</p>
-            <p className="text-[11px] text-muted-foreground">Open Service Plans</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <p className="text-xs text-muted-foreground">Open Alerts</p>
-            <p className={`text-lg font-semibold sm:text-xl leading-tight${kpis.openAlerts > 0 ? ' text-warning' : ' text-muted-foreground'}`}>{kpis.openAlerts}</p>
-          </CardContent>
-        </Card>
+        {tabKpis.map((kpi) => (
+          <Card key={kpi.label}>
+            <CardContent className="pt-4">
+              <p className="text-xs text-muted-foreground">{kpi.label}</p>
+              <p className={`text-lg font-semibold sm:text-xl leading-tight${kpi.warn ? ' text-warning' : ''}`}>{kpi.value}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border/60 bg-muted/30 px-3 py-2">

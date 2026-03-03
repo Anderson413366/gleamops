@@ -27,6 +27,7 @@ export default function TimesheetsTable({ search }: TimesheetsTableProps) {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<TimesheetWithStaff | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED'>('all');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -166,16 +167,28 @@ export default function TimesheetsTable({ search }: TimesheetsTableProps) {
     }
   };
 
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: rows.length };
+    for (const r of rows) counts[r.status] = (counts[r.status] || 0) + 1;
+    return counts;
+  }, [rows]);
+
   const filtered = useMemo(() => {
-    if (!search) return rows;
-    const q = search.toLowerCase();
-    return rows.filter(
-      (r) =>
-        r.staff?.full_name?.toLowerCase().includes(q) ||
-        r.staff?.staff_code?.toLowerCase().includes(q) ||
-        r.status.toLowerCase().includes(q)
-    );
-  }, [rows, search]);
+    let result = rows;
+    if (statusFilter !== 'all') {
+      result = result.filter((r) => r.status === statusFilter);
+    }
+    if (search) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (r) =>
+          r.staff?.full_name?.toLowerCase().includes(q) ||
+          r.staff?.staff_code?.toLowerCase().includes(q) ||
+          r.status.toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [rows, search, statusFilter]);
 
   const { sorted, sortKey, sortDir, onSort } = useTableSort(
     filtered as unknown as Record<string, unknown>[], 'week_start', 'asc'
@@ -185,10 +198,28 @@ export default function TimesheetsTable({ search }: TimesheetsTableProps) {
 
   if (loading) return <TableSkeleton rows={6} cols={8} />;
 
+  const STATUS_CHIPS = ['all', 'DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED'] as const;
+
   if (filtered.length === 0) {
     return (
       <div className="space-y-4">
-        <div className="flex justify-end">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap gap-1.5">
+            {STATUS_CHIPS.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setStatusFilter(s)}
+                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                  statusFilter === s
+                    ? 'bg-module-accent/15 text-module-accent border border-module-accent/30'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                }`}
+              >
+                {s === 'all' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()} ({statusCounts[s] ?? 0})
+              </button>
+            ))}
+          </div>
           <Button onClick={handleGenerate} loading={generating}>
             <RefreshCw className="h-4 w-4" />
             Generate Timesheets
@@ -196,7 +227,7 @@ export default function TimesheetsTable({ search }: TimesheetsTableProps) {
         </div>
         <EmptyState
           icon={<FileText className="h-12 w-12" />}
-          title="No timesheets"
+          title={statusFilter !== 'all' ? `No ${statusFilter.toLowerCase()} timesheets` : 'No timesheets'}
           description={search ? 'Try a different search term.' : 'Click "Generate Timesheets" to create timesheets from this week\'s time entries.'}
         />
       </div>
@@ -205,7 +236,24 @@ export default function TimesheetsTable({ search }: TimesheetsTableProps) {
 
   return (
     <div>
-      <div className="flex justify-end gap-2 mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <div className="flex flex-wrap gap-1.5">
+          {STATUS_CHIPS.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setStatusFilter(s)}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                statusFilter === s
+                  ? 'bg-module-accent/15 text-module-accent border border-module-accent/30'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+              }`}
+            >
+              {s === 'all' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()} ({statusCounts[s] ?? 0})
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2">
         <Button size="sm" variant="secondary" onClick={handleGenerate} loading={generating}>
           <RefreshCw className="h-4 w-4" />
           Generate
@@ -223,6 +271,7 @@ export default function TimesheetsTable({ search }: TimesheetsTableProps) {
           ]}
           onExported={(count, file) => toast.success(`Exported ${count} records to ${file}`)}
         />
+        </div>
       </div>
       <div className="w-full overflow-x-auto">
         <Table className="w-full min-w-full">

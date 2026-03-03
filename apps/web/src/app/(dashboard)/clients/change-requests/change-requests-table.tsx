@@ -223,11 +223,29 @@ export default function ChangeRequestsTable({ search }: ChangeRequestsTableProps
 
   if (filtered.length === 0) {
     return (
-      <EmptyState
-        icon={<ShieldAlert className="h-12 w-12" />}
-        title="No client change requests"
-        description={search ? 'Try a different search term.' : 'Portal-submitted requests will appear here for manager review.'}
-      />
+      <div className="space-y-4">
+        <div className="w-full overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <tr>
+                <TableHead>Request</TableHead>
+                <TableHead>Site</TableHead>
+                <TableHead>Contact</TableHead>
+                <TableHead>Requested</TableHead>
+                <TableHead>Priority</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Action</TableHead>
+              </tr>
+            </TableHeader>
+            <TableBody />
+          </Table>
+        </div>
+        <EmptyState
+          icon={<ShieldAlert className="h-12 w-12" />}
+          title="No client change requests"
+          description={search ? 'Try a different search term.' : 'Portal-submitted requests will appear here for manager review.'}
+        />
+      </div>
     );
   }
 

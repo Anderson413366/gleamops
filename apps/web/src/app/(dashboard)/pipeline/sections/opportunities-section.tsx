@@ -44,7 +44,9 @@ export function OpportunitiesSection({
       .is('archived_at', null)
       .order('created_at', { ascending: false });
 
-    if (!error && data) {
+    if (error) {
+      console.error('[OpportunitiesSection] Failed to fetch:', error.message);
+    } else if (data) {
       setRows(data as OpportunityWithProspect[]);
     }
     setLoading(false);

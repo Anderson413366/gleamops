@@ -275,12 +275,7 @@ export default function JobsPageClient() {
             New Service Plan
           </Button>
         )}
-        {tab === 'inspections' && (
-          <Button className="shrink-0" onClick={() => setShowCreateInspection(true)}>
-            <Plus className="h-4 w-4" />
-            New Inspection
-          </Button>
-        )}
+        {/* Inspection create button is in InspectionsTable toolbar */}
       </div>
 
       {tab === 'service-plans' && (

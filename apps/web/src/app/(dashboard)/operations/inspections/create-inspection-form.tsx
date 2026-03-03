@@ -193,10 +193,10 @@ export function CreateInspectionForm({ open, onClose, onCreated }: CreateInspect
               value={inspectorId}
               onChange={(e) => setInspectorId(e.target.value)}
               placeholder="Select an inspector..."
-              options={inspectors.map((s) => ({
-                value: s.id,
-                label: `${s.full_name} (${s.staff_code})`,
-              }))}
+              options={inspectors.map((s) => {
+                const name = s.full_name && s.full_name !== s.staff_code ? s.full_name : '(Name not set)';
+                return { value: s.id, label: `${name} (${s.staff_code})` };
+              })}
             />
           </div>
 

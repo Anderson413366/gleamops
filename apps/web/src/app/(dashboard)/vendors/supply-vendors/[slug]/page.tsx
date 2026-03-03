@@ -283,11 +283,11 @@ export default function SupplyVendorDetailPage() {
     return (
       <div className="space-y-4">
         <Link
-          href="/vendors?tab=vendors"
+          href="/inventory?tab=vendors"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Supply Vendors
+          Back to Vendor Directory
         </Link>
         <EmptyState
           icon={<Store className="h-12 w-12" />}

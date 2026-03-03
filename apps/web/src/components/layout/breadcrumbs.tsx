@@ -136,6 +136,7 @@ const TAB_GROUP_LABELS: Record<string, string> = {
 // Context-aware overrides for segments that differ based on parent path
 const PATH_OVERRIDES: Record<string, Record<string, string>> = {
   pipeline: { admin: 'Sales Admin', calculator: 'Bid Calculator', 'supply-calculator': 'Supply Calculator' },
+  vendors: { 'supply-vendors': 'Vendor Directory' },
 };
 
 function humanize(segment: string, parentPath?: string): string {

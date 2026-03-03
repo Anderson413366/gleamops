@@ -64,6 +64,22 @@ export default function InventoryPageClient() {
     async function fetchKpis() {
       const supabase = getSupabaseBrowserClient();
 
+      if (tab === 'vendors') {
+        const [catalogRes, ordersRes] = await Promise.all([
+          supabase.from('supply_catalog').select('preferred_vendor').is('archived_at', null).not('preferred_vendor', 'is', null),
+          supabase.from('supply_orders').select('id').is('archived_at', null),
+        ]);
+        const vendorNames = new Set((catalogRes.data ?? []).map((r: { preferred_vendor: string }) => r.preferred_vendor));
+        const totalSupplies = catalogRes.data?.length ?? 0;
+        setTabKpis([
+          { label: 'Total Vendors', value: vendorNames.size },
+          { label: 'Linked Supplies', value: totalSupplies },
+          { label: 'Total Orders', value: ordersRes.data?.length ?? 0 },
+          { label: 'Avg Supplies/Vendor', value: vendorNames.size > 0 ? (totalSupplies / vendorNames.size).toFixed(1) : '0' },
+        ]);
+        return;
+      }
+
       if (tab === 'forecasting') {
         // Forecasting panel renders its own KPI cards — skip shared KPIs
         setTabKpis([]);

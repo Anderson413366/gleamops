@@ -1,13 +1,19 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { Calendar as CalendarIcon, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent, EmptyState, Badge } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 
+interface MyScheduleProps {
+  onKpisComputed?: (kpis: Array<{ label: string; value: string | number; warn?: boolean }>) => void;
+}
+
 interface MyShift {
   id: string;
+  ticket_code: string | null;
   scheduled_date: string;
   start_time: string;
   end_time: string;
@@ -34,8 +40,9 @@ function normalizeTime(value: string | null | undefined) {
   return value.slice(0, 5);
 }
 
-export function MySchedule() {
+export function MySchedule({ onKpisComputed }: MyScheduleProps) {
   const { user } = useAuth();
+  const router = useRouter();
   const [shifts, setShifts] = useState<MyShift[]>([]);
   const [leaves, setLeaves] = useState<MyLeave[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,7 +83,7 @@ export function MySchedule() {
       // Fetch shifts assigned to this staff member
       const { data: ticketData } = await supabase
         .from('ticket_assignments')
-        .select('ticket:ticket_id(id, scheduled_date, start_time, end_time, status, position_code, site:site_id(name, site_code))')
+        .select('ticket:ticket_id(id, ticket_code, scheduled_date, start_time, end_time, status, position_code, site:site_id(name, site_code))')
         .eq('staff_id', staffId)
         .eq('assignment_status', 'ASSIGNED');
 
@@ -89,6 +96,7 @@ export function MySchedule() {
         const site = ticket.site as { name?: string; site_code?: string } | null;
         myShifts.push({
           id: ticket.id as string,
+          ticket_code: (ticket.ticket_code as string) ?? null,
           scheduled_date: scheduledDate,
           start_time: normalizeTime(ticket.start_time as string | null),
           end_time: normalizeTime(ticket.end_time as string | null),
@@ -101,6 +109,29 @@ export function MySchedule() {
 
       myShifts.sort((a, b) => a.scheduled_date.localeCompare(b.scheduled_date) || a.start_time.localeCompare(b.start_time));
       setShifts(myShifts);
+
+      // Compute KPIs from the same filtered dataset
+      if (onKpisComputed) {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const weekEndStr = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+        const weekShifts = myShifts.filter((s) => s.scheduled_date >= todayStr && s.scheduled_date <= weekEndStr);
+        const todayShifts = myShifts.filter((s) => s.scheduled_date === todayStr);
+        const completedWeek = weekShifts.filter((s) => s.status === 'COMPLETED');
+        const weekHours = weekShifts.reduce((sum, s) => {
+          if (!s.start_time.includes(':') || !s.end_time.includes(':')) return sum;
+          const [sh, sm] = s.start_time.split(':').map(Number);
+          const [eh, em] = s.end_time.split(':').map(Number);
+          let mins = (eh * 60 + em) - (sh * 60 + sm);
+          if (mins <= 0) mins += 24 * 60;
+          return sum + mins / 60;
+        }, 0);
+        onKpisComputed([
+          { label: 'My Shifts This Week', value: weekShifts.length },
+          { label: "Today's Shifts", value: todayShifts.length },
+          { label: 'Completed This Week', value: completedWeek.length },
+          { label: 'Hours This Week', value: weekHours > 0 ? `${weekHours.toFixed(1)}h` : '0h' },
+        ]);
+      }
 
       // Fetch leave (one-off unavailable rules)
       const { data: leaveData } = await supabase
@@ -128,7 +159,7 @@ export function MySchedule() {
     }
 
     fetchData();
-  }, [user?.id, rangeWeeks]);
+  }, [user?.id, rangeWeeks, onKpisComputed]);
 
   if (loading) {
     return (
@@ -137,6 +168,12 @@ export function MySchedule() {
       </Card>
     );
   }
+
+  const handleShiftClick = (shift: MyShift) => {
+    if (shift.ticket_code) {
+      router.push(`/operations/tickets/${shift.ticket_code}`);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -179,16 +216,16 @@ export function MySchedule() {
       </div>
 
       {view === 'list' ? (
-        <ListView shifts={shifts} leaves={leaves} />
+        <ListView shifts={shifts} leaves={leaves} onShiftClick={handleShiftClick} />
       ) : (
-        <CalendarView shifts={shifts} leaves={leaves} />
+        <CalendarView shifts={shifts} leaves={leaves} onShiftClick={handleShiftClick} />
       )}
     </div>
   );
 }
 
 /* ─── List View ─── */
-function ListView({ shifts, leaves }: { shifts: MyShift[]; leaves: MyLeave[] }) {
+function ListView({ shifts, leaves, onShiftClick }: { shifts: MyShift[]; leaves: MyLeave[]; onShiftClick?: (shift: MyShift) => void }) {
   return (
     <>
       {shifts.length === 0 ? (
@@ -196,7 +233,7 @@ function ListView({ shifts, leaves }: { shifts: MyShift[]; leaves: MyLeave[] }) 
       ) : (
         <div className="space-y-2">
           {shifts.map((shift) => (
-            <Card key={shift.id} className="hover:shadow-md transition-shadow">
+            <Card key={shift.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => onShiftClick?.(shift)}>
               <CardContent className="py-3">
                 <div className="flex items-center justify-between">
                   <div>
@@ -247,7 +284,7 @@ function ListView({ shifts, leaves }: { shifts: MyShift[]; leaves: MyLeave[] }) 
 /* ─── Calendar View ─── */
 const WEEKDAY_HEADERS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-function CalendarView({ shifts, leaves }: { shifts: MyShift[]; leaves: MyLeave[] }) {
+function CalendarView({ shifts, leaves, onShiftClick }: { shifts: MyShift[]; leaves: MyLeave[]; onShiftClick?: (shift: MyShift) => void }) {
   const [calMonth, setCalMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -368,9 +405,11 @@ function CalendarView({ shifts, leaves }: { shifts: MyShift[]; leaves: MyLeave[]
                 )}
 
                 {cell.inMonth && dayShifts.map((shift) => (
-                  <div
+                  <button
                     key={shift.id}
-                    className={`mb-0.5 rounded px-1 py-0.5 text-[10px] font-medium truncate ${
+                    type="button"
+                    onClick={() => onShiftClick?.(shift)}
+                    className={`mb-0.5 w-full text-left rounded px-1 py-0.5 text-[10px] font-medium truncate cursor-pointer hover:opacity-80 transition-opacity ${
                       shift.status === 'COMPLETED'
                         ? 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-300'
                         : shift.status === 'IN_PROGRESS'
@@ -380,7 +419,7 @@ function CalendarView({ shifts, leaves }: { shifts: MyShift[]; leaves: MyLeave[]
                     title={`${shift.site_name} · ${shift.start_time}–${shift.end_time} · ${shift.status}`}
                   >
                     {shift.start_time} {shift.site_code ?? shift.site_name}
-                  </div>
+                  </button>
                 ))}
               </div>
             );

@@ -499,24 +499,7 @@ export default function SchedulePageClient() {
             { label: 'Completion Rate', value: rate },
           ]);
         } else if (tab === 'my-schedule') {
-          const [weekRes, todayShiftsRes, completedRes, hoursRes] = await Promise.all([
-            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).gte('scheduled_date', today).lte('scheduled_date', weekEnd).is('archived_at', null),
-            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).eq('scheduled_date', today).is('archived_at', null),
-            supabase.from('work_tickets').select('id', { count: 'exact', head: true }).gte('scheduled_date', today).lte('scheduled_date', weekEnd).is('archived_at', null).eq('status', 'COMPLETED'),
-            supabase.from('work_tickets').select('start_time, end_time').gte('scheduled_date', today).lte('scheduled_date', weekEnd).is('archived_at', null),
-          ]);
-          const hours = (hoursRes.data ?? []).reduce((sum, r: { start_time?: string | null; end_time?: string | null }) => {
-            if (!r.start_time || !r.end_time) return sum;
-            const [sh, sm] = r.start_time.slice(0, 5).split(':').map(Number);
-            const [eh, em] = r.end_time.slice(0, 5).split(':').map(Number);
-            return sum + ((eh * 60 + em) - (sh * 60 + sm)) / 60;
-          }, 0);
-          setTabKpis([
-            { label: 'My Shifts This Week', value: weekRes.count ?? 0 },
-            { label: "Today's Shifts", value: todayShiftsRes.count ?? 0 },
-            { label: 'Completed This Week', value: completedRes.count ?? 0 },
-            { label: 'Hours This Week', value: hours > 0 ? `${hours.toFixed(1)}h` : '0h' },
-          ]);
+          // KPIs are computed by the MySchedule child component from user-filtered data
         } else if (tab === 'availability') {
           const [activeRes, hasAvailRes] = await Promise.all([
             supabase.from('staff').select('id', { count: 'exact', head: true }).is('archived_at', null).eq('status', 'ACTIVE'),
@@ -1639,7 +1622,7 @@ export default function SchedulePageClient() {
           {tab === 'availability' && <AvailabilityModule />}
         </div>
       )}
-      {tab === 'my-schedule' && <MySchedule />}
+      {tab === 'my-schedule' && <MySchedule onKpisComputed={setTabKpis} />}
 
       <ShiftForm
         open={shiftFormOpen}

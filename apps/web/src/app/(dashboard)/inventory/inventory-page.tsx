@@ -49,12 +49,12 @@ export default function InventoryPageClient() {
   const [search, setSearch] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
-  const [kpis, setKpis] = useState({
-    activeSupplies: 0,
-    belowPar: 0,
-    openOrders: 0,
-    pendingCounts: 0,
-  });
+  const [tabKpis, setTabKpis] = useState<{ label: string; value: number | string; warn?: boolean }[]>([
+    { label: 'Active Supplies', value: 0 },
+    { label: 'Below Par', value: 0 },
+    { label: 'Open Orders', value: 0 },
+    { label: 'Pending Counts', value: 0 },
+  ]);
 
   // autoCreate triggers
   const [autoCreateSupply, setAutoCreateSupply] = useState(false);
@@ -64,6 +64,22 @@ export default function InventoryPageClient() {
   useEffect(() => {
     async function fetchKpis() {
       const supabase = getSupabaseBrowserClient();
+
+      if (tab === 'kits') {
+        const [kitsRes, itemsRes, suppliesRes] = await Promise.all([
+          supabase.from('supply_kits').select('id').is('archived_at', null),
+          supabase.from('supply_kit_items').select('id').is('archived_at', null),
+          supabase.from('supply_catalog').select('id').is('archived_at', null),
+        ]);
+        setTabKpis([
+          { label: 'Total Kits', value: kitsRes.data?.length ?? 0 },
+          { label: 'Kit Items', value: itemsRes.data?.length ?? 0 },
+          { label: 'Catalog Supplies', value: suppliesRes.data?.length ?? 0 },
+          { label: 'Avg Items/Kit', value: (kitsRes.data?.length ?? 0) > 0 ? ((itemsRes.data?.length ?? 0) / kitsRes.data!.length).toFixed(1) : '0' },
+        ]);
+        return;
+      }
+
       const [statusRes, siteSuppliesRes, openOrdersRes, pendingCountsRes] = await Promise.all([
         supabase.from('supply_catalog').select('supply_status').is('archived_at', null),
         supabase.from('site_supplies').select('id, par_level, supply_id, site_id').is('archived_at', null).gt('par_level', 0),
@@ -76,7 +92,6 @@ export default function InventoryPageClient() {
         return status == null || status.toUpperCase() === 'ACTIVE';
       }).length;
 
-      // Count below-par items using latest count data
       let belowParCount = 0;
       const ssRows = (siteSuppliesRes.data ?? []) as Array<{ id: string; par_level: number; supply_id: string | null; site_id: string | null }>;
       if (ssRows.length > 0) {
@@ -104,15 +119,15 @@ export default function InventoryPageClient() {
         }
       }
 
-      setKpis({
-        activeSupplies,
-        belowPar: belowParCount,
-        openOrders: openOrdersRes.data?.length ?? 0,
-        pendingCounts: pendingCountsRes.data?.length ?? 0,
-      });
+      setTabKpis([
+        { label: 'Active Supplies', value: activeSupplies },
+        { label: 'Below Par', value: belowParCount, warn: belowParCount > 0 },
+        { label: 'Open Orders', value: openOrdersRes.data?.length ?? 0 },
+        { label: 'Pending Counts', value: pendingCountsRes.data?.length ?? 0 },
+      ]);
     }
     fetchKpis();
-  }, [refreshKey]);
+  }, [tab, refreshKey]);
 
   const handleAdd = () => {
     if (tab === 'supplies') {
@@ -169,10 +184,14 @@ export default function InventoryPageClient() {
   return (
     <div className="space-y-6">
       <div className="pt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Active Supplies</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.activeSupplies}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Below Par</p><p className={`text-lg font-semibold sm:text-xl leading-tight ${kpis.belowPar > 0 ? 'text-destructive' : 'text-muted-foreground'}`}>{kpis.belowPar}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Open Orders</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.openOrders}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Pending Counts</p><p className="text-lg font-semibold sm:text-xl leading-tight">{kpis.pendingCounts}</p></CardContent></Card>
+        {tabKpis.map((kpi) => (
+          <Card key={kpi.label}>
+            <CardContent className="pt-4">
+              <p className="text-xs text-muted-foreground">{kpi.label}</p>
+              <p className={`text-lg font-semibold sm:text-xl leading-tight${kpi.warn ? ' text-destructive' : ''}`}>{kpi.value}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border/60 bg-muted/30 px-3 py-2">

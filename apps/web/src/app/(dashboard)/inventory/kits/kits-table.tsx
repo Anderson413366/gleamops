@@ -162,15 +162,20 @@ export default function KitsTable({ search, autoCreate, onAutoCreateHandled }: K
     setEditItem(null);
   }, []);
 
-  const handleAdd = useCallback(() => {
+  const handleAdd = useCallback(async () => {
     resetForm();
     setFormOpen(true);
 
-    // Generate next code
+    // Generate next code with proper tenant_id
     const supabase = getSupabaseBrowserClient();
-    supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'KIT' }).then(({ data }) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const tenantId = user?.app_metadata?.tenant_id;
+    if (tenantId) {
+      const { data } = await supabase.rpc('next_code', { p_tenant_id: tenantId, p_prefix: 'KIT' });
       if (data) setCode(data);
-    });
+    }
+    // Fallback: if RPC fails, generate a client-side code
+    setCode((prev) => prev || `KIT-${String(Date.now()).slice(-6)}`);
   }, [resetForm]);
 
   const handleEdit = useCallback(async (row: KitWithCount) => {
@@ -316,21 +321,6 @@ export default function KitsTable({ search, autoCreate, onAutoCreateHandled }: K
   // --- Render ---
 
   if (loading) return <TableSkeleton rows={8} cols={4} />;
-
-  if (filtered.length === 0) {
-    return (
-      <>
-        <EmptyState
-          icon={<Box className="h-12 w-12" />}
-          title="No kits yet"
-          description={search ? 'Try a different search term.' : 'Create your first kit to get started.'}
-        />
-        <SlideOver open={formOpen} onClose={handleClose} title={isEdit ? 'Edit Kit' : 'New Kit'} subtitle={isEdit ? editItem?.code : undefined} wide>
-          {renderForm()}
-        </SlideOver>
-      </>
-    );
-  }
 
   function renderForm() {
     return (
@@ -486,16 +476,31 @@ export default function KitsTable({ search, autoCreate, onAutoCreateHandled }: K
           ))}
         </TableBody>
       </Table>
-      <Pagination
-        currentPage={pag.currentPage}
-        totalPages={pag.totalPages}
-        totalItems={pag.totalItems}
-        pageSize={pag.pageSize}
-        hasNext={pag.hasNext}
-        hasPrev={pag.hasPrev}
-        onNext={pag.nextPage}
-        onPrev={pag.prevPage}
-      />
+
+      {filtered.length === 0 && (
+        <div className="mt-4">
+          <EmptyState
+            icon={<Box className="h-10 w-10" />}
+            title={search ? 'No matching kits' : 'No kits yet'}
+            description={search ? 'Try a different search term.' : 'Create your first kit to get started.'}
+            actionLabel={search ? undefined : '+ New Kit'}
+            onAction={search ? undefined : handleAdd}
+          />
+        </div>
+      )}
+
+      {filtered.length > 0 && (
+        <Pagination
+          currentPage={pag.currentPage}
+          totalPages={pag.totalPages}
+          totalItems={pag.totalItems}
+          pageSize={pag.pageSize}
+          hasNext={pag.hasNext}
+          hasPrev={pag.hasPrev}
+          onNext={pag.nextPage}
+          onPrev={pag.prevPage}
+        />
+      )}
 
       <SlideOver open={formOpen} onClose={handleClose} title={isEdit ? 'Edit Kit' : 'New Kit'} subtitle={isEdit ? editItem?.code : undefined} wide>
         {renderForm()}

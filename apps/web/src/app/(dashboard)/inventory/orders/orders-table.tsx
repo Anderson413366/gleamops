@@ -151,7 +151,7 @@ export default function OrdersTable({ search, formOpen, onFormClose, onRefresh }
     : statusFilter === 'all'
       ? 'Create and track purchase orders from draft to received.'
       : `There are currently no supply orders with ${selectedStatusLabel} status.`;
-  const showGuidedEmptyState = !search && statusFilter === 'all';
+  const showGuidedEmptyState = !search && (statusFilter === 'all' || rows.length === 0);
 
   return (
     <div>

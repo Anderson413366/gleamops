@@ -34,7 +34,6 @@ const ADD_LABELS: Record<string, string> = {
   supplies: 'New Supply',
   kits: 'New Kit',
   counts: 'New Count',
-  orders: 'New Order',
 };
 
 export default function InventoryPageClient() {
@@ -64,6 +63,22 @@ export default function InventoryPageClient() {
   useEffect(() => {
     async function fetchKpis() {
       const supabase = getSupabaseBrowserClient();
+
+      if (tab === 'orders') {
+        const [totalRes, orderedRes, shippedRes, draftRes] = await Promise.all([
+          supabase.from('supply_orders').select('id').is('archived_at', null),
+          supabase.from('supply_orders').select('id').is('archived_at', null).eq('status', 'ORDERED'),
+          supabase.from('supply_orders').select('id').is('archived_at', null).eq('status', 'SHIPPED'),
+          supabase.from('supply_orders').select('id').is('archived_at', null).eq('status', 'DRAFT'),
+        ]);
+        setTabKpis([
+          { label: 'Total Orders', value: totalRes.data?.length ?? 0 },
+          { label: 'Ordered', value: orderedRes.data?.length ?? 0 },
+          { label: 'Shipped', value: shippedRes.data?.length ?? 0 },
+          { label: 'Drafts', value: draftRes.data?.length ?? 0 },
+        ]);
+        return;
+      }
 
       if (tab === 'warehouse') {
         const [locationsRes, movementsRes, requestsRes, ordersRes] = await Promise.all([

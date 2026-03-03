@@ -127,6 +127,10 @@ const TAB_GROUP_LABELS: Record<string, string> = {
   'schedule:checklists': 'Field Tools',
   'schedule:forms': 'Field Tools',
   'jobs:time': 'Field Tools',
+  // Procurement (shares /inventory route but sidebar groups separately)
+  'inventory:orders': 'Procurement',
+  'inventory:forecasting': 'Procurement',
+  'inventory:vendors': 'Procurement',
 };
 
 // Context-aware overrides for segments that differ based on parent path

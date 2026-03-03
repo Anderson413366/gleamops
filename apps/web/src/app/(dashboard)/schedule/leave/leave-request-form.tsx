@@ -51,10 +51,12 @@ export function LeaveRequestForm({ open, onClose, onCreated }: LeaveRequestFormP
         .limit(200);
 
       if (cancelled) return;
-      const options = (data ?? []).map((s: Record<string, unknown>) => ({
-        value: s.id as string,
-        label: `${s.staff_code ?? ''} - ${s.full_name ?? 'Unknown'}`,
-      }));
+      const options = (data ?? []).map((s: Record<string, unknown>) => {
+        const code = (s.staff_code as string) ?? '';
+        const rawName = (s.full_name as string) ?? '';
+        const name = rawName && rawName !== code ? rawName : '(Name not set)';
+        return { value: s.id as string, label: `${code} - ${name}` };
+      });
       setStaffOptions(options);
       if (!staffId && options[0]) setStaffId(options[0].value);
     }

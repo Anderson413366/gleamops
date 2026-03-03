@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Plus, X, Check, MessageSquare } from 'lucide-react';
+import { Plus, X, Check, MessageSquare, AlertTriangle } from 'lucide-react';
 import { Button, Card, CardContent, EmptyState, Badge, Input } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
@@ -363,6 +363,18 @@ export function AvailabilityModule() {
           </button>
         </div>
       </div>
+
+      {subView === 'weekly' && isAllSelected && rules.length === 0 && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800/40 dark:bg-amber-900/20 px-4 py-3 flex items-start gap-3">
+          <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-amber-900 dark:text-amber-200">No availability configured</p>
+            <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
+              Select an employee from the dropdown above, then use the weekly grid to add their available time windows. Availability data enables smarter shift planning and conflict detection.
+            </p>
+          </div>
+        </div>
+      )}
 
       {subView === 'weekly' ? (
         /* ---------------------------------------------------------------- */

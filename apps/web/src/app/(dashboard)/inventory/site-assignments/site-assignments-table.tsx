@@ -432,15 +432,15 @@ export default function SiteAssignmentsTable({ search }: Props) {
       <Table className="w-full min-w-full">
         <TableHeader>
           <tr>
-            <TableHead>Img</TableHead>
+            <TableHead className="hidden md:table-cell">Img</TableHead>
             <TableHead className="w-full">Supply</TableHead>
-            <TableHead>Category</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Vendor</TableHead>
+            <TableHead className="hidden sm:table-cell">Category</TableHead>
+            <TableHead className="hidden lg:table-cell">Type</TableHead>
+            <TableHead className="hidden lg:table-cell">Vendor</TableHead>
             <TableHead>Last Cnt</TableHead>
             <TableHead>Par Level</TableHead>
-            <TableHead>Assigned Date</TableHead>
-            <TableHead>SDS</TableHead>
+            <TableHead className="hidden lg:table-cell">Assigned Date</TableHead>
+            <TableHead className="hidden lg:table-cell">SDS</TableHead>
             <TableHead>Action</TableHead>
           </tr>
         </TableHeader>
@@ -451,13 +451,14 @@ export default function SiteAssignmentsTable({ search }: Props) {
             const unit = enriched?.unit ?? 'Not Set';
             const vendor = enriched?.preferred_vendor ?? 'Not Set';
             const sdsUrl = row.sds_url ?? enriched?.sds_url ?? null;
-            const imageUrl = enriched?.image_url ?? null;
+            const rawImageUrl = enriched?.image_url ?? null;
+            const imageUrl = rawImageUrl && !rawImageUrl.includes('placeholder.com') ? rawImageUrl : null;
             const supplyId = enriched?.id ?? null;
             const qtyKey = supplyId ? `${row.site_id}:${supplyId}` : '';
             const lastCountQty = qtyKey ? lastQtyBySiteSupply[qtyKey] : undefined;
             return (
               <TableRow key={row.id}>
-                <TableCell>
+                <TableCell className="hidden md:table-cell">
                   <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-md border border-border bg-muted/30">
                     {imageUrl ? (
                       <div className="h-full w-full bg-cover bg-center" style={{ backgroundImage: `url(${imageUrl})` }} />
@@ -478,9 +479,9 @@ export default function SiteAssignmentsTable({ search }: Props) {
                     </Link>
                   )}
                 </TableCell>
-                <TableCell className="text-muted-foreground">{category}</TableCell>
-                <TableCell className="text-muted-foreground">{unit}</TableCell>
-                <TableCell className="text-muted-foreground">{vendor}</TableCell>
+                <TableCell className="hidden sm:table-cell text-muted-foreground">{category}</TableCell>
+                <TableCell className="hidden lg:table-cell text-muted-foreground">{unit}</TableCell>
+                <TableCell className="hidden lg:table-cell text-muted-foreground">{vendor}</TableCell>
                 <TableCell className="tabular-nums text-muted-foreground">
                   <span className="inline-flex items-center gap-1.5">
                     {lastCountQty != null ? lastCountQty.toLocaleString() : 'Not Counted'}
@@ -512,8 +513,8 @@ export default function SiteAssignmentsTable({ search }: Props) {
                     className="h-8 w-24 rounded-md border border-border bg-background px-2 text-sm"
                   />
                 </TableCell>
-                <TableCell className="text-muted-foreground">{formatDateLabel(row.created_at)}</TableCell>
-                <TableCell>
+                <TableCell className="hidden lg:table-cell text-muted-foreground">{formatDateLabel(row.created_at)}</TableCell>
+                <TableCell className="hidden lg:table-cell">
                   {isExternalHttpUrl(sdsUrl) ? (
                     <a
                       href={sdsUrl}

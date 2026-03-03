@@ -65,6 +65,23 @@ export default function InventoryPageClient() {
     async function fetchKpis() {
       const supabase = getSupabaseBrowserClient();
 
+      if (tab === 'site-assignments') {
+        const [assignRes, sitesRes, suppliesRes] = await Promise.all([
+          supabase.from('site_supplies').select('id, site_id').is('archived_at', null),
+          supabase.from('sites').select('id').is('archived_at', null),
+          supabase.from('supply_catalog').select('id').is('archived_at', null),
+        ]);
+        const totalAssignments = assignRes.data?.length ?? 0;
+        const sitesWithAssignments = new Set((assignRes.data ?? []).map((r: { site_id: string }) => r.site_id)).size;
+        setTabKpis([
+          { label: 'Total Assignments', value: totalAssignments },
+          { label: 'Sites Assigned', value: sitesWithAssignments },
+          { label: 'Total Sites', value: sitesRes.data?.length ?? 0 },
+          { label: 'Catalog Supplies', value: suppliesRes.data?.length ?? 0 },
+        ]);
+        return;
+      }
+
       if (tab === 'kits') {
         const [kitsRes, itemsRes, suppliesRes] = await Promise.all([
           supabase.from('supply_kits').select('id').is('archived_at', null),

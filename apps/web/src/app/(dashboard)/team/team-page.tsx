@@ -243,8 +243,22 @@ export default function TeamPageClient() {
         { label: 'Unpaid Breaks', value: Math.max(total - paid, 0) },
         { label: 'Positions', value: posRes.data?.length ?? 0 },
       ]);
+    } else if (activeTab === 'shift-tags') {
+      const [tagsRes, staffRes, posRes] = await Promise.all([
+        supabase.from('shift_tags').select('id, color').is('archived_at', null),
+        supabase.from('staff').select('id').is('archived_at', null).eq('status', 'ACTIVE'),
+        supabase.from('staff_positions').select('id').is('archived_at', null),
+      ]);
+      const tagData = tagsRes.data ?? [];
+      const colorCounts = new Set((tagData as { color: string }[]).map((t) => t.color)).size;
+      setTabKpis([
+        { label: 'Tags Configured', value: tagData.length },
+        { label: 'Colors Used', value: colorCounts },
+        { label: 'Active Staff', value: staffRes.data?.length ?? 0 },
+        { label: 'Positions', value: posRes.data?.length ?? 0 },
+      ]);
     } else {
-      // Shared fallback for subs, shift-tags
+      // Shared fallback for subs, messages
       const [activeRes, posRes, excRes, tsRes] = await Promise.all([
         supabase.from('staff').select('id').is('archived_at', null).eq('status', 'ACTIVE'),
         supabase.from('staff_positions').select('id').is('archived_at', null),

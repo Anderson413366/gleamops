@@ -29,6 +29,7 @@ export default function PayrollTable({ search }: Props) {
       .from('staff')
       .select('*')
       .is('archived_at', null)
+      .eq('status', 'ACTIVE')
       .order('full_name');
     if (!error && data) setRows(data as Staff[]);
     setLoading(false);

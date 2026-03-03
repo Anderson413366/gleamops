@@ -34,7 +34,7 @@ export function MetricCard(props: {
           </div>
           <div className="min-w-0">
             <p className="text-[11px] text-muted-foreground sm:text-xs">{props.label}</p>
-            <p className="text-[clamp(1rem,3vw,1.5rem)] font-bold leading-tight tabular-nums [overflow-wrap:anywhere]">
+            <p className="text-[clamp(0.875rem,2.5vw,1.5rem)] font-bold leading-tight tabular-nums whitespace-nowrap overflow-hidden text-ellipsis">
               {props.value}
             </p>
             {props.sublabel && <p className="text-[11px] text-muted-foreground sm:text-xs">{props.sublabel}</p>}

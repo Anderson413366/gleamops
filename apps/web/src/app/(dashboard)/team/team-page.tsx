@@ -204,17 +204,19 @@ export default function TeamPageClient() {
         { label: 'Pending Confirm', value: pendingRes.count ?? 0 },
       ]);
     } else if (activeTab === 'hr') {
+      const thirtyDaysOut = new Date(Date.now() + 30 * 86400000);
+      const expiryDate = `${thirtyDaysOut.getFullYear()}-${String(thirtyDaysOut.getMonth() + 1).padStart(2, '0')}-${String(thirtyDaysOut.getDate()).padStart(2, '0')}`;
       const [ptoRes, goalsRes, reviewsRes, docsRes] = await Promise.all([
-        supabase.from('hr_leave_requests').select('id', { count: 'exact', head: true }).eq('status', 'PENDING').is('archived_at', null),
-        supabase.from('hr_goals').select('id', { count: 'exact', head: true }).eq('status', 'ACTIVE').is('archived_at', null),
-        supabase.from('hr_reviews').select('id', { count: 'exact', head: true }).eq('status', 'SUBMITTED').is('archived_at', null),
-        supabase.from('hr_documents').select('id', { count: 'exact', head: true }).is('archived_at', null).lte('expiry_date', new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)),
+        supabase.from('hr_leave_requests').select('id').eq('status', 'PENDING').is('archived_at', null),
+        supabase.from('hr_goals').select('id').eq('status', 'ACTIVE').is('archived_at', null),
+        supabase.from('hr_performance_reviews').select('id').eq('status', 'SUBMITTED').is('archived_at', null),
+        supabase.from('hr_staff_documents').select('id').is('archived_at', null).lte('expiry_date', expiryDate),
       ]);
       setTabKpis([
-        { label: 'Pending PTO', value: ptoRes.count ?? 0 },
-        { label: 'Active Goals', value: goalsRes.count ?? 0 },
-        { label: 'Submitted Reviews', value: reviewsRes.count ?? 0 },
-        { label: 'Expiring Docs', value: docsRes.count ?? 0, warn: (docsRes.count ?? 0) > 0 },
+        { label: 'Pending PTO', value: ptoRes.data?.length ?? 0 },
+        { label: 'Active Goals', value: goalsRes.data?.length ?? 0 },
+        { label: 'Submitted Reviews', value: reviewsRes.data?.length ?? 0 },
+        { label: 'Expiring Docs', value: docsRes.data?.length ?? 0, warn: (docsRes.data?.length ?? 0) > 0 },
       ]);
     } else {
       // Shared fallback for microfiber, subs, break-rules, shift-tags

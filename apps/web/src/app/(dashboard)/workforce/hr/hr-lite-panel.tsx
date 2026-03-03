@@ -104,7 +104,8 @@ interface Props {
 
 function formatDate(value: string | null) {
   if (!value) return 'Not Set';
-  const date = new Date(value);
+  const dateStr = value.length === 10 ? `${value}T12:00:00` : value;
+  const date = new Date(dateStr);
   if (Number.isNaN(date.getTime())) return 'Not Set';
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
@@ -158,8 +159,8 @@ export default function HrLitePanel({ search }: Props) {
 
   const [ptoForm, setPtoForm] = useState({
     staff_id: '',
-    start_date: new Date().toISOString().slice(0, 10),
-    end_date: new Date().toISOString().slice(0, 10),
+    start_date: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })(),
+    end_date: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })(),
     hours_requested: '8',
     reason: '',
   });

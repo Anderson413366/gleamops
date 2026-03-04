@@ -13,7 +13,7 @@ import { useTableSort } from '@/hooks/use-table-sort';
 import { usePagination } from '@/hooks/use-pagination';
 
 interface ServiceTaskRow extends ServiceTask {
-  service?: { name: string; code: string } | null;
+  service?: { name: string; service_code: string } | null;
   task?: { name: string; code: string; category: string | null } | null;
 }
 
@@ -31,7 +31,7 @@ export default function ServiceTaskMapping({ search }: Props) {
 
     const { data, error } = await supabase
       .from('service_tasks')
-      .select('id, service_id, task_id, sequence_order, frequency_default, is_required, estimated_minutes, quality_weight, priority_level, service:service_id(name, code), task:task_id(name, code, category)')
+      .select('id, service_id, task_id, sequence_order, frequency_default, is_required, estimated_minutes, quality_weight, priority_level, service:service_id(name, service_code), task:task_id(name, code, category)')
       .is('archived_at', null)
       .order('sequence_order', { ascending: true })
       .limit(500);
@@ -53,7 +53,7 @@ export default function ServiceTaskMapping({ search }: Props) {
     return rows.filter((r) =>
       (r.service?.name ?? '').toLowerCase().includes(q) ||
       (r.task?.name ?? '').toLowerCase().includes(q) ||
-      (r.service?.code ?? '').toLowerCase().includes(q) ||
+      (r.service?.service_code ?? '').toLowerCase().includes(q) ||
       (r.task?.code ?? '').toLowerCase().includes(q) ||
       (r.task?.category ?? '').toLowerCase().includes(q) ||
       (r.frequency_default ?? '').toLowerCase().includes(q)
@@ -103,7 +103,7 @@ export default function ServiceTaskMapping({ search }: Props) {
             <TableRow key={row.id}>
               <TableCell>
                 <span className="font-medium">{row.service?.name ?? '—'}</span>
-                {row.service?.code && <span className="text-xs text-muted-foreground ml-2">{row.service.code}</span>}
+                {row.service?.service_code && <span className="text-xs text-muted-foreground ml-2">{row.service.service_code}</span>}
               </TableCell>
               <TableCell>
                 <span className="font-medium">{row.task?.name ?? '—'}</span>

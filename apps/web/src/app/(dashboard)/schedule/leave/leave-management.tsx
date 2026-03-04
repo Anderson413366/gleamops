@@ -87,14 +87,14 @@ export function LeaveManagement() {
 
       // Fetch positions for filter
       const { data: posData } = await supabase
-        .from('position_types')
-        .select('position_code, display_name')
+        .from('staff_positions')
+        .select('position_code, title')
         .is('archived_at', null)
         .limit(50);
 
       setPositions((posData ?? []).map((p: Record<string, unknown>) => ({
         value: (p.position_code as string) ?? '',
-        label: (p.display_name as string) ?? (p.position_code as string) ?? '',
+        label: (p.title as string) ?? (p.position_code as string) ?? '',
       })));
 
       // Fetch locations for filter

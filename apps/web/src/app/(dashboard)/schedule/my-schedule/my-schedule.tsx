@@ -51,6 +51,13 @@ export function MySchedule({ onKpisComputed }: MyScheduleProps) {
 
   useEffect(() => {
     async function fetchData() {
+      if (!user?.id) {
+        setShifts([]);
+        setLeaves([]);
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       const supabase = getSupabaseBrowserClient();
 
@@ -58,7 +65,7 @@ export function MySchedule({ onKpisComputed }: MyScheduleProps) {
       const { data: staffData } = await supabase
         .from('staff')
         .select('id')
-        .eq('user_id', user?.id ?? '')
+        .eq('user_id', user.id)
         .is('archived_at', null)
         .limit(1);
 

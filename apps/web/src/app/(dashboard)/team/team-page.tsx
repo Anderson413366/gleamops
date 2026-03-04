@@ -205,7 +205,7 @@ export default function TeamPageClient() {
         supabase.from('hr_leave_requests').select('id').eq('status', 'PENDING').is('archived_at', null),
         supabase.from('hr_goals').select('id').eq('status', 'ACTIVE').is('archived_at', null),
         supabase.from('hr_performance_reviews').select('id').eq('status', 'SUBMITTED').is('archived_at', null),
-        supabase.from('hr_staff_documents').select('id').is('archived_at', null).lte('expiry_date', expiryDate),
+        supabase.from('hr_staff_documents').select('id').is('archived_at', null).lte('expires_on', expiryDate),
       ]);
       setTabKpis([
         { label: 'Pending PTO', value: ptoRes.data?.length ?? 0 },

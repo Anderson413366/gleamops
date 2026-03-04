@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Users, Clock, FileText, AlertTriangle, BriefcaseBusiness, DollarSign, Plus, MessageSquare, UserRoundCheck, Inbox, Droplets } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import { useFeatureFlag } from '@/hooks/use-feature-flag';
+import { useAuth } from '@/hooks/use-auth';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
 
@@ -30,17 +31,19 @@ const BASE_TABS = [
   { key: 'field-reports', label: 'Field Reports', icon: <Inbox className="h-4 w-4" /> },
   { key: 'microfiber', label: 'Microfiber', icon: <Droplets className="h-4 w-4" /> },
 ];
+const MICROFIBER_VIEW_ROLES = new Set(['OWNER_ADMIN', 'MANAGER', 'SUPERVISOR']);
 
 export default function WorkforcePageClient() {
   const messagingEnabled = useFeatureFlag('messaging_v1');
+  const { role } = useAuth();
 
   const TABS = useMemo(() => {
-    const tabs = [...BASE_TABS];
+    const tabs = BASE_TABS.filter((entry) => entry.key !== 'microfiber' || MICROFIBER_VIEW_ROLES.has(role ?? ''));
     if (messagingEnabled) {
       tabs.push({ key: 'messages', label: 'Messages', icon: <MessageSquare className="h-4 w-4" /> });
     }
     return tabs;
-  }, [messagingEnabled]);
+  }, [messagingEnabled, role]);
 
   const [tab, setTab] = useSyncedTab({
     tabKeys: TABS.map((entry) => entry.key),

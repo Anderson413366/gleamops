@@ -5,11 +5,12 @@
  * Re-exports the existing workforce page with the new "Team" branding.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Users, FileText, BriefcaseBusiness, DollarSign, Plus, MessageSquare, UserRoundCheck, Clock, Droplets, HardHat, Coffee, Tag } from 'lucide-react';
 import { SearchInput, Button, Card, CardContent } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
+import { useAuth } from '@/hooks/use-auth';
 
 import StaffTable from '../workforce/staff/staff-table';
 import TimeEntriesTable from '../workforce/timekeeping/time-entries-table';
@@ -96,10 +97,16 @@ const BASE_TABS = [
   { key: 'shift-tags', label: 'Shift Tags', icon: <Tag className="h-4 w-4" /> },
   { key: 'messages', label: 'Messages', icon: <MessageSquare className="h-4 w-4" /> },
 ];
+const MICROFIBER_VIEW_ROLES = new Set(['OWNER_ADMIN', 'MANAGER', 'SUPERVISOR']);
 
 export default function TeamPageClient() {
+  const { role } = useAuth();
+  const tabs = useMemo(
+    () => BASE_TABS.filter((entry) => entry.key !== 'microfiber' || MICROFIBER_VIEW_ROLES.has(role ?? '')),
+    [role]
+  );
   const [tab] = useSyncedTab({
-    tabKeys: BASE_TABS.map((entry) => entry.key),
+    tabKeys: tabs.map((entry) => entry.key),
     defaultTab: 'staff',
     aliases: {
       timekeeping: 'attendance',

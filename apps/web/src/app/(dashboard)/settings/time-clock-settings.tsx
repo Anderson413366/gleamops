@@ -1,13 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button, CollapsibleCard, Select } from '@gleamops/ui';
+import { toast } from 'sonner';
+import { useAuth } from '@/hooks/use-auth';
+import { loadTenantSetting, saveTenantSetting } from '@/lib/admin/tenant-settings-storage';
 
 interface ToggleSetting {
   key: string;
   label: string;
   description?: string;
   value: boolean;
+}
+
+type ToggleGroupKey = 'timeClockSettings' | 'timesheetSettings';
+
+interface TimeClockSettingsState {
+  timeClockSettings: ToggleSetting[];
+  timesheetSettings: ToggleSetting[];
+  rounding: string;
+  lateReminders: string[];
 }
 
 const TIME_CLOCK_SETTINGS: ToggleSetting[] = [
@@ -34,6 +46,62 @@ const NOTIFICATION_OPTIONS = [
   '1 hour late',
 ];
 
+const ROUNDING_OPTIONS = ['none', '5', '10', '15', '30'] as const;
+const STORAGE_KEY = 'settings:time-clock-settings';
+
+function cloneToggleSettings(source: ToggleSetting[]): ToggleSetting[] {
+  return source.map((item) => ({ ...item }));
+}
+
+function createDefaultSettings(): TimeClockSettingsState {
+  return {
+    timeClockSettings: cloneToggleSettings(TIME_CLOCK_SETTINGS),
+    timesheetSettings: cloneToggleSettings(TIMESHEET_SETTINGS),
+    rounding: 'none',
+    lateReminders: ['15 minutes late'],
+  };
+}
+
+function mergeToggleSettings(defaults: ToggleSetting[], incoming: unknown): ToggleSetting[] {
+  if (!Array.isArray(incoming)) return defaults;
+
+  const incomingMap = new Map<string, boolean>();
+  incoming.forEach((item) => {
+    if (!item || typeof item !== 'object') return;
+    const row = item as { key?: unknown; value?: unknown };
+    if (typeof row.key === 'string' && typeof row.value === 'boolean') {
+      incomingMap.set(row.key, row.value);
+    }
+  });
+
+  return defaults.map((item) => ({
+    ...item,
+    value: incomingMap.has(item.key) ? Boolean(incomingMap.get(item.key)) : item.value,
+  }));
+}
+
+function normalizeSettings(raw: unknown): TimeClockSettingsState {
+  const defaults = createDefaultSettings();
+  if (!raw || typeof raw !== 'object') return defaults;
+
+  const incoming = raw as Partial<TimeClockSettingsState>;
+  const reminders = Array.isArray(incoming.lateReminders)
+    ? incoming.lateReminders.filter(
+        (value): value is string => typeof value === 'string' && NOTIFICATION_OPTIONS.includes(value),
+      )
+    : [];
+  const rounding = typeof incoming.rounding === 'string' && ROUNDING_OPTIONS.includes(incoming.rounding as typeof ROUNDING_OPTIONS[number])
+    ? incoming.rounding
+    : defaults.rounding;
+
+  return {
+    timeClockSettings: mergeToggleSettings(defaults.timeClockSettings, incoming.timeClockSettings),
+    timesheetSettings: mergeToggleSettings(defaults.timesheetSettings, incoming.timesheetSettings),
+    rounding,
+    lateReminders: Array.isArray(incoming.lateReminders) ? reminders : defaults.lateReminders,
+  };
+}
+
 function SettingsToggle({ setting, onToggle }: { setting: ToggleSetting; onToggle: (key: string) => void }) {
   return (
     <div className="flex items-center justify-between py-2.5 border-b border-border/50 last:border-0">
@@ -45,8 +113,11 @@ function SettingsToggle({ setting, onToggle }: { setting: ToggleSetting; onToggl
       </div>
       <button
         type="button"
+        role="switch"
+        aria-checked={setting.value}
+        aria-label={setting.label}
         onClick={() => onToggle(setting.key)}
-        className={`relative ml-4 inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+        className={`relative ml-4 inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
           setting.value ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'
         }`}
       >
@@ -57,25 +128,72 @@ function SettingsToggle({ setting, onToggle }: { setting: ToggleSetting; onToggl
 }
 
 export default function TimeClockSettings() {
-  const [timeClockSettings, setTimeClockSettings] = useState(TIME_CLOCK_SETTINGS);
-  const [timesheetSettings, setTimesheetSettings] = useState(TIMESHEET_SETTINGS);
-  const [rounding, setRounding] = useState('none');
-  const [lateReminders, setLateReminders] = useState<string[]>(['15 minutes late']);
+  const { tenantId } = useAuth();
+  const [settings, setSettings] = useState<TimeClockSettingsState>(() => createDefaultSettings());
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [lastSavedSnapshot, setLastSavedSnapshot] = useState(() => JSON.stringify(createDefaultSettings()));
 
-  const toggle = (key: string, setFn: React.Dispatch<React.SetStateAction<ToggleSetting[]>>) => {
-    setFn((prev) => prev.map((s) => (s.key === key ? { ...s, value: !s.value } : s)));
+  useEffect(() => {
+    if (!tenantId) {
+      setLoading(false);
+      return;
+    }
+
+    const loaded = loadTenantSetting<unknown>(tenantId, STORAGE_KEY, createDefaultSettings());
+    const normalized = normalizeSettings(loaded);
+    setSettings(normalized);
+    setLastSavedSnapshot(JSON.stringify(normalized));
+    setLoading(false);
+  }, [tenantId]);
+
+  const isDirty = useMemo(
+    () => JSON.stringify(settings) !== lastSavedSnapshot,
+    [settings, lastSavedSnapshot],
+  );
+
+  const toggle = (group: ToggleGroupKey, key: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      [group]: prev[group].map((item) => (item.key === key ? { ...item, value: !item.value } : item)),
+    }));
+  };
+
+  const handleSave = () => {
+    if (!tenantId) {
+      toast.error('Tenant context is missing.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      saveTenantSetting(tenantId, STORAGE_KEY, settings);
+      const nextSnapshot = JSON.stringify(settings);
+      setLastSavedSnapshot(nextSnapshot);
+      toast.success('Time clock settings saved.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to save time clock settings.';
+      toast.error(message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <div className="space-y-4">
+      {loading && (
+        <p className="text-sm text-muted-foreground">Loading time clock settings...</p>
+      )}
       <div className="flex items-center justify-end">
-        <Button>Save Settings</Button>
+        <Button onClick={handleSave} loading={saving} disabled={loading || !isDirty}>
+          Save Settings
+        </Button>
       </div>
 
       <CollapsibleCard id="timeclock-settings" title="Time Clock Settings">
         <div className="divide-y-0">
-          {timeClockSettings.map((s) => (
-            <SettingsToggle key={s.key} setting={s} onToggle={(key) => toggle(key, setTimeClockSettings)} />
+          {settings.timeClockSettings.map((s) => (
+            <SettingsToggle key={s.key} setting={s} onToggle={(key) => toggle('timeClockSettings', key)} />
           ))}
         </div>
       </CollapsibleCard>
@@ -84,8 +202,8 @@ export default function TimeClockSettings() {
         <div className="max-w-xs">
           <Select
             label="Round time entries to nearest"
-            value={rounding}
-            onChange={(e) => setRounding(e.target.value)}
+            value={settings.rounding}
+            onChange={(e) => setSettings((prev) => ({ ...prev, rounding: e.target.value }))}
             options={[
               { value: 'none', label: "Don't round" },
               { value: '5', label: '5 minutes' },
@@ -99,8 +217,8 @@ export default function TimeClockSettings() {
 
       <CollapsibleCard id="timeclock-timesheets" title="Time Sheets">
         <div className="divide-y-0">
-          {timesheetSettings.map((s) => (
-            <SettingsToggle key={s.key} setting={s} onToggle={(key) => toggle(key, setTimesheetSettings)} />
+          {settings.timesheetSettings.map((s) => (
+            <SettingsToggle key={s.key} setting={s} onToggle={(key) => toggle('timesheetSettings', key)} />
           ))}
         </div>
       </CollapsibleCard>
@@ -114,11 +232,14 @@ export default function TimeClockSettings() {
               <label key={opt} className="flex items-center gap-2 text-sm cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={lateReminders.includes(opt)}
+                  checked={settings.lateReminders.includes(opt)}
                   onChange={() => {
-                    setLateReminders((prev) =>
-                      prev.includes(opt) ? prev.filter((r) => r !== opt) : [...prev, opt],
-                    );
+                    setSettings((prev) => ({
+                      ...prev,
+                      lateReminders: prev.lateReminders.includes(opt)
+                        ? prev.lateReminders.filter((item) => item !== opt)
+                        : [...prev.lateReminders, opt],
+                    }));
                   }}
                   className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
                 />
@@ -130,7 +251,9 @@ export default function TimeClockSettings() {
       </CollapsibleCard>
 
       <div className="flex justify-end">
-        <Button>Save Settings</Button>
+        <Button onClick={handleSave} loading={saving} disabled={loading || !isDirty}>
+          Save Settings
+        </Button>
       </div>
     </div>
   );

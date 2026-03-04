@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useMemo } from 'react';
 import { ListChecks } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
@@ -13,7 +14,6 @@ export interface LookupRow {
   label: string;
   sort_order: number;
   is_active: boolean;
-  version_etag: string;
 }
 
 const DEFAULTS: LookupFormData = {
@@ -34,18 +34,22 @@ interface LookupFormProps {
 export function LookupForm({ open, onClose, initialData, onSuccess }: LookupFormProps) {
   const isEdit = !!initialData?.id;
   const supabase = getSupabaseBrowserClient();
+  const formInitialValues = useMemo<LookupFormData>(() => {
+    if (!initialData) {
+      return DEFAULTS;
+    }
+    return {
+      category: initialData.category,
+      code: initialData.code,
+      label: initialData.label,
+      sort_order: initialData.sort_order,
+      is_active: initialData.is_active,
+    };
+  }, [initialData]);
 
   const { values, errors, loading, setValue, onBlur, handleSubmit, reset } = useForm<LookupFormData>({
     schema: lookupSchema,
-    initialValues: initialData
-      ? {
-          category: initialData.category,
-          code: initialData.code,
-          label: initialData.label,
-          sort_order: initialData.sort_order,
-          is_active: initialData.is_active,
-        }
-      : DEFAULTS,
+    initialValues: formInitialValues,
     onSubmit: async (data) => {
       if (isEdit) {
         const result = await supabase
@@ -56,7 +60,6 @@ export function LookupForm({ open, onClose, initialData, onSuccess }: LookupForm
             is_active: data.is_active,
           })
           .eq('id', initialData!.id)
-          .eq('version_etag', initialData!.version_etag)
           .select();
         assertUpdateSucceeded(result);
       } else {
@@ -71,8 +74,14 @@ export function LookupForm({ open, onClose, initialData, onSuccess }: LookupForm
     },
   });
 
+  useEffect(() => {
+    if (!open) return;
+    // Rehydrate form values each time the slide-over opens so edit mode uses selected row data.
+    reset(formInitialValues);
+  }, [open, formInitialValues, reset]);
+
   const handleClose = () => {
-    reset();
+    reset(DEFAULTS);
     onClose();
   };
 

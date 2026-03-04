@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Mail, Save, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { requestNextCode } from '@/lib/api/request-next-code';
 import {
   Table, TableHeader, TableHead, TableBody, TableRow, TableCell,
   EmptyState, Badge, Pagination, TableSkeleton, SlideOver,
@@ -108,12 +109,12 @@ export default function FollowupTemplatesTable({ search }: Props) {
     resetForm();
     setEditItem(null);
 
-    // Auto-generate code
-    const supabase = getSupabaseBrowserClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    const tenantId = user?.app_metadata?.tenant_id;
-    const { data: codeData } = await supabase.rpc('next_code', { p_tenant_id: tenantId, p_prefix: 'FUT' });
-    setTemplateCode(codeData || `FUT-${Date.now()}`);
+    try {
+      const codeData = await requestNextCode('FUT');
+      setTemplateCode(codeData);
+    } catch {
+      setTemplateCode(`FUT-${Date.now()}`);
+    }
 
     setFormOpen(true);
   };

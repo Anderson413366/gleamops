@@ -60,7 +60,7 @@ export default function InspectionsTable({ search, onSelect, onCreateNew }: Insp
       .select(`
         *,
         site:site_id(name, site_code, photo_url),
-        inspector:staff_id(full_name, staff_code),
+        inspector:inspector_id(full_name, staff_code),
         template:template_id(name),
         ticket:ticket_id(ticket_code)
       `)

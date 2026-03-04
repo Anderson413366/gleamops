@@ -9,6 +9,7 @@ export interface CommandItem {
   label: string;
   sublabel?: string;
   category: string;
+  searchText?: string;
   icon?: React.ReactNode;
   href?: string;
   onSelect?: () => void;
@@ -44,7 +45,8 @@ export function CommandPalette({
         (item) =>
           item.label.toLowerCase().includes(query.toLowerCase()) ||
           item.sublabel?.toLowerCase().includes(query.toLowerCase()) ||
-          item.category.toLowerCase().includes(query.toLowerCase())
+          item.category.toLowerCase().includes(query.toLowerCase()) ||
+          item.searchText?.toLowerCase().includes(query.toLowerCase())
       )
     : items;
 
@@ -79,10 +81,12 @@ export function CommandPalette({
     (e: React.KeyboardEvent) => {
       switch (e.key) {
         case 'ArrowDown':
+          if (filtered.length === 0) return;
           e.preventDefault();
           setActiveIndex((i) => (i + 1) % filtered.length);
           break;
         case 'ArrowUp':
+          if (filtered.length === 0) return;
           e.preventDefault();
           setActiveIndex((i) => (i - 1 + filtered.length) % filtered.length);
           break;

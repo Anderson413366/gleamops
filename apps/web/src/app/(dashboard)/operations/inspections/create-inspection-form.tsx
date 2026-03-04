@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { requestNextCode } from '@/lib/api/request-next-code';
 import {
   SlideOver, Button, Select, Textarea, Skeleton,
 } from '@gleamops/ui';
@@ -69,10 +70,12 @@ export function CreateInspectionForm({ open, onClose, onCreated }: CreateInspect
     const tenantId = user?.app_metadata?.tenant_id;
     if (!tenantId) { setSaving(false); return; }
 
-    // Generate next inspection code
-    const { data: seqData } = await supabase
-      .rpc('next_code', { p_tenant_id: tenantId, p_prefix: 'QAI' });
-    const inspectionCode = seqData || `QAI-${Date.now()}`;
+    let inspectionCode = `QAI-${Date.now()}`;
+    try {
+      inspectionCode = await requestNextCode('QAI');
+    } catch {
+      // Keep fallback code for resilience.
+    }
 
     // Create inspection
     const { data: inspection, error } = await supabase

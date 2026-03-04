@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { ClipboardList, FileText, Layers, ShieldCheck, Timer } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
+import { requestNextCode } from '@/lib/api/request-next-code';
 import { taskSchema, type TaskFormData } from '@gleamops/shared';
 import { SlideOver, Input, Select, Textarea, Button, FormSection } from '@gleamops/ui';
 import type { Task } from '@gleamops/shared';
@@ -104,11 +105,21 @@ export function TaskForm({ open, onClose, initialData, onSuccess, focusSection }
 
   // Generate next code on create
   useEffect(() => {
+    let cancelled = false;
     if (open && !isEdit && !values.code) {
-      supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'TSK' }).then(({ data }) => {
-        if (data) setValue('code', data);
-      });
+      void (async () => {
+        try {
+          const data = await requestNextCode('TSK');
+          if (!cancelled) setValue('code', data);
+        } catch {
+          if (!cancelled) setValue('code', `TSK-${String(Date.now()).slice(-6)}`);
+        }
+      })();
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, [open, isEdit]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {

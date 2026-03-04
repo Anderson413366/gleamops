@@ -189,8 +189,8 @@ export async function listTrades(
       request_type, status, requested_at, accepted_at, approved_at, applied_at,
       manager_user_id, initiator_note, manager_note, created_at, updated_at,
       ticket:ticket_id(ticket_code, scheduled_date, start_time, end_time, site:site_id(name, site_code)),
-      initiator:staff_id(staff_code, full_name),
-      target:staff_id(staff_code, full_name)
+      initiator:initiator_staff_id(staff_code, full_name),
+      target:target_staff_id(staff_code, full_name)
     `)
     .is('archived_at', null)
     .order('requested_at', { ascending: false })

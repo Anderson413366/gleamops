@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { ClipboardList, FileText, Phone, StickyNote } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
+import { requestNextCode } from '@/lib/api/request-next-code';
 import { subcontractorSchema, type SubcontractorFormData } from '@gleamops/shared';
 import { SlideOver, Input, Select, Textarea, Button, FormSection } from '@gleamops/ui';
 import type { Subcontractor } from '@gleamops/shared';
@@ -87,11 +88,21 @@ export function SubcontractorForm({ open, onClose, initialData, onSuccess }: Sub
 
   // Generate next code on create
   useEffect(() => {
+    let cancelled = false;
     if (open && !isEdit && !values.subcontractor_code) {
-      supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'SUB' }).then(({ data }) => {
-        if (data) setValue('subcontractor_code', data);
-      });
+      void (async () => {
+        try {
+          const data = await requestNextCode('SUB');
+          if (!cancelled) setValue('subcontractor_code', data);
+        } catch {
+          if (!cancelled) setValue('subcontractor_code', `SUB-${String(Date.now()).slice(-6)}`);
+        }
+      })();
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, [open, isEdit]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleClose = () => {

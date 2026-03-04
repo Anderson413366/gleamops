@@ -16,6 +16,11 @@ interface AuthState {
   loading: boolean;
 }
 
+interface AuthContextFallback {
+  tenantId: string | null;
+  role: string | null;
+}
+
 function extractRoleCandidate(value: unknown): string | null {
   if (typeof value === 'string') {
     const trimmed = value.trim();
@@ -73,6 +78,48 @@ function normalizeStaffRole(roleValue: string | null | undefined): string | null
   return normalized;
 }
 
+function decodeJwtClaims(accessToken: string | null | undefined): Record<string, unknown> {
+  if (!accessToken) return {};
+
+  try {
+    const payload = accessToken.split('.')[1];
+    if (!payload) return {};
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = `${base64}${'='.repeat((4 - (base64.length % 4)) % 4)}`;
+    const decoded = atob(padded);
+    const parsed = JSON.parse(decoded);
+    return typeof parsed === 'object' && parsed !== null ? parsed as Record<string, unknown> : {};
+  } catch {
+    return {};
+  }
+}
+
+async function resolveAuthContextFromApi(accessToken: string): Promise<AuthContextFallback> {
+  try {
+    const response = await fetch('/api/auth/context', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      return { tenantId: null, role: null };
+    }
+
+    const payload = (await response.json()) as { tenantId?: unknown; role?: unknown } | null;
+    const tenantId = typeof payload?.tenantId === 'string' && payload.tenantId.trim()
+      ? payload.tenantId.trim()
+      : null;
+
+    const roleCandidate = extractRoleCandidate(payload?.role);
+    return { tenantId, role: roleCandidate };
+  } catch {
+    return { tenantId: null, role: null };
+  }
+}
+
 async function resolveRoleFromStaffProfile(
   userId: string,
   email: string | null,
@@ -107,6 +154,41 @@ async function resolveRoleFromStaffProfile(
   return null;
 }
 
+async function resolveTenantAndRole(
+  session: {
+    access_token: string;
+    user: {
+      id: string;
+      email?: string | null;
+      app_metadata?: Record<string, unknown>;
+    };
+  },
+): Promise<{ tenantId: string | null; rawRole: string | null }> {
+  const claims = decodeJwtClaims(session.access_token);
+  let tenantId = extractRoleCandidate(claims.tenant_id) ?? extractRoleCandidate(claims.tenantId);
+  let rawRole = resolveRawRole(claims, { app_metadata: session.user.app_metadata });
+
+  if ((!tenantId || !rawRole) && session.access_token) {
+    const apiContext = await resolveAuthContextFromApi(session.access_token);
+    if (!tenantId) {
+      tenantId = apiContext.tenantId;
+    }
+    if (!rawRole) {
+      if (apiContext.role && isSupportedRole(apiContext.role)) {
+        rawRole = apiContext.role;
+      } else {
+        rawRole = normalizeStaffRole(apiContext.role);
+      }
+    }
+  }
+
+  if (!rawRole) {
+    rawRole = await resolveRoleFromStaffProfile(session.user.id, session.user.email ?? null);
+  }
+
+  return { tenantId, rawRole };
+}
+
 export function useAuth() {
   const router = useRouter();
   const forcedTenantId = process.env.NEXT_PUBLIC_SINGLE_TENANT_ID ?? null;
@@ -124,21 +206,14 @@ export function useAuth() {
       const { data: { session } } = await supabase.auth.getSession();
 
       if (session?.user) {
-        // Extract custom claims injected by our hook
-        const claims = session.access_token
-          ? JSON.parse(atob(session.access_token.split('.')[1]))
-          : {};
-
-        const resolvedTenantId = (claims.tenant_id as string | undefined) ?? null;
-        let rawRole = resolveRawRole(
-          claims as Record<string, unknown>,
-          {
+        const { tenantId: resolvedTenantId, rawRole } = await resolveTenantAndRole({
+          access_token: session.access_token,
+          user: {
+            id: session.user.id,
+            email: session.user.email,
             app_metadata: session.user.app_metadata as Record<string, unknown> | undefined,
           },
-        );
-        if (!rawRole) {
-          rawRole = await resolveRoleFromStaffProfile(session.user.id, session.user.email ?? null);
-        }
+        });
 
         if (forcedTenantId && resolvedTenantId && resolvedTenantId !== forcedTenantId) {
           await supabase.auth.signOut();
@@ -167,20 +242,14 @@ export function useAuth() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         if (session?.user) {
-          const claims = session.access_token
-            ? JSON.parse(atob(session.access_token.split('.')[1]))
-            : {};
-
-          const resolvedTenantId = (claims.tenant_id as string | undefined) ?? null;
-          let rawRole = resolveRawRole(
-            claims as Record<string, unknown>,
-            {
+          const { tenantId: resolvedTenantId, rawRole } = await resolveTenantAndRole({
+            access_token: session.access_token,
+            user: {
+              id: session.user.id,
+              email: session.user.email,
               app_metadata: session.user.app_metadata as Record<string, unknown> | undefined,
             },
-          );
-          if (!rawRole) {
-            rawRole = await resolveRoleFromStaffProfile(session.user.id, session.user.email ?? null);
-          }
+          });
 
           if (forcedTenantId && resolvedTenantId && resolvedTenantId !== forcedTenantId) {
             await supabase.auth.signOut();

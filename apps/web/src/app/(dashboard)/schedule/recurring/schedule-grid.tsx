@@ -72,9 +72,9 @@ export function buildConflictKeys(rows: RecurringScheduleRow[]): Set<string> {
 
 interface AvailabilityRule {
   staff_name: string;
-  day_of_week: number;
-  is_available: boolean;
-  reason?: string | null;
+  weekday: number | null;
+  availability_type: 'AVAILABLE' | 'UNAVAILABLE';
+  notes?: string | null;
 }
 
 interface ScheduleGridProps {
@@ -150,8 +150,9 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect, o
       const [availRes, eligRes] = await Promise.all([
         supabase
           .from('staff_availability_rules')
-          .select('id, staff_id, day_of_week, is_available, reason, staff:staff_id(full_name)')
-          .eq('is_available', false),
+          .select('id, staff_id, weekday, availability_type, notes, rule_type, staff:staff_id(full_name)')
+          .eq('availability_type', 'UNAVAILABLE')
+          .eq('rule_type', 'WEEKLY_RECURRING'),
         supabase
           .from('staff_eligible_positions')
           .select('staff_id, position_code, staff:staff_id(full_name)')
@@ -163,15 +164,15 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect, o
           setAvailability(
             (availRes.data as unknown as Array<{
               staff_id: string;
-              day_of_week: number;
-              is_available: boolean;
-              reason?: string | null;
+              weekday: number | null;
+              availability_type: 'AVAILABLE' | 'UNAVAILABLE';
+              notes?: string | null;
               staff?: { full_name?: string | null } | null;
             }>).map((r) => ({
               staff_name: r.staff?.full_name?.trim() ?? '',
-              day_of_week: r.day_of_week,
-              is_available: r.is_available,
-              reason: r.reason,
+              weekday: r.weekday,
+              availability_type: r.availability_type,
+              notes: r.notes,
             })),
           );
         }
@@ -202,8 +203,8 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect, o
   const unavailableMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const rule of availability) {
-      if (!rule.is_available && rule.staff_name) {
-        map.set(`${rule.staff_name}:${rule.day_of_week}`, rule.reason ?? 'Unavailable');
+      if (rule.staff_name && rule.weekday != null && rule.availability_type === 'UNAVAILABLE') {
+        map.set(`${rule.staff_name}:${rule.weekday}`, rule.notes ?? 'Unavailable');
       }
     }
     return map;

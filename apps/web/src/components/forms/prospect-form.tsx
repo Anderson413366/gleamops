@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Building2, Target, UserRound } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
+import { requestNextCode } from '@/lib/api/request-next-code';
 import { prospectSchema, type ProspectFormData } from '@gleamops/shared';
 import { SlideOver, Input, Select, Textarea, Button, FormSection, Badge } from '@gleamops/ui';
 import type { SalesProspect } from '@gleamops/shared';
@@ -394,16 +395,17 @@ export function ProspectForm({ open, onClose, initialData, onSuccess }: Prospect
     if (!open || isEdit || prospectCode) return;
 
     (async () => {
-      const { data, error } = await supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'PRO' });
-      if (cancelled) return;
-      if (error || !data) {
+      try {
+        const data = await requestNextCode('PRO');
+        if (cancelled) return;
+        setCodeGenerationFailed(false);
+        setProspectCode(data);
+      } catch {
+        if (cancelled) return;
         const fallback = `PRO-${new Date().getFullYear()}${String(Math.floor(Math.random() * 1_000_000)).padStart(6, '0')}`;
         setCodeGenerationFailed(true);
         setProspectCode(fallback);
-        return;
       }
-      setCodeGenerationFailed(false);
-      setProspectCode(data);
     })();
 
     return () => {

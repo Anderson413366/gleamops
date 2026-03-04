@@ -207,7 +207,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
       // Inspections for this ticket
       supabase
         .from('inspections')
-        .select('*, inspector:staff_id(full_name)')
+        .select('*, inspector:inspector_id(full_name)')
         .eq('ticket_id', ticket.id)
         .is('archived_at', null)
         .order('created_at', { ascending: false }),
@@ -239,7 +239,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
       // Shift trades for this ticket
       supabase
         .from('shift_trade_requests')
-        .select('id, request_type, status, target_staff_id, initiator_staff_id, initiator_note, manager_note, requested_at, initiator:staff_id(full_name, staff_code), target:target_staff_id(full_name, staff_code)')
+        .select('id, request_type, status, target_staff_id, initiator_staff_id, initiator_note, manager_note, requested_at, initiator:initiator_staff_id(full_name, staff_code), target:target_staff_id(full_name, staff_code)')
         .eq('ticket_id', ticket.id)
         .is('archived_at', null)
         .order('requested_at', { ascending: false }),

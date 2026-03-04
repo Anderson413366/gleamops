@@ -6,6 +6,7 @@ import { Building2, CreditCard, FileText, StickyNote } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { useClientTypes, useIndustries } from '@/hooks/use-lookups';
+import { requestNextCode } from '@/lib/api/request-next-code';
 import { clientSchema, type ClientFormData } from '@gleamops/shared';
 import { SlideOver, Input, Select, Textarea, Button, FormWizard, useWizardSteps, FormSection } from '@gleamops/ui';
 import type { WizardStep } from '@gleamops/ui';
@@ -259,11 +260,24 @@ export function ClientForm({ open, onClose, initialData, onSuccess, focusSection
 
   // Generate next code on create
   useEffect(() => {
-    if (open && !isEdit && !values.client_code) {
-      supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'CLI' }).then(({ data }) => {
-        if (data) setValue('client_code', data);
-      });
-    }
+    let cancelled = false;
+    if (!open || isEdit || values.client_code) return;
+
+    (async () => {
+      try {
+        const generated = await requestNextCode('CLI');
+        if (cancelled) return;
+        setValue('client_code', generated);
+      } catch {
+        if (cancelled) return;
+        const fallback = `CLI-${new Date().getFullYear()}${String(Math.floor(Math.random() * 1_000_000)).padStart(6, '0')}`;
+        setValue('client_code', fallback);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [open, isEdit]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // When requested, take the user directly to a specific section.

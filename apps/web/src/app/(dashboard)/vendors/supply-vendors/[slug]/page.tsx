@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { ArrowLeft, Building2, CreditCard, FileText, PauseCircle, PlayCircle, ShoppingCart, Store, Truck } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { requestNextCode } from '@/lib/api/request-next-code';
 import { Badge, Button, EmptyState, Input, Select, Skeleton, SlideOver, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Textarea } from '@gleamops/ui';
 import { SupplyVendorForm } from '@/components/forms/supply-vendor-form';
 import { ActivityHistorySection } from '@/components/activity/activity-history-section';
@@ -197,10 +198,13 @@ export default function SupplyVendorDetailPage() {
     setOrderNotes(`Generated from Supply Vendor profile for ${profile.company_name}.`);
     setOrderError(null);
 
-    const supabase = getSupabaseBrowserClient();
-    const generated = await supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'ORD' });
     const fallback = `ORD-${new Date().getFullYear()}${String(Math.floor(Math.random() * 1_000_000)).padStart(6, '0')}`;
-    setOrderCode((generated.data as string) || fallback);
+    try {
+      const generated = await requestNextCode('ORD');
+      setOrderCode(generated);
+    } catch {
+      setOrderCode(fallback);
+    }
   };
 
   const submitOrderTemplate = async (event: React.FormEvent<HTMLFormElement>) => {

@@ -354,7 +354,7 @@ export async function listPortalInspectionsBySites(
       summary_notes,
       photos,
       site:site_id(id, site_code, name),
-      inspector:staff_id(id, staff_code, full_name)
+      inspector:inspector_id(id, staff_code, full_name)
     `)
     .in('site_id', siteIds)
     .in('status', ['COMPLETED', 'SUBMITTED'])
@@ -382,7 +382,7 @@ export async function getPortalInspectionById(
       summary_notes,
       photos,
       site:site_id(id, site_code, name),
-      inspector:staff_id(id, staff_code, full_name)
+      inspector:inspector_id(id, staff_code, full_name)
     `)
     .eq('id', inspectionId)
     .is('archived_at', null)

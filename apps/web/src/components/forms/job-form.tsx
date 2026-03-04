@@ -14,6 +14,7 @@ import {
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
+import { requestNextCode } from '@/lib/api/request-next-code';
 import { siteJobSchema, type SiteJobFormData } from '@gleamops/shared';
 import {
   SlideOver,
@@ -434,7 +435,7 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
         `)
         .is('archived_at', null)
         .order('name'),
-      supabase.from('services').select('id, name, code').is('archived_at', null).order('name'),
+      supabase.from('services').select('id, name, service_code').is('archived_at', null).order('name'),
       supabase
         .from('staff')
         .select('full_name, staff_code, role')
@@ -481,7 +482,7 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
         setServices(
           servicesRes.data.map((s) => ({
             value: s.id,
-            label: `${s.name} (${s.code})`,
+            label: `${s.name} (${s.service_code})`,
           }))
         );
       }
@@ -510,16 +511,17 @@ export function JobForm({ open, onClose, initialData, onSuccess, preselectedSite
     if (!open || isEdit || values.job_code) return;
 
     (async () => {
-      const { data, error } = await supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'JOB' });
-      if (cancelled) return;
-      if (error || !data) {
+      try {
+        const data = await requestNextCode('JOB');
+        if (cancelled) return;
+        setCodeGenerationFailed(false);
+        setValue('job_code', data);
+      } catch {
+        if (cancelled) return;
         const fallback = `JOB-${new Date().getFullYear()}${String(Math.floor(Math.random() * 1_000_000)).padStart(6, '0')}`;
         setCodeGenerationFailed(true);
         setValue('job_code', fallback);
-        return;
       }
-      setCodeGenerationFailed(false);
-      setValue('job_code', data);
     })();
 
     return () => {

@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { FileText, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { requestNextCode } from '@/lib/api/request-next-code';
 import {
   Table,
   TableHeader,
@@ -130,10 +131,14 @@ export default function SafetyDocumentsTable({ search, autoCreate, onAutoCreateH
   const handleAdd = useCallback(() => {
     resetForm();
     setFormOpen(true);
-    const supabase = getSupabaseBrowserClient();
-    supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'SDC' }).then(({ data }) => {
-      if (data) setDocCode(data);
-    });
+    void (async () => {
+      try {
+        const data = await requestNextCode('SDC');
+        setDocCode(data);
+      } catch {
+        setDocCode(`SDC-${String(Date.now()).slice(-6)}`);
+      }
+    })();
   }, [resetForm]);
 
   const handleEdit = useCallback((row: SafetyDocument) => {

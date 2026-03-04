@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Zap, ChevronLeft, ChevronRight, Check, AlertTriangle } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { requestNextCode } from '@/lib/api/request-next-code';
 import {
   SlideOver,
   Button,
@@ -219,8 +220,12 @@ export function ExpressBid({ open, onClose, onSuccess }: ExpressBidProps) {
     try {
       const user = (await supabase.auth.getUser()).data.user;
       const tenantId = user?.app_metadata?.tenant_id;
-      const { data: codeData } = await supabase.rpc('next_code', { p_tenant_id: tenantId, p_prefix: 'BID' });
-      const bidCode = codeData || `BID-${Date.now()}`;
+      let bidCode = `BID-${Date.now()}`;
+      try {
+        bidCode = await requestNextCode('BID');
+      } catch {
+        // Keep local fallback.
+      }
 
       // 1. Create bid
       const { data: bid, error: bidErr } = await supabase

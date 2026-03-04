@@ -20,6 +20,7 @@ import {
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { assertUpdateSucceeded } from '@/hooks/use-form';
+import { requestNextCode } from '@/lib/api/request-next-code';
 import { SlideOver, Input, Select, Textarea, Button, FormSection, Badge } from '@gleamops/ui';
 import type { SupplyOrder } from '@gleamops/shared';
 
@@ -254,14 +255,18 @@ export function SupplyOrderForm({ open, onClose, initialData, initialSiteCode, o
 
   const preloadOrderCode = useCallback(async () => {
     if (orderCode) return;
-    const { data: generatedCode } = await supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'ORD' });
-    if (generatedCode) {
-      setOrderCode(String(generatedCode));
-      return;
+    try {
+      const generatedCode = await requestNextCode('ORD');
+      if (generatedCode) {
+        setOrderCode(generatedCode);
+        return;
+      }
+    } catch {
+      // Fall through to local fallback.
     }
     const fallback = `ORD-${new Date().getFullYear()}${String(Math.floor(Math.random() * 1_000_000)).padStart(6, '0')}`;
     setOrderCode(fallback);
-  }, [orderCode, supabase]);
+  }, [orderCode]);
 
   useEffect(() => {
     if (!open) return;

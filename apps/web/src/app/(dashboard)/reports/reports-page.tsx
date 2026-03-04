@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { BarChart3, TrendingUp, DollarSign, Users, RefreshCw, ChevronDown } from 'lucide-react';
+import { RefreshCw, ChevronDown } from 'lucide-react';
 import { Badge, cn } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
@@ -15,7 +15,7 @@ import QualityDashboard from './quality/quality-dashboard';
 import WorkforceDashboard from './workforce/workforce-dashboard';
 import InventoryDashboard from './inventory/inventory-dashboard';
 import ScheduleReports from './schedule-reports';
-import { MetricCard } from './_components/report-components';
+
 
 const TABS = [
   { key: 'overview', label: 'Overview' },
@@ -55,7 +55,7 @@ export default function ReportsPageClient() {
     return match?.days ?? 30;
   });
   const [refreshKey, setRefreshKey] = useState(0);
-  const [snapshot, setSnapshot] = useState({
+  const [_snapshot, setSnapshot] = useState({
     openTickets: 0,
     pipelineValue: 0,
     monthlyRevenue: 0,
@@ -115,12 +115,6 @@ export default function ReportsPageClient() {
   useEffect(() => {
     fetchSnapshot();
   }, [fetchSnapshot]);
-
-  const formatCurrency = (value: number) => new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(value);
 
   const _activeLabel = TABS.find((t) => t.key === tab)?.label ?? 'Overview';
 

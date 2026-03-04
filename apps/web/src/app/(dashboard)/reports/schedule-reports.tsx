@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { ArrowLeft, FileText, Download } from 'lucide-react';
+import { ArrowLeft, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, Badge, Button, ExportButton, Table, TableHeader, TableHead, TableBody, TableRow, TableCell, EmptyState } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';

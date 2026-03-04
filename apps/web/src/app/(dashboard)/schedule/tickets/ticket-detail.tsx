@@ -182,7 +182,7 @@ export function TicketDetail({ ticket, open, onClose, onStatusChange }: TicketDe
       // Inspections for this ticket
       supabase
         .from('inspections')
-        .select('*, inspector:staff_id(full_name)')
+        .select('*, inspector:inspector_id(full_name)')
         .eq('ticket_id', ticket.id)
         .is('archived_at', null)
         .order('created_at', { ascending: false }),

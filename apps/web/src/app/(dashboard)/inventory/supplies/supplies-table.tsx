@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Package, ExternalLink, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { requestNextCode } from '@/lib/api/request-next-code';
 import { isExternalHttpUrl } from '@/lib/url';
 import {
   Table,
@@ -158,11 +159,14 @@ export default function SuppliesTable({ search, autoCreate, onAutoCreateHandled 
     resetForm();
     setFormOpen(true);
 
-    // Generate next code
-    const supabase = getSupabaseBrowserClient();
-    supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'SUP' }).then(({ data }) => {
-      if (data) setCode(data);
-    });
+    void (async () => {
+      try {
+        const data = await requestNextCode('SUP');
+        setCode(data);
+      } catch {
+        setCode(`SUP-${String(Date.now()).slice(-6)}`);
+      }
+    })();
   }, [resetForm]);
 
   const handleRowClick = useCallback((row: SupplyCatalog) => {

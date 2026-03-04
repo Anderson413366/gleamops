@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { Sparkles } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
+import { requestNextCode } from '@/lib/api/request-next-code';
 import { serviceSchema, type ServiceFormData } from '@gleamops/shared';
 import { SlideOver, Input, Textarea, Button, FormSection } from '@gleamops/ui';
 import type { Service } from '@gleamops/shared';
@@ -61,9 +62,11 @@ export function ServiceForm({ open, onClose, initialData, onSuccess }: ServiceFo
   // Generate next code on create
   useEffect(() => {
     if (open && !isEdit && !values.code) {
-      supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'SER' }).then(({ data }) => {
-        if (data) setValue('code', data);
-      });
+      requestNextCode('SER')
+        .then((code) => {
+          if (code) setValue('code', code);
+        })
+        .catch(() => undefined);
     }
   }, [open, isEdit]); // eslint-disable-line react-hooks/exhaustive-deps
 

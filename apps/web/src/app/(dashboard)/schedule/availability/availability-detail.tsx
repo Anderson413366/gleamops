@@ -67,7 +67,7 @@ export function AvailabilityDetail({ open, onClose, rule, onSaved }: Availabilit
     };
 
     if (ruleType === 'WEEKLY_RECURRING') {
-      payload.day_of_week = parseInt(weekday, 10);
+      payload.weekday = parseInt(weekday, 10);
       payload.start_time = `${startTime}:00`;
       payload.end_time = `${endTime}:00`;
       payload.one_off_start = null;
@@ -75,7 +75,7 @@ export function AvailabilityDetail({ open, onClose, rule, onSaved }: Availabilit
     } else {
       payload.one_off_start = oneOffStart || null;
       payload.one_off_end = oneOffEnd || null;
-      payload.day_of_week = null;
+      payload.weekday = null;
       payload.start_time = null;
       payload.end_time = null;
     }

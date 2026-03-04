@@ -6,6 +6,7 @@ import { useEffect, useState, type ChangeEvent, type DragEvent } from 'react';
 import { Building2, CheckCircle2, FileText, ImagePlus, MapPin, Shield, Warehouse } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
+import { requestNextCode } from '@/lib/api/request-next-code';
 import { siteSchema, type SiteFormData } from '@gleamops/shared';
 import { SlideOver, Input, Select, Textarea, Button, FormWizard, useWizardSteps, FormSection } from '@gleamops/ui';
 import type { WizardStep } from '@gleamops/ui';
@@ -197,11 +198,24 @@ export function SiteForm({ open, onClose, initialData, onSuccess, preselectedCli
 
   // Generate next code on create
   useEffect(() => {
-    if (open && !isEdit && !values.site_code) {
-      supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'SIT' }).then(({ data }) => {
-        if (data) setValue('site_code', data);
-      });
-    }
+    let cancelled = false;
+    if (!open || isEdit || values.site_code) return;
+
+    (async () => {
+      try {
+        const generated = await requestNextCode('SIT');
+        if (cancelled) return;
+        setValue('site_code', generated);
+      } catch {
+        if (cancelled) return;
+        const fallback = `SIT-${new Date().getFullYear()}${String(Math.floor(Math.random() * 1_000_000)).padStart(6, '0')}`;
+        setValue('site_code', fallback);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [open, isEdit]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {

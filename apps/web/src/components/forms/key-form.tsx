@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { KeyRound } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
+import { requestNextCode } from '@/lib/api/request-next-code';
 import { keySchema, type KeyFormData } from '@gleamops/shared';
 import { SlideOver, Input, Select, Textarea, Button, FormSection } from '@gleamops/ui';
 import type { KeyInventory } from '@gleamops/shared';
@@ -94,6 +95,7 @@ export function KeyForm({ open, onClose, initialData, onSuccess, focusSection }:
   // Load sites + staff for dropdowns, and auto-generate key code
   useEffect(() => {
     if (!open) return;
+    let cancelled = false;
 
     supabase
       .from('sites')
@@ -123,19 +125,19 @@ export function KeyForm({ open, onClose, initialData, onSuccess, focusSection }:
 
     // Auto-generate key code for new keys
     if (!isEdit) {
-      (async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        const tenantId = user?.app_metadata?.tenant_id;
-        let generated = false;
-        if (tenantId) {
-          const { data } = await supabase.rpc('next_code', { p_tenant_id: tenantId, p_prefix: 'KEY' });
-          if (data) { setValue('key_code', data); generated = true; }
-        }
-        if (!generated) {
-          setValue('key_code', `KEY-${String(Date.now()).slice(-6)}`);
+      void (async () => {
+        try {
+          const data = await requestNextCode('KEY');
+          if (!cancelled) setValue('key_code', data);
+        } catch {
+          if (!cancelled) setValue('key_code', `KEY-${String(Date.now()).slice(-6)}`);
         }
       })();
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, [open, isEdit, initialData, supabase, setValue]);
 
   useEffect(() => {

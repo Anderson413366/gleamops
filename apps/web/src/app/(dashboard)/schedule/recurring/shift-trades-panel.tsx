@@ -51,8 +51,8 @@ export function ShiftTradesPanel() {
           id, ticket_id, period_id, request_type, status,
           initiator_note, manager_note,
           requested_at, accepted_at, approved_at, applied_at,
-          initiator_staff:staff_id(full_name, staff_code),
-          target_staff:staff_id(full_name, staff_code),
+          initiator_staff:initiator_staff_id(full_name, staff_code),
+          target_staff:target_staff_id(full_name, staff_code),
           ticket:ticket_id(ticket_code, scheduled_date, start_time, end_time)
         `)
         .is('archived_at', null)

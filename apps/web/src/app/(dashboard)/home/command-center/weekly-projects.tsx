@@ -150,7 +150,7 @@ export function WeeklyProjects({ date, filter }: WeeklyProjectsProps) {
           end_time,
           status,
           required_staff_count,
-          job:job_id(job_name, frequency, job_type),
+          job:job_id(job_name, frequency, job_type:job_type_deprecated),
           site:site_id(name),
           assignments:ticket_assignments(assignment_status, staff:staff_id(full_name))
         `)

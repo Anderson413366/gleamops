@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Box, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { requestNextCode } from '@/lib/api/request-next-code';
 import {
   Table,
   TableHeader,
@@ -166,16 +167,12 @@ export default function KitsTable({ search, autoCreate, onAutoCreateHandled }: K
     resetForm();
     setFormOpen(true);
 
-    // Generate next code with proper tenant_id
-    const supabase = getSupabaseBrowserClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    const tenantId = user?.app_metadata?.tenant_id;
-    if (tenantId) {
-      const { data } = await supabase.rpc('next_code', { p_tenant_id: tenantId, p_prefix: 'KIT' });
-      if (data) setCode(data);
+    try {
+      const data = await requestNextCode('KIT');
+      setCode(data);
+    } catch {
+      setCode(`KIT-${String(Date.now()).slice(-6)}`);
     }
-    // Fallback: if RPC fails, generate a client-side code
-    setCode((prev) => prev || `KIT-${String(Date.now()).slice(-6)}`);
   }, [resetForm]);
 
   const handleEdit = useCallback(async (row: KitWithCount) => {

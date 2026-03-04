@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { BookOpen, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { requestNextCode } from '@/lib/api/request-next-code';
 import {
   Table,
   TableHeader,
@@ -62,8 +63,7 @@ export default function CoursesTable({ search, formOpen, onFormClose, onRefresh 
       setEditItem(null);
       setCreateOpen(true);
       // Auto-generate course code for new courses
-      const supabase = getSupabaseBrowserClient();
-      void supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'TRC' });
+      void requestNextCode('TRC').catch(() => undefined);
     }
   }, [formOpen]);
 

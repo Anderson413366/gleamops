@@ -7,6 +7,7 @@ import { Button, FormSection, Input, Select, SlideOver, Textarea } from '@gleamo
 import { supplyVendorSchema, type SupplyVendorFormData } from '@gleamops/shared';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { requestNextCode } from '@/lib/api/request-next-code';
 import {
   slugifyVendorName,
   type SupplyVendorProfile,
@@ -207,8 +208,12 @@ export function SupplyVendorForm({ open, onClose, initialData, focusSection, onS
           throw new Error('Missing tenant context. Please sign in again.');
         }
 
-        const generated = await supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'VEN' });
-        const vendorCode = typeof generated.data === 'string' && generated.data ? generated.data : generateVendorCodeFallback();
+        let vendorCode = generateVendorCodeFallback();
+        try {
+          vendorCode = await requestNextCode('VEN');
+        } catch {
+          // Keep local fallback.
+        }
 
         const insertResult = await supabase
           .from('subcontractors')

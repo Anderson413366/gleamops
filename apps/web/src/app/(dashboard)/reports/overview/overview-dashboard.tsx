@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Badge, Button, Skeleton } from '@gleamops/ui';
-import { MetricCard, ChartCard, BreakdownRow, Sparkline } from '../_components/report-components';
+import { MetricCard, ChartCard, BreakdownRow } from '../_components/report-components';
 
 interface OverviewData {
   // Financials

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link2, StickyNote, UserRound, Phone } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
+import { requestNextCode } from '@/lib/api/request-next-code';
 import { contactSchema, type ContactFormData } from '@gleamops/shared';
 import { SlideOver, Input, Select, Textarea, Button, FormSection } from '@gleamops/ui';
 import type { Contact } from '@gleamops/shared';
@@ -190,24 +191,25 @@ export function ContactForm({
     if (!open || isEdit || values.contact_code) return;
 
     (async () => {
-      const { data, error } = await supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'CON' });
-      if (cancelled) return;
-      if (error || !data) {
+      try {
+        const data = await requestNextCode('CON');
+        if (cancelled) return;
+        setCodeGenerationFailed(false);
+        setValue('contact_code', data);
+      } catch {
+        if (cancelled) return;
         // Backend RPC can be blocked by permissions in some environments.
         // Provide a safe client-side fallback that matches the `CON-XXXX` schema format.
         const fallback = `CON-${new Date().getFullYear()}${String(Math.floor(Math.random() * 1_000_000)).padStart(6, '0')}`;
         setCodeGenerationFailed(true);
         setValue('contact_code', fallback);
-        return;
       }
-      setCodeGenerationFailed(false);
-      setValue('contact_code', data);
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [open, isEdit, values.contact_code, supabase, setValue]);
+  }, [open, isEdit, values.contact_code, setValue]);
 
   const handleClose = () => {
     reset();

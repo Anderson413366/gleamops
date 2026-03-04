@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { FileText, TrendingUp } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
+import { requestNextCode } from '@/lib/api/request-next-code';
 import { opportunitySchema, type OpportunityFormData } from '@gleamops/shared';
 import { SlideOver, Input, Select, Textarea, Button, FormSection } from '@gleamops/ui';
 import type { SalesOpportunity } from '@gleamops/shared';
@@ -98,11 +99,21 @@ export function OpportunityForm({ open, onClose, initialData, onSuccess }: Oppor
 
   // Generate next opportunity code on create
   useEffect(() => {
+    let cancelled = false;
     if (open && !isEdit && !opportunityCode) {
-      supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'OPP' }).then(({ data }) => {
-        if (data) setOpportunityCode(data);
-      });
+      void (async () => {
+        try {
+          const data = await requestNextCode('OPP');
+          if (!cancelled) setOpportunityCode(data);
+        } catch {
+          if (!cancelled) setOpportunityCode(`OPP-${String(Date.now()).slice(-6)}`);
+        }
+      })();
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, [open, isEdit]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load prospects and stage options

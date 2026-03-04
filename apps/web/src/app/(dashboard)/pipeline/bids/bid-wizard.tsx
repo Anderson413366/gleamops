@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
 import { Plus, Trash2, ChevronLeft, ChevronRight, Check, AlertTriangle, DollarSign, Shield, Wrench, Lightbulb, FileText, Moon } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { requestNextCode } from '@/lib/api/request-next-code';
 import {
   SlideOver,
   Button,
@@ -840,8 +841,12 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
           })
           .eq('id', editBidId);
       } else {
-        const { data: codeData } = await supabase.rpc('next_code', { p_tenant_id: tenantId, p_prefix: 'BID' });
-        const bidCode = codeData || `BID-${Date.now()}`;
+        let bidCode = `BID-${Date.now()}`;
+        try {
+          bidCode = await requestNextCode('BID');
+        } catch {
+          // Keep local fallback.
+        }
 
         const { data: bid, error: bidErr } = await supabase
           .from('sales_bids')

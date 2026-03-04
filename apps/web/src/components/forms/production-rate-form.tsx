@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { ClipboardList, Filter, ShieldCheck, Timer } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
+import { requestNextCode } from '@/lib/api/request-next-code';
 import { productionRateSchema, type ProductionRateFormData } from '@gleamops/shared';
 import type { SalesProductionRate } from '@gleamops/shared';
 import { SlideOver, Input, Select, Textarea, Button, FormSection } from '@gleamops/ui';
@@ -120,11 +121,21 @@ export function ProductionRateForm({ open, onClose, initialData, onSuccess }: Pr
 
   // Auto-generate rate code on create
   useEffect(() => {
+    let cancelled = false;
     if (open && !isEdit && !values.rate_code) {
-      supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'PRD' }).then(({ data }) => {
-        if (data) setValue('rate_code', data);
-      });
+      void (async () => {
+        try {
+          const data = await requestNextCode('PRD');
+          if (!cancelled) setValue('rate_code', data);
+        } catch {
+          if (!cancelled) setValue('rate_code', `PRD-${String(Date.now()).slice(-6)}`);
+        }
+      })();
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, [open, isEdit]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleClose = () => {

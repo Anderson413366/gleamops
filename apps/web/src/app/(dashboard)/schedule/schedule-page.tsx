@@ -770,12 +770,14 @@ export default function SchedulePageClient() {
       // Fetch availability
       const { data: availRules } = await supabase
         .from('staff_availability_rules')
-        .select('staff_id, weekday:day_of_week, is_available')
-        .eq('is_available', false);
+        .select('staff_id, weekday, availability_type, rule_type')
+        .eq('availability_type', 'UNAVAILABLE')
+        .eq('rule_type', 'WEEKLY_RECURRING');
 
       const unavailableSet = new Set<string>();
       if (availRules) {
-        for (const r of availRules as Array<{ staff_id: string; weekday: number; is_available: boolean }>) {
+        for (const r of availRules as Array<{ staff_id: string; weekday: number | null }>) {
+          if (r.weekday == null) continue;
           unavailableSet.add(`${r.staff_id}:${r.weekday}`);
         }
       }

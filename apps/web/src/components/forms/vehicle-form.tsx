@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { ClipboardList, FileText, Truck } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
+import { requestNextCode } from '@/lib/api/request-next-code';
 import { vehicleSchema, type VehicleFormData } from '@gleamops/shared';
 import { SlideOver, Input, Select, Textarea, Button, FormSection } from '@gleamops/ui';
 import type { Vehicle } from '@gleamops/shared';
@@ -95,6 +96,7 @@ export function VehicleForm({ open, onClose, initialData, onSuccess, focusSectio
   // Load staff for dropdown, sync assigned_to, auto-generate code
   useEffect(() => {
     if (!open) return;
+    let cancelled = false;
 
     supabase
       .from('staff')
@@ -112,19 +114,19 @@ export function VehicleForm({ open, onClose, initialData, onSuccess, focusSectio
 
     // Auto-generate vehicle code for new vehicles
     if (!isEdit) {
-      (async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        const tenantId = user?.app_metadata?.tenant_id;
-        let generated = false;
-        if (tenantId) {
-          const { data } = await supabase.rpc('next_code', { p_tenant_id: tenantId, p_prefix: 'VEH' });
-          if (data) { setValue('vehicle_code', data); generated = true; }
-        }
-        if (!generated) {
-          setValue('vehicle_code', `VEH-${String(Date.now()).slice(-6)}`);
+      void (async () => {
+        try {
+          const data = await requestNextCode('VEH');
+          if (!cancelled) setValue('vehicle_code', data);
+        } catch {
+          if (!cancelled) setValue('vehicle_code', `VEH-${String(Date.now()).slice(-6)}`);
         }
       })();
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, [open, isEdit, initialData, supabase, setValue]);
 
   useEffect(() => {

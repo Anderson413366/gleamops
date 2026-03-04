@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ClipboardList, Link2, CalendarDays, Building2 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useForm, assertUpdateSucceeded } from '@/hooks/use-form';
+import { requestNextCode } from '@/lib/api/request-next-code';
 import { inventoryCountSchema, type InventoryCountFormData } from '@gleamops/shared';
 import { SlideOver, Input, Select, Textarea, Button, FormSection } from '@gleamops/ui';
 import type { InventoryCount } from '@gleamops/shared';
@@ -328,8 +329,15 @@ export function InventoryCountForm({ open, onClose, initialData, initialSiteId, 
       }
 
       if (!values.count_code) {
-        const { data: generatedCode } = await supabase.rpc('next_code', { p_tenant_id: null, p_prefix: 'CNT' });
-        if (!cancelled && generatedCode) setValue('count_code', generatedCode as string);
+        try {
+          const generatedCode = await requestNextCode('CNT');
+          if (!cancelled && generatedCode) setValue('count_code', generatedCode);
+        } catch {
+          if (!cancelled) {
+            const fallback = `CNT-${String(Date.now()).slice(-6)}`;
+            setValue('count_code', fallback);
+          }
+        }
       }
     }
 

@@ -6,6 +6,7 @@ import {
   ClipboardCheck, Camera, AlertCircle,
 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { requestNextCode } from '@/lib/api/request-next-code';
 import {
   SlideOver, Button, Card, CardContent, CardHeader, CardTitle,
   Input, Textarea, Select, Badge, Skeleton,
@@ -214,9 +215,12 @@ export function TemplateBuilder({ open, onClose, templateId, onSaved }: Template
         .eq('id', tmplId);
     } else {
       // Generate template code
-      const { data: seqData } = await supabase
-        .rpc('next_code', { p_tenant_id: tenantId, p_prefix: 'INS' });
-      const templateCode = seqData || `INS-${Date.now()}`;
+      let templateCode = `INS-${Date.now()}`;
+      try {
+        templateCode = await requestNextCode('INS');
+      } catch {
+        // Keep local fallback.
+      }
 
       // Create new template
       const { data: newTmpl, error: tmplErr } = await supabase

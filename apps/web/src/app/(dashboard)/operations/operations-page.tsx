@@ -148,10 +148,9 @@ export default function OperationsPageClient() {
       return;
     }
     if (actionName === 'create-ticket') {
-      setTab('tickets');
-      clearActionParam('tickets');
+      router.push('/schedule?tab=work-orders&action=create-work-order');
     }
-  }, [clearActionParam, setTab]);
+  }, [clearActionParam, router, setTab]);
 
   useEffect(() => {
     openQuickCreate(action);

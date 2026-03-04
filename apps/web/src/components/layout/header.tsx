@@ -197,6 +197,10 @@ export function Header() {
   const themeRef = useRef<HTMLDivElement>(null);
   const goSequenceRef = useRef(false);
   const goSequenceTimerRef = useRef<number | null>(null);
+  const feedRequestRef = useRef<{ inFlight: boolean; lastFetchedAt: number }>({
+    inFlight: false,
+    lastFetchedAt: 0,
+  });
 
   const unreadCount = feedItems.filter((n) => !n.read_at).length;
   const unreadUrgentCount = feedItems.filter((n) => !n.read_at && getFeedTone(n) === 'urgent').length;
@@ -228,79 +232,96 @@ export function Header() {
     [router]
   );
 
-  // Fetch notifications + alerts on mount + when dropdown opens
-  const fetchFeed = useCallback(async () => {
+  // Fetch notifications + alerts on mount + when dropdown opens.
+  const fetchFeed = useCallback(async (options?: { force?: boolean }) => {
     if (!user) return;
+
+    const { force = false } = options ?? {};
+    const requestState = feedRequestRef.current;
+    const now = Date.now();
+    const isFresh = now - requestState.lastFetchedAt < 10_000;
+
+    if (requestState.inFlight) return;
+    if (!force && isFresh) return;
+
+    requestState.inFlight = true;
     setNotifLoading(true);
-    const supabase = getSupabaseBrowserClient();
 
-    const [notifRes, alertRes] = await Promise.all([
-      supabase
-        .from('notifications')
-        .select('id, title, body, link, read_at, created_at')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(15),
-      supabase
-        .from('alerts')
-        .select('id, alert_type, severity, title, body, entity_type, entity_id, read_at, dismissed_at, created_at')
-        .eq('target_user_id', user.id)
-        .is('dismissed_at', null)
-        .order('created_at', { ascending: false })
-        .limit(15),
-    ]);
+    try {
+      const supabase = getSupabaseBrowserClient();
 
-    const items: FeedItem[] = [];
+      const [notifRes, alertRes] = await Promise.all([
+        supabase
+          .from('notifications')
+          .select('id, title, body, link, read_at, created_at')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(15),
+        supabase
+          .from('alerts')
+          .select('id, alert_type, severity, title, body, entity_type, entity_id, read_at, dismissed_at, created_at')
+          .eq('target_user_id', user.id)
+          .is('dismissed_at', null)
+          .order('created_at', { ascending: false })
+          .limit(15),
+      ]);
 
-    if (notifRes.data) {
-      for (const n of notifRes.data) {
-        items.push({
-          id: n.id,
-          source: 'notification',
-          title: n.title,
-          body: n.body,
-          link: n.link,
-          read_at: n.read_at,
-          created_at: n.created_at,
-        });
+      const nextItems: FeedItem[] = [];
+
+      if (notifRes.data) {
+        for (const n of notifRes.data) {
+          nextItems.push({
+            id: n.id,
+            source: 'notification',
+            title: n.title,
+            body: n.body,
+            link: n.link,
+            read_at: n.read_at,
+            created_at: n.created_at,
+          });
+        }
       }
-    }
 
-    if (alertRes.data) {
-      for (const a of alertRes.data as {
-        id: string; alert_type: string; severity: string; title: string;
-        body: string | null; entity_type: string | null; entity_id: string | null;
-        read_at: string | null; dismissed_at: string | null; created_at: string;
-      }[]) {
-        items.push({
-          id: a.id,
-          source: 'alert',
-          title: a.title,
-          body: a.body ?? '',
-          link: null,
-          read_at: a.read_at,
-          created_at: a.created_at,
-          alert_type: a.alert_type,
-          severity: a.severity,
-          entity_type: a.entity_type ?? undefined,
-          entity_id: a.entity_id ?? undefined,
-          dismissed_at: a.dismissed_at,
-        });
+      if (alertRes.data) {
+        for (const a of alertRes.data as {
+          id: string; alert_type: string; severity: string; title: string;
+          body: string | null; entity_type: string | null; entity_id: string | null;
+          read_at: string | null; dismissed_at: string | null; created_at: string;
+        }[]) {
+          nextItems.push({
+            id: a.id,
+            source: 'alert',
+            title: a.title,
+            body: a.body ?? '',
+            link: null,
+            read_at: a.read_at,
+            created_at: a.created_at,
+            alert_type: a.alert_type,
+            severity: a.severity,
+            entity_type: a.entity_type ?? undefined,
+            entity_id: a.entity_id ?? undefined,
+            dismissed_at: a.dismissed_at,
+          });
+        }
       }
+
+      // Sort merged feed by created_at DESC.
+      nextItems.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      setFeedItems(nextItems.slice(0, 20));
+      requestState.lastFetchedAt = Date.now();
+    } finally {
+      requestState.inFlight = false;
+      setNotifLoading(false);
     }
-
-    // Sort merged feed by created_at DESC
-    items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-    setFeedItems(items.slice(0, 20));
-    setNotifLoading(false);
   }, [user]);
 
-  useEffect(() => { fetchFeed(); }, [fetchFeed]);
+  useEffect(() => {
+    void fetchFeed();
+  }, [fetchFeed]);
 
   // Also refresh when dropdown opens
   useEffect(() => {
-    if (notifOpen) fetchFeed();
+    if (notifOpen) void fetchFeed();
   }, [notifOpen, fetchFeed]);
 
   const markAsRead = useCallback(async (item: FeedItem) => {
@@ -487,6 +508,7 @@ export function Header() {
         category: 'Quick Actions',
         icon: <Building2 className="h-4 w-4" />,
         keywords: ['new client', 'create client', 'add client', 'client'],
+        searchText: 'new client create client add client client',
         onSelect: () => triggerQuickCreate('create-client'),
       },
       {
@@ -496,6 +518,7 @@ export function Header() {
         category: 'Quick Actions',
         icon: <MapPin className="h-4 w-4" />,
         keywords: ['new site', 'create site', 'add site', 'site'],
+        searchText: 'new site create site add site site',
         onSelect: () => triggerQuickCreate('create-site'),
       },
       {
@@ -505,6 +528,7 @@ export function Header() {
         category: 'Quick Actions',
         icon: <Briefcase className="h-4 w-4" />,
         keywords: ['new job', 'create job', 'add job', 'service plan'],
+        searchText: 'new service plan new job create job add job service plan',
         onSelect: () => triggerQuickCreate('create-job'),
       },
       {
@@ -514,6 +538,7 @@ export function Header() {
         category: 'Quick Actions',
         icon: <TrendingUp className="h-4 w-4" />,
         keywords: ['new prospect', 'create prospect', 'add prospect', 'lead'],
+        searchText: 'new prospect create prospect add prospect lead',
         onSelect: () => triggerQuickCreate('create-prospect'),
       },
       {
@@ -523,6 +548,7 @@ export function Header() {
         category: 'Go To',
         icon: <Building2 className="h-4 w-4" />,
         keywords: ['go home', 'go to home', 'home'],
+        searchText: 'go home go to home home',
         onSelect: () => goToSection('h'),
       },
       {
@@ -532,6 +558,7 @@ export function Header() {
         category: 'Go To',
         icon: <Calendar className="h-4 w-4" />,
         keywords: ['go schedule', 'go to schedule', 'schedule', 'calendar', 'planning'],
+        searchText: 'go schedule go to schedule schedule calendar planning',
         onSelect: () => goToSection('s'),
       },
       {
@@ -541,6 +568,7 @@ export function Header() {
         category: 'Go To',
         icon: <ClipboardCheck className="h-4 w-4" />,
         keywords: ['go jobs', 'go to jobs', 'jobs', 'tickets', 'operations'],
+        searchText: 'go jobs go to jobs jobs tickets operations',
         onSelect: () => goToSection('j'),
       },
       {
@@ -550,6 +578,7 @@ export function Header() {
         category: 'Go To',
         icon: <Building2 className="h-4 w-4" />,
         keywords: ['go clients', 'go to clients', 'clients', 'crm', 'customers'],
+        searchText: 'go clients go to clients clients crm customers',
         onSelect: () => goToSection('c'),
       },
       {
@@ -559,6 +588,7 @@ export function Header() {
         category: 'Go To',
         icon: <Users className="h-4 w-4" />,
         keywords: ['go team', 'go to team', 'team', 'workforce', 'staff'],
+        searchText: 'go team go to team team workforce staff',
         onSelect: () => goToSection('t'),
       },
       {
@@ -568,6 +598,7 @@ export function Header() {
         category: 'Go To',
         icon: <Wrench className="h-4 w-4" />,
         keywords: ['go equipment', 'go to equipment', 'equipment', 'assets'],
+        searchText: 'go equipment go to equipment equipment assets',
         onSelect: () => goToSection('e'),
       },
     ];

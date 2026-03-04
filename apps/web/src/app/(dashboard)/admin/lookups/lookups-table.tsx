@@ -77,15 +77,6 @@ export default function LookupsTable({ search, autoCreate, onAutoCreateHandled, 
   const pag = usePagination(sortedRows, 25);
 
   if (loading) return <TableSkeleton rows={8} cols={5} />;
-  if (filtered.length === 0) {
-    return (
-      <EmptyState
-        icon={<BookOpen className="h-10 w-10" />}
-        title="No lookups yet"
-        description="No lookup values match your search criteria."
-      />
-    );
-  }
 
   return (
     <div>
@@ -112,46 +103,57 @@ export default function LookupsTable({ search, autoCreate, onAutoCreateHandled, 
           </button>
         ))}
       </div>
-      <Table>
-        <TableHeader>
-          <tr>
-            <TableHead sortable sorted={sortKey === 'category' && sortDir} onSort={() => onSort('category')}>Category</TableHead>
-            <TableHead sortable sorted={sortKey === 'code' && sortDir} onSort={() => onSort('code')}>Code</TableHead>
-            <TableHead sortable sorted={sortKey === 'label' && sortDir} onSort={() => onSort('label')}>Label</TableHead>
-            <TableHead>Order</TableHead>
-          </tr>
-        </TableHeader>
-        <TableBody>
-          {pag.page.map((row) => (
-            <TableRow
-              key={row.id}
-              onClick={() => {
-                setEditing(row);
-                setFormOpen(true);
-              }}
-              className="cursor-pointer"
-            >
-              <TableCell>
-                <Badge color="blue">{row.category.replace(/_/g, ' ')}</Badge>
-              </TableCell>
-              <TableCell className="font-mono text-xs">{row.code}</TableCell>
-              <TableCell className="font-medium">{row.label}</TableCell>
-              <TableCell>{row.sort_order}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      <Pagination
-        currentPage={pag.currentPage}
-        totalPages={pag.totalPages}
-        totalItems={pag.totalItems}
-        pageSize={pag.pageSize}
-        hasNext={pag.hasNext}
-        hasPrev={pag.hasPrev}
-        onNext={pag.nextPage}
-        onPrev={pag.prevPage}
-        onGoTo={pag.goToPage}
-      />
+
+      {filtered.length === 0 ? (
+        <EmptyState
+          icon={<BookOpen className="h-10 w-10" />}
+          title="No lookups yet"
+          description="No lookup values match your search criteria."
+        />
+      ) : (
+        <>
+          <Table>
+            <TableHeader>
+              <tr>
+                <TableHead sortable sorted={sortKey === 'category' && sortDir} onSort={() => onSort('category')}>Category</TableHead>
+                <TableHead sortable sorted={sortKey === 'code' && sortDir} onSort={() => onSort('code')}>Code</TableHead>
+                <TableHead sortable sorted={sortKey === 'label' && sortDir} onSort={() => onSort('label')}>Label</TableHead>
+                <TableHead>Order</TableHead>
+              </tr>
+            </TableHeader>
+            <TableBody>
+              {pag.page.map((row) => (
+                <TableRow
+                  key={row.id}
+                  onClick={() => {
+                    setEditing(row);
+                    setFormOpen(true);
+                  }}
+                  className="cursor-pointer"
+                >
+                  <TableCell>
+                    <Badge color="blue">{row.category.replace(/_/g, ' ')}</Badge>
+                  </TableCell>
+                  <TableCell className="font-mono text-xs">{row.code}</TableCell>
+                  <TableCell className="font-medium">{row.label}</TableCell>
+                  <TableCell>{row.sort_order}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <Pagination
+            currentPage={pag.currentPage}
+            totalPages={pag.totalPages}
+            totalItems={pag.totalItems}
+            pageSize={pag.pageSize}
+            hasNext={pag.hasNext}
+            hasPrev={pag.hasPrev}
+            onNext={pag.nextPage}
+            onPrev={pag.prevPage}
+            onGoTo={pag.goToPage}
+          />
+        </>
+      )}
 
       <LookupForm
         open={formOpen}

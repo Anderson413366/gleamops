@@ -19,6 +19,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { ChipTabs, SearchInput, Button, Card, CardContent } from '@gleamops/ui';
+import type { Geofence } from '@gleamops/shared';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useSyncedTab } from '@/hooks/use-synced-tab';
 
@@ -32,6 +33,7 @@ import StatusRulesTable from '../admin/rules/status-rules-table';
 import ImportPage from '../admin/import/import-page';
 import DataHubPanel from '../admin/data-hub/data-hub-panel';
 import GeofenceTable from '../operations/geofence/geofence-table';
+import { GeofenceForm } from '@/components/forms/geofence-form';
 import ScheduleSettings from './schedule-settings';
 import TimeClockSettings from './time-clock-settings';
 
@@ -58,6 +60,8 @@ export default function SettingsPageClient() {
   const [search, setSearch] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
   const [autoCreate, setAutoCreate] = useState(false);
+  const [geofenceFormOpen, setGeofenceFormOpen] = useState(false);
+  const [selectedGeofence, setSelectedGeofence] = useState<Geofence | null>(null);
   const [kpis, setKpis] = useState({
     lookupRows: 0,
     transitionRules: 0,
@@ -67,10 +71,22 @@ export default function SettingsPageClient() {
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   const handleAdd = () => {
-    setAutoCreate(true);
+    if (tab === 'lookups') {
+      setAutoCreate(true);
+      return;
+    }
+
+    if (tab === 'geofences') {
+      setSelectedGeofence(null);
+      setGeofenceFormOpen(true);
+    }
   };
 
-  const addLabel = tab === 'lookups' ? 'New Lookup' : '';
+  const addLabel = tab === 'lookups'
+    ? 'New Lookup'
+    : tab === 'geofences'
+      ? 'New Geofence'
+      : '';
 
   useEffect(() => {
     async function fetchKpis() {
@@ -138,7 +154,28 @@ export default function SettingsPageClient() {
           onRefresh={refresh}
         />
       )}
-      {tab === 'geofences' && <GeofenceTable key={`geo-${refreshKey}`} search={search} onAdd={() => {}} onSelect={() => {}} />}
+      {tab === 'geofences' && (
+        <>
+          <GeofenceTable
+            key={`geo-${refreshKey}`}
+            search={search}
+            onAdd={() => {
+              setSelectedGeofence(null);
+              setGeofenceFormOpen(true);
+            }}
+            onSelect={(geofence) => {
+              setSelectedGeofence(geofence as Geofence);
+              setGeofenceFormOpen(true);
+            }}
+          />
+          <GeofenceForm
+            open={geofenceFormOpen}
+            onClose={() => setGeofenceFormOpen(false)}
+            initialData={selectedGeofence}
+            onSuccess={refresh}
+          />
+        </>
+      )}
       {tab === 'rules' && <StatusRulesTable key={`rules-${refreshKey}`} search={search} />}
       {tab === 'data-hub' && <DataHubPanel key={`hub-${refreshKey}`} search={search} />}
       {tab === 'sequences' && <SequencesTable key={`seq-${refreshKey}`} search={search} />}

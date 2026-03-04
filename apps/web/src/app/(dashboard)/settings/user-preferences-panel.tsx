@@ -11,12 +11,14 @@ import { useUiPreferences } from '@/hooks/use-ui-preferences';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 export default function UserPreferencesPanel() {
-  const { user, role, tenantId } = useAuth();
+  const { user, role, loading: authLoading } = useAuth();
   const { resolvedTheme, trueBlack, setTheme, setTrueBlack, mounted } = useTheme();
   const { preferences, togglePreference, mounted: prefMounted } = useUiPreferences();
   const [companyName, setCompanyName] = useState('');
   const [companyPhone, setCompanyPhone] = useState('');
   const [companyEmail, setCompanyEmail] = useState('');
+  const [resolvedTenantId, setResolvedTenantId] = useState<string | null>(null);
+  const [tenantProfileMissing, setTenantProfileMissing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [notificationLoading, setNotificationLoading] = useState(false);
   const [notificationSaving, setNotificationSaving] = useState(false);
@@ -27,60 +29,81 @@ export default function UserPreferencesPanel() {
 
   const fetchTenant = useCallback(async () => {
     const supabase = getSupabaseBrowserClient();
-    if (!tenantId) return;
-
-    const { data } = await supabase
-      .from('tenants')
-      .select('name, phone, email')
-      .eq('id', tenantId)
-      .single();
-
-    if (data) {
-      setCompanyName(data.name ?? '');
-      setCompanyPhone(data.phone ?? '');
-      setCompanyEmail(data.email ?? '');
-    }
-  }, [tenantId]);
-
-  useEffect(() => {
-    if (tenantId) fetchTenant();
-  }, [tenantId, fetchTenant]);
-
-  const fetchNotificationPreferences = useCallback(async () => {
-    if (!tenantId || !user?.id) return;
-    setNotificationLoading(true);
-    const supabase = getSupabaseBrowserClient();
+    if (!user?.id) return;
 
     const { data, error } = await supabase
-      .from('notification_preferences')
-      .select('default_channel, quiet_hours_enabled, quiet_hours_start, quiet_hours_end')
-      .eq('tenant_id', tenantId)
-      .eq('user_id', user.id)
-      .is('archived_at', null)
+      .from('tenants')
+      .select('id, name, phone, email')
       .maybeSingle();
 
     if (error) {
-      toast.error(error.message);
-      setNotificationLoading(false);
+      setTenantProfileMissing(true);
+      setResolvedTenantId(null);
       return;
     }
 
     if (data) {
-      const row = data as {
-        default_channel?: 'IN_APP' | 'SMS' | 'EMAIL' | 'PUSH' | null;
-        quiet_hours_enabled?: boolean | null;
-        quiet_hours_start?: string | null;
-        quiet_hours_end?: string | null;
-      };
-
-      setDefaultChannel(row.default_channel ?? 'IN_APP');
-      setQuietHoursEnabled(Boolean(row.quiet_hours_enabled));
-      setQuietHoursStart((row.quiet_hours_start ?? '21:00').slice(0, 5));
-      setQuietHoursEnd((row.quiet_hours_end ?? '07:00').slice(0, 5));
+      setResolvedTenantId(data.id);
+      setTenantProfileMissing(false);
+      setCompanyName(data.name ?? '');
+      setCompanyPhone(data.phone ?? '');
+      setCompanyEmail(data.email ?? '');
+      return;
     }
 
-    setNotificationLoading(false);
-  }, [tenantId, user?.id]);
+    setTenantProfileMissing(true);
+    setResolvedTenantId(null);
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (user?.id) void fetchTenant();
+  }, [user?.id, fetchTenant]);
+
+  const fetchNotificationPreferences = useCallback(async () => {
+    if (!user?.id) return;
+    setNotificationLoading(true);
+    const supabase = getSupabaseBrowserClient();
+    try {
+      let query = supabase
+        .from('notification_preferences')
+        .select('default_channel, quiet_hours_enabled, quiet_hours_start, quiet_hours_end')
+        .eq('user_id', user.id)
+        .is('archived_at', null);
+
+      if (resolvedTenantId) {
+        query = query.eq('tenant_id', resolvedTenantId);
+      }
+
+      const { data, error } = await query.maybeSingle();
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        const row = data as {
+          default_channel?: 'IN_APP' | 'SMS' | 'EMAIL' | 'PUSH' | null;
+          quiet_hours_enabled?: boolean | null;
+          quiet_hours_start?: string | null;
+          quiet_hours_end?: string | null;
+        };
+
+        setDefaultChannel(row.default_channel ?? 'IN_APP');
+        setQuietHoursEnabled(Boolean(row.quiet_hours_enabled));
+        setQuietHoursStart((row.quiet_hours_start ?? '21:00').slice(0, 5));
+        setQuietHoursEnd((row.quiet_hours_end ?? '07:00').slice(0, 5));
+      } else {
+        setDefaultChannel('IN_APP');
+        setQuietHoursEnabled(false);
+        setQuietHoursStart('21:00');
+        setQuietHoursEnd('07:00');
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to load notification preferences';
+      toast.error(message);
+    } finally {
+      setNotificationLoading(false);
+    }
+  }, [resolvedTenantId, user?.id]);
 
   useEffect(() => {
     void fetchNotificationPreferences();
@@ -90,19 +113,23 @@ export default function UserPreferencesPanel() {
     setSaving(true);
     try {
       const supabase = getSupabaseBrowserClient();
-      if (!tenantId) throw new Error('No tenant');
+      if (!resolvedTenantId) throw new Error('Tenant profile is unavailable. Contact support.');
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('tenants')
         .update({
           name: companyName.trim(),
           phone: companyPhone.trim() || null,
           email: companyEmail.trim() || null,
         })
-        .eq('id', tenantId);
+        .eq('id', resolvedTenantId)
+        .select('id')
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data?.id) throw new Error('Unable to save company profile. Tenant record not found.');
       toast.success('Settings saved');
+      await fetchTenant();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to save settings';
       toast.error(message, { duration: Infinity });
@@ -112,27 +139,31 @@ export default function UserPreferencesPanel() {
   };
 
   const handleSaveNotifications = async () => {
-    if (!tenantId || !user?.id) {
-      toast.error('User context missing');
+    if (!resolvedTenantId || !user?.id) {
+      toast.error('Notification preferences are unavailable until tenant profile is loaded.');
       return;
     }
 
     setNotificationSaving(true);
     try {
       const supabase = getSupabaseBrowserClient();
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('notification_preferences')
         .upsert({
-          tenant_id: tenantId,
+          tenant_id: resolvedTenantId,
           user_id: user.id,
           default_channel: defaultChannel,
           quiet_hours_enabled: quietHoursEnabled,
           quiet_hours_start: quietHoursEnabled ? quietHoursStart : null,
           quiet_hours_end: quietHoursEnabled ? quietHoursEnd : null,
-        }, { onConflict: 'tenant_id,user_id' });
+        }, { onConflict: 'tenant_id,user_id' })
+        .select('id')
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data?.id) throw new Error('Failed to save notification preferences');
       toast.success('Notification preferences saved');
+      await fetchNotificationPreferences();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to save notification preferences';
       toast.error(message, { duration: Infinity });
@@ -187,6 +218,11 @@ export default function UserPreferencesPanel() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {tenantProfileMissing && (
+            <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
+              Company profile is not available for this account. Contact an administrator to complete tenant setup.
+            </p>
+          )}
           <Input
             label="Company Name"
             value={companyName}
@@ -207,7 +243,7 @@ export default function UserPreferencesPanel() {
             type="email"
           />
           <div className="pt-2">
-            <Button onClick={handleSave} loading={saving}>
+            <Button onClick={handleSave} loading={saving} disabled={tenantProfileMissing}>
               <Save className="h-4 w-4" />
               Save Changes
             </Button>
@@ -333,11 +369,13 @@ export default function UserPreferencesPanel() {
         <CardContent className="space-y-3">
           <div>
             <p className="text-sm font-medium text-muted-foreground">Email</p>
-            <p className="text-sm text-foreground">{user?.email ?? '—'}</p>
+            <p className="text-sm text-foreground">{authLoading ? 'Loading…' : (user?.email ?? '—')}</p>
           </div>
           <div>
             <p className="text-sm font-medium text-muted-foreground">Role</p>
-            <p className="text-sm text-foreground">{role ? roleDisplayName(role) : '—'}</p>
+            <p className="text-sm text-foreground">
+              {authLoading ? 'Loading…' : (role ? roleDisplayName(role) : '—')}
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -397,7 +435,11 @@ export default function UserPreferencesPanel() {
               </div>
 
               <div>
-                <Button onClick={handleSaveNotifications} loading={notificationSaving}>
+                <Button
+                  onClick={handleSaveNotifications}
+                  loading={notificationSaving}
+                  disabled={tenantProfileMissing}
+                >
                   <Save className="h-4 w-4" />
                   Save Notification Preferences
                 </Button>

@@ -405,11 +405,18 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
     await openScheduleTab(page, baseUrl, 'recurring');
     await page.getByRole('button', { name: /^Month$/i }).first().click({ timeout: 3_000 }).catch(() => {});
     await page.waitForTimeout(250);
-    const searchInput = page.locator('main input[placeholder*="Search schedule"]').first();
-    await searchInput.fill(recurringLabel).catch(() => {});
-    await page.waitForTimeout(500);
-    const block = page.locator('main [role="group"]').filter({ hasText: recurringLabel }).first();
-    const visible = await block.isVisible().catch(() => false);
+    await page.locator('main input[placeholder*="Search schedule"]').first().fill('').catch(() => {});
+    await page.waitForTimeout(250);
+    let block = page.locator('main [role="group"]').filter({ hasText: recurringLabel }).first();
+    let visible = await block.isVisible().catch(() => false);
+    if (!visible) {
+      await page.waitForTimeout(1_000);
+      await openScheduleTab(page, baseUrl, 'recurring');
+      await page.getByRole('button', { name: /^Month$/i }).first().click({ timeout: 3_000 }).catch(() => {});
+      await page.waitForTimeout(250);
+      block = page.locator('main [role="group"]').filter({ hasText: recurringLabel }).first();
+      visible = await block.isVisible().catch(() => false);
+    }
     if (!visible) {
       return { pass: false, reason: 'created-shift-not-visible-in-grid', recurringLabel, recurringCode };
     }
@@ -429,11 +436,18 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
     await openScheduleTab(page, baseUrl, 'recurring');
     await page.getByRole('button', { name: /^Month$/i }).first().click({ timeout: 3_000 }).catch(() => {});
     await page.waitForTimeout(250);
-    const searchInput = page.locator('main input[placeholder*="Search schedule"]').first();
-    await searchInput.fill(recurringLabel).catch(() => {});
-    await page.waitForTimeout(450);
-    const block = page.locator('main [role="group"]').filter({ hasText: recurringLabel }).first();
-    const visible = await block.isVisible().catch(() => false);
+    await page.locator('main input[placeholder*="Search schedule"]').first().fill('').catch(() => {});
+    await page.waitForTimeout(250);
+    let block = page.locator('main [role="group"]').filter({ hasText: recurringLabel }).first();
+    let visible = await block.isVisible().catch(() => false);
+    if (!visible) {
+      await page.waitForTimeout(1_000);
+      await openScheduleTab(page, baseUrl, 'recurring');
+      await page.getByRole('button', { name: /^Month$/i }).first().click({ timeout: 3_000 }).catch(() => {});
+      await page.waitForTimeout(250);
+      block = page.locator('main [role="group"]').filter({ hasText: recurringLabel }).first();
+      visible = await block.isVisible().catch(() => false);
+    }
     if (!visible) return { pass: false, reason: 'unable-to-reopen-shift', recurringLabel };
     await block.click({ timeout: 5_000 }).catch(() => {});
     await page.waitForTimeout(300);
@@ -459,9 +473,8 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
     await openScheduleTab(page, baseUrl, 'recurring');
     await page.getByRole('button', { name: /^Month$/i }).first().click({ timeout: 3_000 }).catch(() => {});
     await page.waitForTimeout(250);
-    const searchInput = page.locator('main input[placeholder*="Search schedule"]').first();
-    await searchInput.fill(recurringLabel).catch(() => {});
-    await page.waitForTimeout(450);
+    await page.locator('main input[placeholder*="Search schedule"]').first().fill('').catch(() => {});
+    await page.waitForTimeout(250);
     let stillVisible = await page.locator('main [role="group"]').filter({ hasText: recurringLabel }).first().isVisible().catch(() => false);
     if (stillVisible) {
       await page.waitForTimeout(1_000);

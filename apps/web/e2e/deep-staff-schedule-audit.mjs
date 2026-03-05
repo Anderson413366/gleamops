@@ -234,15 +234,19 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
     const newShiftVisible =
       (await page.getByRole('button', { name: /New Shift/i }).first().isVisible().catch(() => false))
       || (await page.locator('button:has-text("New Shift")').first().isVisible().catch(() => false));
+    const addCellVisible =
+      (await page.getByRole('button', { name: /OFF\+\s*Add|\+\s*Add/i }).first().isVisible().catch(() => false))
+      || (await page.locator('button:has-text("OFF+ Add"), button:has-text("+ Add")').first().isVisible().catch(() => false));
     const tabTexts = await page
       .locator('main button')
       .allTextContents()
       .catch(() => []);
     report.moduleMap.tabsSeen = tabTexts.map((text) => normalizeText(text)).filter(Boolean);
     return {
-      pass: searchVisible && newShiftVisible,
+      pass: searchVisible && (newShiftVisible || addCellVisible),
       searchVisible,
       newShiftVisible,
+      addCellVisible,
       tabsSeen: report.moduleMap.tabsSeen,
     };
   });
@@ -256,6 +260,13 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
       const addShiftButtonByText = page.locator('button:has-text("New Shift")').first();
       buttonVisible = await addShiftButtonByText.isVisible().catch(() => false);
       addShiftButton = addShiftButtonByText;
+    }
+    if (!buttonVisible) {
+      const addCellButton = page.getByRole('button', { name: /OFF\+\s*Add|\+\s*Add/i }).first();
+      buttonVisible = await addCellButton.isVisible().catch(() => false);
+      if (buttonVisible) {
+        addShiftButton = addCellButton;
+      }
     }
     if (!buttonVisible) {
       return { pass: false, reason: 'add-shift-button-missing' };
@@ -395,7 +406,7 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
     await page.getByRole('button', { name: /^Month$/i }).first().click({ timeout: 3_000 }).catch(() => {});
     await page.waitForTimeout(250);
     const searchInput = page.locator('main input[placeholder*="Search schedule"]').first();
-    await searchInput.fill(recurringCode).catch(() => {});
+    await searchInput.fill(recurringLabel).catch(() => {});
     await page.waitForTimeout(500);
     const block = page.locator('main [role="group"]').filter({ hasText: recurringLabel }).first();
     const visible = await block.isVisible().catch(() => false);
@@ -419,7 +430,7 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
     await page.getByRole('button', { name: /^Month$/i }).first().click({ timeout: 3_000 }).catch(() => {});
     await page.waitForTimeout(250);
     const searchInput = page.locator('main input[placeholder*="Search schedule"]').first();
-    await searchInput.fill(recurringCode).catch(() => {});
+    await searchInput.fill(recurringLabel).catch(() => {});
     await page.waitForTimeout(450);
     const block = page.locator('main [role="group"]').filter({ hasText: recurringLabel }).first();
     const visible = await block.isVisible().catch(() => false);
@@ -449,7 +460,7 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
     await page.getByRole('button', { name: /^Month$/i }).first().click({ timeout: 3_000 }).catch(() => {});
     await page.waitForTimeout(250);
     const searchInput = page.locator('main input[placeholder*="Search schedule"]').first();
-    await searchInput.fill(recurringCode).catch(() => {});
+    await searchInput.fill(recurringLabel).catch(() => {});
     await page.waitForTimeout(450);
     let stillVisible = await page.locator('main [role="group"]').filter({ hasText: recurringLabel }).first().isVisible().catch(() => false);
     if (stillVisible) {

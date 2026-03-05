@@ -438,7 +438,7 @@ export function ShiftForm({ open, onClose, onCreated, prefill, initialData }: Sh
     const { data: newTickets, error } = await supabase
       .from('work_tickets')
       .upsert(insertsToCreate, {
-        onConflict: 'job_id,scheduled_date',
+        onConflict: 'tenant_id,job_id,scheduled_date',
         ignoreDuplicates: true,
       })
       .select('id');

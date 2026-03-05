@@ -111,6 +111,28 @@ async function dismissTour(page) {
   }
 }
 
+async function dismissBlockingDialogs(page) {
+  const dialogRoot = page.locator('div[role="dialog"], [data-state="open"]').first();
+  if (!(await dialogRoot.isVisible().catch(() => false))) return;
+
+  const cancelBtn = dialogRoot.getByRole('button', { name: /^Cancel$/i }).first();
+  if (await cancelBtn.isVisible().catch(() => false)) {
+    await cancelBtn.click({ timeout: 2_500 }).catch(() => {});
+    await page.waitForTimeout(220);
+    return;
+  }
+
+  const closeBtn = dialogRoot.getByRole('button', { name: /Close/i }).first();
+  if (await closeBtn.isVisible().catch(() => false)) {
+    await closeBtn.click({ timeout: 2_500 }).catch(() => {});
+    await page.waitForTimeout(220);
+    return;
+  }
+
+  await page.keyboard.press('Escape').catch(() => {});
+  await page.waitForTimeout(180);
+}
+
 async function typedLogin(page, baseUrl, email, password) {
   await page.goto(`${baseUrl}/login`, { waitUntil: 'domcontentloaded', timeout: 25_000 });
   await page.waitForSelector('#email', { state: 'visible', timeout: 12_000 });
@@ -186,12 +208,17 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
 
   await openScheduleTab(page, baseUrl, 'recurring');
   await dismissTour(page);
+  await dismissBlockingDialogs(page);
 
   report.moduleMap.pagesVisited.push('/schedule?tab=recurring');
 
   await runCheck(report, 'STAFF-001', 'Schedule page loads and tablist is visible', async () => {
-    const searchVisible = await page.getByRole('textbox', { name: /Search schedule/i }).first().isVisible().catch(() => false);
-    const newShiftVisible = await page.getByRole('button', { name: /New Shift/i }).first().isVisible().catch(() => false);
+    const searchVisible =
+      (await page.getByRole('textbox', { name: /Search schedule/i }).first().isVisible().catch(() => false))
+      || (await page.locator('main input[placeholder*="Search schedule"]').first().isVisible().catch(() => false));
+    const newShiftVisible =
+      (await page.getByRole('button', { name: /New Shift/i }).first().isVisible().catch(() => false))
+      || (await page.locator('button:has-text("New Shift")').first().isVisible().catch(() => false));
     const tabTexts = await page
       .locator('main button')
       .allTextContents()
@@ -206,8 +233,15 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
   });
 
   await runCheck(report, 'STAFF-002', 'Employee Grid: Add Shift opens create form', async () => {
-    const addShiftButton = page.getByRole('button', { name: /New Shift/i }).first();
-    const buttonVisible = await addShiftButton.isVisible().catch(() => false);
+    await dismissBlockingDialogs(page);
+    const addShiftButtonByRole = page.getByRole('button', { name: /New Shift/i }).first();
+    let addShiftButton = addShiftButtonByRole;
+    let buttonVisible = await addShiftButtonByRole.isVisible().catch(() => false);
+    if (!buttonVisible) {
+      const addShiftButtonByText = page.locator('button:has-text("New Shift")').first();
+      buttonVisible = await addShiftButtonByText.isVisible().catch(() => false);
+      addShiftButton = addShiftButtonByText;
+    }
     if (!buttonVisible) {
       return { pass: false, reason: 'add-shift-button-missing' };
     }

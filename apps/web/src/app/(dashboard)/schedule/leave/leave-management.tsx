@@ -32,8 +32,23 @@ const LEAVE_STATUS_COLORS: Record<string, 'yellow' | 'green' | 'red' | 'gray'> =
   CANCELED: 'gray',
 };
 
+function parseDateValue(dateStr: string) {
+  const dateToken = dateStr.match(/^(\d{4}-\d{2}-\d{2})/)?.[1];
+  if (dateToken) {
+    const localDate = new Date(`${dateToken}T12:00:00`);
+    if (!Number.isNaN(localDate.getTime())) return localDate;
+  }
+  const direct = new Date(dateStr);
+  if (!Number.isNaN(direct.getTime())) return direct;
+  const normalized = dateStr.includes('T') ? dateStr : `${dateStr}T12:00:00`;
+  const fallback = new Date(normalized);
+  return Number.isNaN(fallback.getTime()) ? null : fallback;
+}
+
 function formatDate(dateStr: string) {
-  return new Date(`${dateStr}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const parsed = parseDateValue(dateStr);
+  if (!parsed) return 'Date unavailable';
+  return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 export function LeaveManagement() {
@@ -56,7 +71,7 @@ export function LeaveManagement() {
       // Fetch leave requests from staff_availability_rules with rule_type = 'ONE_OFF' and availability_type = 'UNAVAILABLE'
       const { data: rules } = await supabase
         .from('staff_availability_rules')
-        .select('id, staff_id, availability_type, one_off_start, one_off_end, notes, rule_type, staff:staff_id(full_name)')
+        .select('id, staff_id, availability_type, one_off_start, one_off_end, valid_from, notes, rule_type, staff:staff_id(full_name)')
         .eq('rule_type', 'ONE_OFF')
         .eq('availability_type', 'UNAVAILABLE')
         .is('archived_at', null)
@@ -68,7 +83,7 @@ export function LeaveManagement() {
         const leaveType = notes.startsWith('[') ? notes.slice(1, notes.indexOf(']')) : 'Time Off';
         const isPaid = notes.includes('[PAID]');
         const reason = notes.replace(/\[.*?\]/g, '').trim() || null;
-        const status = (r as Record<string, unknown>).valid_to && new Date((r as Record<string, unknown>).valid_to as string) < new Date() ? 'APPROVED' : 'PENDING';
+        const status = (r.valid_from as string | null) ? 'APPROVED' : 'PENDING';
 
         return {
           id: r.id as string,
@@ -126,7 +141,12 @@ export function LeaveManagement() {
 
   const pendingRequests = useMemo(() => requests.filter((r) => r.status === 'PENDING'), [requests]);
   const upcomingLeave = useMemo(
-    () => requests.filter((r) => r.status === 'APPROVED' && new Date(r.end_date) >= new Date()),
+    () =>
+      requests.filter((r) => {
+        if (r.status !== 'APPROVED') return false;
+        const endDate = parseDateValue(r.end_date);
+        return endDate ? endDate >= new Date() : false;
+      }),
     [requests],
   );
 

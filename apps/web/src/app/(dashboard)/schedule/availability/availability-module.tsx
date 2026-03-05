@@ -33,6 +33,7 @@ interface PendingRequest {
   availability_type: string;
   one_off_start: string | null;
   one_off_end: string | null;
+  valid_from: string | null;
   notes: string | null;
 }
 
@@ -60,6 +61,41 @@ function formatTime12(time: string | null): string {
 
 function getEmployeeColor(index: number): string {
   return EMPLOYEE_COLORS[index % EMPLOYEE_COLORS.length];
+}
+
+function parseCalendarDate(value: string | null): Date | null {
+  if (!value) return null;
+  const dateToken = value.match(/^(\d{4}-\d{2}-\d{2})/)?.[1];
+  if (dateToken) {
+    const localDate = new Date(`${dateToken}T12:00:00`);
+    if (!Number.isNaN(localDate.getTime())) return localDate;
+  }
+  const direct = new Date(value);
+  if (!Number.isNaN(direct.getTime())) return direct;
+  const normalized = value.includes('T') ? value : `${value}T12:00:00`;
+  const fallback = new Date(normalized);
+  return Number.isNaN(fallback.getTime()) ? null : fallback;
+}
+
+function formatRequestDateRange(start: string | null, end: string | null): string {
+  const startDate = parseCalendarDate(start);
+  const endDate = parseCalendarDate(end);
+  if (!startDate || !endDate) return 'Date unavailable';
+  const startLabel = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const endLabel = endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return `${startLabel} – ${endLabel}`;
+}
+
+interface ProblemDetails {
+  detail?: string;
+  error?: string;
+  message?: string;
+}
+
+function errorMessageFromPayload(payload: unknown, fallback: string): string {
+  if (typeof payload !== 'object' || payload === null) return fallback;
+  const details = payload as ProblemDetails;
+  return details.detail || details.error || details.message || fallback;
 }
 
 // ---------------------------------------------------------------------------
@@ -177,6 +213,7 @@ export function AvailabilityModule() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [popover, setPopover] = useState<{ dayIndex: number; rule?: AvailabilityRule } | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction] = useState<'approve' | 'decline' | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const isAllSelected = selectedStaffIds.length === 0;
@@ -198,7 +235,7 @@ export function AvailabilityModule() {
 
     const [staffRes, rulesRes] = await Promise.all([
       supabase.from('staff').select('id, full_name').is('archived_at', null).eq('status', 'ACTIVE').order('full_name'),
-      supabase.from('staff_availability_rules').select('id, staff_id, weekday, start_time, end_time, notes, rule_type, availability_type, one_off_start, one_off_end, staff:staff_id(full_name)').is('archived_at', null),
+      supabase.from('staff_availability_rules').select('id, staff_id, weekday, start_time, end_time, notes, rule_type, availability_type, one_off_start, one_off_end, valid_from, staff:staff_id(full_name)').is('archived_at', null),
     ]);
 
     if (staffRes.data) setAllStaff(staffRes.data as StaffOption[]);
@@ -221,6 +258,8 @@ export function AvailabilityModule() {
           notes: r.notes as string | null,
         });
       } else if (r.rule_type === 'ONE_OFF') {
+        const validFrom = (r.valid_from as string | null) ?? null;
+        if (validFrom) continue;
         requests.push({
           id: r.id as string,
           staff_id: r.staff_id as string,
@@ -229,6 +268,7 @@ export function AvailabilityModule() {
           availability_type: r.availability_type as string,
           one_off_start: r.one_off_start as string | null,
           one_off_end: r.one_off_end as string | null,
+          valid_from: validFrom,
           notes: r.notes as string | null,
         });
       }
@@ -240,6 +280,13 @@ export function AvailabilityModule() {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  useEffect(() => {
+    setSelected((prev) => {
+      const valid = new Set(pendingRequests.map((r) => r.id));
+      return new Set([...prev].filter((id) => valid.has(id)));
+    });
+  }, [pendingRequests]);
 
   // Filter rules by selected employees
   const visibleRules = useMemo(() => {
@@ -277,14 +324,80 @@ export function AvailabilityModule() {
     setSelectedStaffIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
+    setDropdownOpen(false);
   };
 
   async function handleDeleteRule(ruleId: string) {
+    try {
+      const response = await fetch(`/api/operations/schedule/availability/${ruleId}/archive`, {
+        method: 'POST',
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || (payload && payload.success === false)) {
+        toast.error(errorMessageFromPayload(payload, 'Failed to remove availability window.'));
+        return;
+      }
+      toast.success('Availability window removed.');
+      await fetchData();
+    } catch (_) {
+      toast.error('Failed to remove availability window.');
+    }
+  }
+
+  async function handleApproveSelected() {
+    const selectedIds = [...selected];
+    if (selectedIds.length === 0) return;
+    setBulkAction('approve');
     const supabase = getSupabaseBrowserClient();
-    const { error } = await supabase.from('staff_availability_rules').delete().eq('id', ruleId);
-    if (error) { toast.error(error.message); return; }
-    toast.success('Availability window removed.');
-    fetchData();
+    const { error } = await supabase
+      .from('staff_availability_rules')
+      .update({ valid_from: new Date().toISOString() })
+      .in('id', selectedIds)
+      .is('archived_at', null);
+    setBulkAction(null);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(`Approved ${selectedIds.length} request${selectedIds.length === 1 ? '' : 's'}.`);
+    setSelected(new Set());
+    await fetchData();
+  }
+
+  async function handleDeclineSelected() {
+    const selectedIds = [...selected];
+    if (selectedIds.length === 0) return;
+    setBulkAction('decline');
+    const results = await Promise.all(
+      selectedIds.map(async (id) => {
+        try {
+          const response = await fetch(`/api/operations/schedule/availability/${id}/archive`, { method: 'POST' });
+          const payload = await response.json().catch(() => null);
+          if (!response.ok || (payload && payload.success === false)) {
+            return {
+              ok: false,
+              message: errorMessageFromPayload(payload, `Failed to decline request ${id}.`),
+            };
+          }
+          return { ok: true, message: '' };
+        } catch (_) {
+          return { ok: false, message: `Failed to decline request ${id}.` };
+        }
+      })
+    );
+    setBulkAction(null);
+
+    const failures = results.filter((result) => !result.ok);
+    if (failures.length > 0) {
+      toast.error(failures[0]?.message || 'Failed to decline one or more requests.');
+    }
+
+    const successCount = results.length - failures.length;
+    if (successCount > 0) {
+      toast.success(`Declined ${successCount} request${successCount === 1 ? '' : 's'}.`);
+      setSelected(new Set());
+      await fetchData();
+    }
   }
 
   const toggleSelectAll = () => {
@@ -473,10 +586,22 @@ export function AvailabilityModule() {
                 </label>
                 {selected.size > 0 && (
                   <div className="flex items-center gap-2">
-                    <Button variant="secondary" size="sm" className="border-red-300 text-red-700 hover:bg-red-50">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleDeclineSelected}
+                      disabled={bulkAction !== null}
+                      className="border-red-300 text-red-700 hover:bg-red-50"
+                    >
                       <X className="h-3.5 w-3.5" /> Decline
                     </Button>
-                    <Button variant="secondary" size="sm" className="border-green-300 text-green-700 hover:bg-green-50">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleApproveSelected}
+                      disabled={bulkAction !== null}
+                      className="border-green-300 text-green-700 hover:bg-green-50"
+                    >
                       <Check className="h-3.5 w-3.5" /> Approve
                     </Button>
                   </div>
@@ -500,9 +625,7 @@ export function AvailabilityModule() {
                   <div className="flex-1">
                     <p className="text-sm font-medium text-foreground">{req.staff_name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {req.one_off_start && req.one_off_end
-                        ? `${new Date(`${req.one_off_start}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${new Date(`${req.one_off_end}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
-                        : 'Recurring'}
+                      {formatRequestDateRange(req.one_off_start, req.one_off_end)}
                     </p>
                     {req.notes && <p className="text-xs text-muted-foreground italic">{req.notes}</p>}
                   </div>

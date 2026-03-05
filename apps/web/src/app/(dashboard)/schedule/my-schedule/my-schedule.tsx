@@ -32,7 +32,21 @@ interface MyLeave {
 }
 
 function formatDate(dateStr: string) {
-  return new Date(`${dateStr}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  const dateToken = dateStr.match(/^(\d{4}-\d{2}-\d{2})/)?.[1];
+  if (dateToken) {
+    const localDate = new Date(`${dateToken}T12:00:00`);
+    if (!Number.isNaN(localDate.getTime())) {
+      return localDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+  }
+  const direct = new Date(dateStr);
+  if (!Number.isNaN(direct.getTime())) {
+    return direct.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  }
+  const normalized = dateStr.includes('T') ? dateStr : `${dateStr}T12:00:00`;
+  const fallback = new Date(normalized);
+  if (Number.isNaN(fallback.getTime())) return 'Date unavailable';
+  return fallback.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
 function normalizeTime(value: string | null | undefined) {
@@ -143,7 +157,7 @@ export function MySchedule({ onKpisComputed }: MyScheduleProps) {
       // Fetch leave (one-off unavailable rules)
       const { data: leaveData } = await supabase
         .from('staff_availability_rules')
-        .select('id, one_off_start, one_off_end, notes')
+        .select('id, one_off_start, one_off_end, valid_from, notes')
         .eq('staff_id', staffId)
         .eq('rule_type', 'ONE_OFF')
         .eq('availability_type', 'UNAVAILABLE')
@@ -157,7 +171,7 @@ export function MySchedule({ onKpisComputed }: MyScheduleProps) {
           start_date: (r.one_off_start as string) ?? '',
           end_date: (r.one_off_end as string) ?? '',
           leave_type: leaveType,
-          status: 'Approved',
+          status: (r.valid_from as string | null) ? 'Approved' : 'Pending',
         };
       });
 
@@ -277,7 +291,7 @@ function ListView({ shifts, leaves, onShiftClick }: { shifts: MyShift[]; leaves:
                       {leave.start_date && formatDate(leave.start_date)} – {leave.end_date && formatDate(leave.end_date)}
                     </p>
                   </div>
-                  <Badge color="green">{leave.status}</Badge>
+                  <Badge color={leave.status === 'Approved' ? 'green' : 'yellow'}>{leave.status}</Badge>
                 </div>
               </CardContent>
             </Card>

@@ -307,7 +307,7 @@ export default function StaffDetailPage() {
         supabase
           .from('work_tickets')
           .select('id, ticket_code, scheduled_date, start_time, end_time, position_code, site:site_id(name, site_code)')
-          .eq('assigned_to', data.id)
+          .contains('assigned_to', [data.id])
           .in('status', ['SCHEDULED', 'IN_PROGRESS'])
           .gte('scheduled_date', new Date().toISOString().slice(0, 10))
           .order('scheduled_date', { ascending: true })

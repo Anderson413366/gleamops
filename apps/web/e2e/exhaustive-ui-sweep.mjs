@@ -374,7 +374,7 @@ async function collectInteractiveCandidates(page) {
 }
 
 async function closeOpenOverlay(page) {
-  const overlaySelector = '[role="dialog"], dialog[open], [aria-modal="true"], [data-state="open"]';
+  const overlaySelector = '[role="dialog"], dialog[open], [aria-modal="true"], [data-state="open"], div.fixed.inset-0.z-50';
   for (let i = 0; i < 6; i += 1) {
     const overlay = page.locator(overlaySelector).last();
     if (!(await overlay.isVisible().catch(() => false))) break;
@@ -385,6 +385,20 @@ async function closeOpenOverlay(page) {
       .first();
     if (await closeBtn.isVisible().catch(() => false)) {
       await closeBtn.click({ timeout: 2_000 }).catch(() => {});
+      await page.waitForTimeout(180);
+      continue;
+    }
+
+    const closeIconBtn = overlay.locator('button[aria-label*="close" i], button[title*="close" i]').first();
+    if (await closeIconBtn.isVisible().catch(() => false)) {
+      await closeIconBtn.click({ timeout: 2_000 }).catch(() => {});
+      await page.waitForTimeout(180);
+      continue;
+    }
+
+    const backdrop = overlay.locator('.absolute.inset-0, .fixed.inset-0').first();
+    if (await backdrop.isVisible().catch(() => false)) {
+      await backdrop.click({ timeout: 2_000 }).catch(() => {});
       await page.waitForTimeout(180);
       continue;
     }

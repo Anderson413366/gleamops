@@ -21,6 +21,15 @@ interface AuthContextFallback {
   role: string | null;
 }
 
+interface SessionSnapshot {
+  access_token: string;
+  user: {
+    id: string;
+    email?: string | null;
+    app_metadata?: Record<string, unknown>;
+  };
+}
+
 function extractRoleCandidate(value: unknown): string | null {
   if (typeof value === 'string') {
     const trimmed = value.trim();
@@ -154,15 +163,43 @@ async function resolveRoleFromStaffProfile(
   return null;
 }
 
-async function resolveTenantAndRole(
-  session: {
-    access_token: string;
+function extractTenantClaim(claims: Record<string, unknown>): string | null {
+  const appMetadata = typeof claims.app_metadata === 'object' && claims.app_metadata !== null
+    ? claims.app_metadata as Record<string, unknown>
+    : null;
+
+  return (
+    extractRoleCandidate(claims.tenant_id) ??
+    extractRoleCandidate(claims.tenantId) ??
+    extractRoleCandidate(appMetadata?.tenant_id)
+  );
+}
+
+async function refreshSessionWhenTenantClaimMissing(
+  session: SessionSnapshot,
+  resolvedTenantId: string | null,
+): Promise<SessionSnapshot> {
+  if (!resolvedTenantId) return session;
+
+  const claims = decodeJwtClaims(session.access_token);
+  if (extractTenantClaim(claims)) return session;
+
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.auth.refreshSession();
+  if (error || !data.session) return session;
+
+  return {
+    access_token: data.session.access_token,
     user: {
-      id: string;
-      email?: string | null;
-      app_metadata?: Record<string, unknown>;
-    };
-  },
+      id: data.session.user.id,
+      email: data.session.user.email,
+      app_metadata: data.session.user.app_metadata as Record<string, unknown> | undefined,
+    },
+  };
+}
+
+async function resolveTenantAndRole(
+  session: SessionSnapshot,
 ): Promise<{ tenantId: string | null; rawRole: string | null }> {
   const claims = decodeJwtClaims(session.access_token);
   let tenantId = extractRoleCandidate(claims.tenant_id) ?? extractRoleCandidate(claims.tenantId);
@@ -206,14 +243,21 @@ export function useAuth() {
       const { data: { session } } = await supabase.auth.getSession();
 
       if (session?.user) {
-        const { tenantId: resolvedTenantId, rawRole } = await resolveTenantAndRole({
+        let sessionSnapshot: SessionSnapshot = {
           access_token: session.access_token,
           user: {
             id: session.user.id,
             email: session.user.email,
             app_metadata: session.user.app_metadata as Record<string, unknown> | undefined,
           },
-        });
+        };
+
+        let { tenantId: resolvedTenantId, rawRole } = await resolveTenantAndRole(sessionSnapshot);
+        sessionSnapshot = await refreshSessionWhenTenantClaimMissing(sessionSnapshot, resolvedTenantId);
+
+        if (sessionSnapshot.access_token !== session.access_token) {
+          ({ tenantId: resolvedTenantId, rawRole } = await resolveTenantAndRole(sessionSnapshot));
+        }
 
         if (forcedTenantId && resolvedTenantId && resolvedTenantId !== forcedTenantId) {
           await supabase.auth.signOut();
@@ -224,8 +268,8 @@ export function useAuth() {
 
         setState({
           user: {
-            id: session.user.id,
-            email: session.user.email ?? '',
+            id: sessionSnapshot.user.id,
+            email: sessionSnapshot.user.email ?? '',
           },
           tenantId: resolvedTenantId,
           role: rawRole && isSupportedRole(rawRole) ? (rawRole.toUpperCase() as UserRole) : null,
@@ -242,14 +286,21 @@ export function useAuth() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         if (session?.user) {
-          const { tenantId: resolvedTenantId, rawRole } = await resolveTenantAndRole({
+          let sessionSnapshot: SessionSnapshot = {
             access_token: session.access_token,
             user: {
               id: session.user.id,
               email: session.user.email,
               app_metadata: session.user.app_metadata as Record<string, unknown> | undefined,
             },
-          });
+          };
+
+          let { tenantId: resolvedTenantId, rawRole } = await resolveTenantAndRole(sessionSnapshot);
+          sessionSnapshot = await refreshSessionWhenTenantClaimMissing(sessionSnapshot, resolvedTenantId);
+
+          if (sessionSnapshot.access_token !== session.access_token) {
+            ({ tenantId: resolvedTenantId, rawRole } = await resolveTenantAndRole(sessionSnapshot));
+          }
 
           if (forcedTenantId && resolvedTenantId && resolvedTenantId !== forcedTenantId) {
             await supabase.auth.signOut();
@@ -260,8 +311,8 @@ export function useAuth() {
 
           setState({
             user: {
-              id: session.user.id,
-              email: session.user.email ?? '',
+              id: sessionSnapshot.user.id,
+              email: sessionSnapshot.user.email ?? '',
             },
             tenantId: resolvedTenantId,
             role: rawRole && isSupportedRole(rawRole) ? (rawRole.toUpperCase() as UserRole) : null,

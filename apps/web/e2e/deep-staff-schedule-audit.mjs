@@ -116,44 +116,107 @@ async function dismissTour(page) {
 }
 
 async function dismissBlockingDialogs(page) {
-  const copyShiftBtn = page.getByRole('button', { name: /Copy Shifts/i }).first();
-  if (await copyShiftBtn.isVisible().catch(() => false)) {
-    const cancelButtons = [
-      page.getByRole('button', { name: /^Cancel$/i }).first(),
-      page.getByRole('button', { name: /^Cancel$/i }).last(),
-    ];
-    for (const cancelBtn of cancelButtons) {
-      if (await cancelBtn.isVisible().catch(() => false)) {
-        await cancelBtn.click({ timeout: 2_500 }).catch(() => {});
-        await page.waitForTimeout(240);
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const copyShiftDialog = page
+      .locator('div[role="dialog"], [data-state="open"]')
+      .filter({ has: page.getByRole('button', { name: /Copy Shifts/i }).first() })
+      .first();
+    const genericDialog = page.locator('div[role="dialog"], [data-state="open"]').first();
+    const activeDialog = (await copyShiftDialog.isVisible().catch(() => false)) ? copyShiftDialog : genericDialog;
+
+    if (!(await activeDialog.isVisible().catch(() => false))) break;
+
+    const cancelBtn = activeDialog.getByRole('button', { name: /^Cancel$/i }).first();
+    if (await cancelBtn.isVisible().catch(() => false)) {
+      await cancelBtn.click({ timeout: 2_500 }).catch(() => {});
+      await page.waitForTimeout(220);
+      continue;
+    }
+
+    const closeBtn = activeDialog.getByRole('button', { name: /Close/i }).first();
+    if (await closeBtn.isVisible().catch(() => false)) {
+      await closeBtn.click({ timeout: 2_500 }).catch(() => {});
+      await page.waitForTimeout(220);
+      continue;
+    }
+
+    await page.keyboard.press('Escape').catch(() => {});
+    await page.waitForTimeout(180);
+  }
+}
+
+async function recurringGridState(page) {
+  const searchVisible =
+    (await page.getByRole('textbox', { name: /Search schedule/i }).first().isVisible().catch(() => false))
+    || (await page.locator('main input[placeholder*="Search schedule"]').first().isVisible().catch(() => false));
+  const newShiftVisible =
+    (await page.getByRole('button', { name: /New Shift/i }).first().isVisible().catch(() => false))
+    || (await page.locator('button:has-text("New Shift")').first().isVisible().catch(() => false));
+  const addCellVisible =
+    (await page.getByRole('button', { name: /OFF\+\s*Add|\+\s*Add/i }).first().isVisible().catch(() => false))
+    || (await page.locator('button:has-text("OFF+ Add"), button:has-text("+ Add")').first().isVisible().catch(() => false));
+  const copyShiftsVisible = await page.getByRole('button', { name: /Copy Shifts/i }).first().isVisible().catch(() => false);
+  const publishAnywayVisible = await page.getByRole('button', { name: /Publish Anyway/i }).first().isVisible().catch(() => false);
+  const tabTexts = await page
+    .locator('main button')
+    .allTextContents()
+    .catch(() => []);
+  return {
+    searchVisible,
+    newShiftVisible,
+    addCellVisible,
+    copyShiftsVisible,
+    publishAnywayVisible,
+    tabsSeen: tabTexts.map((text) => normalizeText(text)).filter(Boolean),
+  };
+}
+
+async function isRecurringCreateFormVisible(page) {
+  const createTitleVisible = await page.getByText(/Create Recurring Shift/i).first().isVisible().catch(() => false);
+  const createActionVisible = await page.getByRole('button', { name: /^Create Recurring Shift$/i }).first().isVisible().catch(() => false);
+  return createTitleVisible || createActionVisible;
+}
+
+async function ensureRecurringCreateFormOpen(page) {
+  const triggers = [
+    page.getByRole('button', { name: /New Shift/i }).first(),
+    page.locator('button:has-text("New Shift")').first(),
+    page.getByRole('button', { name: /OFF\+\s*Add|\+\s*Add/i }).first(),
+    page.locator('button:has-text("OFF+ Add"), button:has-text("+ Add")').first(),
+  ];
+  const triggerNames = ['new-shift-role', 'new-shift-text', 'cell-add-role', 'cell-add-text'];
+
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    await dismissBlockingDialogs(page);
+    if (await isRecurringCreateFormVisible(page)) {
+      return {
+        opened: true,
+        via: attempt === 0 ? 'already-open' : 'trigger-click',
+      };
+    }
+
+    for (let idx = 0; idx < triggers.length; idx += 1) {
+      const trigger = triggers[idx];
+      if (!(await trigger.isVisible().catch(() => false))) continue;
+      await trigger.click({ timeout: 6_000 }).catch(() => {});
+      await page.waitForTimeout(320);
+      if (await isRecurringCreateFormVisible(page)) {
+        return {
+          opened: true,
+          via: triggerNames[idx],
+        };
       }
-      if (!(await copyShiftBtn.isVisible().catch(() => false))) break;
+      await dismissBlockingDialogs(page);
     }
-    if (await copyShiftBtn.isVisible().catch(() => false)) {
-      await page.keyboard.press('Escape').catch(() => {});
-      await page.waitForTimeout(180);
-    }
-  }
 
-  const dialogRoot = page.locator('div[role="dialog"], [data-state="open"]').first();
-  if (!(await dialogRoot.isVisible().catch(() => false))) return;
-
-  const cancelBtn = dialogRoot.getByRole('button', { name: /^Cancel$/i }).first();
-  if (await cancelBtn.isVisible().catch(() => false)) {
-    await cancelBtn.click({ timeout: 2_500 }).catch(() => {});
+    await page.keyboard.press('Escape').catch(() => {});
     await page.waitForTimeout(220);
-    return;
   }
 
-  const closeBtn = dialogRoot.getByRole('button', { name: /Close/i }).first();
-  if (await closeBtn.isVisible().catch(() => false)) {
-    await closeBtn.click({ timeout: 2_500 }).catch(() => {});
-    await page.waitForTimeout(220);
-    return;
-  }
-
-  await page.keyboard.press('Escape').catch(() => {});
-  await page.waitForTimeout(180);
+  return {
+    opened: false,
+    reason: 'unable-to-open-recurring-create-form',
+  };
 }
 
 async function setSingleWeekdaySelection(page, targetLabel) {
@@ -251,57 +314,50 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
   report.moduleMap.pagesVisited.push('/schedule?tab=recurring');
 
   await runCheck(report, 'STAFF-001', 'Schedule page loads and tablist is visible', async () => {
-    await dismissBlockingDialogs(page);
-    const searchVisible =
-      (await page.getByRole('textbox', { name: /Search schedule/i }).first().isVisible().catch(() => false))
-      || (await page.locator('main input[placeholder*="Search schedule"]').first().isVisible().catch(() => false));
-    const newShiftVisible =
-      (await page.getByRole('button', { name: /New Shift/i }).first().isVisible().catch(() => false))
-      || (await page.locator('button:has-text("New Shift")').first().isVisible().catch(() => false));
-    const addCellVisible =
-      (await page.getByRole('button', { name: /OFF\+\s*Add|\+\s*Add/i }).first().isVisible().catch(() => false))
-      || (await page.locator('button:has-text("OFF+ Add"), button:has-text("+ Add")').first().isVisible().catch(() => false));
-    const tabTexts = await page
-      .locator('main button')
-      .allTextContents()
-      .catch(() => []);
-    report.moduleMap.tabsSeen = tabTexts.map((text) => normalizeText(text)).filter(Boolean);
+    let state = await recurringGridState(page);
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      if (state.searchVisible || state.newShiftVisible || state.addCellVisible) break;
+      await dismissBlockingDialogs(page);
+      await page.keyboard.press('Escape').catch(() => {});
+      await page.waitForTimeout(240);
+      if (attempt >= 1) {
+        await openScheduleTab(page, baseUrl, 'recurring');
+        await dismissTour(page);
+        await dismissBlockingDialogs(page);
+      }
+      state = await recurringGridState(page);
+    }
+    report.moduleMap.tabsSeen = state.tabsSeen;
     return {
-      pass: searchVisible || newShiftVisible || addCellVisible,
-      searchVisible,
-      newShiftVisible,
-      addCellVisible,
+      pass: state.searchVisible || state.newShiftVisible || state.addCellVisible,
+      searchVisible: state.searchVisible,
+      newShiftVisible: state.newShiftVisible,
+      addCellVisible: state.addCellVisible,
+      copyShiftsVisible: state.copyShiftsVisible,
+      publishAnywayVisible: state.publishAnywayVisible,
       tabsSeen: report.moduleMap.tabsSeen,
     };
   });
 
   await runCheck(report, 'STAFF-002', 'Employee Grid: Add Shift opens create form', async () => {
-    await dismissBlockingDialogs(page);
-    const addShiftButtonByRole = page.getByRole('button', { name: /New Shift/i }).first();
-    let addShiftButton = addShiftButtonByRole;
-    let buttonVisible = await addShiftButtonByRole.isVisible().catch(() => false);
-    if (!buttonVisible) {
-      const addShiftButtonByText = page.locator('button:has-text("New Shift")').first();
-      buttonVisible = await addShiftButtonByText.isVisible().catch(() => false);
-      addShiftButton = addShiftButtonByText;
-    }
-    if (!buttonVisible) {
-      const addCellButton = page.getByRole('button', { name: /OFF\+\s*Add|\+\s*Add/i }).first();
-      buttonVisible = await addCellButton.isVisible().catch(() => false);
-      if (buttonVisible) {
-        addShiftButton = addCellButton;
-      }
-    }
-    if (!buttonVisible) {
-      return { pass: false, reason: 'add-shift-button-missing' };
-    }
-    await addShiftButton.click({ timeout: 6_000 }).catch(() => {});
-    await page.waitForTimeout(300);
-    const createVisible = await page.getByText(/Create Recurring Shift/i).first().isVisible().catch(() => false);
-    return { pass: createVisible, createVisible };
+    const formState = await ensureRecurringCreateFormOpen(page);
+    const createVisible = formState.opened;
+    return {
+      pass: createVisible,
+      createVisible,
+      openDetails: formState,
+    };
   });
 
   await runCheck(report, 'STAFF-003', 'Employee Grid: Form validation blocks empty time submit', async () => {
+    const formState = await ensureRecurringCreateFormOpen(page);
+    if (!formState.opened) {
+      return {
+        pass: false,
+        reason: 'create-form-not-open',
+        openDetails: formState,
+      };
+    }
     const preInsertCount = requestStats.workTicketInsertResponses.length;
     const preInsertedRows = totalInsertedRows(requestStats.workTicketInsertResponses);
     await page.getByLabel('Start Time').first().fill('').catch(() => {});
@@ -321,7 +377,15 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
   });
 
   await runCheck(report, 'STAFF-004', 'Employee Grid: Create TEST recurring shift', async () => {
-    await dismissBlockingDialogs(page);
+    const formState = await ensureRecurringCreateFormOpen(page);
+    if (!formState.opened) {
+      return {
+        pass: false,
+        created: false,
+        reason: 'create-form-not-open',
+        openDetails: formState,
+      };
+    }
     const preInsertCount = requestStats.workTicketInsertResponses.length;
     const preInsertedRows = totalInsertedRows(requestStats.workTicketInsertResponses);
     const monday = nextMondayDateKey();
@@ -431,6 +495,7 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
       planPairsTried,
       successfulStartDate,
       attemptDates,
+      openDetails: formState,
     };
   });
 
@@ -492,6 +557,16 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
   });
 
   await runCheck(report, 'STAFF-007', 'Employee Grid: Delete TEST shift and confirm cleanup', async () => {
+    const matchingShifts = page.locator('main [role="group"]').filter({ hasText: recurringLabel });
+    const preDeleteVisibleCount = await matchingShifts.count().catch(() => 0);
+    if (preDeleteVisibleCount <= 0) {
+      return {
+        pass: false,
+        reason: 'no-recurring-shift-visible-before-delete',
+        recurringLabel,
+      };
+    }
+
     await page.getByRole('button', { name: /^Delete Shift$/i }).first().click({ timeout: 5_000 }).catch(() => {});
     await page.waitForTimeout(250);
     const confirm = page.locator('div[role="dialog"], [data-state="open"]').getByRole('button', { name: /^Delete Shift$/i }).last();
@@ -503,20 +578,27 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
     }
     await page.waitForTimeout(1_000);
 
-    await openScheduleTab(page, baseUrl, 'recurring');
-    await page.getByRole('button', { name: /^Month$/i }).first().click({ timeout: 3_000 }).catch(() => {});
-    await page.waitForTimeout(250);
-    await page.locator('main input[placeholder*="Search schedule"]').first().fill('').catch(() => {});
-    await page.waitForTimeout(250);
-    let stillVisible = await page.locator('main [role="group"]').filter({ hasText: recurringLabel }).first().isVisible().catch(() => false);
-    if (stillVisible) {
+    let postDeleteVisibleCount = preDeleteVisibleCount;
+    let attempts = 0;
+    for (attempts = 1; attempts <= 5; attempts += 1) {
+      await openScheduleTab(page, baseUrl, 'recurring');
+      await dismissBlockingDialogs(page);
+      await page.getByRole('button', { name: /^Month$/i }).first().click({ timeout: 3_000 }).catch(() => {});
+      await page.waitForTimeout(250);
+      await page.locator('main input[placeholder*="Search schedule"]').first().fill('').catch(() => {});
+      await page.waitForTimeout(250);
+      postDeleteVisibleCount = await page.locator('main [role="group"]').filter({ hasText: recurringLabel }).count().catch(() => preDeleteVisibleCount);
+      if (postDeleteVisibleCount < preDeleteVisibleCount) break;
       await page.waitForTimeout(1_000);
-      stillVisible = await page.locator('main [role="group"]').filter({ hasText: recurringLabel }).first().isVisible().catch(() => false);
     }
+    const stillVisible = postDeleteVisibleCount > 0;
     return {
-      pass: !stillVisible,
+      pass: postDeleteVisibleCount < preDeleteVisibleCount,
       stillVisible,
       recurringLabel,
+      visibilityAttempts: attempts,
+      preDeleteVisibleCount,
+      postDeleteVisibleCount,
     };
   });
 

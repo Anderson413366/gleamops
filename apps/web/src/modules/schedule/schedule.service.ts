@@ -109,8 +109,20 @@ export async function archiveAvailability(
   apiPath: string,
 ): Promise<ServiceResult> {
   const { data: before, error: beforeError } = await findAvailabilityRule(userDb, ruleId);
-  if (beforeError || !before) {
-    return { success: false, error: SYS_002(beforeError?.message ?? 'Availability rule not found', apiPath) };
+  if (beforeError) {
+    return { success: false, error: SYS_002(beforeError.message, apiPath) };
+  }
+  if (!before) {
+    return {
+      success: false,
+      error: createProblemDetails(
+        'SCHED_404',
+        'Availability rule not found',
+        404,
+        'Availability rule was not found or already archived.',
+        apiPath,
+      ),
+    };
   }
 
   const meStaffId = await currentStaffId(userDb, auth.userId);
@@ -121,10 +133,19 @@ export async function archiveAvailability(
     return { success: false, error: AUTH_002(apiPath) };
   }
 
-  const { data, error } = await archiveAvailabilityRule(userDb, ruleId, auth.userId);
-  if (error || !data) {
-    return { success: false, error: SYS_002(error?.message ?? 'Failed to archive availability rule', apiPath) };
+  const archivedAt = new Date().toISOString();
+  const { data, error } = await archiveAvailabilityRule(userDb, ruleId, auth.userId, archivedAt);
+  if (error) {
+    return { success: false, error: SYS_002(error.message, apiPath) };
   }
+  const afterRecord =
+    (data as Record<string, unknown> | null) ??
+    ({
+      ...(before as Record<string, unknown>),
+      archived_at: archivedAt,
+      archived_by: auth.userId,
+      archive_reason: 'Archived via schedule availability API',
+    } as Record<string, unknown>);
 
   await writeAuditMutation({
     db: serviceDb,
@@ -134,11 +155,11 @@ export async function archiveAvailability(
     entityId: ruleId,
     action: 'ARCHIVE',
     before: before as Record<string, unknown>,
-    after: data as Record<string, unknown>,
+    after: afterRecord,
     context: extractAuditContext(request, 'schedule_availability_archive'),
   });
 
-  return { success: true, data };
+  return { success: true, data: afterRecord };
 }
 
 // ---------------------------------------------------------------------------

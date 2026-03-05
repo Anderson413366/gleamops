@@ -65,24 +65,26 @@ export async function findAvailabilityRule(
     .select('*')
     .eq('id', ruleId)
     .is('archived_at', null)
-    .single();
+    .maybeSingle();
 }
 
 export async function archiveAvailabilityRule(
   db: SupabaseClient,
   ruleId: string,
   userId: string,
+  archivedAt: string,
 ) {
   return db
     .from('staff_availability_rules')
     .update({
-      archived_at: new Date().toISOString(),
+      archived_at: archivedAt,
       archived_by: userId,
       archive_reason: 'Archived via schedule availability API',
     })
     .eq('id', ruleId)
+    .is('archived_at', null)
     .select('*')
-    .single();
+    .maybeSingle();
 }
 
 // ---------------------------------------------------------------------------

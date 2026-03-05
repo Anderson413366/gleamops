@@ -244,6 +244,26 @@ function routeCatalog() {
   return routes;
 }
 
+function normalizeModuleName(value) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+}
+
+function parseModuleFilter(raw) {
+  return String(raw || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function filterRoutesByModules(routes, moduleFilter) {
+  if (!moduleFilter.length) return routes;
+  const allowed = new Set(moduleFilter.map((item) => normalizeModuleName(item)));
+  return routes.filter((route) => allowed.has(normalizeModuleName(route.module)));
+}
+
 async function typedLogin(page, baseUrl, email, password) {
   await page.goto(`${baseUrl}/login`, { waitUntil: 'domcontentloaded', timeout: 20_000 });
   await page.waitForSelector('#email', { state: 'visible', timeout: 12_000 });
@@ -354,33 +374,38 @@ async function collectInteractiveCandidates(page) {
 }
 
 async function closeOpenOverlay(page) {
-  for (let i = 0; i < 3; i += 1) {
-    const dialogCount = await page.locator('[role="dialog"]').count().catch(() => 0);
-    if (dialogCount === 0) break;
+  const overlaySelector = '[role="dialog"], dialog[open], [aria-modal="true"], [data-state="open"]';
+  for (let i = 0; i < 6; i += 1) {
+    const overlay = page.locator(overlaySelector).last();
+    if (!(await overlay.isVisible().catch(() => false))) break;
+
+    const closeBtn = overlay
+      .locator('button')
+      .filter({ hasText: /close|cancel|done|back/i })
+      .first();
+    if (await closeBtn.isVisible().catch(() => false)) {
+      await closeBtn.click({ timeout: 2_000 }).catch(() => {});
+      await page.waitForTimeout(180);
+      continue;
+    }
+
     await page.keyboard.press('Escape').catch(() => {});
-    await page.waitForTimeout(180);
-  }
-  const closeBtn = page
-    .locator('[role="dialog"] button')
-    .filter({ hasText: /close|cancel|done|back/i })
-    .first();
-  if (await closeBtn.isVisible().catch(() => false)) {
-    await closeBtn.click().catch(() => {});
+    await page.mouse.click(12, 12).catch(() => {});
     await page.waitForTimeout(180);
   }
 }
 
 async function normalizeUiState(page) {
-  for (let i = 0; i < 5; i += 1) {
+  for (let i = 0; i < 7; i += 1) {
     const modalLikeVisible =
-      (await page.locator('[role="dialog"], [aria-modal="true"]').first().isVisible().catch(() => false)) ||
+      (await page.locator('[role="dialog"], dialog[open], [aria-modal="true"], [data-state="open"]').first().isVisible().catch(() => false)) ||
       (await page.locator('div.fixed.inset-0.z-50').first().isVisible().catch(() => false)) ||
       (await page.locator('input[placeholder*="Search records"]').first().isVisible().catch(() => false));
 
     if (!modalLikeVisible) return;
 
+    await closeOpenOverlay(page);
     await page.keyboard.press('Escape').catch(() => {});
-    await page.mouse.click(12, 12).catch(() => {});
     await page.waitForTimeout(180);
   }
 }
@@ -389,20 +414,28 @@ async function exerciseCandidate(page, baseUrl, routeHref, candidate, beforeCoun
   await normalizeUiState(page);
   const selector = `[data-qa-sweep-id="${candidate.qid}"]`;
   const beforeUrl = page.url();
-  const beforeDialogCount = await page.locator('[role="dialog"]').count().catch(() => 0);
+  const beforeDialogCount = await page.locator('[role="dialog"], dialog[open], [aria-modal="true"], [data-state="open"]').count().catch(() => 0);
   let clickError = '';
 
-  try {
-    const target = page.locator(selector).first();
-    await target.scrollIntoViewIfNeeded().catch(() => {});
-    await target.click({ timeout: 4_500 });
-    await page.waitForTimeout(650);
-  } catch (error) {
-    clickError = String(error?.message || error);
+  const target = page.locator(selector).first();
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      await target.scrollIntoViewIfNeeded().catch(() => {});
+      await target.click({ timeout: 4_500 });
+      await page.waitForTimeout(650);
+      clickError = '';
+      break;
+    } catch (error) {
+      clickError = String(error?.message || error);
+      const intercepted = /intercepts pointer events/i.test(clickError);
+      if (!intercepted || attempt === 1) break;
+      await closeOpenOverlay(page);
+      await normalizeUiState(page);
+    }
   }
 
   const afterUrl = page.url();
-  const afterDialogCount = await page.locator('[role="dialog"]').count().catch(() => 0);
+  const afterDialogCount = await page.locator('[role="dialog"], dialog[open], [aria-modal="true"], [data-state="open"]').count().catch(() => 0);
   const openedDialog = afterDialogCount > beforeDialogCount;
   const navigated = afterUrl !== beforeUrl;
   const errorSurface = await hasErrorSurface(page);
@@ -575,7 +608,7 @@ async function exerciseRoute(page, baseUrl, routeEntry, roleReport, maxInteracti
   return result;
 }
 
-async function runRoleSweep({ baseUrl, role, email, password, screenshotsDir, maxRoutes, maxInteractions }) {
+async function runRoleSweep({ baseUrl, role, email, password, screenshotsDir, routesCatalog, maxRoutes, maxInteractions }) {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 1512, height: 982 } });
   const page = await context.newPage();
@@ -633,7 +666,9 @@ async function runRoleSweep({ baseUrl, role, email, password, screenshotsDir, ma
     return roleReport;
   }
 
-  const routes = routeCatalog();
+  const routes = Array.isArray(routesCatalog) && routesCatalog.length > 0
+    ? routesCatalog
+    : routeCatalog();
   const runRoutes = maxRoutes > 0 ? routes.slice(0, maxRoutes) : routes;
   for (const routeEntry of runRoutes) {
     console.log(`[${nowNy()}] ${role} route ${routeEntry.module} :: ${routeEntry.page} -> ${routeEntry.href}`);
@@ -697,6 +732,7 @@ async function main() {
   );
   const maxRoutes = Number(args['max-routes'] || 0);
   const maxInteractions = Number(args['max-interactions'] || 35);
+  const moduleFilter = parseModuleFilter(args.module || args.modules || '');
   const roles = String(args.roles || 'OWNER_ADMIN,MANAGER')
     .split(',')
     .map((item) => item.trim())
@@ -713,6 +749,11 @@ async function main() {
   const repoRoot = path.resolve(process.cwd(), '../..');
   const reportsDir = path.join(repoRoot, 'reports');
   ensureDir(reportsDir);
+  const allRoutes = routeCatalog();
+  const selectedRoutes = filterRoutesByModules(allRoutes, moduleFilter);
+  if (selectedRoutes.length === 0) {
+    throw new Error(`No routes matched module filter: ${moduleFilter.join(', ')}`);
+  }
 
   const session = {
     mode: 'exhaustive-ui-sweep',
@@ -721,7 +762,8 @@ async function main() {
     baseUrl,
     credsFile,
     roles,
-    routeCount: routeCatalog().length,
+    moduleFilter: moduleFilter.length ? moduleFilter : null,
+    routeCount: selectedRoutes.length,
     maxRoutes: maxRoutes || null,
     maxInteractions,
     roleResults: [],
@@ -737,6 +779,7 @@ async function main() {
         email: user.email,
         password: user.password,
         screenshotsDir: reportsDir,
+        routesCatalog: selectedRoutes,
         maxRoutes,
         maxInteractions,
       })

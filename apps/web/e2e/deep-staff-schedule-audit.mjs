@@ -103,6 +103,10 @@ function dedupeNetworkFailures(items) {
   return Array.from(seen.values());
 }
 
+function totalInsertedRows(items) {
+  return items.reduce((sum, item) => sum + (Number(item.insertedCount) || 0), 0);
+}
+
 async function dismissTour(page) {
   const skipBtn = page.getByRole('button', { name: /^Skip$/i }).first();
   if (await skipBtn.isVisible().catch(() => false)) {
@@ -279,21 +283,26 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
 
   await runCheck(report, 'STAFF-003', 'Employee Grid: Form validation blocks empty time submit', async () => {
     const preInsertCount = requestStats.workTicketInsertResponses.length;
+    const preInsertedRows = totalInsertedRows(requestStats.workTicketInsertResponses);
     await page.getByLabel('Start Time').first().fill('').catch(() => {});
     await page.getByLabel('End Time').first().fill('').catch(() => {});
     await page.getByRole('button', { name: /^Create Recurring Shift$/i }).first().click({ timeout: 5_000 }).catch(() => {});
     await page.waitForTimeout(700);
     const postInsertCount = requestStats.workTicketInsertResponses.length;
+    const postInsertedRows = totalInsertedRows(requestStats.workTicketInsertResponses);
     const noInsertTriggered = postInsertCount === preInsertCount;
     return {
-      pass: noInsertTriggered,
+      pass: noInsertTriggered && postInsertedRows === preInsertedRows,
       preInsertCount,
       postInsertCount,
+      preInsertedRows,
+      postInsertedRows,
     };
   });
 
   await runCheck(report, 'STAFF-004', 'Employee Grid: Create TEST recurring shift', async () => {
     const preInsertCount = requestStats.workTicketInsertResponses.length;
+    const preInsertedRows = totalInsertedRows(requestStats.workTicketInsertResponses);
     const monday = nextMondayDateKey();
 
     const siteSelect = page.getByLabel('Site').first();
@@ -370,6 +379,7 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
 
     let created = false;
     let postInsertCount = preInsertCount;
+    let postInsertedRows = preInsertedRows;
     let successfulStartDate = '';
     for (const candidate of candidateStarts) {
       await setSingleWeekdaySelection(page, candidate.dayLabel);
@@ -377,8 +387,9 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
       await page.getByRole('button', { name: /^Create Recurring Shift$/i }).first().click({ timeout: 7_000 }).catch(() => {});
       await page.waitForTimeout(1_100);
       postInsertCount = requestStats.workTicketInsertResponses.length;
-      const createdNow = postInsertCount > preInsertCount;
-      attemptDates.push({ dayLabel: candidate.dayLabel, startDate: candidate.startDate, createdNow, postInsertCount });
+      postInsertedRows = totalInsertedRows(requestStats.workTicketInsertResponses);
+      const createdNow = postInsertedRows > preInsertedRows;
+      attemptDates.push({ dayLabel: candidate.dayLabel, startDate: candidate.startDate, createdNow, postInsertCount, postInsertedRows });
       if (createdNow) {
         created = true;
         successfulStartDate = candidate.startDate;
@@ -391,6 +402,8 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
       created,
       preInsertCount,
       postInsertCount,
+      preInsertedRows,
+      postInsertedRows,
       monday,
       recurringCode,
       selectedSiteIndex,
@@ -697,9 +710,19 @@ async function runRoleAudit({ baseUrl, role, email, password, screenshotsDir }) 
     const status = response.status();
 
     if (method === 'POST' && url.includes('/rest/v1/work_tickets') && status < 400) {
+      let insertedCount = 0;
+      try {
+        const payloadText = await response.text();
+        const parsed = JSON.parse(payloadText);
+        if (Array.isArray(parsed)) insertedCount = parsed.length;
+        else if (parsed && typeof parsed === 'object') insertedCount = 1;
+      } catch (_) {
+        insertedCount = 0;
+      }
       roleReport.requestStats.workTicketInsertResponses.push({
         url,
         status,
+        insertedCount,
         at: nowIso(),
       });
     }

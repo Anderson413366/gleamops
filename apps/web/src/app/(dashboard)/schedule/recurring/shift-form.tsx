@@ -455,6 +455,16 @@ export function ShiftForm({ open, onClose, onCreated, prefill, initialData }: Sh
       return;
     }
 
+    const createdCount = newTickets?.length ?? 0;
+    const additionalSkipped = Math.max(0, insertsToCreate.length - createdCount);
+    const totalSkipped = skippedDuplicates + additionalSkipped;
+
+    if (createdCount === 0) {
+      toast.error('Selected service plan already has shifts for the chosen date(s).');
+      setSaving(false);
+      return;
+    }
+
     // Create assignments for assigned staff
     if (assignedStaff.length > 0 && newTickets && newTickets.length > 0) {
       const assignmentInserts = [];
@@ -477,10 +487,9 @@ export function ShiftForm({ open, onClose, onCreated, prefill, initialData }: Sh
 
     setSaving(false);
 
-    const createdCount = insertsToCreate.length;
-    if (skippedDuplicates > 0) {
+    if (totalSkipped > 0) {
       toast.success(
-        `Created ${createdCount} recurring shift ticket${createdCount === 1 ? '' : 's'}; skipped ${skippedDuplicates} duplicate date${skippedDuplicates === 1 ? '' : 's'}.`,
+        `Created ${createdCount} recurring shift ticket${createdCount === 1 ? '' : 's'}; skipped ${totalSkipped} duplicate date${totalSkipped === 1 ? '' : 's'}.`,
       );
     } else {
       toast.success(`Created ${createdCount} recurring shift ticket${createdCount === 1 ? '' : 's'}.`);

@@ -348,7 +348,22 @@ export function ShiftForm({ open, onClose, onCreated, prefill, initialData }: Sh
     const weeks = Math.max(1, Math.min(Number(weeksAhead) || 1, 8));
     const start = new Date(`${startDate}T00:00:00`);
 
-    const inserts: Array<Record<string, unknown>> = [];
+    type WorkTicketInsert = {
+      tenant_id: string;
+      ticket_code: string;
+      job_id: string;
+      site_id: string;
+      scheduled_date: string;
+      start_time: string;
+      end_time: string;
+      status: 'SCHEDULED';
+      required_staff_count: number;
+      position_code: string;
+      planning_status: 'NOT_STARTED';
+      note: string | null;
+    };
+
+    const inserts: WorkTicketInsert[] = [];
     for (const dayCode of selectedDays) {
       const day = DAYS.find((entry) => entry.value === dayCode);
       if (!day) continue;
@@ -385,13 +400,54 @@ export function ShiftForm({ open, onClose, onCreated, prefill, initialData }: Sh
       }
     }
 
+    if (!inserts.length) {
+      toast.error('No shifts generated from the selected days/date range.');
+      setSaving(false);
+      return;
+    }
+
+    const scheduledDates = Array.from(new Set(inserts.map((item) => item.scheduled_date)));
+    const { data: existingTickets, error: existingTicketsError } = await supabase
+      .from('work_tickets')
+      .select('scheduled_date')
+      .eq('job_id', jobId)
+      .in('scheduled_date', scheduledDates)
+      .is('archived_at', null);
+
+    if (existingTicketsError) {
+      toast.error(existingTicketsError.message);
+      setSaving(false);
+      return;
+    }
+
+    const existingDateSet = new Set(
+      (existingTickets ?? [])
+        .map((item) => item.scheduled_date)
+        .filter((value): value is string => Boolean(value)),
+    );
+
+    const insertsToCreate = inserts.filter((item) => !existingDateSet.has(item.scheduled_date));
+    const skippedDuplicates = inserts.length - insertsToCreate.length;
+
+    if (!insertsToCreate.length) {
+      toast.error('Selected service plan already has shifts for the chosen date(s).');
+      setSaving(false);
+      return;
+    }
+
     const { data: newTickets, error } = await supabase
       .from('work_tickets')
-      .insert(inserts)
+      .insert(insertsToCreate)
       .select('id');
 
     if (error) {
-      toast.error(error.message);
+      const duplicateError =
+        error.code === '23505' || error.message.toLowerCase().includes('duplicate key');
+      if (duplicateError) {
+        toast.error('One or more shifts already exist for the selected date(s). Refresh and retry.');
+      } else {
+        toast.error(error.message);
+      }
       setSaving(false);
       return;
     }
@@ -418,7 +474,14 @@ export function ShiftForm({ open, onClose, onCreated, prefill, initialData }: Sh
 
     setSaving(false);
 
-    toast.success(`Created ${inserts.length} recurring shift ticket${inserts.length === 1 ? '' : 's'}.`);
+    const createdCount = insertsToCreate.length;
+    if (skippedDuplicates > 0) {
+      toast.success(
+        `Created ${createdCount} recurring shift ticket${createdCount === 1 ? '' : 's'}; skipped ${skippedDuplicates} duplicate date${skippedDuplicates === 1 ? '' : 's'}.`,
+      );
+    } else {
+      toast.success(`Created ${createdCount} recurring shift ticket${createdCount === 1 ? '' : 's'}.`);
+    }
     onCreated();
     onClose();
   }

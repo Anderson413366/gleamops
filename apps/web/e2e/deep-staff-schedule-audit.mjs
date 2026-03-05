@@ -75,6 +75,18 @@ function nextMondayDateKey() {
   return toDateInputValue(copy);
 }
 
+function nextWeekdayDateKey(targetDay, weekOffset = 0) {
+  const now = new Date();
+  const copy = new Date(now);
+  const day = copy.getDay(); // 0=Sun, 1=Mon, ... 6=Sat
+  const normalizedTarget = Math.min(6, Math.max(0, Number(targetDay) || 1));
+  let delta = (normalizedTarget - day + 7) % 7;
+  if (delta === 0) delta = 7;
+  copy.setDate(copy.getDate() + delta + (Math.max(0, Number(weekOffset) || 0) * 7));
+  copy.setHours(0, 0, 0, 0);
+  return toDateInputValue(copy);
+}
+
 function positionCodeToLabel(code) {
   return String(code)
     .replaceAll('_', ' ')
@@ -272,23 +284,34 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
       };
     }
 
-    // Reset selected days from default Mon-Fri to only Mon.
-    for (const day of ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']) {
-      await page.getByRole('button', { name: new RegExp(`^${day}$`, 'i') }).first().click({ timeout: 2_500 }).catch(() => {});
-    }
-    await page.getByRole('button', { name: /^Mon$/i }).first().click({ timeout: 2_500 }).catch(() => {});
-
     await page.getByLabel('Position Code').first().fill(recurringCode).catch(() => {});
-    await page.getByLabel('Start Date').first().fill(monday).catch(() => {});
     await page.getByLabel('Start Time').first().fill('09:00').catch(() => {});
     await page.getByLabel('End Time').first().fill('10:00').catch(() => {});
     await page.getByLabel('Weeks Ahead').first().fill('1').catch(() => {});
     await page.getByLabel('Note (optional)').first().fill(`TEST note ${tokenBase} & / # ' \"`).catch(() => {});
 
-    await page.getByRole('button', { name: /^Create Recurring Shift$/i }).first().click({ timeout: 7_000 }).catch(() => {});
-    await page.waitForTimeout(1_200);
-    const postInsertCount = requestStats.workTicketInsertResponses.length;
-    const created = postInsertCount > preInsertCount;
+    const attemptDates = [];
+    const candidateStarts = [];
+    for (const targetDay of [1, 2, 3, 4, 5]) {
+      for (let weekOffset = 0; weekOffset < 6; weekOffset += 1) {
+        candidateStarts.push(nextWeekdayDateKey(targetDay, weekOffset));
+      }
+    }
+
+    let created = false;
+    let postInsertCount = preInsertCount;
+    for (const startCandidate of candidateStarts) {
+      await page.getByLabel('Start Date').first().fill(startCandidate).catch(() => {});
+      await page.getByRole('button', { name: /^Create Recurring Shift$/i }).first().click({ timeout: 7_000 }).catch(() => {});
+      await page.waitForTimeout(1_100);
+      postInsertCount = requestStats.workTicketInsertResponses.length;
+      const createdNow = postInsertCount > preInsertCount;
+      attemptDates.push({ startDate: startCandidate, createdNow, postInsertCount });
+      if (createdNow) {
+        created = true;
+        break;
+      }
+    }
 
     return {
       pass: created,
@@ -300,6 +323,7 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
       selectedSiteIndex,
       selectedSiteValue,
       selectedPlanValue,
+      attemptDates,
     };
   });
 
@@ -504,17 +528,20 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
 
   await runCheck(report, 'STAFF-013', 'Neuroinclusive: ESC closes slide-over forms', async () => {
     await openScheduleTab(page, baseUrl, 'leave');
-    await page.getByRole('button', { name: /Request Leave/i }).first().click({ timeout: 5_000 }).catch(() => {});
-    await page.waitForTimeout(300);
+    const requestLeaveBtn = page.getByRole('button', { name: /Request Leave/i }).first();
+    await requestLeaveBtn.click({ timeout: 5_000 }).catch(() => {});
+    await page.waitForTimeout(320);
     const submitBtn = page.getByRole('button', { name: /Submit Leave Request/i }).first();
     let opened = await submitBtn.isVisible().catch(() => false);
     if (!opened) {
-      await page.getByRole('button', { name: /Request Leave/i }).first().click({ timeout: 5_000 }).catch(() => {});
-      await page.waitForTimeout(250);
+      await requestLeaveBtn.click({ timeout: 5_000 }).catch(() => {});
+      await submitBtn.waitFor({ state: 'visible', timeout: 1_600 }).catch(() => {});
+      await page.waitForTimeout(220);
       opened = await submitBtn.isVisible().catch(() => false);
     }
     await page.keyboard.press('Escape').catch(() => {});
-    await page.waitForTimeout(260);
+    await submitBtn.waitFor({ state: 'hidden', timeout: 1_600 }).catch(() => {});
+    await page.waitForTimeout(220);
     const stillOpen = await submitBtn.isVisible().catch(() => false);
     return {
       pass: opened && !stillOpen,

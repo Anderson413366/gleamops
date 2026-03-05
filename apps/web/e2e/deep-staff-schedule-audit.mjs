@@ -313,45 +313,9 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
 
     const siteOptions = await siteSelect.locator('option').count().catch(() => 0);
     let selectedSiteIndex = -1;
+    let selectedPlanIndex = -1;
     let selectedPlanValue = '';
     let selectedSiteValue = '';
-
-    // Pick the first site that actually has service plans.
-    for (let idx = 0; idx < Math.min(siteOptions, 40); idx += 1) {
-      await siteSelect.selectOption({ index: idx }).catch(() => {});
-      await page.waitForTimeout(900);
-      const currentSite = await siteSelect.inputValue().catch(() => '');
-      const optionCount = await servicePlanSelect.locator('option').count().catch(() => 0);
-      if (optionCount <= 0) continue;
-
-      const currentPlan = await servicePlanSelect.inputValue().catch(() => '');
-      if (currentPlan) {
-        selectedSiteIndex = idx;
-        selectedSiteValue = currentSite;
-        selectedPlanValue = currentPlan;
-        break;
-      }
-
-      await servicePlanSelect.selectOption({ index: 0 }).catch(() => {});
-      await page.waitForTimeout(220);
-      const planAfterSelect = await servicePlanSelect.inputValue().catch(() => '');
-      if (planAfterSelect) {
-        selectedSiteIndex = idx;
-        selectedSiteValue = currentSite;
-        selectedPlanValue = planAfterSelect;
-        break;
-      }
-    }
-
-    if (selectedSiteIndex < 0 || !selectedSiteValue || !selectedPlanValue) {
-      return {
-        pass: false,
-        reason: 'site-or-service-plan-not-ready',
-        siteValue: selectedSiteValue,
-        planValue: selectedPlanValue,
-        siteOptions,
-      };
-    }
 
     await page.getByLabel('Position Code').first().fill(recurringCode).catch(() => {});
     await page.getByLabel('Start Time').first().fill('09:00').catch(() => {});
@@ -381,19 +345,52 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
     let postInsertCount = preInsertCount;
     let postInsertedRows = preInsertedRows;
     let successfulStartDate = '';
-    for (const candidate of candidateStarts) {
-      await setSingleWeekdaySelection(page, candidate.dayLabel);
-      await page.getByLabel('Start Date').first().fill(candidate.startDate).catch(() => {});
-      await page.getByRole('button', { name: /^Create Recurring Shift$/i }).first().click({ timeout: 7_000 }).catch(() => {});
-      await page.waitForTimeout(1_100);
-      postInsertCount = requestStats.workTicketInsertResponses.length;
-      postInsertedRows = totalInsertedRows(requestStats.workTicketInsertResponses);
-      const createdNow = postInsertedRows > preInsertedRows;
-      attemptDates.push({ dayLabel: candidate.dayLabel, startDate: candidate.startDate, createdNow, postInsertCount, postInsertedRows });
-      if (createdNow) {
-        created = true;
-        successfulStartDate = candidate.startDate;
-        break;
+    let planPairsTried = 0;
+    const maxPlanPairs = 12;
+
+    for (let siteIdx = 0; siteIdx < Math.min(siteOptions, 24) && !created && planPairsTried < maxPlanPairs; siteIdx += 1) {
+      await siteSelect.selectOption({ index: siteIdx }).catch(() => {});
+      await page.waitForTimeout(650);
+
+      const currentSiteValue = await siteSelect.inputValue().catch(() => '');
+      const planOptions = await servicePlanSelect.locator('option').count().catch(() => 0);
+      if (!currentSiteValue || planOptions <= 0) continue;
+
+      for (let planIdx = 0; planIdx < Math.min(planOptions, 6) && !created && planPairsTried < maxPlanPairs; planIdx += 1) {
+        await servicePlanSelect.selectOption({ index: planIdx }).catch(() => {});
+        await page.waitForTimeout(220);
+        const currentPlanValue = await servicePlanSelect.inputValue().catch(() => '');
+        if (!currentPlanValue) continue;
+
+        planPairsTried += 1;
+        selectedSiteIndex = siteIdx;
+        selectedSiteValue = currentSiteValue;
+        selectedPlanIndex = planIdx;
+        selectedPlanValue = currentPlanValue;
+
+        for (const candidate of candidateStarts) {
+          await setSingleWeekdaySelection(page, candidate.dayLabel);
+          await page.getByLabel('Start Date').first().fill(candidate.startDate).catch(() => {});
+          await page.getByRole('button', { name: /^Create Recurring Shift$/i }).first().click({ timeout: 7_000 }).catch(() => {});
+          await page.waitForTimeout(1_100);
+          postInsertCount = requestStats.workTicketInsertResponses.length;
+          postInsertedRows = totalInsertedRows(requestStats.workTicketInsertResponses);
+          const createdNow = postInsertedRows > preInsertedRows;
+          attemptDates.push({
+            siteIndex: siteIdx,
+            planIndex: planIdx,
+            dayLabel: candidate.dayLabel,
+            startDate: candidate.startDate,
+            createdNow,
+            postInsertCount,
+            postInsertedRows,
+          });
+          if (createdNow) {
+            created = true;
+            successfulStartDate = candidate.startDate;
+            break;
+          }
+        }
       }
     }
 
@@ -408,7 +405,9 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
       recurringCode,
       selectedSiteIndex,
       selectedSiteValue,
+      selectedPlanIndex,
       selectedPlanValue,
+      planPairsTried,
       successfulStartDate,
       attemptDates,
     };

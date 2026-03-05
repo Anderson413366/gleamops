@@ -293,13 +293,14 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
     const attemptDates = [];
     const candidateStarts = [];
     for (const targetDay of [1, 2, 3, 4, 5]) {
-      for (let weekOffset = 0; weekOffset < 6; weekOffset += 1) {
+      for (let weekOffset = 0; weekOffset < 3; weekOffset += 1) {
         candidateStarts.push(nextWeekdayDateKey(targetDay, weekOffset));
       }
     }
 
     let created = false;
     let postInsertCount = preInsertCount;
+    let successfulStartDate = '';
     for (const startCandidate of candidateStarts) {
       await page.getByLabel('Start Date').first().fill(startCandidate).catch(() => {});
       await page.getByRole('button', { name: /^Create Recurring Shift$/i }).first().click({ timeout: 7_000 }).catch(() => {});
@@ -309,6 +310,7 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
       attemptDates.push({ startDate: startCandidate, createdNow, postInsertCount });
       if (createdNow) {
         created = true;
+        successfulStartDate = startCandidate;
         break;
       }
     }
@@ -323,6 +325,7 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
       selectedSiteIndex,
       selectedSiteValue,
       selectedPlanValue,
+      successfulStartDate,
       attemptDates,
     };
   });

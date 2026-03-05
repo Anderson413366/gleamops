@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Search, Trash2, UserPlus } from 'lucide-react';
 import { Button, Input, Select, SlideOver, Textarea, Badge, ConfirmDialog } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { requestNextCode } from '@/lib/api/request-next-code';
 import { useAuth } from '@/hooks/use-auth';
 
 interface ShiftFormProps {
@@ -357,9 +358,19 @@ export function ShiftForm({ open, onClose, onCreated, prefill, initialData }: Sh
       for (let weekOffset = 0; weekOffset < weeks; weekOffset += 1) {
         const scheduledDate = new Date(firstDate);
         scheduledDate.setDate(firstDate.getDate() + weekOffset * 7);
+        let ticketCode = '';
+        try {
+          ticketCode = await requestNextCode('TKT');
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Unable to generate ticket code.';
+          toast.error(message);
+          setSaving(false);
+          return;
+        }
 
         inserts.push({
           tenant_id: tenantId,
+          ticket_code: ticketCode,
           job_id: jobId,
           site_id: siteId,
           scheduled_date: toDateInputValue(scheduledDate),

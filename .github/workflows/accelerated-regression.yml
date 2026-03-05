@@ -1,0 +1,111 @@
+name: Accelerated Regression
+
+on:
+  deployment_status:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Base URL to test (optional override)"
+        required: false
+        default: ""
+      roles:
+        description: "Comma-separated roles"
+        required: false
+        default: "OWNER_ADMIN,MANAGER"
+  schedule:
+    - cron: "15 */6 * * *"
+
+concurrency:
+  group: accelerated-regression-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  accelerated-regression:
+    if: ${{ github.event_name != 'deployment_status' || github.event.deployment_status.state == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    env:
+      DEFAULT_BASE_URL: https://gleamops.vercel.app
+      QA_ROLES: ${{ github.event.inputs.roles || 'OWNER_ADMIN,MANAGER' }}
+      QA_TENANT_ID: ${{ secrets.QA_TENANT_ID }}
+      QA_AUTOMATION_PASSWORD: ${{ secrets.QA_AUTOMATION_PASSWORD }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Resolve base URL
+        id: resolve
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+
+          const eventName = process.env.GITHUB_EVENT_NAME;
+          const payloadPath = process.env.GITHUB_EVENT_PATH;
+          const defaultBase = process.env.DEFAULT_BASE_URL || 'https://gleamops.vercel.app';
+          const dispatchBase = process.env.DISPATCH_BASE_URL || '';
+          let baseUrl = dispatchBase || defaultBase;
+
+          if (eventName === 'deployment_status' && payloadPath && fs.existsSync(payloadPath)) {
+            const payload = JSON.parse(fs.readFileSync(payloadPath, 'utf8'));
+            const envUrl = payload?.deployment_status?.environment_url || payload?.deployment_status?.target_url || '';
+            if (envUrl) {
+              baseUrl = envUrl.startsWith('http') ? envUrl : `https://${envUrl}`;
+            }
+          }
+
+          if (!baseUrl.startsWith('http')) baseUrl = `https://${baseUrl}`;
+          const out = process.env.GITHUB_OUTPUT;
+          fs.appendFileSync(out, `base_url=${baseUrl}\n`);
+          console.log(`Resolved base URL: ${baseUrl}`);
+          NODE
+        env:
+          DISPATCH_BASE_URL: ${{ github.event.inputs.base_url || '' }}
+
+      - name: Ensure QA role users
+        run: |
+          pnpm --dir apps/web exec node e2e/qa-role-users.mjs \
+            --action ensure \
+            --roles "$QA_ROLES" \
+            --out ../../.tmp-ci-phase2-qa-credentials.json
+
+      - name: Run accelerated regression audit
+        run: |
+          pnpm --dir apps/web exec node e2e/accelerated-backlog-qa.mjs \
+            --base-url "${{ steps.resolve.outputs.base_url }}" \
+            --creds-file ../../.tmp-ci-phase2-qa-credentials.json \
+            --roles "$QA_ROLES" \
+            --out ../../.tmp-ci-accelerated-backlog.json
+
+      - name: Assert regression pass criteria
+        run: |
+          pnpm --dir apps/web exec node e2e/assert-accelerated-backlog.mjs \
+            --report ../../.tmp-ci-accelerated-backlog.json
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: accelerated-regression-${{ github.run_id }}
+          path: |
+            .tmp-ci-accelerated-backlog.json
+            reports/*.png
+          if-no-files-found: warn

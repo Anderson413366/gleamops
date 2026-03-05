@@ -55,3 +55,20 @@ Must cover:
 - unit tests must pass
 - contract validation must pass
 - migrations must apply cleanly to empty DB
+
+## 4) Accelerated post-deploy regression
+
+Workflow: `.github/workflows/accelerated-regression.yml`
+
+What it does:
+- triggers after successful deployment status events
+- also runs on a 6-hour schedule and manual dispatch
+- ensures QA role users (`OWNER_ADMIN`, `MANAGER`) exist
+- runs `apps/web/e2e/accelerated-backlog-qa.mjs`
+- fails build if any role has page failures, console errors, page errors, or network failures
+
+Required GitHub secrets:
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `QA_AUTOMATION_PASSWORD`
+- optional: `QA_TENANT_ID` (defaults to `TNT-0001` tenant UUID in script)

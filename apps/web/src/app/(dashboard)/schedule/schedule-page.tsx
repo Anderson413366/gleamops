@@ -594,9 +594,22 @@ export default function SchedulePageClient() {
       query = query.eq('position_code', row.positionType);
     }
 
-    // Match times — use .like() pattern to handle HH:MM vs HH:MM:SS formats
-    query = query.like('start_time', `${row.startTime}%`);
-    query = query.like('end_time', `${row.endTime}%`);
+    // `work_tickets.start_time/end_time` are TIME columns. Use exact matches
+    // (or NULL checks) instead of LIKE to avoid PostgREST 404/42883 errors.
+    const normalizedStartTime = row.startTime && row.startTime !== '—' ? `${row.startTime}:00` : null;
+    const normalizedEndTime = row.endTime && row.endTime !== '—' ? `${row.endTime}:00` : null;
+
+    if (normalizedStartTime) {
+      query = query.eq('start_time', normalizedStartTime);
+    } else {
+      query = query.is('start_time', null);
+    }
+
+    if (normalizedEndTime) {
+      query = query.eq('end_time', normalizedEndTime);
+    } else {
+      query = query.is('end_time', null);
+    }
 
     const { data: tickets } = await query.limit(1);
 

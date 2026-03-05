@@ -47,6 +47,10 @@
 
 40-file instruction manual in [`manual/`](manual/README.md) — module guides, field dictionaries, navigation, troubleshooting.
 
+## QA Evidence
+
+Deep module-by-module certification runs and reports live in [`deep-module-audits/`](deep-module-audits/README.md).
+
 ## Archive
 
 Completed milestones and superseded docs in [`_archive/`](_archive/) — kept for git history, not active development.

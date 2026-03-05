@@ -133,6 +133,21 @@ async function dismissBlockingDialogs(page) {
   await page.waitForTimeout(180);
 }
 
+async function setSingleWeekdaySelection(page, targetLabel) {
+  const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+  for (const day of weekdays) {
+    const btn = page.getByRole('button', { name: new RegExp(`^${day}$`, 'i') }).first();
+    const ariaPressed = await btn.getAttribute('aria-pressed').catch(() => null);
+    const dataState = await btn.getAttribute('data-state').catch(() => null);
+    const isSelected = ariaPressed === 'true' || dataState === 'on';
+    const shouldSelect = day.toLowerCase() === targetLabel.toLowerCase();
+    if (isSelected !== shouldSelect) {
+      await btn.click({ timeout: 2_500 }).catch(() => {});
+      await page.waitForTimeout(120);
+    }
+  }
+}
+
 async function typedLogin(page, baseUrl, email, password) {
   await page.goto(`${baseUrl}/login`, { waitUntil: 'domcontentloaded', timeout: 25_000 });
   await page.waitForSelector('#email', { state: 'visible', timeout: 12_000 });
@@ -326,25 +341,36 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
 
     const attemptDates = [];
     const candidateStarts = [];
-    for (const targetDay of [1, 2, 3, 4, 5]) {
+    const dayMap = [
+      { jsDay: 1, label: 'Mon' },
+      { jsDay: 2, label: 'Tue' },
+      { jsDay: 3, label: 'Wed' },
+      { jsDay: 4, label: 'Thu' },
+      { jsDay: 5, label: 'Fri' },
+    ];
+    for (const target of dayMap) {
       for (let weekOffset = 0; weekOffset < 3; weekOffset += 1) {
-        candidateStarts.push(nextWeekdayDateKey(targetDay, weekOffset));
+        candidateStarts.push({
+          dayLabel: target.label,
+          startDate: nextWeekdayDateKey(target.jsDay, weekOffset),
+        });
       }
     }
 
     let created = false;
     let postInsertCount = preInsertCount;
     let successfulStartDate = '';
-    for (const startCandidate of candidateStarts) {
-      await page.getByLabel('Start Date').first().fill(startCandidate).catch(() => {});
+    for (const candidate of candidateStarts) {
+      await setSingleWeekdaySelection(page, candidate.dayLabel);
+      await page.getByLabel('Start Date').first().fill(candidate.startDate).catch(() => {});
       await page.getByRole('button', { name: /^Create Recurring Shift$/i }).first().click({ timeout: 7_000 }).catch(() => {});
       await page.waitForTimeout(1_100);
       postInsertCount = requestStats.workTicketInsertResponses.length;
       const createdNow = postInsertCount > preInsertCount;
-      attemptDates.push({ startDate: startCandidate, createdNow, postInsertCount });
+      attemptDates.push({ dayLabel: candidate.dayLabel, startDate: candidate.startDate, createdNow, postInsertCount });
       if (createdNow) {
         created = true;
-        successfulStartDate = startCandidate;
+        successfulStartDate = candidate.startDate;
         break;
       }
     }
@@ -366,6 +392,8 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
 
   await runCheck(report, 'STAFF-005', 'Employee Grid: Open created shift in edit mode', async () => {
     await openScheduleTab(page, baseUrl, 'recurring');
+    await page.getByRole('button', { name: /^Month$/i }).first().click({ timeout: 3_000 }).catch(() => {});
+    await page.waitForTimeout(250);
     const searchInput = page.locator('main input[placeholder*="Search schedule"]').first();
     await searchInput.fill(recurringCode).catch(() => {});
     await page.waitForTimeout(500);
@@ -388,6 +416,8 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
 
     // Re-open and verify persisted note.
     await openScheduleTab(page, baseUrl, 'recurring');
+    await page.getByRole('button', { name: /^Month$/i }).first().click({ timeout: 3_000 }).catch(() => {});
+    await page.waitForTimeout(250);
     const searchInput = page.locator('main input[placeholder*="Search schedule"]').first();
     await searchInput.fill(recurringCode).catch(() => {});
     await page.waitForTimeout(450);
@@ -416,10 +446,16 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
     await page.waitForTimeout(1_000);
 
     await openScheduleTab(page, baseUrl, 'recurring');
+    await page.getByRole('button', { name: /^Month$/i }).first().click({ timeout: 3_000 }).catch(() => {});
+    await page.waitForTimeout(250);
     const searchInput = page.locator('main input[placeholder*="Search schedule"]').first();
     await searchInput.fill(recurringCode).catch(() => {});
     await page.waitForTimeout(450);
-    const stillVisible = await page.locator('main [role="group"]').filter({ hasText: recurringLabel }).first().isVisible().catch(() => false);
+    let stillVisible = await page.locator('main [role="group"]').filter({ hasText: recurringLabel }).first().isVisible().catch(() => false);
+    if (stillVisible) {
+      await page.waitForTimeout(1_000);
+      stillVisible = await page.locator('main [role="group"]').filter({ hasText: recurringLabel }).first().isVisible().catch(() => false);
+    }
     return {
       pass: !stillVisible,
       stillVisible,

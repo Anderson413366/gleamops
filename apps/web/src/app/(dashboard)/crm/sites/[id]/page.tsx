@@ -438,7 +438,7 @@ export default function SiteDetailPage() {
           .limit(12),
         supabase
           .from('work_tickets')
-          .select('id, ticket_code, scheduled_date, start_time, end_time, status, position_code, assigned_to, staff:assigned_to(full_name, staff_code)')
+          .select('id, ticket_code, scheduled_date, start_time, end_time, status, position_code, assigned_to')
           .eq('site_id', s.id)
           .in('status', ['SCHEDULED', 'IN_PROGRESS'])
           .gte('scheduled_date', todayKey)
@@ -464,7 +464,38 @@ export default function SiteDetailPage() {
       setRelatedEquipment(equipment);
       setEquipmentCount(equipment.length);
       setFieldRequests((fieldRequestsRes.data ?? []) as unknown as SiteFieldRequestRow[]);
-      setRecurringSlots((recurringRes.data ?? []) as unknown as SiteRecurringSlotRow[]);
+      const recurringRows = ((recurringRes.data ?? []) as unknown as SiteRecurringSlotRow[]) ?? [];
+      const recurringAssignedIds = Array.from(
+        new Set(
+          recurringRows
+            .map((row) => row.assigned_to)
+            .filter((value): value is string => Boolean(value))
+        )
+      );
+      let recurringStaffById: Record<string, { full_name: string; staff_code: string } | undefined> = {};
+      if (recurringAssignedIds.length > 0) {
+        const { data: recurringStaffRows } = await supabase
+          .from('staff')
+          .select('id, full_name, staff_code')
+          .in('id', recurringAssignedIds)
+          .is('archived_at', null);
+        recurringStaffById = Object.fromEntries(
+          ((recurringStaffRows ?? []) as Array<{ id: string; full_name: string; staff_code: string | null }>)
+            .map((row) => [
+              row.id,
+              {
+                full_name: row.full_name,
+                staff_code: row.staff_code ?? '',
+              },
+            ])
+        );
+      }
+      setRecurringSlots(
+        recurringRows.map((slot) => ({
+          ...slot,
+          staff: slot.assigned_to ? (recurringStaffById[slot.assigned_to] ?? null) : null,
+        }))
+      );
       setKeys((keysRes.data as unknown as KeyInventory[]) ?? []);
       setSiteSupplies((siteSuppliesRes.data as unknown as SiteSupplyRow[]) ?? []);
       const lookupByName: Record<string, SupplyLookupRow> = {};

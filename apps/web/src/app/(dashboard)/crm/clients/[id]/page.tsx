@@ -71,8 +71,16 @@ function getInitials(name: string): string {
 }
 
 function getFaviconUrl(website: string): string {
-  const host = website.replace(/^https?:\/\//i, '').split('/')[0];
-  return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=128`;
+  const raw = website.trim();
+  if (!raw) return '';
+  const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  try {
+    const host = new URL(withProtocol).hostname.replace(/^www\./i, '');
+    if (!host) return '';
+    return `https://api.faviconkit.com/${encodeURIComponent(host)}/128`;
+  } catch (_) {
+    return '';
+  }
 }
 
 function getContractHealth(start: string | null, end: string | null): { label: string; color: 'green' | 'yellow' | 'red' | 'gray' } {
@@ -173,6 +181,7 @@ export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
+  const [websiteLogoFailed, setWebsiteLogoFailed] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archiveLoading, setArchiveLoading] = useState(false);
@@ -347,6 +356,14 @@ export default function ClientDetailPage() {
   ), [jobsBySiteId, relatedSites]);
 
   const visibleSites = showAllSites ? sortedSites : sortedSites.slice(0, 5);
+  const faviconUrl = useMemo(() => {
+    if (!client?.website) return '';
+    return getFaviconUrl(client.website);
+  }, [client?.website]);
+
+  useEffect(() => {
+    setWebsiteLogoFailed(false);
+  }, [faviconUrl, client?.id]);
 
   if (loading) {
     return (
@@ -458,11 +475,13 @@ export default function ClientDetailPage() {
       {/* Header */}
       <div className={`flex items-center justify-between rounded-xl border p-4 shadow-sm ${clientHeaderTint}`}>
         <div className="flex items-center gap-4">
-          {client.website ? (
+          {faviconUrl && !websiteLogoFailed ? (
             <img
-              src={getFaviconUrl(client.website)}
+              src={faviconUrl}
               alt={`${client.name} logo`}
               className="h-16 w-16 rounded-full border border-border object-cover"
+              onError={() => setWebsiteLogoFailed(true)}
+              loading="lazy"
             />
           ) : (
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-module-accent/15 text-xl font-bold text-module-accent">

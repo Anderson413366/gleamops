@@ -229,6 +229,19 @@ function normalizeText(value, fallback = '') {
   return normalized || fallback;
 }
 
+function formatConsoleErrorMessage(msg) {
+  const text = normalizeText(msg.text(), '<empty console error>');
+  try {
+    const location = msg.location();
+    if (!location || !location.url) return text;
+    const line = Number.isInteger(location.lineNumber) ? location.lineNumber + 1 : '?';
+    const column = Number.isInteger(location.columnNumber) ? location.columnNumber + 1 : '?';
+    return `${text} @ ${location.url}:${line}:${column}`;
+  } catch (_) {
+    return text;
+  }
+}
+
 function routeCatalog() {
   const routes = [];
   for (const module of MODULE_BACKLOG) {
@@ -648,7 +661,7 @@ async function runRoleSweep({ baseUrl, role, email, password, screenshotsDir, ro
 
   page.on('console', (msg) => {
     if (msg.type() === 'error') {
-      roleReport.consoleErrors.push(msg.text());
+      roleReport.consoleErrors.push(formatConsoleErrorMessage(msg));
     }
   });
   page.on('pageerror', (error) => {

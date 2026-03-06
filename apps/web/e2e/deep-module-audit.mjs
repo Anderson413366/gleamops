@@ -165,17 +165,24 @@ async function clickByTextAndVerify(page, { baseUrl, label, textPattern, expecte
   await page.goto(`${baseUrl}/home`, { waitUntil: 'domcontentloaded' }).catch(() => {});
   await page.waitForTimeout(280);
 
-  const candidates = [
-    page.getByRole('link', { name: textPattern }).first(),
-    page.getByRole('button', { name: textPattern }).first(),
-    page.getByText(textPattern).first(),
+  let target = null;
+  const strategies = [
+    () => page.getByRole('link', { name: textPattern }).first(),
+    () => page.getByRole('button', { name: textPattern }).first(),
+    () => page.getByText(textPattern).first(),
   ];
 
-  let target = null;
-  for (const candidate of candidates) {
-    if (await candidate.isVisible().catch(() => false)) {
-      target = candidate;
-      break;
+  // Home cards can render after async KPI payloads; allow a short settle window.
+  for (let attempt = 0; attempt < 10 && !target; attempt += 1) {
+    for (const strategy of strategies) {
+      const candidate = strategy();
+      if (await candidate.isVisible().catch(() => false)) {
+        target = candidate;
+        break;
+      }
+    }
+    if (!target) {
+      await page.waitForTimeout(260);
     }
   }
 
@@ -274,6 +281,7 @@ async function runHomeSearchDeepAudit({ page, context, baseUrl, role }) {
     quickActionVisible: await page.getByRole('button', { name: /^Quick Action$/i }).first().isVisible().catch(() => false),
     searchInputVisible: await page.locator('input[placeholder*="Search records"]').first().isVisible().catch(() => false),
   };
+  const isOwnerDashboardView = /owner dashboard/i.test(report.moduleMap.home.heading || '');
 
   await runCheck(report, 'HOME-001', 'Home baseline loads', async () => ({
     pass: report.moduleMap.home.leftNavVisible && !!report.moduleMap.home.heading,
@@ -392,6 +400,13 @@ async function runHomeSearchDeepAudit({ page, context, baseUrl, role }) {
   });
 
   await runCheck(report, 'HOME-003', 'KPI trail: Staff Turnover (90d)', async () => {
+    if (!isOwnerDashboardView) {
+      return {
+        pass: true,
+        skipped: true,
+        reason: 'owner-dashboard-only',
+      };
+    }
     const result = await clickByTextAndVerify(page, {
       baseUrl,
       label: 'Staff Turnover (90d)',
@@ -404,6 +419,13 @@ async function runHomeSearchDeepAudit({ page, context, baseUrl, role }) {
   });
 
   await runCheck(report, 'HOME-004', 'Daily Snapshot trail: Tonight Routes', async () => {
+    if (!isOwnerDashboardView) {
+      return {
+        pass: true,
+        skipped: true,
+        reason: 'owner-dashboard-only',
+      };
+    }
     const result = await clickByTextAndVerify(page, {
       baseUrl,
       label: 'Tonight Routes',
@@ -416,6 +438,13 @@ async function runHomeSearchDeepAudit({ page, context, baseUrl, role }) {
   });
 
   await runCheck(report, 'HOME-005', 'Daily Snapshot trail: Overdue Periodic Tasks', async () => {
+    if (!isOwnerDashboardView) {
+      return {
+        pass: true,
+        skipped: true,
+        reason: 'owner-dashboard-only',
+      };
+    }
     const result = await clickByTextAndVerify(page, {
       baseUrl,
       label: 'Overdue Periodic Tasks',

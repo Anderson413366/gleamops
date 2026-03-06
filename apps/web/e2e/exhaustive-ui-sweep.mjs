@@ -453,6 +453,12 @@ async function exerciseCandidate(page, baseUrl, routeHref, candidate, beforeCoun
   const openedDialog = afterDialogCount > beforeDialogCount;
   const navigated = afterUrl !== beforeUrl;
   const errorSurface = await hasErrorSurface(page);
+  const benignNavigationTimeout =
+    Boolean(clickError) &&
+    navigated &&
+    !errorSurface &&
+    /timeout .*exceeded/i.test(clickError) &&
+    /waiting for locator|execution context was destroyed|target closed|element is not attached/i.test(clickError);
 
   const result = {
     candidate: {
@@ -469,7 +475,7 @@ async function exerciseCandidate(page, baseUrl, routeHref, candidate, beforeCoun
     openedDialog,
     clickError,
     errorSurface,
-    pass: !clickError && !errorSurface,
+    pass: (!clickError || benignNavigationTimeout) && !errorSurface,
     networkFailuresAdded: 0,
     consoleErrorsAdded: 0,
     pageErrorsAdded: 0,

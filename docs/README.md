@@ -51,6 +51,10 @@
 
 Deep module-by-module certification runs and reports live in [`deep-module-audits/`](deep-module-audits/README.md).
 
+Latest phase sign-offs:
+- [`phase-2-certification-signoff-2026-03-04.md`](phase-2-certification-signoff-2026-03-04.md)
+- [`phase-2-certification-signoff-2026-03-06.md`](phase-2-certification-signoff-2026-03-06.md)
+
 ## Archive
 
 Completed milestones and superseded docs in [`_archive/`](_archive/) — kept for git history, not active development.

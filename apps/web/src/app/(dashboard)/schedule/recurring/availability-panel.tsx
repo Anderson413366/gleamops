@@ -3,9 +3,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { CalendarDays, Clock4, Trash2 } from 'lucide-react';
 import { CollapsibleCard, Badge, Button, EmptyState } from '@gleamops/ui';
-import { normalizeRoleCode } from '@gleamops/shared';
 import { useRole } from '@/hooks/use-role';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { canManageAvailabilityActions } from '@/modules/schedule/schedule.permissions';
 
 interface AvailabilityRule {
   id: string;
@@ -39,10 +39,7 @@ function formatTime12(value: string | null): string {
 
 export function AvailabilityPanel() {
   const { role } = useRole();
-  const normalizedRole = normalizeRoleCode(role);
-  const canArchiveRules = normalizedRole === 'OWNER_ADMIN'
-    || normalizedRole === 'MANAGER'
-    || normalizedRole === 'SUPERVISOR';
+  const canArchiveRules = canManageAvailabilityActions(role);
   const [rules, setRules] = useState<AvailabilityRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [archiving, setArchiving] = useState<string | null>(null);
@@ -106,6 +103,11 @@ export function AvailabilityPanel() {
         />
       ) : (
         <div className="space-y-2">
+          {!canArchiveRules ? (
+            <p className="text-xs text-muted-foreground">
+              Availability rules are read-only for your role.
+            </p>
+          ) : null}
           {rules.map((rule) => (
             <div key={rule.id} className="rounded-lg border border-border p-3 text-sm flex items-start gap-3">
               <div className="flex-1 min-w-0 space-y-1">
@@ -142,15 +144,17 @@ export function AvailabilityPanel() {
                   <p className="text-[11px] text-muted-foreground italic truncate">&ldquo;{rule.notes}&rdquo;</p>
                 )}
               </div>
-              <Button
-                size="sm"
-                variant="secondary"
-                className="h-7 text-xs shrink-0"
-                disabled={archiving === rule.id || !canArchiveRules}
-                onClick={() => archiveRule(rule.id)}
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
+              {canArchiveRules ? (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="h-7 text-xs shrink-0"
+                  disabled={archiving === rule.id}
+                  onClick={() => archiveRule(rule.id)}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              ) : null}
             </div>
           ))}
         </div>

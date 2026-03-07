@@ -1,5 +1,7 @@
 # Deep Module Audit — Home + Search/⌘K (OWNER_ADMIN, MANAGER)
 
+> Historical note (2026-03-07): this document records the initial 2026-03-05 `NO-GO` result. The later production closure rerun on 2026-03-06 passed with `0` failed checks for `OWNER_ADMIN` + `MANAGER` and is the current canonical status in [`README.md`](README.md) and [`../phase-2-certification-signoff-2026-03-06.md`](../phase-2-certification-signoff-2026-03-06.md).
+
 ## Session Metadata
 - Module under test: Home + Search/⌘K
 - Environment: Production (`https://gleamops.vercel.app`)

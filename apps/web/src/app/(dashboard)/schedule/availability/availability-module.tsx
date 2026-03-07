@@ -6,7 +6,7 @@ import { Button, Card, CardContent, EmptyState, Badge, Input } from '@gleamops/u
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { useRole } from '@/hooks/use-role';
-import { normalizeRoleCode } from '@gleamops/shared';
+import { canEditAvailabilityGrid, canManageAvailabilityActions } from '@/modules/schedule/schedule.permissions';
 import { toast } from 'sonner';
 
 // ---------------------------------------------------------------------------
@@ -221,10 +221,8 @@ export function AvailabilityModule() {
 
   const isAllSelected = selectedStaffIds.length === 0;
   const isSingleEmployee = selectedStaffIds.length === 1;
-  const normalizedRole = normalizeRoleCode(role);
-  const canManageAvailabilityRequests =
-    normalizedRole === 'OWNER_ADMIN' || normalizedRole === 'MANAGER' || normalizedRole === 'SUPERVISOR';
-  const canEdit = isSingleEmployee && canManageAvailabilityRequests;
+  const canManageAvailabilityRequests = canManageAvailabilityActions(role);
+  const canEdit = canEditAvailabilityGrid(role, selectedStaffIds.length);
 
   // Close dropdown on outside click
   useEffect(() => {

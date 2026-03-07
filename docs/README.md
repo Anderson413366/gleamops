@@ -49,7 +49,7 @@
 
 ## QA Evidence
 
-Deep module-by-module certification runs and reports live in [`deep-module-audits/`](deep-module-audits/README.md).
+Current deep-certification status lives in [`deep-module-audits/`](deep-module-audits/README.md). Treat that index as the canonical source of truth for module status; individual reports and phase sign-offs linked from it remain the historical evidence trail.
 
 Latest phase sign-offs:
 - [`phase-2-certification-signoff-2026-03-04.md`](phase-2-certification-signoff-2026-03-04.md)

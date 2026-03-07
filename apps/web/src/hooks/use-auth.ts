@@ -30,6 +30,15 @@ interface SessionSnapshot {
   };
 }
 
+interface SupabaseSessionLike {
+  access_token: string;
+  user: {
+    id: string;
+    email?: string | null;
+    app_metadata?: Record<string, unknown>;
+  };
+}
+
 interface AuthContextResponse {
   tenantId: string | null;
   role: string | null;
@@ -39,6 +48,26 @@ interface AuthContextFetchResult {
   ok: boolean;
   status: number | null;
   payload: AuthContextResponse | null;
+}
+
+function createSignedOutAuthState(loading: boolean): AuthState {
+  return {
+    user: null,
+    tenantId: null,
+    role: null,
+    loading,
+  };
+}
+
+function createSessionSnapshot(session: SupabaseSessionLike): SessionSnapshot {
+  return {
+    access_token: session.access_token,
+    user: {
+      id: session.user.id,
+      email: session.user.email,
+      app_metadata: session.user.app_metadata,
+    },
+  };
 }
 
 function extractRoleCandidate(value: unknown): string | null {
@@ -228,17 +257,21 @@ async function refreshSessionWhenTenantClaimMissing(
   if (extractTenantClaim(claims)) return session;
 
   const supabase = getSupabaseBrowserClient();
-  const { data, error } = await supabase.auth.refreshSession();
-  if (error || !data.session) return session;
+  try {
+    const { data, error } = await supabase.auth.refreshSession();
+    if (error || !data.session) return session;
 
-  return {
-    access_token: data.session.access_token,
-    user: {
-      id: data.session.user.id,
-      email: data.session.user.email,
-      app_metadata: data.session.user.app_metadata as Record<string, unknown> | undefined,
-    },
-  };
+    return {
+      access_token: data.session.access_token,
+      user: {
+        id: data.session.user.id,
+        email: data.session.user.email,
+        app_metadata: data.session.user.app_metadata as Record<string, unknown> | undefined,
+      },
+    };
+  } catch {
+    return session;
+  }
 }
 
 async function resolveTenantAndRole(
@@ -272,29 +305,31 @@ async function resolveTenantAndRole(
 export function useAuth() {
   const router = useRouter();
   const forcedTenantId = process.env.NEXT_PUBLIC_SINGLE_TENANT_ID ?? null;
-  const [state, setState] = useState<AuthState>({
-    user: null,
-    tenantId: null,
-    role: null,
-    loading: true,
-  });
+  const [state, setState] = useState<AuthState>(createSignedOutAuthState(true));
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
+    let isActive = true;
 
-    async function loadSession() {
-      const { data: { session } } = await supabase.auth.getSession();
+    const settleAuthFailure = () => {
+      if (!isActive) return;
+      // Preserve an already-resolved session when a transient auth fetch fails during navigation.
+      setState((current) => (current.loading ? createSignedOutAuthState(false) : current));
+    };
 
-      if (session?.user) {
-        let sessionSnapshot: SessionSnapshot = {
-          access_token: session.access_token,
-          user: {
-            id: session.user.id,
-            email: session.user.email,
-            app_metadata: session.user.app_metadata as Record<string, unknown> | undefined,
-          },
-        };
+    const setSignedOutState = () => {
+      if (!isActive) return;
+      setState(createSignedOutAuthState(false));
+    };
 
+    async function applySession(session: SupabaseSessionLike | null) {
+      try {
+        if (!session?.user) {
+          setSignedOutState();
+          return;
+        }
+
+        let sessionSnapshot = createSessionSnapshot(session);
         let { tenantId: resolvedTenantId, rawRole } = await resolveTenantAndRole(sessionSnapshot);
         sessionSnapshot = await refreshSessionWhenTenantClaimMissing(sessionSnapshot, resolvedTenantId);
 
@@ -303,12 +338,15 @@ export function useAuth() {
         }
 
         if (forcedTenantId && resolvedTenantId && resolvedTenantId !== forcedTenantId) {
-          await supabase.auth.signOut();
-          setState({ user: null, tenantId: null, role: null, loading: false });
-          router.push('/login');
+          await supabase.auth.signOut().catch(() => {});
+          setSignedOutState();
+          if (isActive) {
+            router.push('/login');
+          }
           return;
         }
 
+        if (!isActive) return;
         setState({
           user: {
             id: sessionSnapshot.user.id,
@@ -318,56 +356,33 @@ export function useAuth() {
           role: rawRole && isSupportedRole(rawRole) ? (rawRole.toUpperCase() as UserRole) : null,
           loading: false,
         });
-      } else {
-        setState({ user: null, tenantId: null, role: null, loading: false });
+      } catch {
+        settleAuthFailure();
       }
     }
 
-    loadSession();
+    async function loadSession() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        await applySession(session);
+      } catch {
+        settleAuthFailure();
+      }
+    }
+
+    void loadSession();
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
-        if (session?.user) {
-          let sessionSnapshot: SessionSnapshot = {
-            access_token: session.access_token,
-            user: {
-              id: session.user.id,
-              email: session.user.email,
-              app_metadata: session.user.app_metadata as Record<string, unknown> | undefined,
-            },
-          };
-
-          let { tenantId: resolvedTenantId, rawRole } = await resolveTenantAndRole(sessionSnapshot);
-          sessionSnapshot = await refreshSessionWhenTenantClaimMissing(sessionSnapshot, resolvedTenantId);
-
-          if (sessionSnapshot.access_token !== session.access_token) {
-            ({ tenantId: resolvedTenantId, rawRole } = await resolveTenantAndRole(sessionSnapshot));
-          }
-
-          if (forcedTenantId && resolvedTenantId && resolvedTenantId !== forcedTenantId) {
-            await supabase.auth.signOut();
-            setState({ user: null, tenantId: null, role: null, loading: false });
-            router.push('/login');
-            return;
-          }
-
-          setState({
-            user: {
-              id: sessionSnapshot.user.id,
-              email: sessionSnapshot.user.email ?? '',
-            },
-            tenantId: resolvedTenantId,
-            role: rawRole && isSupportedRole(rawRole) ? (rawRole.toUpperCase() as UserRole) : null,
-            loading: false,
-          });
-        } else {
-          setState({ user: null, tenantId: null, role: null, loading: false });
-        }
+        await applySession(session);
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isActive = false;
+      subscription.unsubscribe();
+    };
   }, [forcedTenantId, router]);
 
   const signOut = useCallback(async () => {

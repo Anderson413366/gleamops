@@ -460,7 +460,7 @@ async function runStaffScheduleAudit({ page, baseUrl, role, requestStats }) {
           await page.waitForTimeout(1_100);
           postInsertCount = requestStats.workTicketInsertResponses.length;
           postInsertedRows = totalInsertedRows(requestStats.workTicketInsertResponses);
-          const createdNow = postInsertedRows > preInsertedRows;
+          const createdNow = postInsertCount > preInsertCount || postInsertedRows > preInsertedRows;
           attemptDates.push({
             siteIndex: siteIdx,
             planIndex: planIdx,

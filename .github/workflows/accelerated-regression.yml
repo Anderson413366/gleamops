@@ -60,6 +60,7 @@ jobs:
         run: |
           node <<'NODE'
           const fs = require('fs');
+          const { URL } = require('url');
 
           const eventName = process.env.GITHUB_EVENT_NAME;
           const payloadPath = process.env.GITHUB_EVENT_PATH;
@@ -69,9 +70,19 @@ jobs:
 
           if (eventName === 'deployment_status' && payloadPath && fs.existsSync(payloadPath)) {
             const payload = JSON.parse(fs.readFileSync(payloadPath, 'utf8'));
-            const envUrl = payload?.deployment_status?.environment_url || payload?.deployment_status?.target_url || '';
+            const envUrlRaw = payload?.deployment_status?.environment_url || payload?.deployment_status?.target_url || '';
+            const envUrl = envUrlRaw && envUrlRaw.startsWith('http') ? envUrlRaw : envUrlRaw ? `https://${envUrlRaw}` : '';
             if (envUrl) {
-              baseUrl = envUrl.startsWith('http') ? envUrl : `https://${envUrl}`;
+              const envHost = new URL(envUrl).host;
+              const defaultHost = new URL(defaultBase).host;
+              // Preview deployment URLs are often protected by Vercel SSO and break login automation.
+              // For deployment-triggered runs, stay on the public canonical host unless already the same.
+              if (envHost === defaultHost) {
+                baseUrl = envUrl;
+              } else {
+                baseUrl = defaultBase;
+                console.log(`Ignoring deployment host ${envHost}; using canonical base ${defaultBase}`);
+              }
             }
           }
 

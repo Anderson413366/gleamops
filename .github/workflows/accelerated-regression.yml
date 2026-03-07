@@ -38,6 +38,7 @@ jobs:
     env:
       DEFAULT_BASE_URL: https://gleamops.vercel.app
       QA_ROLES: ${{ github.event.inputs.roles || 'OWNER_ADMIN,MANAGER' }}
+      QA_EMAIL_PREFIX: test-phase2-${{ github.run_id }}
       QA_TENANT_ID: ${{ secrets.QA_TENANT_ID }}
       QA_AUTOMATION_PASSWORD: ${{ secrets.QA_AUTOMATION_PASSWORD }}
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -138,6 +139,7 @@ jobs:
           pnpm --dir apps/web exec node e2e/qa-role-users.mjs \
             --action ensure \
             --roles "$QA_ROLES" \
+            --email-prefix "$QA_EMAIL_PREFIX" \
             --out ../../.tmp-ci-phase2-qa-credentials.json
 
       - name: Run accelerated regression audit
@@ -152,6 +154,15 @@ jobs:
         run: |
           pnpm --dir apps/web exec node e2e/assert-accelerated-backlog.mjs \
             --report ../../.tmp-ci-accelerated-backlog.json
+
+      - name: Cleanup QA role users
+        if: always()
+        continue-on-error: true
+        run: |
+          pnpm --dir apps/web exec node e2e/qa-role-users.mjs \
+            --action cleanup \
+            --roles "$QA_ROLES" \
+            --email-prefix "$QA_EMAIL_PREFIX"
 
       - name: Upload artifacts
         if: always()

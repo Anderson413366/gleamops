@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Button, Input, Select, SlideOver, Textarea } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
+import { normalizeRoleCode } from '@gleamops/shared';
 
 interface LeaveRequestFormProps {
   open: boolean;
@@ -25,8 +26,20 @@ function toDateInputValue(date: Date): string {
   return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
 }
 
+interface ProblemDetails {
+  detail?: string;
+  error?: string;
+  message?: string;
+}
+
+function errorMessageFromPayload(payload: unknown, fallback: string): string {
+  if (typeof payload !== 'object' || payload === null) return fallback;
+  const details = payload as ProblemDetails;
+  return details.detail || details.error || details.message || fallback;
+}
+
 export function LeaveRequestForm({ open, onClose, onCreated }: LeaveRequestFormProps) {
-  const { tenantId } = useAuth();
+  const { tenantId, user, role } = useAuth();
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const [saving, setSaving] = useState(false);
   const [leaveType, setLeaveType] = useState('Annual Leave');
@@ -36,12 +49,65 @@ export function LeaveRequestForm({ open, onClose, onCreated }: LeaveRequestFormP
   const [isPaid, setIsPaid] = useState(true);
   const [staffId, setStaffId] = useState('');
   const [staffOptions, setStaffOptions] = useState<Array<{ value: string; label: string }>>([]);
+  const normalizedRole = normalizeRoleCode(role);
+  const canManageLeaveForOthers =
+    normalizedRole === 'OWNER_ADMIN' || normalizedRole === 'MANAGER' || normalizedRole === 'SUPERVISOR';
 
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
 
     async function loadStaff() {
+      if (!canManageLeaveForOthers) {
+        let selfQuery = supabase
+          .from('staff')
+          .select('id, full_name, staff_code, email')
+          .is('archived_at', null)
+          .eq('status', 'ACTIVE')
+          .limit(1);
+
+        if (user?.id) {
+          selfQuery = selfQuery.eq('user_id', user.id);
+        } else if (user?.email) {
+          selfQuery = selfQuery.ilike('email', user.email);
+        } else {
+          setStaffOptions([]);
+          setStaffId('');
+          return;
+        }
+
+        const { data: selfRows, error: selfError } = await selfQuery.maybeSingle<{
+          id: string;
+          full_name: string | null;
+          staff_code: string | null;
+          email: string | null;
+        }>();
+
+        if (cancelled) return;
+
+        if (selfError) {
+          toast.error(selfError.message);
+          setStaffOptions([]);
+          setStaffId('');
+          return;
+        }
+
+        if (!selfRows?.id) {
+          toast.error('No staff profile is linked to this account. Contact an administrator.');
+          setStaffOptions([]);
+          setStaffId('');
+          return;
+        }
+
+        const code = selfRows.staff_code ?? '';
+        const rawName = selfRows.full_name ?? '';
+        const name = rawName && rawName !== code ? rawName : '(Name not set)';
+        const option = { value: selfRows.id, label: `${code} - ${name}` };
+        setStaffOptions([option]);
+        setStaffId(selfRows.id);
+        return;
+      }
+
       const { data } = await supabase
         .from('staff')
         .select('id, full_name, staff_code')
@@ -58,12 +124,15 @@ export function LeaveRequestForm({ open, onClose, onCreated }: LeaveRequestFormP
         return { value: s.id as string, label: `${code} - ${name}` };
       });
       setStaffOptions(options);
-      if (!staffId && options[0]) setStaffId(options[0].value);
+      setStaffId((current) => {
+        if (current && options.some((option) => option.value === current)) return current;
+        return options[0]?.value ?? '';
+      });
     }
 
     void loadStaff();
     return () => { cancelled = true; };
-  }, [open, supabase, staffId]);
+  }, [open, supabase, canManageLeaveForOthers, user?.id, user?.email]);
 
   async function handleSubmit() {
     if (!tenantId || !staffId) {
@@ -80,20 +149,26 @@ export function LeaveRequestForm({ open, onClose, onCreated }: LeaveRequestFormP
     // Store as staff_availability_rules with ONE_OFF type
     const notes = `[${leaveType}]${isPaid ? '[PAID]' : '[UNPAID]'} ${reason}`.trim();
 
-    const { error } = await supabase.from('staff_availability_rules').insert({
-      tenant_id: tenantId,
-      staff_id: staffId,
-      rule_type: 'ONE_OFF',
-      availability_type: 'UNAVAILABLE',
-      one_off_start: startDate,
-      one_off_end: endDate,
-      notes,
+    const response = await fetch('/api/operations/schedule/availability', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        staff_id: staffId,
+        rule_type: 'ONE_OFF',
+        availability_type: 'UNAVAILABLE',
+        one_off_start: startDate,
+        one_off_end: endDate,
+        valid_from: null,
+        valid_to: null,
+        notes,
+      }),
     });
+    const payload = await response.json().catch(() => null);
 
     setSaving(false);
 
-    if (error) {
-      toast.error(error.message);
+    if (!response.ok || (payload && payload.success === false)) {
+      toast.error(errorMessageFromPayload(payload, 'Failed to submit leave request.'));
       return;
     }
 
@@ -117,6 +192,7 @@ export function LeaveRequestForm({ open, onClose, onCreated }: LeaveRequestFormP
           value={staffId}
           onChange={(e) => setStaffId(e.target.value)}
           options={staffOptions}
+          disabled={!canManageLeaveForOthers}
         />
 
         <Select

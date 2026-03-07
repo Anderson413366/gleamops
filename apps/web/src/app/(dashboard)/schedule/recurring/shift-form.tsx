@@ -217,9 +217,12 @@ export function ShiftForm({ open, onClose, onCreated, prefill, initialData }: Sh
     const options = (data ?? []) as JobOption[];
     setJobs(options);
     const first = options[0];
-    setJobId(first?.id ?? '');
-    if (first?.start_time) setStartTime(first.start_time.slice(0, 5));
-    if (first?.end_time) setEndTime(first.end_time.slice(0, 5));
+    // Preserve the currently selected job whenever it still belongs to this site.
+    // This avoids accidental job switches while editing an existing shift.
+    setJobId((currentJobId) => {
+      if (currentJobId && options.some((job) => job.id === currentJobId)) return currentJobId;
+      return first?.id ?? '';
+    });
     setLoadingJobs(false);
   }, [supabase]);
 
@@ -230,11 +233,12 @@ export function ShiftForm({ open, onClose, onCreated, prefill, initialData }: Sh
 
   useEffect(() => {
     if (!open) return;
+    if (isEdit) return;
     const selectedJob = jobs.find((job) => job.id === jobId);
     if (!selectedJob) return;
     if (selectedJob.start_time) setStartTime(selectedJob.start_time.slice(0, 5));
     if (selectedJob.end_time) setEndTime(selectedJob.end_time.slice(0, 5));
-  }, [jobId, jobs, open]);
+  }, [isEdit, jobId, jobs, open]);
 
   // Load available staff for employee assignment
   useEffect(() => {

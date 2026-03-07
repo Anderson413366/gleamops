@@ -552,12 +552,11 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect, o
                       dayRows.map((row) => {
                         const isMoving = moveSource?.rowId === row.id && moveSource?.dateKey === dateKey;
                         return (
-                          <button
+                          <div
                             key={`${row.id}-${dateKey}`}
                             id={`cell-${staffName}-${dateKey}`}
-                            type="button"
-                            tabIndex={0}
                             role="button"
+                            tabIndex={0}
                             aria-label={`${staffName}, ${row.siteName}, ${dateKey} — press Enter to move`}
                             onClick={() => {
                               if (moveSource) {
@@ -605,7 +604,7 @@ export function ScheduleGrid({ rows, visibleDates = [], search = '', onSelect, o
                             {isMoving && (
                               <span className="block text-[10px] text-primary mt-0.5 text-center">Moving... Esc to cancel</span>
                             )}
-                          </button>
+                          </div>
                         );
                       })
                     ) : !isUnavailable ? (

@@ -38,6 +38,13 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+function parsePositiveInt(value, fallback) {
+  if (value === undefined || value === null || value === '') return fallback;
+  const parsed = Number.parseInt(String(value), 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return parsed;
+}
+
 function ensureDir(dir) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
@@ -239,10 +246,39 @@ async function typedLogin(page, baseUrl, email, password) {
 
   const start = Date.now();
   while (Date.now() - start < 25_000) {
-    if (page.url().includes('/home')) return { ok: true, finalUrl: page.url() };
+    if (page.url().includes('/home')) {
+      const persistence = await waitForSessionPersistence(page, baseUrl);
+      if (!persistence.ok) {
+        return { ok: false, finalUrl: page.url(), reason: 'session-not-persisted', persistence };
+      }
+      return { ok: true, finalUrl: page.url(), persistence };
+    }
     await page.waitForTimeout(200);
   }
-  return { ok: false, finalUrl: page.url() };
+  return { ok: false, finalUrl: page.url(), reason: 'home-timeout' };
+}
+
+async function waitForSessionPersistence(page, baseUrl) {
+  const started = Date.now();
+  while (Date.now() - started < 10_000) {
+    const hasSupabaseStorageKey = await page
+      .evaluate(() =>
+        Object.keys(window.localStorage || {}).some(
+          (key) => key.startsWith('sb-') || key.toLowerCase().includes('supabase')
+        )
+      )
+      .catch(() => false);
+    const cookies = await page.context().cookies(baseUrl).catch(() => []);
+    const hasSupabaseCookie = cookies.some(
+      (cookie) => cookie.name.startsWith('sb-') || cookie.name.toLowerCase().includes('supabase')
+    );
+    if (hasSupabaseStorageKey || hasSupabaseCookie) {
+      return { ok: true, hasSupabaseStorageKey, hasSupabaseCookie };
+    }
+    await page.waitForTimeout(200);
+  }
+
+  return { ok: false, hasSupabaseStorageKey: false, hasSupabaseCookie: false };
 }
 
 async function dismissTourIfVisible(page) {
@@ -263,7 +299,7 @@ function parseExpectedTarget(targetHref) {
   };
 }
 
-async function verifyRoute(page, baseUrl, label, targetHref) {
+async function verifyRoute(page, baseUrl, label, targetHref, settleMs) {
   const target = `${baseUrl}${targetHref}`;
   const expected = parseExpectedTarget(targetHref);
   const started = Date.now();
@@ -273,7 +309,7 @@ async function verifyRoute(page, baseUrl, label, targetHref) {
   } catch (error) {
     navigationError = String(error?.message || error);
   }
-  await page.waitForTimeout(260);
+  await page.waitForTimeout(settleMs);
   const elapsedMs = Date.now() - started;
   const current = new URL(page.url(), baseUrl);
   const heading = (await page.locator('h1, h2').first().textContent().catch(() => ''))?.trim() || '';
@@ -396,18 +432,18 @@ async function runGlobalActions(page, baseUrl) {
   return checks;
 }
 
-async function runModuleBacklog(page, baseUrl) {
+async function runModuleBacklog(page, baseUrl, routeSettleMs) {
   const modules = [];
   for (const item of MODULE_BACKLOG) {
     console.log(`[${nowNy()}] route ${item.module} -> ${item.href}`);
     const moduleResult = {
       module: item.module,
-      entry: await verifyRoute(page, baseUrl, item.module, item.href),
+      entry: await verifyRoute(page, baseUrl, item.module, item.href, routeSettleMs),
       submodules: [],
     };
     for (const sub of item.submodules) {
       console.log(`[${nowNy()}] route ${item.module} :: ${sub.name} -> ${sub.href}`);
-      const subResult = await verifyRoute(page, baseUrl, `${item.module} :: ${sub.name}`, sub.href);
+      const subResult = await verifyRoute(page, baseUrl, `${item.module} :: ${sub.name}`, sub.href, routeSettleMs);
       moduleResult.submodules.push({ name: sub.name, ...subResult });
     }
     modules.push(moduleResult);
@@ -415,7 +451,7 @@ async function runModuleBacklog(page, baseUrl) {
   return modules;
 }
 
-async function runRoleAudit({ baseUrl, role, email, password, screenshotsDir }) {
+async function runRoleAudit({ baseUrl, role, email, password, screenshotsDir, routeSettleMs }) {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 1512, height: 982 } });
   const page = await context.newPage();
@@ -473,7 +509,7 @@ async function runRoleAudit({ baseUrl, role, email, password, screenshotsDir }) 
   }
 
   report.globalChecks = await runGlobalActions(page, baseUrl);
-  report.modules = await runModuleBacklog(page, baseUrl);
+  report.modules = await runModuleBacklog(page, baseUrl, routeSettleMs);
 
   const endShot = path.join(screenshotsDir, `backlog-${role.toLowerCase()}-end-${Date.now()}.png`);
   await page.screenshot({ path: endShot, fullPage: true }).catch(() => {});
@@ -537,6 +573,7 @@ async function main() {
     .split(',')
     .map((item) => item.trim())
     .filter(Boolean);
+  const routeSettleMs = parsePositiveInt(args['route-settle-ms'] || process.env.QA_ROUTE_SETTLE_MS, 900);
 
   const credentials = loadCredentials(credsFile);
   const repoRoot = path.resolve(process.cwd(), '../..');
@@ -572,6 +609,7 @@ async function main() {
         email: user.email,
         password: user.password,
         screenshotsDir,
+        routeSettleMs,
       })
     )
   );

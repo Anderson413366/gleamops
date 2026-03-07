@@ -146,7 +146,7 @@ function badgeColorForStatus(status: string): 'gray' | 'blue' | 'yellow' | 'oran
 
 export default function RoutesFleetPanel({ search }: Props) {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
-  const { tenantId } = useAuth();
+  const { tenantId, role } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [savingRoute, setSavingRoute] = useState(false);
@@ -178,6 +178,11 @@ export default function RoutesFleetPanel({ search }: Props) {
 
   const [newStopJobId, setNewStopJobId] = useState('');
   const [newStopTravelMinutes, setNewStopTravelMinutes] = useState('');
+  const canReadLoadSheet = role === 'OWNER_ADMIN'
+    || role === 'MANAGER'
+    || role === 'SUPERVISOR'
+    || role === 'CLEANER'
+    || role === 'INSPECTOR';
   const [customTaskOpen, setCustomTaskOpen] = useState(false);
   const [customTaskStopId, setCustomTaskStopId] = useState('');
   const [customTaskDescription, setCustomTaskDescription] = useState('');
@@ -350,9 +355,10 @@ export default function RoutesFleetPanel({ search }: Props) {
   useEffect(() => {
     let active = true;
 
-    if (!selectedRouteId) {
+    if (!selectedRouteId || !canReadLoadSheet) {
       setLoadSheet(null);
       setExpandedLoadItems({});
+      setLoadSheetLoading(false);
       return () => {
         active = false;
       };
@@ -398,7 +404,7 @@ export default function RoutesFleetPanel({ search }: Props) {
     return () => {
       active = false;
     };
-  }, [selectedRouteId, supabase]);
+  }, [canReadLoadSheet, selectedRouteId, supabase]);
 
   const toggleLoadItem = useCallback((key: string) => {
     setExpandedLoadItems((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -1066,7 +1072,9 @@ export default function RoutesFleetPanel({ search }: Props) {
 
                   {loadSheetOpen ? (
                     <div className="space-y-3 border-t border-border px-3 py-3">
-                      {loadSheetLoading ? (
+                      {!canReadLoadSheet ? (
+                        <p className="text-sm text-muted-foreground">Load sheet preview is only available for operations roles.</p>
+                      ) : loadSheetLoading ? (
                         <p className="text-sm text-muted-foreground">Loading load sheet...</p>
                       ) : !loadSheet || loadSheet.items.length === 0 ? (
                         <p className="text-sm text-muted-foreground">No delivery tasks on this route.</p>

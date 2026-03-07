@@ -221,10 +221,10 @@ export function AvailabilityModule() {
 
   const isAllSelected = selectedStaffIds.length === 0;
   const isSingleEmployee = selectedStaffIds.length === 1;
-  const canEdit = isSingleEmployee;
   const normalizedRole = normalizeRoleCode(role);
   const canManageAvailabilityRequests =
     normalizedRole === 'OWNER_ADMIN' || normalizedRole === 'MANAGER' || normalizedRole === 'SUPERVISOR';
+  const canEdit = isSingleEmployee && canManageAvailabilityRequests;
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -334,6 +334,10 @@ export function AvailabilityModule() {
   };
 
   async function handleDeleteRule(ruleId: string) {
+    if (!canManageAvailabilityRequests) {
+      toast.info('Availability updates are read-only for your role.');
+      return;
+    }
     try {
       const response = await fetch(`/api/operations/schedule/availability/${ruleId}/archive`, {
         method: 'POST',

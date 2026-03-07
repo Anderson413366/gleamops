@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Button, Card, CardContent, CardHeader, Input } from '@gleamops/ui';
+import { normalizeRoleCode } from '@gleamops/shared';
+import { useRole } from '@/hooks/use-role';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { fetchJsonWithSupabaseAuth } from '@/lib/supabase/authenticated-fetch';
 import { PlannerFilters } from './planner-filters';
@@ -103,6 +105,11 @@ function formatTimeWindow(start: string | null, end: string | null): string {
 
 export default function PlanningPanel({ search }: PlanningPanelProps) {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
+  const { role } = useRole();
+  const normalizedRole = normalizeRoleCode(role);
+  const canManageSchedule = normalizedRole === 'OWNER_ADMIN'
+    || normalizedRole === 'MANAGER'
+    || normalizedRole === 'SUPERVISOR';
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [periods, setPeriods] = useState<SchedulePeriodRow[]>([]);
@@ -386,6 +393,10 @@ export default function PlanningPanel({ search }: PlanningPanelProps) {
   }, [apiRequest, loadPeriodData, loadPeriods, selectedPeriod]);
 
   const handleCreateAvailabilityRule = useCallback(async () => {
+    if (!canManageSchedule) {
+      toast.info('Availability updates are read-only for your role.');
+      return;
+    }
     if (!selectedStaffId) {
       toast.error('Select a staff member first.');
       return;
@@ -430,9 +441,13 @@ export default function PlanningPanel({ search }: PlanningPanelProps) {
     } finally {
       setBusy(false);
     }
-  }, [apiRequest, availabilityForm, loadAvailabilityRules, selectedStaffId]);
+  }, [apiRequest, availabilityForm, canManageSchedule, loadAvailabilityRules, selectedStaffId]);
 
   const handleArchiveAvailabilityRule = useCallback(async (ruleId: string) => {
+    if (!canManageSchedule) {
+      toast.info('Availability updates are read-only for your role.');
+      return;
+    }
     setBusy(true);
     try {
       await apiRequest<ApiDataResponse<AvailabilityRuleRow>>(
@@ -447,7 +462,7 @@ export default function PlanningPanel({ search }: PlanningPanelProps) {
     } finally {
       setBusy(false);
     }
-  }, [apiRequest, loadAvailabilityRules, selectedStaffId]);
+  }, [apiRequest, canManageSchedule, loadAvailabilityRules, selectedStaffId]);
 
   const runTradeAction = useCallback(async (
     action: 'accept' | 'approve' | 'deny' | 'cancel' | 'apply',
@@ -701,9 +716,15 @@ export default function PlanningPanel({ search }: PlanningPanelProps) {
                   <Input value={availabilityForm.notes} onChange={(event) => setAvailabilityForm((prev) => ({ ...prev, notes: event.target.value }))} placeholder="Optional notes" />
                 </label>
 
-                <Button disabled={busy || !selectedStaffId} onClick={() => void handleCreateAvailabilityRule()}>
+                <Button
+                  disabled={busy || !selectedStaffId || !canManageSchedule}
+                  onClick={() => void handleCreateAvailabilityRule()}
+                >
                   Add Availability Rule
                 </Button>
+                {!canManageSchedule ? (
+                  <p className="text-xs text-muted-foreground">Availability rules are read-only for your role.</p>
+                ) : null}
 
                 <div className="space-y-2">
                   {availabilityRules.length === 0 ? (
@@ -726,7 +747,12 @@ export default function PlanningPanel({ search }: PlanningPanelProps) {
                         ) : null}
                         {rule.notes ? <p className="text-muted-foreground">{rule.notes}</p> : null}
                         <div className="mt-1">
-                          <Button size="sm" variant="secondary" disabled={busy} onClick={() => void handleArchiveAvailabilityRule(rule.id)}>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            disabled={busy || !canManageSchedule}
+                            onClick={() => void handleArchiveAvailabilityRule(rule.id)}
+                          >
                             Archive
                           </Button>
                         </div>

@@ -30,6 +30,17 @@ interface SessionSnapshot {
   };
 }
 
+interface AuthContextResponse {
+  tenantId: string | null;
+  role: string | null;
+}
+
+interface AuthContextFetchResult {
+  ok: boolean;
+  status: number | null;
+  payload: AuthContextResponse | null;
+}
+
 function extractRoleCandidate(value: unknown): string | null {
   if (typeof value === 'string') {
     const trimmed = value.trim();
@@ -104,26 +115,58 @@ function decodeJwtClaims(accessToken: string | null | undefined): Record<string,
 }
 
 async function resolveAuthContextFromApi(accessToken: string): Promise<AuthContextFallback> {
-  try {
-    const response = await fetch('/api/auth/context', {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-      cache: 'no-store',
-    });
+  const fetchContext = async (token: string): Promise<AuthContextFetchResult> => {
+    try {
+      const response = await fetch('/api/auth/context', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        cache: 'no-store',
+        credentials: 'include',
+      });
 
-    if (!response.ok) {
-      return { tenantId: null, role: null };
+      if (!response.ok) {
+        return { ok: false, status: response.status, payload: null };
+      }
+
+      const payload = (await response.json()) as { tenantId?: unknown; role?: unknown } | null;
+      const tenantId = typeof payload?.tenantId === 'string' && payload.tenantId.trim()
+        ? payload.tenantId.trim()
+        : null;
+      const role = extractRoleCandidate(payload?.role);
+
+      return {
+        ok: true,
+        status: response.status,
+        payload: { tenantId, role },
+      };
+    } catch {
+      return { ok: false, status: null, payload: null };
+    }
+  };
+
+  try {
+    const initial = await fetchContext(accessToken);
+    if (initial.ok && initial.payload) {
+      return initial.payload;
     }
 
-    const payload = (await response.json()) as { tenantId?: unknown; role?: unknown } | null;
-    const tenantId = typeof payload?.tenantId === 'string' && payload.tenantId.trim()
-      ? payload.tenantId.trim()
-      : null;
+    // During long-lived sessions a stale JWT can race with refresh and produce one-off 401s.
+    // Retry once with a freshly issued token before treating auth context as unavailable.
+    if (initial.status === 401) {
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase.auth.refreshSession();
+      const refreshedToken = data.session?.access_token ?? null;
+      if (!error && refreshedToken && refreshedToken !== accessToken) {
+        const retried = await fetchContext(refreshedToken);
+        if (retried.ok && retried.payload) {
+          return retried.payload;
+        }
+      }
+    }
 
-    const roleCandidate = extractRoleCandidate(payload?.role);
-    return { tenantId, role: roleCandidate };
+    return { tenantId: null, role: null };
   } catch {
     return { tenantId: null, role: null };
   }

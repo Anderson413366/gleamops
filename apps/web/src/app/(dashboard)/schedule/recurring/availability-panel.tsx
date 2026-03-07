@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { CalendarDays, Clock4, Trash2 } from 'lucide-react';
 import { CollapsibleCard, Badge, Button, EmptyState } from '@gleamops/ui';
+import { normalizeRoleCode } from '@gleamops/shared';
+import { useRole } from '@/hooks/use-role';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 interface AvailabilityRule {
@@ -36,6 +38,11 @@ function formatTime12(value: string | null): string {
 }
 
 export function AvailabilityPanel() {
+  const { role } = useRole();
+  const normalizedRole = normalizeRoleCode(role);
+  const canArchiveRules = normalizedRole === 'OWNER_ADMIN'
+    || normalizedRole === 'MANAGER'
+    || normalizedRole === 'SUPERVISOR';
   const [rules, setRules] = useState<AvailabilityRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [archiving, setArchiving] = useState<string | null>(null);
@@ -65,6 +72,7 @@ export function AvailabilityPanel() {
   useEffect(() => { void fetchRules(); }, [fetchRules]);
 
   const archiveRule = useCallback(async (ruleId: string) => {
+    if (!canArchiveRules) return;
     setArchiving(ruleId);
     try {
       const resp = await fetch(`/api/operations/schedule/availability/${ruleId}/archive`, { method: 'POST' });
@@ -72,7 +80,7 @@ export function AvailabilityPanel() {
     } finally {
       setArchiving(null);
     }
-  }, [fetchRules]);
+  }, [canArchiveRules, fetchRules]);
 
   const unavailableCount = rules.filter((r) => r.availability_type === 'UNAVAILABLE').length;
 
@@ -138,7 +146,7 @@ export function AvailabilityPanel() {
                 size="sm"
                 variant="secondary"
                 className="h-7 text-xs shrink-0"
-                disabled={archiving === rule.id}
+                disabled={archiving === rule.id || !canArchiveRules}
                 onClick={() => archiveRule(rule.id)}
               >
                 <Trash2 className="h-3 w-3" />

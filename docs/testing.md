@@ -72,3 +72,19 @@ Required GitHub secrets:
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `QA_AUTOMATION_PASSWORD`
 - optional: `QA_TENANT_ID` (defaults to `TNT-0001` tenant UUID in script)
+
+## 5) QA artifact handling policy
+
+Purpose:
+- keep repo history clean while preserving certification evidence.
+
+Policy:
+- machine-generated run artifacts (`.tmp-*.json/.log/.png`) are local-only and git-ignored.
+- human sign-off reports belong in `docs/deep-module-audits/` and should be committed.
+- never commit raw credentials, auth tokens, or local environment files.
+- prefer deterministic artifact names with timestamps and module labels.
+
+Operational rules:
+- after each deep/exhaustive run, extract key evidence into the signed report and keep raw artifacts local.
+- before commit, verify `git status` contains only intentional source/doc changes.
+- if a run artifact must be shared, attach it out-of-band (not via git commit).

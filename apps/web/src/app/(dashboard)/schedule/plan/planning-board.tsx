@@ -54,14 +54,14 @@ const COLUMNS: { key: PlanningStatus; label: string }[] = [
 
 const TICKET_SELECT_V2 = `
   id, ticket_code, scheduled_date, start_time, end_time, status,
-  planning_status, required_staff_count, position_code,
+  planning_status, required_staff_count, position_code, notes,
   site:site_id(id, name, site_code),
   assignments:ticket_assignments(id, assignment_status, staff_id, staff:staff_id(full_name))
 `;
 
 const TICKET_SELECT_LEGACY = `
   id, ticket_code, scheduled_date, start_time, end_time, status,
-  position_code,
+  position_code, notes,
   site:site_id(id, name, site_code),
   assignments:ticket_assignments(id, assignment_status, staff_id, staff:staff_id(full_name))
 `;

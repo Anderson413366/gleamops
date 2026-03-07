@@ -10,7 +10,7 @@ This folder tracks module-by-module deep audits (full CRUD/validation/connectivi
 ## Status Backlog
 - Home + Search/⌘K — Done (No-Go, see `2026-03-05-home-search-owner-manager.md`)
 - Staff Schedule — Not Started
-- Dispatch — Not Started
+- Dispatch — Done (Go for OWNER_ADMIN + MANAGER post-deploy closure, see `2026-03-07-dispatch-owner-manager.md`)
 - Work Orders — Not Started
 - Field Tools — Not Started
 - Client Hub — Not Started

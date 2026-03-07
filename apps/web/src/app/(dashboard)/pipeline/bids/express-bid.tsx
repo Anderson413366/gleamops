@@ -98,9 +98,9 @@ export function ExpressBid({ open, onClose, onSuccess }: ExpressBidProps) {
       .then(({ data }) => {
         if (data) setClients(data.map((c) => ({ value: c.id, label: `${c.name} (${c.client_code})` })));
       });
-    supabase.from('services').select('id, name, code').is('archived_at', null).order('name')
+    supabase.from('services').select('id, name, service_code').is('archived_at', null).order('name')
       .then(({ data }) => {
-        if (data) setServices(data.map((s) => ({ value: s.id, label: `${s.name} (${s.code})` })));
+        if (data) setServices(data.map((s) => ({ value: s.id, label: `${s.name} (${s.service_code ?? ''})` })));
       });
     supabase.from('task_production_rates').select('*, task:task_id(code)').eq('is_active', true)
       .then(({ data }) => {

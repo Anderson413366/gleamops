@@ -456,9 +456,9 @@ export function BidWizard({ open, onClose, onSuccess, editBidId }: BidWizardProp
       .then(({ data }) => {
         if (data) setClients(data.map((c) => ({ value: c.id, label: `${c.name} (${c.client_code})` })));
       });
-    supabase.from('services').select('id, name, code').is('archived_at', null).order('name')
+    supabase.from('services').select('id, name, service_code').is('archived_at', null).order('name')
       .then(({ data }) => {
-        if (data) setServices(data.map((s) => ({ value: s.id, label: `${s.name} (${s.code})` })));
+        if (data) setServices(data.map((s) => ({ value: s.id, label: `${s.name} (${s.service_code ?? ''})` })));
       });
     supabase.from('sales_opportunities').select('id, name, opportunity_code, stage_code')
       .is('archived_at', null)

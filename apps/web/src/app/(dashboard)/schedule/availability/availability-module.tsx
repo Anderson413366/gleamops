@@ -5,6 +5,8 @@ import { Plus, X, Check, MessageSquare, AlertTriangle } from 'lucide-react';
 import { Button, Card, CardContent, EmptyState, Badge, Input } from '@gleamops/ui';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
+import { useRole } from '@/hooks/use-role';
+import { normalizeRoleCode } from '@gleamops/shared';
 import { toast } from 'sonner';
 
 // ---------------------------------------------------------------------------
@@ -204,6 +206,7 @@ function AvailabilityPopover({
 
 export function AvailabilityModule() {
   const { tenantId } = useAuth();
+  const { role } = useRole();
   const [subView, setSubView] = useState<'requests' | 'weekly'>('weekly');
   const [allStaff, setAllStaff] = useState<StaffOption[]>([]);
   const [selectedStaffIds, setSelectedStaffIds] = useState<string[]>([]);
@@ -219,6 +222,9 @@ export function AvailabilityModule() {
   const isAllSelected = selectedStaffIds.length === 0;
   const isSingleEmployee = selectedStaffIds.length === 1;
   const canEdit = isSingleEmployee;
+  const normalizedRole = normalizeRoleCode(role);
+  const canManageAvailabilityRequests =
+    normalizedRole === 'OWNER_ADMIN' || normalizedRole === 'MANAGER' || normalizedRole === 'SUPERVISOR';
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -345,6 +351,10 @@ export function AvailabilityModule() {
   }
 
   async function handleApproveSelected() {
+    if (!canManageAvailabilityRequests) {
+      toast.info('Requests are read-only for your role.');
+      return;
+    }
     const selectedIds = [...selected];
     if (selectedIds.length === 0) return;
     setBulkAction('approve');
@@ -365,6 +375,10 @@ export function AvailabilityModule() {
   }
 
   async function handleDeclineSelected() {
+    if (!canManageAvailabilityRequests) {
+      toast.info('Requests are read-only for your role.');
+      return;
+    }
     const selectedIds = [...selected];
     if (selectedIds.length === 0) return;
     setBulkAction('decline');
@@ -401,6 +415,7 @@ export function AvailabilityModule() {
   }
 
   const toggleSelectAll = () => {
+    if (!canManageAvailabilityRequests) return;
     if (selected.size === pendingRequests.length) setSelected(new Set());
     else setSelected(new Set(pendingRequests.map((r) => r.id)));
   };
@@ -575,16 +590,22 @@ export function AvailabilityModule() {
           ) : (
             <div className="space-y-2">
               <div className="flex items-center justify-between mb-2">
-                <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <input
-                    type="checkbox"
-                    checked={selected.size === pendingRequests.length && pendingRequests.length > 0}
-                    onChange={toggleSelectAll}
-                    className="rounded border-border"
-                  />
-                  Select All
-                </label>
-                {selected.size > 0 && (
+                {canManageAvailabilityRequests ? (
+                  <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={selected.size === pendingRequests.length && pendingRequests.length > 0}
+                      onChange={toggleSelectAll}
+                      className="rounded border-border"
+                    />
+                    Select All
+                  </label>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Requests are read-only for your role. Supervisors and managers can approve or decline.
+                  </p>
+                )}
+                {canManageAvailabilityRequests && selected.size > 0 && (
                   <div className="flex items-center gap-2">
                     <Button
                       variant="secondary"
@@ -609,19 +630,21 @@ export function AvailabilityModule() {
               </div>
               {pendingRequests.map((req) => (
                 <div key={req.id} className="flex items-center gap-3 rounded-lg border border-border p-3">
-                  <input
-                    type="checkbox"
-                    checked={selected.has(req.id)}
-                    onChange={() => {
-                      setSelected((prev) => {
-                        const next = new Set(prev);
-                        if (next.has(req.id)) next.delete(req.id);
-                        else next.add(req.id);
-                        return next;
-                      });
-                    }}
-                    className="rounded border-border"
-                  />
+                  {canManageAvailabilityRequests && (
+                    <input
+                      type="checkbox"
+                      checked={selected.has(req.id)}
+                      onChange={() => {
+                        setSelected((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(req.id)) next.delete(req.id);
+                          else next.add(req.id);
+                          return next;
+                        });
+                      }}
+                      className="rounded border-border"
+                    />
+                  )}
                   <div className="flex-1">
                     <p className="text-sm font-medium text-foreground">{req.staff_name}</p>
                     <p className="text-xs text-muted-foreground">

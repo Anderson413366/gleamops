@@ -37,6 +37,7 @@
 | 08 | [Supabase Architecture](./08-supabase-architecture.md) | Tables, triggers, functions, RLS, multi-tenant design |
 | 09 | [Developer Workflows](./09-developer-workflows.md) | How to add entities, pages, tabs, modules (step-by-step) |
 | 10 | [Form Field Reference](./10-form-field-reference.md) | Every form, every field — tree-branch layout (38 forms, ~344 fields) |
+| 11 | [Module-by-Module Guide](./11-module-map.md) | One-file crosswalk for every production module and where it lives |
 
 ### Module Guides
 

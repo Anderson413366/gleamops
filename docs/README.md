@@ -45,7 +45,7 @@
 
 ## User Manual
 
-40-file instruction manual in [`manual/`](manual/README.md) — module guides, field dictionaries, navigation, troubleshooting.
+40-file instruction manual in [`manual/`](manual/README.md) — module guides, field dictionaries, navigation, troubleshooting, and a one-file [module-by-module guide](manual/11-module-map.md).
 
 ## QA Evidence
 

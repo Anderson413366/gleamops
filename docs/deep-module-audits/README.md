@@ -26,7 +26,7 @@ This folder tracks deep audits beyond route-level smoke:
 | Module | Current status | Roles / scope | Canonical evidence | Notes |
 | --- | --- | --- | --- | --- |
 | Home + Search / Command Palette | `GO` | `OWNER_ADMIN`, `MANAGER` | [`../phase-2-certification-signoff-2026-03-06.md`](../phase-2-certification-signoff-2026-03-06.md) | Earlier `NO-GO` in [`2026-03-05-home-search-owner-manager.md`](2026-03-05-home-search-owner-manager.md) is preserved as historical failure evidence and superseded by the 2026-03-06 production rerun. |
-| Staff Schedule | `PARTIAL` | `OWNER_ADMIN`, `MANAGER`, `SUPERVISOR` are green; `CLEANER`, `INSPECTOR` are blocked | [`../phase-2-certification-signoff-2026-03-06.md`](../phase-2-certification-signoff-2026-03-06.md) | Current blocker is `ROLEEXT-STAFF-001` in Leave & Availability for `CLEANER` / `INSPECTOR`. Dedicated module report is still pending migration into this folder. |
+| Staff Schedule | `GO` | `OWNER_ADMIN`, `MANAGER`, `SUPERVISOR`, `CLEANER`, `INSPECTOR` | [`2026-03-07-staff-schedule-cleaner-inspector.md`](2026-03-07-staff-schedule-cleaner-inspector.md) | `ROLEEXT-STAFF-001` is closed on production after the focused cleaner/inspector closure rerun. Earlier 2026-03-06 `NO-GO` evidence remains historical. |
 | Dispatch | `GO` | `OWNER_ADMIN`, `MANAGER` | [`2026-03-07-dispatch-owner-manager.md`](2026-03-07-dispatch-owner-manager.md) | Latest post-deploy closure after notes-persistence fix (`eb26c32`). |
 | Work Orders | `COVERED` | `OWNER_ADMIN`, `MANAGER` | [`../phase-2-certification-signoff-2026-03-06.md`](../phase-2-certification-signoff-2026-03-06.md) | Included in the consolidated deep remaining-modules rerun; dedicated module report pending. |
 | Field Tools | `COVERED` | `OWNER_ADMIN`, `MANAGER` | [`../phase-2-certification-signoff-2026-03-06.md`](../phase-2-certification-signoff-2026-03-06.md) | Included in the consolidated deep remaining-modules rerun; dedicated module report pending. |
@@ -52,11 +52,12 @@ This folder tracks deep audits beyond route-level smoke:
   - Focused Staff Schedule role-control certification is green in the 2026-03-06 addendum.
 - `CLEANER` + `INSPECTOR`
   - Broad accelerated production sweep is green in [`../phase-2-certification-signoff-2026-03-04.md`](../phase-2-certification-signoff-2026-03-04.md).
-  - Deep Staff Schedule role-extension status remains `NO-GO` until `ROLEEXT-STAFF-001` is fixed and re-verified.
+  - Focused Staff Schedule closure rerun is now green in [`2026-03-07-staff-schedule-cleaner-inspector.md`](2026-03-07-staff-schedule-cleaner-inspector.md).
 
 ## Historical Supersessions
 - [`2026-03-05-home-search-owner-manager.md`](2026-03-05-home-search-owner-manager.md) captures the original Home + Search `NO-GO`; it is not the current module status.
 - [`2026-03-07-dispatch-owner-manager.md`](2026-03-07-dispatch-owner-manager.md) is the current Dispatch source of truth and supersedes earlier pre-fix raw artifacts referenced from phase sign-offs.
+- The 2026-03-06 Staff Schedule role-extension `NO-GO` in [`../phase-2-certification-signoff-2026-03-06.md`](../phase-2-certification-signoff-2026-03-06.md) is superseded by [`2026-03-07-staff-schedule-cleaner-inspector.md`](2026-03-07-staff-schedule-cleaner-inspector.md).
 
 ## Execution Artifacts
 - Machine-readable run artifacts are written to repo root as `.tmp-deep-*.json`.

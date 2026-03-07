@@ -151,3 +151,39 @@
 ### Addendum Verdict
 - **SUPERVISOR:** GO
 - **CLEANER/INSPECTOR:** NO-GO until `ROLEEXT-STAFF-001` is fixed and re-verified
+
+---
+
+## Role Extension Closure Addendum (2026-03-07)
+
+### Release Context
+- **Repo commit:** `72f5038`
+- **Production deployment ID:** `dpl_FzJ6GsCyaqnh5GHWq47ZpAhLsrMV`
+- **Production deployment URL:** `https://gleamops-gxhdbr4z1-andersons-projects-c6f0399d.vercel.app`
+- **Production alias:** `https://gleamops.vercel.app`
+- **Deploy status:** Ready (verified by `vercel inspect`)
+
+### Scope
+- Focused production closure rerun for Staff Schedule role extension:
+  - `CLEANER`
+  - `INSPECTOR`
+
+### Closure Artifact
+- `/Users/andersongomes/claude_sandbox/gleamops_dev_pack/.tmp-roleext-staffschedule-cleaner-inspector-20260307-live-postauth.json`
+
+### Closure Outcome
+- `routesFailed: 0`
+- `interactionsFailed: 0`
+- `networkFailures: 0`
+- `consoleErrors: 0`
+- `pageErrors: 0`
+
+### Closure Notes
+- `ROLEEXT-STAFF-001` is closed on production.
+- The earlier unauthorized availability-action mismatch was removed by the shared Staff Schedule permission gating shipped in `59c1ac2`.
+- The transient inspector-only auth/session fetch console error seen on the earlier 2026-03-07 rerun no longer reproduces after `72f5038`.
+
+### Closure Verdict
+- **CLEANER:** GO
+- **INSPECTOR:** GO
+- **ROLEEXT-STAFF-001:** Closed

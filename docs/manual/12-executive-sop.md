@@ -955,7 +955,9 @@ If you want:
 
 - the detailed screen-by-screen manual: [Instruction Manual Index](./README.md)
 - the one-file module crosswalk: [Module-by-Module Guide](./11-module-map.md)
+- the slide-ready leadership narrative: [Board-Deck Summary](./13-board-deck-summary.md)
+- the functional ownership view: [Department-by-Department SOP](./14-department-sop.md)
+- the frontline leadership training guide: [Manager and Supervisor Training Handbook](./15-manager-supervisor-training.md)
 - the technical system view: [Architecture Overview](./03-architecture-overview.md)
 - the entity relationship view: [Data Model Overview](./04-data-model-overview.md)
 - the role access model: [Roles & Permissions](./02-roles-permissions.md)
-

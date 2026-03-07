@@ -45,7 +45,7 @@
 
 ## User Manual
 
-Instruction manual in [`manual/`](manual/README.md) — module guides, field dictionaries, navigation, troubleshooting, a one-file [module-by-module guide](manual/11-module-map.md), and an [executive-facing SOP](manual/12-executive-sop.md).
+Instruction manual in [`manual/`](manual/README.md) — module guides, field dictionaries, navigation, troubleshooting, a one-file [module-by-module guide](manual/11-module-map.md), an [executive-facing SOP](manual/12-executive-sop.md), a [board-deck summary](manual/13-board-deck-summary.md), a [department-by-department SOP](manual/14-department-sop.md), and a [manager/supervisor training handbook](manual/15-manager-supervisor-training.md).
 
 ## QA Evidence
 

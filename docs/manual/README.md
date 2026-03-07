@@ -39,6 +39,9 @@
 | 10 | [Form Field Reference](./10-form-field-reference.md) | Every form, every field — tree-branch layout (38 forms, ~344 fields) |
 | 11 | [Module-by-Module Guide](./11-module-map.md) | One-file crosswalk for every production module and where it lives |
 | 12 | [Executive SOP](./12-executive-sop.md) | Executive-facing guide to the full app: module ownership, architecture, brain map, and operating flow |
+| 13 | [Board-Deck Summary](./13-board-deck-summary.md) | Slide-style leadership summary for reviews, board updates, and executive presentations |
+| 14 | [Department-by-Department SOP](./14-department-sop.md) | Functional ownership guide for sales, ops, field leadership, HR, procurement, compliance, and leadership |
+| 15 | [Manager and Supervisor Training Handbook](./15-manager-supervisor-training.md) | Role-based training guide for frontline leaders who run planning and day-of execution |
 
 ### Module Guides
 

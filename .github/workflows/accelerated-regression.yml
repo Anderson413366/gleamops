@@ -21,7 +21,17 @@ concurrency:
 
 jobs:
   accelerated-regression:
-    if: ${{ github.event_name != 'deployment_status' || github.event.deployment_status.state == 'success' }}
+    if: >-
+      ${{
+        github.event_name != 'deployment_status' ||
+        (
+          github.event.deployment_status.state == 'success' &&
+          (
+            github.event.deployment.environment == 'Production' ||
+            github.event.deployment.environment == 'production'
+          )
+        )
+      }}
     runs-on: ubuntu-latest
     timeout-minutes: 35
 
@@ -94,6 +104,35 @@ jobs:
         env:
           DISPATCH_BASE_URL: ${{ github.event.inputs.base_url || '' }}
 
+      - name: Wait for Vercel deploy of this commit
+        if: ${{ github.event_name == 'workflow_dispatch' && steps.resolve.outputs.base_url == env.DEFAULT_BASE_URL }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          repo="${GITHUB_REPOSITORY}"
+          sha="${GITHUB_SHA}"
+          max_attempts=40
+          sleep_seconds=15
+          attempt=1
+          while [ "$attempt" -le "$max_attempts" ]; do
+            vercel_state="$(gh api "repos/${repo}/commits/${sha}/status" --jq '.statuses[] | select(.context == "Vercel") | .state' | head -n1 || true)"
+            if [ "$vercel_state" = "success" ]; then
+              echo "Vercel deployment is ready for commit ${sha}."
+              exit 0
+            fi
+            if [ "$vercel_state" = "failure" ] || [ "$vercel_state" = "error" ]; then
+              echo "Vercel deployment failed for commit ${sha}."
+              exit 1
+            fi
+            echo "Waiting for Vercel deployment on commit ${sha} (attempt ${attempt}/${max_attempts})..."
+            attempt=$((attempt + 1))
+            sleep "$sleep_seconds"
+          done
+
+          echo "Timed out waiting for Vercel deployment on commit ${sha}."
+          exit 1
+
       - name: Ensure QA role users
         run: |
           pnpm --dir apps/web exec node e2e/qa-role-users.mjs \
@@ -122,4 +161,5 @@ jobs:
           path: |
             .tmp-ci-accelerated-backlog.json
             reports/*.png
+          include-hidden-files: true
           if-no-files-found: warn
